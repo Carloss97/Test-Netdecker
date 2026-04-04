@@ -22,6 +22,7 @@ const SOURCE_LABELS: Record<string, string> = {
   scryfall: 'Scryfall',
   pokemontcg: 'Pokémon TCG API',
   ygoprodeck: 'YGOPRODeck',
+  onepiecetcg: 'One Piece TCG',
 };
 
 function PriceTag({ label, value }: { label: string; value?: number }) {
@@ -290,128 +291,159 @@ export function ExternalCardSearch() {
   return (
     <div className="section-card" style={{ marginTop: 24 }}>
       <div className="hero-panel" style={{ marginBottom: 20 }}>
-        <span className="badge" style={{ marginBottom: 10 }}>Bases externas</span>
-        <h2 className="hero-title">Importa sets completos desde fuentes oficiales</h2>
+        <span className="badge" style={{ marginBottom: 10 }}>📦 External Data Sources</span>
+        <h2 className="hero-title">Search & Import Cards from Official TCG APIs</h2>
         <p className="hero-subtitle">
-          Busca, revisa imágenes y precios, y manda al catálogo local cartas de Magic, Pokémon y Yu-Gi-Oh! con un flujo pensado para operación rápida.
+          Browse, preview prices and images, then import cards for Magic, Pokémon, Yu-Gi-Oh!, and One Piece directly to your catalog with a streamlined workflow designed for fast operations.
         </p>
       </div>
 
       {/* TCG selector */}
       <div className="surface-card" style={{ marginBottom: 16, padding: 16 }}>
-        {(Object.keys(TCG_LABELS) as TCGParam[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setTcg(t);
-              setResults([]);
-              setSets([]);
-              setBulkResult(null);
-            }}
-            style={{
-              marginRight: 8,
-              padding: '6px 14px',
-              borderRadius: 4,
-              border: '1px solid #ccc',
-              background: tcg === t ? '#1976d2' : '#fff',
-              color: tcg === t ? '#fff' : '#333',
-              cursor: 'pointer',
-            }}
-          >
-            {TCG_LABELS[t]}
-          </button>
-        ))}
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 10, color: '#333' }}>Select TCG</label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(Object.keys(TCG_LABELS) as TCGParam[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                setTcg(t);
+                setResults([]);
+                setSets([]);
+                setBulkResult(null);
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 6,
+                border: tcg === t ? '2px solid #1976d2' : '1px solid #ddd',
+                background: tcg === t ? '#1976d2' : '#fff',
+                color: tcg === t ? '#fff' : '#333',
+                cursor: 'pointer',
+                fontWeight: tcg === t ? 600 : 400,
+                transition: 'all 0.2s'
+              }}
+            >
+              {TCG_LABELS[t]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search form */}
-      <form onSubmit={handleSearch} className="surface-card" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', padding: 16 }}>
-        <input
-          type="text"
-          placeholder="Card name…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ padding: '8px', flex: '1 1 200px' }}
-        />
-        <input
-          type="text"
-          placeholder="Set code (optional)"
-          value={setCode}
-          onChange={(e) => setSetCode(e.target.value)}
-          style={{ padding: '8px', width: 140 }}
-        />
-        <button type="submit" disabled={loading} style={{ padding: '8px 16px' }}>
-          {loading ? 'Searching…' : 'Search'}
+      <form onSubmit={handleSearch} className="surface-card" style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', padding: 16, alignItems: 'flex-end' }}>
+        <div style={{ flex: '1 1 200px' }}>
+          <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>Card Name</label>
+          <input
+            type="text"
+            placeholder="e.g. Blue-Eyes, Pikachu…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ padding: '8px 10px', width: '100%', border: '1px solid #ddd', borderRadius: 4 }}
+          />
+        </div>
+        <div style={{ flex: '0 1 140px' }}>
+          <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>Set Code</label>
+          <input
+            type="text"
+            placeholder="Optional"
+            value={setCode}
+            onChange={(e) => setSetCode(e.target.value)}
+            style={{ padding: '8px 10px', width: '100%', border: '1px solid #ddd', borderRadius: 4 }}
+          />
+        </div>
+        <button type="submit" disabled={loading} style={{ padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+          {loading ? '🔍 Searching…' : '🔍 Search'}
         </button>
         {results.length > 0 && (
           <button
             type="button"
             onClick={handleImportAll}
             disabled={importingAll}
-            style={{ padding: '8px 16px', background: '#388e3c', color: '#fff', border: 'none', borderRadius: 4 }}
+            style={{ padding: '8px 16px', background: '#388e3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
           >
-            {importingAll ? 'Importing…' : `Import All (${results.length})`}
+            {importingAll ? '⬆ Importing…' : `⬆ Import All (${results.length})`}
           </button>
         )}
       </form>
 
       {/* Set bulk import */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
-        <input
-          type="text"
-          placeholder="Import full set by code (e.g. MH3)"
-          value={importSetCode}
-          onChange={(e) => setImportSetCode(e.target.value)}
-          style={{ padding: '8px', width: 260 }}
-        />
-        <button
-          onClick={handleImportSet}
-          disabled={importingAll || !importSetCode.trim()}
-          style={{ padding: '8px 16px', background: '#7b1fa2', color: '#fff', border: 'none', borderRadius: 4 }}
-        >
-          {importingAll ? 'Importing…' : 'Import Set'}
-        </button>
-        <button
-          onClick={handleLoadSets}
-          disabled={loadingSets}
-          style={{ padding: '8px 16px' }}
-        >
-          {loadingSets ? 'Loading…' : 'Browse Sets'}
-        </button>
+      <div className="surface-card" style={{ marginBottom: 20, padding: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Import Full Set</h3>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Import full set by code (e.g. MH3)"
+            value={importSetCode}
+            onChange={(e) => setImportSetCode(e.target.value)}
+            style={{ padding: '8px', flex: 1, minWidth: 200 }}
+          />
+          <button
+            onClick={handleImportSet}
+            disabled={importingAll || !importSetCode.trim()}
+            style={{ padding: '8px 16px', background: '#7b1fa2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+          >
+            {importingAll ? 'Importing…' : 'Import Set'}
+          </button>
+          <button
+            onClick={handleLoadSets}
+            disabled={loadingSets}
+            style={{ padding: '8px 16px', cursor: 'pointer' }}
+          >
+            {loadingSets ? 'Loading…' : 'Browse Sets'}
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
       {error && (
-        <div style={{ background: '#ffebee', border: '1px solid #ef9a9a', borderRadius: 4, padding: 10, marginBottom: 12, color: '#c62828' }}>
-          {error}
+        <div style={{ background: '#ffebee', border: '1px solid #ef9a9a', borderRadius: 4, padding: 12, marginBottom: 12, color: '#c62828', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>❌</span>
+          <div>{error}</div>
         </div>
       )}
       {successMsg && (
-        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 4, padding: 10, marginBottom: 12, color: '#2e7d32' }}>
-          {successMsg}
+        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 4, padding: 12, marginBottom: 12, color: '#2e7d32', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>✅</span>
+          <div>{successMsg}</div>
         </div>
       )}
       {bulkResult && (
-        <div style={{ background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 4, padding: 10, marginBottom: 12 }}>
-          Import complete — total: {bulkResult.total} | created: {bulkResult.created} | updated:{' '}
-          {bulkResult.updated} | skipped: {bulkResult.skipped}
+        <div style={{ background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 4, padding: 12, marginBottom: 12, display: 'flex', gap: 16, alignItems: 'center' }}>
+          <span>📦</span>
+          <div>
+            <strong>Import complete</strong> — Total: <strong>{bulkResult.total}</strong> | Created: <strong>{bulkResult.created}</strong> | Updated: <strong>{bulkResult.updated}</strong> | Skipped: <strong>{bulkResult.skipped}</strong>
+          </div>
         </div>
       )}
 
       {/* Sets list */}
       {sets.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <h3>Available Sets ({sets.length})</h3>
-          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4 }}>
+        <div className="surface-card" style={{ marginBottom: 20, padding: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Available Sets ({sets.length})</h3>
+          <div style={{ maxHeight: 350, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4 }}>
             {sets.map((s) => (
               <div
                 key={s.code}
-                style={{ padding: '6px 12px', borderBottom: '1px solid #f5f5f5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
+                style={{
+                  padding: '10px 12px',
+                  borderBottom: '1px solid #f5f5f5',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  transition: 'background 0.2s',
+                  backgroundColor: importSetCode === s.code ? '#f0f4ff' : 'transparent'
+                }}
                 onClick={() => setImportSetCode(s.code)}
+                onMouseEnter={(e) => { if (importSetCode !== s.code) e.currentTarget.style.backgroundColor = '#f9f9f9'; }}
+                onMouseLeave={(e) => { if (importSetCode !== s.code) e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
-                <span><strong>{s.code}</strong> — {s.name}</span>
-                <span style={{ color: '#888', fontSize: 12 }}>
+                <div>
+                  <strong style={{ color: '#1976d2', fontSize: 13 }}>{s.code}</strong>
+                  <span style={{ marginLeft: 8, color: '#333' }}>{s.name}</span>
+                </div>
+                <span style={{ color: '#888', fontSize: 12, whiteSpace: 'nowrap', marginLeft: 12 }}>
                   {s.totalCards != null ? `${s.totalCards} cards` : ''}
-                  {s.releaseDate ? ` · ${s.releaseDate}` : ''}
+                  {s.releaseDate ? ` • ${s.releaseDate}` : ''}
                 </span>
               </div>
             ))}
@@ -426,8 +458,8 @@ export function ExternalCardSearch() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: 16,
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: 12,
             }}
           >
             {results.map((card) => (
@@ -436,30 +468,46 @@ export function ExternalCardSearch() {
                 style={{
                   border: '1px solid #e0e0e0',
                   borderRadius: 8,
-                  padding: 12,
+                  padding: 10,
                   background: '#fff',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 8,
+                  transition: 'box-shadow 0.2s, transform 0.2s',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
+                }}
+                onClick={() => setModalCard(card)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12)';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 {card.imageUrl && (
                   <img
                     src={card.imageUrl}
                     alt={card.cardName}
-                    style={{ width: '100%', borderRadius: 4, objectFit: 'contain', maxHeight: 200 }}
+                    style={{ width: '100%', borderRadius: 4, objectFit: 'contain', maxHeight: 180 }}
                     loading="lazy"
                   />
                 )}
-                <strong style={{ fontSize: 14 }}>{card.cardName}</strong>
-                <span style={{ fontSize: 12, color: '#555' }}>
-                  {card.editionName}
-                  {card.cardNumber ? ` #${card.cardNumber}` : ''}
-                </span>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ fontSize: 13, lineHeight: 1.3 }}>{card.cardName}</strong>
+                  <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
+                    {card.editionName}
+                    {card.cardNumber ? ` #${card.cardNumber}` : ''}
+                  </div>
+                </div>
                 {card.rarity && (
-                  <span style={{ fontSize: 11, color: '#888' }}>{card.rarity}</span>
+                  <span style={{ fontSize: 10, color: '#1976d2', fontWeight: 500 }}>
+                    {card.rarity}
+                  </span>
                 )}
-                <div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <PriceTag label="Low" value={card.priceLow} />
                   <PriceTag label="Mid" value={card.priceMid} />
                   <PriceTag label="Mkt" value={card.priceMarket} />

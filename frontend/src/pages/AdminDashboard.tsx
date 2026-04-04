@@ -128,9 +128,9 @@ export function AdminDashboardPage() {
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0 }}>Admin Dashboard</h2>
-        <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer' }}>
-          Refresh
+        <h2 style={{ margin: 0 }}>⚙️ Admin Dashboard</h2>
+        <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #ddd', background: '#fff' }}>
+          🔄 Refresh
         </button>
       </div>
 
@@ -141,39 +141,60 @@ export function AdminDashboardPage() {
         </p>
       )}
 
-      <Section title="Catalog Sync Console">
+      <Section title="🗂️ Catalog Sync Console">
         <div className="surface-card" style={{ padding: 16, marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-            <select value={catalogTcg} onChange={(e) => setCatalogTcg(e.target.value as any)}>
-              <option value="">All TCGs</option>
-              <option value="MAGIC">Magic</option>
-              <option value="POKEMON">Pokémon</option>
-              <option value="YUGIOH">Yu-Gi-Oh!</option>
-            </select>
-            <input placeholder="Set code (ej. MH3)" value={setCode} onChange={(e) => setSetCode(e.target.value)} />
-            <input placeholder="Limit de sets" value={setLimit} onChange={(e) => setSetLimit(e.target.value)} />
-            <input placeholder="Cantidad inicial" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} />
-            <input placeholder="Margen" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} />
-            <input placeholder="Concurrency" value={concurrency} onChange={(e) => setConcurrency(e.target.value)} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>TCG</label>
+              <select value={catalogTcg} onChange={(e) => setCatalogTcg(e.target.value as any)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}>
+                <option value="">All TCGs</option>
+                <option value="MAGIC">Magic</option>
+                <option value="POKEMON">Pokémon</option>
+                <option value="YUGIOH">Yu-Gi-Oh!</option>
+                <option value="ONE_PIECE" disabled>One Piece (search only)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Set Code</label>
+              <input placeholder="e.g. MH3" value={setCode} onChange={(e) => setSetCode(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Set Limit</label>
+              <input placeholder="Max sets" value={setLimit} onChange={(e) => setSetLimit(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Initial Qty</label>
+              <input placeholder="0" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margin</label>
+              <input placeholder="1.2" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Concurrency</label>
+              <input placeholder="4" value={concurrency} onChange={(e) => setConcurrency(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
               <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
-              Dry run
+              <span style={{ fontSize: 13 }}>Dry run</span>
             </label>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
               <input type="checkbox" checked={createListings} onChange={(e) => setCreateListings(e.target.checked)} />
-              Crear listings
+              <span style={{ fontSize: 13 }}>Create listings</span>
             </label>
-            <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null}>
-              {catalogActionLoading === 'bootstrap' ? 'Bootstrapping...' : 'Bootstrap catálogo'}
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
+              {catalogActionLoading === 'bootstrap' ? '⏳ Bootstrapping...' : '▶️ Bootstrap'}
             </button>
-            <button type="button" onClick={handleSyncCatalog} disabled={catalogActionLoading !== null}>
-              {catalogActionLoading === 'sync' ? 'Syncing...' : 'Sync sets nuevos'}
+            <button type="button" onClick={handleSyncCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#388e3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
+              {catalogActionLoading === 'sync' ? '⏳ Syncing...' : '🔄 Sync New Sets'}
             </button>
           </div>
-          <p className="muted" style={{ marginTop: 12 }}>
-            Esta consola permite poblar el catálogo histórico o sincronizar solo sets nuevos directamente desde el dashboard.
+          <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
+            Populate historical catalog or sync new sets directly from this console. Only works with Magic, Pokémon, and Yu-Gi-Oh!
           </p>
         </div>
 
