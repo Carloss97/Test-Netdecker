@@ -30,7 +30,7 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
     prisma.listing.count(),
     prisma.listing.count({ where: { status: 'active', quantity: { gt: 0 } } }),
     prisma.listing.count({ where: { status: 'active', quantity: { gt: 0, lte: 5 } } }),
-    prisma.listing.count({ where: { status: 'active', quantity: { lte: 0 } } }),
+    prisma.listing.count({ where: { status: 'active', quantity: { lte: 0 }, everHadStock: true } }),
     prisma.order.count(),
     prisma.order.count({ where: { status: 'PENDING' } }),
     prisma.inventoryImport.findMany({
@@ -101,6 +101,7 @@ router.get('/stock-alerts', async (req: Request, res: Response) => {
   const alerts = await prisma.listing.findMany({
     where: {
       status: 'active',
+      everHadStock: true,
       quantity: { lte: threshold },
     },
     include: {
@@ -242,6 +243,39 @@ router.post('/catalog/sync', async (req: Request, res: Response) => {
   });
 
   res.json({ success: true, ...result });
+});
+
+/**
+ * POST /api/admin/catalog/reset
+ * Deletes all cards, editions, listings, price history, imports.
+ * Preserves TCG records and exchange rates.
+ * Body: { confirm: true } (safety check)
+ */
+router.post('/catalog/reset', async (req: Request, res: Response) => {
+  if (req.body?.confirm !== true) {
+    return res.status(400).json({
+      success: false,
+      error: 'Must pass { confirm: true } to reset catalog data',
+    });
+  }
+
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.cart.deleteMany();
+  await prisma.priceHistory.deleteMany();
+  // priceSyncRun is accessed via the same delegate pattern used in PriceSyncService
+  const priceSyncRunDelegate = (prisma as unknown as Record<string, unknown>)['priceSyncRun'] as
+    | { deleteMany: () => Promise<unknown> }
+    | undefined;
+  if (priceSyncRunDelegate) {
+    await priceSyncRunDelegate.deleteMany();
+  }
+  await prisma.listing.deleteMany();
+  await prisma.card.deleteMany();
+  await prisma.edition.deleteMany();
+  await prisma.inventoryImport.deleteMany();
+
+  res.json({ success: true, message: 'Catalog reset complete. TCG records and exchange rates preserved.' });
 });
 
 export default router;

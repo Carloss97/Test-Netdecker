@@ -150,6 +150,9 @@ model Listing {
   status         String   @default("active")  // "active", "discontinued", "reserved"
   lastSyncedAt   DateTime?
 
+  // Tracks whether this listing ever had quantity > 0 (set to true on first stock-in)
+  everHadStock   Boolean  @default(false)
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

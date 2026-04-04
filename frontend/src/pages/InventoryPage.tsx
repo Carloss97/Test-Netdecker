@@ -8,7 +8,6 @@ import {
   importInventoryCsv,
 } from '../services/catalog';
 import type { TCG, EditionWithCounts, CardWithStock } from '../types';
-
 const TCG_META: Record<string, { emoji: string; label: string }> = {
   MAGIC: { emoji: '🧙', label: 'Magic: The Gathering' },
   POKEMON: { emoji: '🎮', label: 'Pokémon' },
@@ -52,6 +51,9 @@ export function InventoryPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Card image preview modal
+  const [previewCard, setPreviewCard] = useState<{ name: string; imageUrl?: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +199,49 @@ export function InventoryPage() {
 
   return (
     <div>
+      {/* Card image preview modal */}
+      {previewCard && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => setPreviewCard(null)}
+        >
+          <div
+            style={{
+              background: 'var(--surface)', borderRadius: 12, padding: 20,
+              maxWidth: 360, width: '90%', textAlign: 'center',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 12, fontSize: '1rem' }}>
+              {previewCard.name}
+            </div>
+            {previewCard.imageUrl ? (
+              <img
+                src={previewCard.imageUrl}
+                alt={previewCard.name}
+                style={{ maxWidth: '100%', borderRadius: 8, maxHeight: 400, objectFit: 'contain' }}
+              />
+            ) : (
+              <div style={{ color: 'var(--text-muted)', padding: '40px 0', fontSize: '0.875rem' }}>
+                Sin imagen disponible
+              </div>
+            )}
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ marginTop: 16 }}
+              onClick={() => setPreviewCard(null)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="error-message" style={{ marginBottom: 16 }}>
           ⚠️ {error}
@@ -361,7 +406,16 @@ export function InventoryPage() {
                           {card.cardNumber ?? idx + 1}
                         </td>
                         <td>
-                          <div style={{ fontWeight: 500 }}>{card.cardName}</div>
+                          <div
+                            style={{ fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => setPreviewCard({ name: card.cardName, imageUrl: card.imageUrl })}
+                            title="Ver imagen de la carta"
+                          >
+                            {card.cardName}
+                            {card.imageUrl && (
+                              <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>🖼</span>
+                            )}
+                          </div>
                           {card.cardCode && (
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{card.cardCode}</div>
                           )}

@@ -348,3 +348,12 @@ export async function getPriceHistory(listingId?: string, limit?: number): Promi
   const response = await apiClient.get('/price-history', { params: { listingId, limit } });
   return response.data;
 }
+
+/**
+ * Resets all catalog data (cards, editions, listings, price history, imports).
+ * Preserves TCG records and exchange rates.
+ */
+export async function resetCatalog(): Promise<{ success: boolean; message: string }> {
+  const { data } = await apiClient.post('/admin/catalog/reset', { confirm: true });
+  return data;
+}

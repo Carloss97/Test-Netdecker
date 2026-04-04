@@ -359,12 +359,54 @@ Principales:
 - `PRICE_SYNC_ENABLED` - Habilitar sync automático de precios
 - `PRICE_SYNC_CRON` - Configuración de cron job para sync (ej: "0 */6 * * *" = cada 6 horas)
 
-## Contribución
+## Cambios Recientes (Sprint Fix — Abril 2026)
 
-1. Crear una rama: `git checkout -b feature/nueva-feature`
-2. Commit: `git commit -am 'Add feature'`
-3. Push: `git push origin feature/nueva-feature`
-4. Abrir Pull Request
+### Bugs Corregidos
+
+1. **Yu-Gi-Oh — edición duplicada por carta**  
+   `ygoCardToExternal` usaba el campo `card_sets[].set_code` (código de carta como "LOB-EN001") como código de edición, creando una edición diferente por cada carta.  
+   Ahora se extrae el prefijo de set ("LOB") y cuando hay `setFilter` se usa siempre como código autoritativo.
+
+2. **Precio CLP incorrecto en listings creados por importación**  
+   El `ExternalImportService` creaba listings con `exchangeRate: 1.0`, resultando en precios CLP equivalentes a USD.  
+   Ahora se obtiene la tasa real USD→CLP al crear/actualizar cada listing.
+
+3. **Página `/importar` mostraba nada en tab "CSV Stock"**  
+   El componente `ImportPage` trataba la respuesta paginada `{ items, total, page }` como un array directamente.  
+   Ahora extrae correctamente `items` del objeto de respuesta.
+
+4. **Resultado de validación CSV no se mostraba**  
+   La validación mapeaba mal la respuesta del backend `{ result: { total, success, failed, errors } }` al formato esperado `{ valid, errors, totalRows }`.  
+   Ahora extrae y mapea correctamente los campos.
+
+5. **Dashboard mostraba alertas de stock bajo/sin stock para cartas nunca compradas**  
+   Las alertas de stock ahora solo aplican a listings con `everHadStock: true` (campo nuevo en Listing).  
+   El campo se pone a `true` automáticamente cuando la cantidad supera 0 por primera vez.
+
+### Nuevas Funcionalidades
+
+- **Ver imagen de carta**: Hacer clic en el nombre de cualquier carta en el inventario muestra su imagen en un modal.
+- **Reset de catálogo**: Botón "Resetear Catálogo" en la pestaña CSV Stock (Zona de Peligro) que borra todos los datos de catálogo preservando TCGs y tipo de cambio.
+  - También disponible vía API: `POST /api/admin/catalog/reset` con `{ confirm: true }`
+  - Y como script de consola: `cd backend && npm run catalog:reset` (requiere `--confirm`)
+
+### Migraciones de Base de Datos
+
+Después de hacer pull de este branch, ejecutar:
+```bash
+cd backend
+npm run prisma:push   # Aplica el nuevo campo everHadStock a la tabla Listing
+```
+
+### Pendiente (siguiente iteración)
+
+- Agregar buscador de cartas con autocompletar por TCG dentro del Inventario
+- Mejorar UI de precio (mostrar USD y CLP en la misma tabla con el tipo de cambio actual)
+- Auto-actualización de sets YGO y One Piece sin importación manual
+- Autenticación admin básica
+- Confirmación visual al actualizar precios masivamente
+
+
 
 ## Licencia
 

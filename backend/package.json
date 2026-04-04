@@ -18,6 +18,8 @@
     "catalog:bootstrap:dry": "tsx src/scripts/bootstrapCatalog.ts --dry-run",
     "catalog:sync": "tsx src/scripts/catalogSync.ts",
     "catalog:sync:dry": "tsx src/scripts/catalogSync.ts --dry-run",
+    "catalog:reset:dry": "tsx src/scripts/resetCatalog.ts",
+    "catalog:reset": "tsx src/scripts/resetCatalog.ts --confirm",
     "prisma:studio": "prisma studio",
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",
