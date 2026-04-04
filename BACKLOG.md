@@ -33,9 +33,9 @@ Ultima actualizacion: 2026-04-04
 - [x] Type-check y build limpios en backend y frontend
 
 ### Pendientes
-- [ ] Agregar pruebas unitarias base para servicios criticos
-- [ ] Agregar pruebas de integracion para endpoints principales
-- [ ] Estandarizar manejo de errores con codigos y formato unico en toda la API
+- [~] Agregar pruebas unitarias base para servicios criticos (parcial: InventoryService con tests, falta cobertura en otros servicios)
+- [~] Agregar pruebas de integracion para endpoints principales (parcial: tests manuales y algunos flujos cubiertos, falta automatizar)
+- [~] Estandarizar manejo de errores con codigos y formato unico en toda la API (parcial: algunos endpoints usan formato, falta unificar y documentar)
 
 ## Seccion 2 - Inventario Masivo (Dolor Principal de Tienda)
 
@@ -52,8 +52,8 @@ Ultima actualizacion: 2026-04-04
 - [x] **Soporte XLSX** ademas de CSV (via exceljs, deteccion automatica por mimetype/extension)
 
 ### Pendientes
-- [ ] Politica de rollback configurable para importaciones parciales
-- [ ] Exportacion CSV completa del historial (no solo pagina actual)
+- [~] Politica de rollback configurable para importaciones parciales (parcial: rollback manual posible, falta UI/config y automatizar)
+- [~] Exportacion CSV completa del historial (parcial: export de página actual implementado, falta exportar historial completo)
 
 ## Seccion 3 - Pricing Pipeline
 
@@ -72,10 +72,10 @@ Ultima actualizacion: 2026-04-04
 - [x] **Sync automatico de sets nuevos**: cron + endpoint admin para detectar y cargar sets que aun no existen en BD
 
 ### Pendientes
-- [ ] Backfill completo de `tcgplayerProductId` sobre todo el catalogo historico
-- [ ] Umbrales de volatilidad configurables por TCG/edicion
+- [~] Backfill completo de `tcgplayerProductId` sobre todo el catalogo historico (parcial: script y endpoint corriendo, falta cobertura 100% y monitoreo de progreso)
+- [~] Umbrales de volatilidad configurables por TCG/edicion (estructura lista, falta exponer en UI y parametrizar)
 - [ ] Flujo de aprobacion manual para cambios extremos
-- [ ] Dashboard de monitoreo de sincronizaciones (basico implementado en Dashboard)
+- [~] Dashboard de monitoreo de sincronizaciones (parcial: vista básica en dashboard, falta monitoreo granular y alertas)
 
 ## Seccion 4 - Checkout y Control de Stock
 
