@@ -6,20 +6,30 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 const router = express.Router();
 
 /**
- * GET /api/cards/search?name=xxx
- * Search cards by name
+ * GET /api/cards/search?name=xxx or /api/cards/search?code=xxx
+ * Search cards by name or by card code
  */
 router.get('/search', async (req: Request, res: Response) => {
-  const { name, tcgId, limit } = req.query;
+  const { name, code, tcgId, limit } = req.query;
 
-  if (!name) {
-    throw new ValidationError('name query parameter is required');
+  if (!name && !code) {
+    throw new ValidationError('name or code query parameter is required');
+  }
+
+  if (code) {
+    const cards = await CardService.searchByCode(
+      code as string,
+      tcgId as string | undefined,
+      parseInt(limit as string) || 50,
+    );
+    res.json(cards);
+    return;
   }
 
   const cards = await CardService.searchByName(
     name as string,
     tcgId as string | undefined,
-    parseInt(limit as string) || 20
+    parseInt(limit as string) || 20,
   );
 
   res.json(cards);

@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/inventario', icon: '📦', label: 'Inventario' },
   { to: '/precios', icon: '💰', label: 'Precios' },
   { to: '/importar', icon: '📥', label: 'Importar' },
+  { to: '/buscar', icon: '🔍', label: 'Buscar Carta' },
 ];
 
 interface LayoutProps {
@@ -20,6 +21,7 @@ export function Layout({ children }: LayoutProps) {
     if (path === '/inventario') return { title: 'Inventario', sub: 'Gestión de stock por set' };
     if (path === '/precios') return { title: 'Precios', sub: 'Monitoreo y sincronización de precios' };
     if (path === '/importar') return { title: 'Importar', sub: 'Catálogos y stock por CSV' };
+    if (path === '/buscar') return { title: 'Buscar Carta', sub: 'Busca por nombre o código · Ve todas las rarezas' };
     return { title: 'TCG Platform', sub: '' };
   };
 
