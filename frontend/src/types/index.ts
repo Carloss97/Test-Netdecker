@@ -190,3 +190,38 @@ export interface CatalogSyncResponse {
     skipped: number;
   }>;
 }
+
+export interface EditionWithCounts extends Edition {
+  tcg: { id: string; name: string; displayName: string };
+  cardCount: number;
+  listingCount: number;
+}
+
+export interface CardWithStock {
+  id: string;
+  cardCode: string;
+  cardName: string;
+  cardNumber?: string;
+  rarity?: string;
+  colorIdentity?: string;
+  imageUrl?: string;
+  tags?: string;
+  listings: Array<{
+    id: string;
+    condition: string;
+    quantity: number;
+    referencePrice: number;
+    marginMultiplier: number;
+    finalPrice: number;
+    currency: string;
+    lastSyncedAt?: string;
+    status: string;
+  }>;
+}
+
+export interface EditionInventory {
+  edition: Edition & { tcg: { id: string; name: string; displayName: string } };
+  totalCards: number;
+  cardsWithStock: number;
+  cards: CardWithStock[];
+}

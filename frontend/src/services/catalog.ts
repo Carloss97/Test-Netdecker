@@ -1,4 +1,5 @@
 import apiClient from './api';
+import type { EditionWithCounts, EditionInventory, Listing } from '../types';
 
 export async function getTCGs() {
   const { data } = await apiClient.get('/tcgs');
@@ -296,4 +297,41 @@ export async function syncCatalog(params?: {
 }) {
   const { data } = await apiClient.post('/admin/catalog/sync', params || {});
   return data;
+}
+
+export async function getEditions(params?: { tcgId?: string; activeOnly?: boolean }): Promise<EditionWithCounts[]> {
+  const response = await apiClient.get('/editions', { params });
+  return response.data;
+}
+
+export async function getEditionById(id: string): Promise<EditionWithCounts> {
+  const response = await apiClient.get(`/editions/${id}`);
+  return response.data;
+}
+
+export async function getEditionCardsWithStock(editionId: string): Promise<EditionInventory> {
+  const response = await apiClient.get(`/editions/${editionId}/cards-with-stock`);
+  return response.data;
+}
+
+export async function downloadEditionCsvTemplate(editionId: string): Promise<Blob> {
+  const response = await apiClient.get(`/editions/${editionId}/csv-template`, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function batchUpdateStock(updates: Array<{ listingId: string; quantity: number }>): Promise<{ updated: number }> {
+  const response = await apiClient.post('/listings/batch-stock', { updates });
+  return response.data;
+}
+
+export async function getLowStockListings(threshold?: number): Promise<Listing[]> {
+  const response = await apiClient.get('/listings/low-stock', { params: { threshold } });
+  return response.data;
+}
+
+export async function getPriceHistory(listingId?: string, limit?: number): Promise<Array<{ listingId: string; price: number; currency: string; source: string; recordedAt: string }>> {
+  const response = await apiClient.get('/price-history', { params: { listingId, limit } });
+  return response.data;
 }
