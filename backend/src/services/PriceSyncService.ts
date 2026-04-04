@@ -2,6 +2,7 @@ import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { PriceUpdateReason } from '@prisma/client';
 import { ScryfallService, YGOProDeckService, PokemonTCGService } from './CardDatabaseService.js';
+import { TCGPlayerService } from './TCGPlayerService.js';
 
 export interface PriceSyncUpdateInput {
   listingId: string;
@@ -64,7 +65,23 @@ const parseRunErrors = (errors: string | null) => {
 async function fetchExternalMarketPrice(
   cardCode: string,
   tcgName: string,
+  rarity?: string,
+  tcgplayerProductId?: number | null,
+  tags?: string,
 ): Promise<number | null> {
+  // Priority source: TCGplayer product pricing when a product id is available.
+  const tagProductMatch = tags?.match(/tcgplayer(?:ProductId)?[:=](\d+)/i);
+  const codeProductMatch = cardCode.match(/^\d+$/);
+  const resolvedTcgplayerProductId =
+    tcgplayerProductId ?? Number(tagProductMatch?.[1] || codeProductMatch?.[0]);
+
+  if (Number.isFinite(resolvedTcgplayerProductId) && resolvedTcgplayerProductId > 0) {
+    const tcgplayerPrice = await TCGPlayerService.getMarketPriceByProduct(resolvedTcgplayerProductId, rarity);
+    if (tcgplayerPrice !== null) {
+      return tcgplayerPrice;
+    }
+  }
+
   try {
     if (tcgName === 'MAGIC') {
       const card = await ScryfallService.getCardById(cardCode);
@@ -132,6 +149,9 @@ export class PriceSyncService {
             card: {
               select: {
                 cardCode: true,
+                rarity: true,
+                tags: true,
+                tcgplayerProductId: true,
                 tcg: { select: { name: true } },
               },
             },
@@ -145,6 +165,9 @@ export class PriceSyncService {
               const externalPrice = await fetchExternalMarketPrice(
                 listing.card.cardCode,
                 listing.card.tcg.name,
+                listing.card.rarity ?? undefined,
+                listing.card.tcgplayerProductId,
+                listing.card.tags,
               ).catch(() => null);
 
               return {

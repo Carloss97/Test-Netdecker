@@ -49,8 +49,15 @@ Ultima actualizacion: 2026-04-04
 - [x] Endpoint batch para sincronizacion masiva de precios
 - [x] **Job scheduler automatico** cada 6 horas (configurable via PRICE_SYNC_CRON)
 - [x] **Integracion real con fuentes de precios externas** (Scryfall, Pokemon TCG API, YGOPRODeck) — el cron job ahora busca precios de mercado actualizados por card
+- [x] **Integracion TCGplayer por productId**: PriceSync prioriza TCGplayer cuando existe `tcgplayerProductId` (con fallback automatico a fuentes externas)
+- [x] **Backfill por lote de `tcgplayerProductId`**: comando CLI y endpoint admin para poblar IDs faltantes
+- [x] **Endpoint de cobertura TCGplayer**: `%` global y por TCG de cartas con `tcgplayerProductId`
+- [x] **Rate limiter estricto TCGplayer**: cola, cache y reintentos para respetar limite bajo de requests
+- [x] **Bootstrap de catalogo por lote**: comando CLI y endpoint admin para cargar sets completos en BD
+- [x] **Sync automatico de sets nuevos**: cron + endpoint admin para detectar y cargar sets que aun no existen en BD
 
 ### Pendientes
+- [ ] Backfill completo de `tcgplayerProductId` sobre todo el catalogo historico
 - [ ] Umbrales de volatilidad configurables por TCG/edicion
 - [ ] Flujo de aprobacion manual para cambios extremos
 - [ ] Dashboard de monitoreo de sincronizaciones (basico implementado en Dashboard)
@@ -94,9 +101,12 @@ Ultima actualizacion: 2026-04-04
 - [x] **UI de busqueda de cartas externas**: nueva tab "Buscar Cartas Externas" en el frontend
 - [x] **Precios de referencia desde fuentes externas**: Scryfall (USD market price), Pokemon TCG API (TCGplayer prices), YGOPRODeck (TCGplayer/Cardmarket prices)
 - [x] Cache Redis de resultados externos (3 horas TTL)
+- [x] Campo dedicado `tcgplayerProductId` en `Card` (Prisma) para evitar depender de parsing en tags
+- [x] UI/UX modernizada base: shell visual, header/footer nuevos, mejor layout de catalogo e importacion
+- [x] Importacion de inventario preparada para CSV/XLSX con flujo mas claro de validacion/importacion
 
 ### Pendientes
-- [ ] Integracion con TCGPlayer API (requiere aprobacion de API key)
+- [ ] Integracion completa con catalogo TCGPlayer (set/product search oficial) para mejorar cobertura de productId y enriquecer metadatos faltantes
 - [ ] Integracion con Cardmarket API (requiere registro y acceso EU)
 
 ## Seccion 7 - Cierre Comercial con Dueno de Tienda
@@ -112,8 +122,8 @@ Ultima actualizacion: 2026-04-04
 
 ## Siguientes Pasos Recomendados (Orden de Ejecucion)
 1. Configurar PostgreSQL y Redis localmente, ejecutar `npm run prisma:push` y `npm run prisma:seed`.
-2. Probar busqueda de cartas externas (Scryfall/Pokemon/YGO) en la nueva tab.
-3. Importar un set completo (ej: `MH3` de Magic) para poblar el catalogo.
+2. Ejecutar bootstrap de catalogo por lote para cargar sets completos en BD.
+3. Probar busqueda de cartas externas (Scryfall/Pokemon/YGO) en la nueva tab.
 4. Activar sync automatico de precios con `PRICE_SYNC_ENABLED=true` en `.env`.
 5. Implementar TTL de carrito y cleanup job para reservas expiradas.
 6. Agregar login admin y roles (admin/staff) antes de abrir a usuarios reales.

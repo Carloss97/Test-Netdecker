@@ -159,6 +159,10 @@ function parseTcg(raw: string): TCGType {
   return normalized as TCGType;
 }
 
+function normalizeRarity(raw?: string): string {
+  return (raw || 'Unknown').trim() || 'Unknown';
+}
+
 export function detectImportMode(rows: CsvRow[]): ImportMode {
   if (!rows.length) {
     throw new Error('CSV has no data rows');
@@ -350,6 +354,11 @@ export class InventoryService {
         const referencePrice = Number(row.referencePrice || 0);
         const marginMultiplier = Number(row.marginMultiplier || 1.2);
         const condition = parseCondition(row.condition);
+        const rarity = normalizeRarity(row.rarity);
+        const parsedTcgplayerProductId = Number.parseInt(row.tcgplayerProductId || '', 10);
+        const tcgplayerProductId = Number.isFinite(parsedTcgplayerProductId)
+          ? parsedTcgplayerProductId
+          : undefined;
 
         if (!editionCode || !cardCode || !cardName) {
           throw new Error('Missing required fields: editionCode, cardCode, cardName');
@@ -392,16 +401,18 @@ export class InventoryService {
 
         const card = await prisma.card.upsert({
           where: {
-            tcgId_editionId_cardCode: {
+            tcgId_editionId_cardCode_rarity: {
               tcgId: tcg.id,
               editionId: edition.id,
-              cardCode
+              cardCode,
+              rarity,
             }
           },
           update: {
             cardName,
             cardNumber: row.cardNumber || null,
-            rarity: row.rarity || null,
+            rarity,
+            tcgplayerProductId,
             tags: row.tags || '',
             imageUrl: row.imageUrl || null
           },
@@ -411,11 +422,12 @@ export class InventoryService {
             cardCode,
             cardName,
             cardNumber: row.cardNumber || null,
-            rarity: row.rarity || null,
+            rarity,
+            tcgplayerProductId,
             tags: row.tags || '',
             imageUrl: row.imageUrl || null
           }
-        });
+        } as any);
 
         const pricing = await PriceService.calculateFinalPrice({
           referencePrice,
@@ -424,15 +436,17 @@ export class InventoryService {
 
         await prisma.listing.upsert({
           where: {
-            cardId_condition: {
+            cardId_condition_rarity: {
               cardId: card.id,
-              condition
+              condition,
+              rarity,
             }
           },
           update: {
             quantity,
             referencePrice,
             marginMultiplier,
+            rarity,
             exchangeRate: pricing.exchangeRate,
             finalPrice: pricing.finalPrice,
             editionId: edition.id,
@@ -443,6 +457,7 @@ export class InventoryService {
             cardId: card.id,
             editionId: edition.id,
             condition,
+            rarity,
             quantity,
             referencePrice,
             marginMultiplier,
@@ -451,7 +466,7 @@ export class InventoryService {
             currency: 'CLP',
             status: 'active'
           }
-        });
+        } as any);
 
         result.success += 1;
       } catch (error) {

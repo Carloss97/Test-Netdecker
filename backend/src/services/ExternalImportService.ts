@@ -13,6 +13,7 @@ export interface ImportExternalCardOptions {
   marginMultiplier?: number;
   quantity?: number;
   condition?: CardCondition;
+  concurrency?: number;
 }
 
 export interface ImportExternalCardResult {
@@ -36,6 +37,10 @@ export interface BulkImportResult {
 }
 
 export class ExternalImportService {
+  private static normalizeRarity(rarity?: string): string {
+    return (rarity || 'Unknown').trim() || 'Unknown';
+  }
+
   /**
    * Resolve or create the TCG record from TCGType.
    */
@@ -75,13 +80,17 @@ export class ExternalImportService {
     }
 
     const edition = await this.resolveEdition(tcg.id, externalCard);
+    const rarity = this.normalizeRarity(externalCard.rarity);
+    const parsedProductId = Number.parseInt(externalCard.externalId, 10);
+    const tcgplayerProductId = Number.isFinite(parsedProductId) ? parsedProductId : undefined;
 
     const existing = await prisma.card.findUnique({
       where: {
-        tcgId_editionId_cardCode: {
+        tcgId_editionId_cardCode_rarity: {
           tcgId: tcg.id,
           editionId: edition.id,
           cardCode: externalCard.externalId,
+          rarity,
         },
       },
     });
@@ -95,7 +104,8 @@ export class ExternalImportService {
         data: {
           cardName: externalCard.cardName,
           cardNumber: externalCard.cardNumber,
-          rarity: externalCard.rarity,
+          rarity,
+          tcgplayerProductId,
           colorIdentity: externalCard.colorIdentity,
           imageUrl: externalCard.imageUrl,
           description: externalCard.description,
@@ -111,7 +121,8 @@ export class ExternalImportService {
           cardCode: externalCard.externalId,
           cardName: externalCard.cardName,
           cardNumber: externalCard.cardNumber,
-          rarity: externalCard.rarity,
+          rarity,
+          tcgplayerProductId,
           colorIdentity: externalCard.colorIdentity,
           imageUrl: externalCard.imageUrl,
           description: externalCard.description,
@@ -135,7 +146,7 @@ export class ExternalImportService {
       const condition = options.condition || CardCondition.NM;
 
       const existingListing = await prisma.listing.findUnique({
-        where: { cardId_condition: { cardId: card.id, condition } },
+        where: { cardId_condition_rarity: { cardId: card.id, condition, rarity } },
       });
 
       const marginMultiplier = options.marginMultiplier ?? 1.2;
@@ -158,6 +169,7 @@ export class ExternalImportService {
             cardId: card.id,
             editionId: edition.id,
             condition,
+            rarity,
             quantity,
             referencePrice: refPrice,
             marginMultiplier,
@@ -199,17 +211,31 @@ export class ExternalImportService {
       results: [],
     };
 
-    for (const card of cards) {
-      try {
-        const r = await this.importCard(card, options);
-        result.results.push(r);
-        if (r.action === 'created') result.created++;
-        else result.updated++;
-      } catch (err) {
-        result.errors.push({ externalId: card.externalId, message: (err as Error).message });
-        result.skipped++;
+    const concurrency = Math.max(1, Math.min(options.concurrency ?? 4, 12));
+    let cursor = 0;
+
+    const worker = async () => {
+      while (cursor < cards.length) {
+        const index = cursor;
+        cursor += 1;
+        const card = cards[index];
+        if (!card) {
+          continue;
+        }
+
+        try {
+          const r = await this.importCard(card, options);
+          result.results.push(r);
+          if (r.action === 'created') result.created += 1;
+          else result.updated += 1;
+        } catch (err) {
+          result.errors.push({ externalId: card.externalId, message: (err as Error).message });
+          result.skipped += 1;
+        }
       }
-    }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(concurrency, cards.length) }, () => worker()));
 
     return result;
   }

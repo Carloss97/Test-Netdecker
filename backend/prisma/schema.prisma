@@ -93,9 +93,10 @@ model Card {
   
   // Card identifiers and metadata
   cardCode       String    // TCGplayer ID, Scryfall ID, etc.
+  tcgplayerProductId Int?
   cardName       String
   cardNumber     String?   // Collector number
-  rarity         String?   // "Rare", "Common", etc.
+  rarity         String    // "Rare", "Common", etc. (ahora requerido y parte de la unicidad)
   colorIdentity String?   // For Magic: "WUB", for others: relevant color system
   
   // For search and filtering
@@ -106,11 +107,12 @@ model Card {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  // Unique: TCG + Edition + Card Code
-  @@unique([tcgId, editionId, cardCode])
+  // Unique: TCG + Edition + Card Code + Rarity
+  @@unique([tcgId, editionId, cardCode, rarity])
   @@index([tcgId])
   @@index([editionId])
   @@index([cardCode])
+  @@index([tcgplayerProductId])
   
   // Relations
   listings       Listing[]
@@ -129,32 +131,33 @@ model Listing {
   editionId      String
   edition        Edition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
   
-  // Condition and quantity
+  // Condition, rareza y cantidad
   condition      CardCondition  @default(NM)
+  rarity         String         // Rareza específica de este listing
   quantity       Int       @default(0)
-  
+
   // Pricing
   referencePrice Float    // Price in USD from TCGplayer/other source
   marginMultiplier Float  @default(1.2)  // 1.2 = 20% markup
   exchangeRate   Float    @default(1.0)  // USD to CLP rate at time of calculation
-  
+
   finalPrice     Float    // Computed: referencePrice * marginMultiplier * exchangeRate
   currency       String   @default("CLP")
-  
+
   // Cost tracking
   costPrice      Float?   // What was paid for it
-  
+
   // Status
   status         String   @default("active")  // "active", "discontinued", "reserved"
   lastSyncedAt   DateTime?
-  
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  @@unique([cardId, condition])
+  @@unique([cardId, condition, rarity])
   @@index([cardId])
   @@index([quantity])
-  
+
   // Relations
   priceHistory   PriceHistory[]
   orderItems     OrderItem[]

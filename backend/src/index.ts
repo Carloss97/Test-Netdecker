@@ -17,6 +17,7 @@ import healthRoutes from './routes/health.routes.js';
 import externalRoutes from './routes/external.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
+import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -83,6 +84,7 @@ app.use((req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   startPriceSyncCron();
+  startCatalogSyncCron();
 
   console.log(`
 ╔═══════════════════════════════════════════╗

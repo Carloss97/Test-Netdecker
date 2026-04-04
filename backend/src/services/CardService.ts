@@ -6,13 +6,18 @@ interface CreateCardInput {
   tcgId: string;
   editionId: string;
   cardCode: string;
+  tcgplayerProductId?: number;
   cardName: string;
   cardNumber?: string;
-  rarity?: string;
+  rarity: string;
   colorIdentity?: string;
   tags?: string;
   imageUrl?: string;
   description?: string;
+}
+
+function normalizeRarity(rarity?: string): string {
+  return (rarity || 'Unknown').trim() || 'Unknown';
 }
 
 export class CardService {
@@ -23,6 +28,7 @@ export class CardService {
     return prisma.card.create({
       data: {
         ...input,
+        rarity: normalizeRarity(input.rarity),
         tags: input.tags || ''
       }
     });
@@ -43,15 +49,16 @@ export class CardService {
   /**
    * Find card by code (TCG/Edition/CardCode)
    */
-  static async findCardByCode(tcgId: string, editionId: string, cardCode: string) {
+  static async findCardByCode(tcgId: string, editionId: string, cardCode: string, rarity?: string) {
     return prisma.card.findUnique({
       where: {
-        tcgId_editionId_cardCode: {
+        tcgId_editionId_cardCode_rarity: {
           tcgId,
           editionId,
-          cardCode
+          cardCode,
+          rarity: normalizeRarity(rarity),
         }
-      },
+      } as any,
       include: {
         listings: true
       }
@@ -129,7 +136,8 @@ export class CardService {
         const existing = await this.findCardByCode(
           cardData.tcgId,
           cardData.editionId,
-          cardData.cardCode
+          cardData.cardCode,
+          cardData.rarity,
         );
 
         if (existing) {

@@ -5,6 +5,9 @@ import express, { Request, Response } from 'express';
 import prisma from '../utils/db.js';
 import { PriceSyncService } from '../services/PriceSyncService.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
+import { TcgplayerBackfillService } from '../services/TcgplayerBackfillService.js';
+import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js';
+import { CatalogSyncService } from '../services/CatalogSyncService.js';
 
 const router = express.Router();
 
@@ -205,6 +208,140 @@ router.get('/editions', async (_req: Request, res: Response) => {
         listingCount: e._count.listings,
       })),
     });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * POST /api/admin/backfill/tcgplayer-product-id
+ * Body: { limit?: number, offset?: number, dryRun?: boolean, tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE' }
+ */
+router.post('/backfill/tcgplayer-product-id', async (req: Request, res: Response) => {
+  try {
+    const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
+    const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(tcgRaw)
+      ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')
+      : undefined;
+
+    const result = await TcgplayerBackfillService.backfillProductIds({
+      limit: req.body?.limit ? parseInt(req.body.limit, 10) : undefined,
+      offset: req.body?.offset ? parseInt(req.body.offset, 10) : undefined,
+      dryRun: req.body?.dryRun === true || req.body?.dryRun === 'true',
+      tcg,
+    });
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * GET /api/admin/tcgplayer-coverage
+ * Returns % of cards with tcgplayerProductId populated, global and by TCG.
+ */
+router.get('/tcgplayer-coverage', async (_req: Request, res: Response) => {
+  try {
+    const [totalCards, coveredCards, byTcg] = await Promise.all([
+      prisma.card.count(),
+      prisma.card.count({ where: { tcgplayerProductId: { not: null } } }),
+      prisma.tCG.findMany({
+        select: {
+          name: true,
+          displayName: true,
+          _count: { select: { cards: true } },
+          cards: {
+            where: { tcgplayerProductId: { not: null } },
+            select: { id: true },
+          },
+        },
+      }),
+    ]);
+
+    const globalCoverage = totalCards > 0 ? (coveredCards / totalCards) * 100 : 0;
+
+    res.json({
+      success: true,
+      global: {
+        totalCards,
+        coveredCards,
+        uncoveredCards: Math.max(totalCards - coveredCards, 0),
+        coveragePercent: Number(globalCoverage.toFixed(2)),
+      },
+      byTcg: byTcg.map((t) => {
+        const covered = t.cards.length;
+        const total = t._count.cards;
+        const coverage = total > 0 ? (covered / total) * 100 : 0;
+        return {
+          tcg: t.name,
+          tcgDisplayName: t.displayName,
+          totalCards: total,
+          coveredCards: covered,
+          uncoveredCards: Math.max(total - covered, 0),
+          coveragePercent: Number(coverage.toFixed(2)),
+        };
+      }),
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * POST /api/admin/catalog/bootstrap
+ * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
+ */
+router.post('/catalog/bootstrap', async (req: Request, res: Response) => {
+  try {
+    const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
+    const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(tcgRaw)
+      ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+      : undefined;
+
+    const result = await CatalogBootstrapService.bootstrapCatalog({
+      tcg,
+      setCode: req.body?.setCode ? String(req.body.setCode) : undefined,
+      setLimit: req.body?.setLimit ? parseInt(req.body.setLimit, 10) : undefined,
+      dryRun: req.body?.dryRun === true || req.body?.dryRun === 'true',
+      createListings: req.body?.createListings !== false,
+      initialQuantity: req.body?.initialQuantity ? parseInt(req.body.initialQuantity, 10) : 0,
+      marginMultiplier: req.body?.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
+    });
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * POST /api/admin/catalog/sync
+ * Sync only new or changed external sets into the local catalog.
+ */
+router.post('/catalog/sync', async (req: Request, res: Response) => {
+  try {
+    const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
+    const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(tcgRaw)
+      ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+      : undefined;
+
+    const result = await CatalogSyncService.syncNewSets({
+      tcg,
+      dryRun: req.body?.dryRun === true || req.body?.dryRun === 'true',
+      createListings: req.body?.createListings !== false,
+      initialQuantity: req.body?.initialQuantity ? parseInt(req.body.initialQuantity, 10) : 0,
+      marginMultiplier: req.body?.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
+      concurrency: req.body?.concurrency ? parseInt(req.body.concurrency, 10) : undefined,
+    });
+
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

@@ -130,3 +130,63 @@ export interface AdminDashboard {
     completedAt?: string;
   }>;
 }
+
+export interface TcgplayerCoverageByTcg {
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcgDisplayName: string;
+  totalCards: number;
+  coveredCards: number;
+  uncoveredCards: number;
+  coveragePercent: number;
+}
+
+export interface TcgplayerCoverage {
+  global: {
+    totalCards: number;
+    coveredCards: number;
+    uncoveredCards: number;
+    coveragePercent: number;
+  };
+  byTcg: TcgplayerCoverageByTcg[];
+}
+
+export interface CatalogBootstrapResponse {
+  dryRun: boolean;
+  created: number;
+  updated: number;
+  skipped: number;
+  listingsLinked: number;
+  setsProcessed: number;
+  cardsProcessed: number;
+  bySet: Array<{
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+    setCode: string;
+    setName: string;
+    totalCards: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    listingsLinked: number;
+  }>;
+}
+
+export interface CatalogSyncResponse {
+  dryRun: boolean;
+  scannedSets: number;
+  newSets: number;
+  updatedSets: number;
+  createdCards: number;
+  updatedCards: number;
+  skippedCards: number;
+  bySet: Array<{
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+    setCode: string;
+    setName: string;
+    imported: boolean;
+    reason: string;
+    totalCards: number;
+    created: number;
+    updated: number;
+    skipped: number;
+  }>;
+}

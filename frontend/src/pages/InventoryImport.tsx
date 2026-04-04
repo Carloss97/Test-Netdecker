@@ -32,6 +32,10 @@ export function InventoryImport() {
     return Boolean(selectedFile && validationResult && validationResult.failed === 0);
   }, [selectedFile, validationResult]);
 
+  const selectedFileMeta = selectedFile
+    ? `${selectedFile.name} · ${(selectedFile.size / 1024).toFixed(1)} KB`
+    : 'CSV o XLSX';
+
   const onValidate = async () => {
     if (!selectedFile) {
       setErrorMessage('Selecciona un archivo primero.');
@@ -72,37 +76,54 @@ export function InventoryImport() {
     }
   };
 
-  return (
-    <section style={{ marginTop: 30, padding: 20, border: '1px solid #ddd', borderRadius: 10 }}>
-      <h2>Prevalidacion CSV de Inventario</h2>
-      <p>Valida el archivo antes de importar para evitar errores en stock y catalogo.</p>
+  const onFilePicked = (file: File | null) => {
+    setSelectedFile(file);
+    setValidationResult(null);
+    setImportResponse(null);
+    setErrorMessage(null);
+  };
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+  return (
+    <section className="section-card" style={{ marginTop: 24 }}>
+      <div className="hero-panel" style={{ marginBottom: 20 }}>
+        <span className="badge" style={{ marginBottom: 10 }}>Importación operativa</span>
+        <h2 className="hero-title">Sube inventario en CSV o XLSX</h2>
+        <p className="hero-subtitle">
+          Valida antes de importar para evitar errores en stock, precios o catálogo. El backend detecta automáticamente el formato.
+        </p>
+      </div>
+
+      <div className="dropzone" style={{ marginBottom: 16 }}>
         <input
           type="file"
-          accept=".csv,text/csv"
-          onChange={(e) => {
-            const file = e.target.files?.[0] || null;
-            setSelectedFile(file);
-            setValidationResult(null);
-            setImportResponse(null);
-            setErrorMessage(null);
-          }}
+          accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={(e) => onFilePicked(e.target.files?.[0] || null)}
+          style={{ display: 'block', marginBottom: 12 }}
         />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <strong>{selectedFile ? selectedFile.name : 'Arrastra o selecciona un archivo'}</strong>
+            <div className="muted" style={{ marginTop: 4 }}>{selectedFileMeta}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={onValidate} disabled={loadingValidation || !selectedFile}>
+              {loadingValidation ? 'Validando...' : 'Prevalidar'}
+            </button>
 
-        <button onClick={onValidate} disabled={loadingValidation || !selectedFile}>
-          {loadingValidation ? 'Validando...' : 'Prevalidar CSV'}
-        </button>
-
-        <button onClick={onConfirmImport} disabled={loadingImport || !canImport}>
-          {loadingImport ? 'Importando...' : 'Confirmar Importacion'}
-        </button>
+            <button onClick={onConfirmImport} disabled={loadingImport || !canImport}>
+              {loadingImport ? 'Importando...' : 'Confirmar importación'}
+            </button>
+          </div>
+        </div>
+        <p className="muted" style={{ marginTop: 12 }}>
+          Formatos soportados: CSV estándar o XLSX. El sistema crea o actualiza cartas, ediciones y listings según el contenido.
+        </p>
       </div>
 
       {errorMessage && <p style={{ color: '#b42318', marginTop: 12 }}>{errorMessage}</p>}
 
       {validationResult && (
-        <div style={{ marginTop: 16 }}>
+        <div className="surface-card" style={{ marginTop: 16, padding: 16 }}>
           <h3>Resultado de prevalidacion</h3>
           <p>
             Modo: <strong>{validationResult.mode}</strong>
@@ -128,7 +149,7 @@ export function InventoryImport() {
       )}
 
       {importResponse && (
-        <div style={{ marginTop: 16, padding: 12, background: '#ecfdf3', border: '1px solid #abefc6' }}>
+        <div className="surface-card" style={{ marginTop: 16, padding: 16, background: '#ecfdf3' }}>
           <h3>Importacion completada</h3>
           <p>
             Import ID: <strong>{importResponse.importId || 'N/A'}</strong>

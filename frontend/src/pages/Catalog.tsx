@@ -42,10 +42,16 @@ export function Catalog({ onOpenPriceDebug }: CatalogProps) {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Card Catalog</h2>
+    <div className="section-card" style={{ marginTop: 24 }}>
+      <div className="hero-panel" style={{ marginBottom: 20 }}>
+        <span className="badge" style={{ marginBottom: 10 }}>Catálogo vivo</span>
+        <h2 className="hero-title">Busca cartas y listings en segundos</h2>
+        <p className="hero-subtitle">
+          Explora el inventario, filtra por TCG y abre el debug de pricing directamente desde el catálogo.
+        </p>
+      </div>
 
-      <form onSubmit={handleSearch} style={{ marginBottom: '20px' }}>
+      <form onSubmit={handleSearch} className="surface-card" style={{ marginBottom: '20px', padding: 16 }}>
         <input
           type="text"
           placeholder="Search cards by name..."

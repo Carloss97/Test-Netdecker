@@ -261,3 +261,33 @@ export async function getAdminEditions() {
   const { data } = await apiClient.get('/admin/editions');
   return data;
 }
+
+export async function getTcgplayerCoverage() {
+  const { data } = await apiClient.get('/admin/tcgplayer-coverage');
+  return data;
+}
+
+export async function bootstrapCatalog(params?: {
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  setCode?: string;
+  setLimit?: number;
+  dryRun?: boolean;
+  createListings?: boolean;
+  initialQuantity?: number;
+  marginMultiplier?: number;
+}) {
+  const { data } = await apiClient.post('/admin/catalog/bootstrap', params || {});
+  return data;
+}
+
+export async function syncCatalog(params?: {
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  dryRun?: boolean;
+  createListings?: boolean;
+  initialQuantity?: number;
+  marginMultiplier?: number;
+  concurrency?: number;
+}) {
+  const { data } = await apiClient.post('/admin/catalog/sync', params || {});
+  return data;
+}

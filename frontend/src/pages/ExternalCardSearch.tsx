@@ -286,15 +286,17 @@ export function ExternalCardSearch() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>External Card Database</h2>
-      <p style={{ color: '#555', marginTop: -10, marginBottom: 20 }}>
-        Search Scryfall, Pokémon TCG API, and YGOPRODeck to find card data and import it into your
-        local catalog.
-      </p>
+    <div className="section-card" style={{ marginTop: 24 }}>
+      <div className="hero-panel" style={{ marginBottom: 20 }}>
+        <span className="badge" style={{ marginBottom: 10 }}>Bases externas</span>
+        <h2 className="hero-title">Importa sets completos desde fuentes oficiales</h2>
+        <p className="hero-subtitle">
+          Busca, revisa imágenes y precios, y manda al catálogo local cartas de Magic, Pokémon y Yu-Gi-Oh! con un flujo pensado para operación rápida.
+        </p>
+      </div>
 
       {/* TCG selector */}
-      <div style={{ marginBottom: 16 }}>
+      <div className="surface-card" style={{ marginBottom: 16, padding: 16 }}>
         {(Object.keys(TCG_LABELS) as TCGParam[]).map((t) => (
           <button
             key={t}
@@ -320,7 +322,7 @@ export function ExternalCardSearch() {
       </div>
 
       {/* Search form */}
-      <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <form onSubmit={handleSearch} className="surface-card" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', padding: 16 }}>
         <input
           type="text"
           placeholder="Card name…"

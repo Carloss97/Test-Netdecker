@@ -360,9 +360,15 @@ function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): E
   const images = (card.card_images as Array<Record<string, string>> | undefined) || [];
   const prices = (card.card_prices as Array<Record<string, string>> | undefined) || [];
 
+  const normalizedFilter = setFilter?.trim().toLowerCase();
+
   // Pick the set matching the filter, or the first one
-  const matchSet = setFilter
-    ? cardSets.find((s) => s.set_code?.toLowerCase() === setFilter.toLowerCase()) || cardSets[0]
+  const matchSet = normalizedFilter
+    ? cardSets.find(
+        (s) =>
+          s.set_code?.trim().toLowerCase() === normalizedFilter ||
+          s.set_name?.trim().toLowerCase() === normalizedFilter,
+      ) || cardSets[0]
     : cardSets[0];
 
   const editionCode = matchSet?.set_code?.toUpperCase() || 'UNKNOWN';
@@ -396,6 +402,20 @@ function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): E
 }
 
 export class YGOProDeckService {
+  private static async resolveSetName(setCodeOrName: string): Promise<string> {
+    const normalized = setCodeOrName.trim().toLowerCase();
+    if (!normalized) return setCodeOrName;
+
+    const sets = await this.listSets();
+    const match = sets.find(
+      (set) =>
+        set.code.trim().toLowerCase() === normalized ||
+        set.name.trim().toLowerCase() === normalized,
+    );
+
+    return match?.name || setCodeOrName;
+  }
+
   static async searchCards(name: string, setCode?: string): Promise<ExternalCard[]> {
     const cacheKey = `ygopro:search:${name}:${setCode || ''}`;
     const cached = await cacheGet(cacheKey);
@@ -403,7 +423,7 @@ export class YGOProDeckService {
 
     try {
       const params: Record<string, string> = { fname: name };
-      if (setCode) params.cardset = setCode;
+      if (setCode) params.cardset = await this.resolveSetName(setCode);
       const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, { params });
       const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setCode));
       await cacheSet(cacheKey, cards, CACHE_TTL);
@@ -430,16 +450,17 @@ export class YGOProDeckService {
     }
   }
 
-  static async getSetCards(setName: string): Promise<ExternalCard[]> {
-    const cacheKey = `ygopro:set:${setName}`;
+  static async getSetCards(setNameOrCode: string): Promise<ExternalCard[]> {
+    const cacheKey = `ygopro:set:${setNameOrCode}`;
     const cached = await cacheGet(cacheKey);
     if (cached) return cached as ExternalCard[];
 
     try {
+      const setName = await this.resolveSetName(setNameOrCode);
       const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, {
         params: { cardset: setName },
       });
-      const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setName));
+      const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setNameOrCode));
       if (cards.length > 0) {
         await cacheSet(cacheKey, cards, CACHE_TTL);
       }

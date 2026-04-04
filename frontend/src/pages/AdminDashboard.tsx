@@ -1,6 +1,14 @@
+import { useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { getAdminDashboard, getStockAlerts, getPriceVolatility } from '../services/catalog';
-import type { AdminDashboard } from '../types';
+import {
+  bootstrapCatalog,
+  getAdminDashboard,
+  getPriceVolatility,
+  getStockAlerts,
+  getTcgplayerCoverage,
+  syncCatalog,
+} from '../services/catalog';
+import type { AdminDashboard, CatalogBootstrapResponse, CatalogSyncResponse, TcgplayerCoverage } from '../types';
 
 function KpiCard({
   label,
@@ -47,12 +55,69 @@ export function AdminDashboardPage() {
   const dashboardQuery = useAsync(() => getAdminDashboard());
   const alertsQuery = useAsync(() => getStockAlerts(5));
   const volatilityQuery = useAsync(() => getPriceVolatility(10));
+  const coverageQuery = useAsync(() => getTcgplayerCoverage());
+  const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | ''>('');
+  const [setCode, setSetCode] = useState('');
+  const [setLimit, setSetLimit] = useState('');
+  const [initialQuantity, setInitialQuantity] = useState('0');
+  const [marginMultiplier, setMarginMultiplier] = useState('1.2');
+  const [concurrency, setConcurrency] = useState('4');
+  const [dryRun, setDryRun] = useState(false);
+  const [createListings, setCreateListings] = useState(true);
+  const [catalogActionLoading, setCatalogActionLoading] = useState<'bootstrap' | 'sync' | null>(null);
+  const [catalogActionResult, setCatalogActionResult] = useState<{
+    kind: 'bootstrap' | 'sync';
+    payload: CatalogBootstrapResponse | CatalogSyncResponse;
+  } | null>(null);
+  const [catalogActionError, setCatalogActionError] = useState<string | null>(null);
 
   const dashboard = dashboardQuery.data as { success: boolean } & AdminDashboard | null;
+  const coverage = coverageQuery.data as { success: boolean } & TcgplayerCoverage | null;
   const alerts = (alertsQuery.data as { alerts?: Array<{ listingId: string; cardName: string; editionCode: string; condition: string; quantity: number; finalPrice: number }> } | null)?.alerts ?? [];
   const volatileEvents = (volatilityQuery.data as { events?: Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }> } | null)?.events ?? [];
 
   const handleRefresh = () => window.location.reload();
+
+  const handleBootstrapCatalog = async () => {
+    setCatalogActionLoading('bootstrap');
+    setCatalogActionError(null);
+    try {
+      const payload = await bootstrapCatalog({
+        tcg: catalogTcg || undefined,
+        setCode: setCode.trim() || undefined,
+        setLimit: setLimit ? Number.parseInt(setLimit, 10) : undefined,
+        dryRun,
+        createListings,
+        initialQuantity: Number.parseInt(initialQuantity || '0', 10),
+        marginMultiplier: Number.parseFloat(marginMultiplier || '1.2'),
+      });
+      setCatalogActionResult({ kind: 'bootstrap', payload });
+    } catch (err: unknown) {
+      setCatalogActionError(err instanceof Error ? err.message : 'Bootstrap failed');
+    } finally {
+      setCatalogActionLoading(null);
+    }
+  };
+
+  const handleSyncCatalog = async () => {
+    setCatalogActionLoading('sync');
+    setCatalogActionError(null);
+    try {
+      const payload = await syncCatalog({
+        tcg: catalogTcg || undefined,
+        dryRun,
+        createListings,
+        initialQuantity: Number.parseInt(initialQuantity || '0', 10),
+        marginMultiplier: Number.parseFloat(marginMultiplier || '1.2'),
+        concurrency: Number.parseInt(concurrency || '4', 10),
+      });
+      setCatalogActionResult({ kind: 'sync', payload });
+    } catch (err: unknown) {
+      setCatalogActionError(err instanceof Error ? err.message : 'Sync failed');
+    } finally {
+      setCatalogActionLoading(null);
+    }
+  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -69,6 +134,56 @@ export function AdminDashboardPage() {
           Failed to load dashboard. Is the backend running?
         </p>
       )}
+
+      <Section title="Catalog Sync Console">
+        <div className="surface-card" style={{ padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <select value={catalogTcg} onChange={(e) => setCatalogTcg(e.target.value as any)}>
+              <option value="">All TCGs</option>
+              <option value="MAGIC">Magic</option>
+              <option value="POKEMON">Pokémon</option>
+              <option value="YUGIOH">Yu-Gi-Oh!</option>
+            </select>
+            <input placeholder="Set code (ej. MH3)" value={setCode} onChange={(e) => setSetCode(e.target.value)} />
+            <input placeholder="Limit de sets" value={setLimit} onChange={(e) => setSetLimit(e.target.value)} />
+            <input placeholder="Cantidad inicial" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} />
+            <input placeholder="Margen" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} />
+            <input placeholder="Concurrency" value={concurrency} onChange={(e) => setConcurrency(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
+              Dry run
+            </label>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={createListings} onChange={(e) => setCreateListings(e.target.checked)} />
+              Crear listings
+            </label>
+            <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null}>
+              {catalogActionLoading === 'bootstrap' ? 'Bootstrapping...' : 'Bootstrap catálogo'}
+            </button>
+            <button type="button" onClick={handleSyncCatalog} disabled={catalogActionLoading !== null}>
+              {catalogActionLoading === 'sync' ? 'Syncing...' : 'Sync sets nuevos'}
+            </button>
+          </div>
+          <p className="muted" style={{ marginTop: 12 }}>
+            Esta consola permite poblar el catálogo histórico o sincronizar solo sets nuevos directamente desde el dashboard.
+          </p>
+        </div>
+
+        {catalogActionError && <p style={{ color: '#b42318' }}>{catalogActionError}</p>}
+
+        {catalogActionResult && (
+          <div className="surface-card" style={{ padding: 16 }}>
+            <strong>
+              Resultado {catalogActionResult.kind === 'bootstrap' ? 'bootstrap' : 'sync'}
+            </strong>
+            <pre style={{ whiteSpace: 'pre-wrap', marginTop: 12, fontSize: 12 }}>
+              {JSON.stringify(catalogActionResult.payload, null, 2)}
+            </pre>
+          </div>
+        )}
+      </Section>
 
       {dashboard && (
         <>
@@ -111,6 +226,47 @@ export function AdminDashboardPage() {
               />
             </div>
           </Section>
+
+          {coverage && (
+            <Section title="TCGplayer Coverage">
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+                <KpiCard
+                  label="Global Coverage"
+                  value={`${coverage.global.coveragePercent.toFixed(2)}%`}
+                  sub={`${coverage.global.coveredCards} / ${coverage.global.totalCards} cards`}
+                  color="#5d4037"
+                />
+                <KpiCard
+                  label="Missing IDs"
+                  value={coverage.global.uncoveredCards.toLocaleString()}
+                  sub="Cards pending productId"
+                  color="#8d6e63"
+                />
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f5f5f5' }}>
+                    <th style={thStyle}>TCG</th>
+                    <th style={thStyle}>Coverage</th>
+                    <th style={thStyle}>Covered</th>
+                    <th style={thStyle}>Missing</th>
+                    <th style={thStyle}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coverage.byTcg.map((item) => (
+                    <tr key={item.tcg} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={tdStyle}>{item.tcgDisplayName}</td>
+                      <td style={tdStyle}>{item.coveragePercent.toFixed(2)}%</td>
+                      <td style={tdStyle}>{item.coveredCards}</td>
+                      <td style={tdStyle}>{item.uncoveredCards}</td>
+                      <td style={tdStyle}>{item.totalCards}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Section>
+          )}
 
           {/* Exchange rate */}
           {dashboard.kpis.exchangeRate && (

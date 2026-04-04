@@ -19,7 +19,7 @@ export class ListingService {
   static async createListing(input: CreateListingInput) {
     const card = await prisma.card.findUnique({
       where: { id: input.cardId },
-      select: { editionId: true }
+      select: { editionId: true, rarity: true }
     });
 
     if (!card) {
@@ -35,6 +35,7 @@ export class ListingService {
       data: {
         cardId: input.cardId,
         condition: input.condition,
+        rarity: card.rarity,
         quantity: input.quantity,
         referencePrice: input.referencePrice,
         marginMultiplier: input.marginMultiplier || 1.2,

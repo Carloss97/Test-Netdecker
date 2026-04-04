@@ -72,6 +72,115 @@ Plataforma completa para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, 
 - Carga de catálogo e inventario
 - Auditoría de cambios
 
+## Guía Operativa (Dashboard + Catálogo + Stock)
+
+Esta sección explica en lenguaje operativo qué hace cada acción del panel y cómo usar el flujo completo en tienda.
+
+### 1) Qué significa cada botón en "Catalog Sync Console"
+
+- Dry run:
+  - Ejecuta el proceso en modo simulación para revisar métricas y validaciones antes de una corrida operativa.
+  - Recomendación: úsalo siempre primero en ambiente de prueba o en una corrida controlada.
+
+- Crear listings:
+  - Si está activado, además de crear/actualizar cartas en catálogo, también crea o actualiza listings de inventario.
+  - Si está desactivado, solo actualiza catálogo (TCG, edición, carta, metadata), sin tocar inventario/listings.
+
+- Bootstrap catálogo:
+  - Carga masiva inicial del catálogo histórico.
+  - Se usa cuando partes desde cero o cuando quieres poblar una gran porción del catálogo de una vez.
+  - Puede correrse por TCG específico o con filtros de set/límite.
+
+- Sync sets nuevos:
+  - Busca sets nuevos (o cambios detectados) en fuentes externas y los incorpora al catálogo local.
+  - Está pensado para operación continua después del bootstrap inicial.
+  - También puede ejecutarse por TCG para mantener un juego puntual.
+
+### 2) Flujo recomendado de operación
+
+#### Fase A: Alta de set nuevo (catálogo)
+
+1. Ir a Dashboard > Catalog Sync Console.
+2. Elegir TCG (o dejar All TCGs).
+3. Activar Dry run y ejecutar Sync sets nuevos.
+4. Revisar resultado JSON (sets detectados, creados, actualizados, omitidos).
+5. Si todo está OK, desactivar Dry run y volver a ejecutar.
+6. Si necesitas carga histórica completa, ejecutar Bootstrap catálogo (idealmente por lotes).
+
+Resultado esperado:
+- El set queda disponible en catálogo local.
+- Las cartas nuevas del set quedan creadas/actualizadas.
+- Si Crear listings está activo, quedan listings operativos para ese set.
+
+#### Fase B: Ajustar/sincronizar precios
+
+1. Verificar cobertura en Dashboard (TCGplayer Coverage).
+2. Ejecutar sincronización de precios (manual o cron).
+3. Revisar volatilidad en Dashboard para detectar saltos sospechosos.
+4. Si hay cambios extremos, aplicar revisión manual antes de publicar.
+
+Regla general del motor:
+- Precio final CLP = precio referencia USD x margen x tipo de cambio.
+- Prioridad de precio: TCGplayer (si hay productId) y luego fallback por fuente externa del TCG.
+
+#### Fase C: Actualizar stock (restock y ventas)
+
+1. Restock masivo:
+   - Ir a Admin Importaciones y subir CSV/XLSX.
+   - Prevalidar.
+   - Confirmar importación.
+2. Venta/checkout:
+   - El flujo de carrito/checkout descuenta stock del listing.
+3. Ajustes puntuales:
+   - Usar endpoints de inventory o edición operacional en panel para correcciones.
+
+Buenas prácticas:
+- Mantener "catálogo y precio" automatizado.
+- Mantener "stock" como proceso controlado por operación (importaciones y ventas).
+
+### 3) One Piece: estado actual e integración pendiente
+
+Estado actual:
+- One Piece existe a nivel de modelo de datos y TCG base.
+- Aún no está integrado end-to-end en los flujos externos (browse sets/import/sync de fuentes) con la misma cobertura que Magic, Pokémon y Yu-Gi-Oh.
+
+Qué falta para dejar One Piece al mismo nivel:
+- Conector de fuente externa estable para sets/cartas/precios.
+- Mapeo de setCode y cardCode al formato de esa fuente.
+- Integración en flujos de:
+  - Browse sets
+  - Import por set
+  - Sync automático de sets nuevos
+  - Referencia de precios para price sync
+
+Cómo funcionará operativamente cuando esté integrado:
+- Igual que los otros TCG:
+  1. Detectar set nuevo en Sync sets nuevos.
+  2. Importar cartas del set.
+  3. Crear listings (opcional) con margen inicial.
+  4. Sincronizar precios por cron/manual.
+  5. Mantener stock por restock (CSV/XLSX) y ventas (checkout).
+
+### 4) Runbook rápido para tienda (resumen)
+
+- Día 0 (arranque):
+  - Bootstrap catálogo por lotes.
+  - Revisar cobertura de productId/precios.
+
+- Operación semanal:
+  - Sync sets nuevos.
+  - Revisar volatilidad y low stock.
+
+- Operación diaria:
+  - Importar restock.
+  - Procesar ventas (checkout descuenta stock).
+  - Revisar errores de importación y corregir archivo fuente.
+
+- Antes de cambios grandes:
+  - Ejecutar Dry run.
+  - Validar resultados.
+  - Ejecutar corrida real.
+
 ## Stack Tecnológico
 
 ### Backend
