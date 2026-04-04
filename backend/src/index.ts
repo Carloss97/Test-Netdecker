@@ -3,9 +3,12 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import 'express-async-errors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from backend/.env
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Import error utilities
 import { ApplicationError } from './utils/errors.js';

@@ -1,6 +1,9 @@
 // src/services/CardService.ts
 import prisma from '../utils/db.js';
 import { v4 as uuidv4 } from 'uuid';
+import { NotFoundError } from '../utils/errors.js';
+
+console.log('[CardService] Loaded, prisma available:', prisma ? 'YES' : 'NO');
 
 interface CreateCardInput {
   tcgId: string;
@@ -101,8 +104,10 @@ export class CardService {
    * Get cards by TCG (can accept either tcgId or tcgName like "POKEMON")
    */
   static async getCardsByTCG(tcgIdentifier: string) {
+    console.log('[CardService.getCardsByTCG] Called with:', tcgIdentifier);
+
     // First, try to find the TCG by ID or by name (enum)
-    const tcg = await prisma.tcg.findFirst({
+    const tcg = await prisma.tCG.findFirst({
       where: {
         OR: [
           { id: tcgIdentifier },
