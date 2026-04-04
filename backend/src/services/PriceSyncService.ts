@@ -1,6 +1,7 @@
 import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { PriceUpdateReason } from '@prisma/client';
+import { ScryfallService, YGOProDeckService, PokemonTCGService } from './CardDatabaseService.js';
 
 export interface PriceSyncUpdateInput {
   listingId: string;
@@ -14,6 +15,8 @@ export interface RunPriceSyncInput {
   notes?: string;
   changedBy?: string;
   roundingMultiple?: number;
+  /** When true (default for cron), tries to fetch latest market price from external APIs */
+  fetchExternalPrices?: boolean;
 }
 
 export interface PriceSyncResult {
@@ -54,6 +57,35 @@ const parseRunErrors = (errors: string | null) => {
   }
 };
 
+/**
+ * Attempt to fetch the latest market price for a card from external APIs.
+ * Returns null if the card is not found or an error occurs.
+ */
+async function fetchExternalMarketPrice(
+  cardCode: string,
+  tcgName: string,
+): Promise<number | null> {
+  try {
+    if (tcgName === 'MAGIC') {
+      const card = await ScryfallService.getCardById(cardCode);
+      return card?.priceMarket ?? card?.priceMid ?? null;
+    }
+
+    if (tcgName === 'POKEMON') {
+      const card = await PokemonTCGService.getCardById(cardCode);
+      return card?.priceMarket ?? card?.priceMid ?? null;
+    }
+
+    if (tcgName === 'YUGIOH') {
+      const card = await YGOProDeckService.getCardById(cardCode);
+      return card?.priceMarket ?? null;
+    }
+  } catch {
+    // Fall through
+  }
+  return null;
+}
+
 export class PriceSyncService {
   static async runPriceSync(input: RunPriceSyncInput): Promise<PriceSyncResult> {
     const startedAt = new Date();
@@ -87,6 +119,8 @@ export class PriceSyncService {
 
     try {
       let updates = input.updates;
+      const shouldFetchExternal =
+        input.fetchExternalPrices !== false && input.source === 'cron';
 
       if (!updates || updates.length === 0) {
         const listings = await prisma.listing.findMany({
@@ -95,14 +129,38 @@ export class PriceSyncService {
             id: true,
             referencePrice: true,
             marginMultiplier: true,
+            card: {
+              select: {
+                cardCode: true,
+                tcg: { select: { name: true } },
+              },
+            },
           }
         });
 
-        updates = listings.map((listing) => ({
-          listingId: listing.id,
-          referencePrice: listing.referencePrice,
-          marginMultiplier: listing.marginMultiplier,
-        }));
+        if (shouldFetchExternal) {
+          // Build updates with fresh external prices where available
+          updates = await Promise.all(
+            listings.map(async (listing) => {
+              const externalPrice = await fetchExternalMarketPrice(
+                listing.card.cardCode,
+                listing.card.tcg.name,
+              ).catch(() => null);
+
+              return {
+                listingId: listing.id,
+                referencePrice: externalPrice ?? listing.referencePrice,
+                marginMultiplier: listing.marginMultiplier,
+              };
+            }),
+          );
+        } else {
+          updates = listings.map((listing) => ({
+            listingId: listing.id,
+            referencePrice: listing.referencePrice,
+            marginMultiplier: listing.marginMultiplier,
+          }));
+        }
       }
 
       result.total = updates.length;

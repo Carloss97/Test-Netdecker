@@ -169,3 +169,95 @@ export async function exportInventoryImportsCsv(params?: {
 
   return response.data as Blob;
 }
+
+// ─────────────────────────────────────────────
+// External card database API
+// ─────────────────────────────────────────────
+
+export async function searchExternalCards(
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+  query: string,
+  options: { setCode?: string; page?: number } = {},
+) {
+  const { data } = await apiClient.get('/external/search', {
+    params: { tcg, query, ...options },
+  });
+  return data;
+}
+
+export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH') {
+  const { data } = await apiClient.get('/external/sets', { params: { tcg } });
+  return data;
+}
+
+export async function getExternalCardById(
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+  cardId: string,
+) {
+  const { data } = await apiClient.get(`/external/cards/${tcg}/${cardId}`);
+  return data;
+}
+
+export async function importExternalCard(params: {
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  cardId: string;
+  createListing?: boolean;
+  referencePrice?: number;
+  marginMultiplier?: number;
+  quantity?: number;
+  condition?: string;
+}) {
+  const { data } = await apiClient.post('/external/import/card', params);
+  return data;
+}
+
+export async function importExternalSearch(params: {
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  query: string;
+  setCode?: string;
+  page?: number;
+  createListing?: boolean;
+  referencePrice?: number;
+  marginMultiplier?: number;
+}) {
+  const { data } = await apiClient.post('/external/import/search', params);
+  return data;
+}
+
+export async function importExternalSet(params: {
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  setCode: string;
+  createListing?: boolean;
+  marginMultiplier?: number;
+}) {
+  const { data } = await apiClient.post('/external/import/set', params);
+  return data;
+}
+
+// ─────────────────────────────────────────────
+// Admin dashboard API
+// ─────────────────────────────────────────────
+
+export async function getAdminDashboard() {
+  const { data } = await apiClient.get('/admin/dashboard');
+  return data;
+}
+
+export async function getStockAlerts(threshold?: number) {
+  const { data } = await apiClient.get('/admin/stock-alerts', {
+    params: threshold ? { threshold } : undefined,
+  });
+  return data;
+}
+
+export async function getPriceVolatility(limit?: number) {
+  const { data } = await apiClient.get('/admin/price-volatility', {
+    params: limit ? { limit } : undefined,
+  });
+  return data;
+}
+
+export async function getAdminEditions() {
+  const { data } = await apiClient.get('/admin/editions');
+  return data;
+}

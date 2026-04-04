@@ -2,6 +2,7 @@ import prisma from '../utils/db.js';
 import { CardCondition, TCGType } from '@prisma/client';
 import { PriceService } from './PriceService.js';
 import { createHash } from 'node:crypto';
+import ExcelJS from 'exceljs';
 
 interface CsvRow {
   [key: string]: string;
@@ -476,5 +477,76 @@ export class InventoryService {
     }
 
     return result;
+  }
+
+  /**
+   * Convert an XLSX buffer into a CSV string, then import using importFromCsv.
+   * Uses the first worksheet found.
+   */
+  static async importFromXlsx(buffer: Buffer, options: ImportOptions = {}): Promise<ImportResult> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      throw new Error('XLSX file has no worksheets');
+    }
+
+    const rows: string[][] = [];
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const values: string[] = [];
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        // Convert cell value to string, handling formulas and rich-text
+        const raw = cell.value;
+        if (raw === null || raw === undefined) {
+          values.push('');
+        } else if (typeof raw === 'object' && 'result' in raw) {
+          values.push(String((raw as { result: unknown }).result ?? ''));
+        } else if (typeof raw === 'object' && 'richText' in raw) {
+          values.push(
+            ((raw as { richText: Array<{ text: string }> }).richText || [])
+              .map((rt) => rt.text)
+              .join(''),
+          );
+        } else {
+          values.push(String(raw));
+        }
+      });
+      rows.push(values);
+    });
+
+    if (rows.length === 0) {
+      throw new Error('XLSX worksheet is empty');
+    }
+
+    // Serialize to CSV so we can reuse all existing CSV logic
+    const csvContent = rows
+      .map((cols) =>
+        cols
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(','),
+      )
+      .join('\n');
+
+    return this.importFromCsv(csvContent, options);
+  }
+
+  /**
+   * Auto-detect format (CSV or XLSX) from file buffer and import accordingly.
+   */
+  static async importFromBuffer(
+    buffer: Buffer,
+    mimeType: string,
+    options: ImportOptions = {},
+  ): Promise<ImportResult> {
+    const isXlsx =
+      mimeType.includes('spreadsheetml') ||
+      mimeType.includes('excel') ||
+      (options.fileName || '').toLowerCase().endsWith('.xlsx');
+
+    if (isXlsx) {
+      return this.importFromXlsx(buffer, options);
+    }
+    return this.importFromCsv(buffer.toString('utf8'), options);
   }
 }

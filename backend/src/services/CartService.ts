@@ -8,6 +8,41 @@ interface AddToCartInput {
 }
 
 export class CartService {
+  /**
+   * Calculate stock available for reservation: total quantity minus quantity
+   * already reserved in active carts (excluding the current session).
+   */
+  private static async getAvailableStock(
+    listingId: string,
+    excludeSessionId?: string,
+    excludeItemId?: string,
+  ): Promise<number> {
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { quantity: true },
+    });
+    if (!listing) return 0;
+
+    // Sum quantities in carts that belong to OTHER sessions (reserved by others)
+    const reservedByOthers = await prisma.orderItem.aggregate({
+      where: {
+        listingId,
+        orderId: null, // still in a cart (not checked out)
+        ...(excludeSessionId
+          ? {
+              cart: {
+                sessionId: { not: excludeSessionId },
+              },
+            }
+          : {}),
+        ...(excludeItemId ? { id: { not: excludeItemId } } : {}),
+      },
+      _sum: { quantity: true },
+    });
+
+    const reserved = reservedByOthers._sum.quantity ?? 0;
+    return Math.max(listing.quantity - reserved, 0);
+  }
   static async getOrCreateCart(sessionId: string) {
     const existing = await prisma.cart.findFirst({
       where: { sessionId },
@@ -55,10 +90,6 @@ export class CartService {
       throw new Error('Listing not found');
     }
 
-    if (listing.quantity < input.quantity) {
-      throw new Error('Insufficient stock');
-    }
-
     const cart = await this.getOrCreateCart(input.sessionId);
 
     const existingItem = await prisma.orderItem.findFirst({
@@ -69,17 +100,27 @@ export class CartService {
       }
     });
 
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + input.quantity;
-      if (listing.quantity < newQuantity) {
-        throw new Error('Insufficient stock for requested quantity');
-      }
+    const currentCartQty = existingItem?.quantity ?? 0;
+    const desiredTotal = currentCartQty + input.quantity;
 
+    // Available stock = total stock - quantity reserved by OTHER sessions
+    const availableForSession = await this.getAvailableStock(
+      input.listingId,
+      input.sessionId,
+    );
+
+    if (availableForSession < desiredTotal) {
+      throw new Error(
+        `Insufficient stock. Available: ${availableForSession}, requested: ${desiredTotal}`,
+      );
+    }
+
+    if (existingItem) {
       await prisma.orderItem.update({
         where: { id: existingItem.id },
         data: {
-          quantity: newQuantity,
-          subtotal: newQuantity * listing.finalPrice,
+          quantity: desiredTotal,
+          subtotal: desiredTotal * listing.finalPrice,
           pricePerUnit: listing.finalPrice
         }
       });
@@ -131,8 +172,17 @@ export class CartService {
       throw new Error('Cart item not found');
     }
 
-    if (item.listing.quantity < quantity) {
-      throw new Error('Insufficient stock');
+    // Check available stock for this session (excluding the current item's reservation)
+    const availableForSession = await this.getAvailableStock(
+      item.listingId,
+      sessionId,
+      itemId,
+    );
+
+    if (availableForSession < quantity) {
+      throw new Error(
+        `Insufficient stock. Available: ${availableForSession}, requested: ${quantity}`,
+      );
     }
 
     await prisma.orderItem.update({
