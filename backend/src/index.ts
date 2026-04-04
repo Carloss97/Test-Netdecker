@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Import error utilities
+import { ApplicationError } from './utils/errors.js';
+
 // Import routes
 import tcgRoutes from './routes/tcg.routes.js';
 import cardRoutes from './routes/card.routes.js';
@@ -54,14 +57,20 @@ app.use('/api/admin', adminRoutes);
 // ============================================
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  
+  const isAppError = err instanceof ApplicationError;
+  const statusCode: number = err.statusCode || 500;
+  const message: string = err.message || 'Internal Server Error';
+  const code: string = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+
+  if (statusCode >= 500) {
+    console.error('Error:', err);
+  }
+
   res.status(statusCode).json({
+    success: false,
     error: {
-      message,
+      code,
+      message: isAppError ? message : 'Internal Server Error',
       statusCode,
       timestamp: new Date().toISOString(),
     }
@@ -71,9 +80,12 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
+    success: false,
     error: {
+      code: 'NOT_FOUND',
       message: 'Route not found',
-      path: req.path,
+      statusCode: 404,
+      timestamp: new Date().toISOString(),
     }
   });
 });

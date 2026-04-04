@@ -1,34 +1,10 @@
-
-// ...
-
-// PATCH /api/listings/:id/stock
-// Modifica el stock manualmente (sumar/restar/setear cantidad)
-// Body: { op: 'set'|'inc'|'dec', value: number }
-router.patch('/:id/stock', async (req: Request, res: Response) => {
-  try {
-    const { op, value } = req.body as { op: 'set'|'inc'|'dec'; value: number };
-    if (!['set','inc','dec'].includes(op) || typeof value !== 'number') {
-      return res.status(400).json({ error: 'Invalid op or value' });
-    }
-    const listing = await ListingService.getListing(req.params.id);
-    if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    let newQty = listing.quantity;
-    if (op === 'set') newQty = value;
-    if (op === 'inc') newQty += value;
-    if (op === 'dec') newQty -= value;
-    if (newQty < 0) newQty = 0;
-    const updated = await ListingService.updateQuantity(listing.id, newQty);
-    res.json({ success: true, listingId: listing.id, quantity: updated.quantity });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
-});
 // src/routes/listing.routes.ts
 import express, { Request, Response } from 'express';
 import { ListingService } from '../services/ListingService.js';
 import { PriceService } from '../services/PriceService.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { PriceSyncService } from '../services/PriceSyncService.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 
@@ -37,16 +13,12 @@ const router = express.Router();
  * Get available listings with stock
  */
 router.get('/available', async (req: Request, res: Response) => {
-  try {
-    const { tcgId, editionId } = req.query;
-    const listings = await ListingService.getAvailableListings(
-      tcgId as string | undefined,
-      editionId as string | undefined
-    );
-    res.json(listings);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  const { tcgId, editionId } = req.query;
+  const listings = await ListingService.getAvailableListings(
+    tcgId as string | undefined,
+    editionId as string | undefined
+  );
+  res.json(listings);
 });
 
 /**
@@ -54,28 +26,20 @@ router.get('/available', async (req: Request, res: Response) => {
  * Get low stock alerts
  */
 router.get('/low-stock', async (req: Request, res: Response) => {
-  try {
-    const { threshold } = req.query;
-    const listings = await ListingService.getLowStockAlerts(
-      parseInt(threshold as string) || 5
-    );
-    res.json(listings);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  const { threshold } = req.query;
+  const listings = await ListingService.getLowStockAlerts(
+    parseInt(threshold as string) || 5
+  );
+  res.json(listings);
 });
 
 /**
  * GET /api/listings/inventory-value
  * Get total inventory value
  */
-router.get('/inventory-value', async (req: Request, res: Response) => {
-  try {
-    const value = await ListingService.getInventoryValue();
-    res.json(value);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+router.get('/inventory-value', async (_req: Request, res: Response) => {
+  const value = await ListingService.getInventoryValue();
+  res.json(value);
 });
 
 /**
@@ -84,29 +48,25 @@ router.get('/inventory-value', async (req: Request, res: Response) => {
  * Body: { updates: [{ listingId: string, referencePrice: number, marginMultiplier?: number }] }
  */
 router.post('/sync-prices', async (req: Request, res: Response) => {
-  try {
-    const { updates, roundingMultiple, notes } = req.body as {
-      updates?: Array<{ listingId: string; referencePrice: number; marginMultiplier?: number }>;
-      roundingMultiple?: number;
-      notes?: string;
-    };
+  const { updates, roundingMultiple, notes } = req.body as {
+    updates?: Array<{ listingId: string; referencePrice: number; marginMultiplier?: number }>;
+    roundingMultiple?: number;
+    notes?: string;
+  };
 
-    if (updates !== undefined && (!Array.isArray(updates) || !updates.length)) {
-      return res.status(400).json({ error: 'updates must be a non-empty array when provided' });
-    }
-
-    const result = await PriceSyncService.runPriceSync({
-      source: 'manual',
-      updates,
-      notes: notes || 'Manual sync via API',
-      changedBy: 'system',
-      roundingMultiple,
-    });
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (updates !== undefined && (!Array.isArray(updates) || !updates.length)) {
+    throw new ValidationError('updates must be a non-empty array when provided');
   }
+
+  const result = await PriceSyncService.runPriceSync({
+    source: 'manual',
+    updates,
+    notes: notes || 'Manual sync via API',
+    changedBy: 'system',
+    roundingMultiple,
+  });
+
+  res.json(result);
 });
 
 /**
@@ -114,13 +74,9 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
  * List recent price sync runs for traceability.
  */
 router.get('/sync-prices/runs', async (req: Request, res: Response) => {
-  try {
-    const { limit } = req.query;
-    const runs = await PriceSyncService.getRecentRuns(parseInt(limit as string) || 20);
-    res.json({ runs });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  const { limit } = req.query;
+  const runs = await PriceSyncService.getRecentRuns(parseInt(limit as string) || 20);
+  res.json({ runs });
 });
 
 /**
@@ -128,15 +84,11 @@ router.get('/sync-prices/runs', async (req: Request, res: Response) => {
  * Get details of one price sync run.
  */
 router.get('/sync-prices/runs/:runId', async (req: Request, res: Response) => {
-  try {
-    const run = await PriceSyncService.getRunById(req.params.runId);
-    if (!run) {
-      return res.status(404).json({ error: 'Sync run not found' });
-    }
-    res.json(run);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const run = await PriceSyncService.getRunById(req.params.runId);
+  if (!run) {
+    throw new NotFoundError('Sync run not found');
   }
+  res.json(run);
 });
 
 /**
@@ -144,45 +96,91 @@ router.get('/sync-prices/runs/:runId', async (req: Request, res: Response) => {
  * Preview final CLP price from reference USD + margin with current exchange rate.
  */
 router.post('/price-preview', async (req: Request, res: Response) => {
-  try {
-    const { referencePrice, marginMultiplier } = req.body as {
-      referencePrice?: number;
-      marginMultiplier?: number;
-      roundingMultiple?: number;
-    };
+  const { referencePrice, marginMultiplier } = req.body as {
+    referencePrice?: number;
+    marginMultiplier?: number;
+    roundingMultiple?: number;
+  };
 
-    if (typeof referencePrice !== 'number' || referencePrice <= 0) {
-      return res.status(400).json({ error: 'referencePrice must be a positive number' });
-    }
-
-    if (typeof marginMultiplier !== 'number' || marginMultiplier <= 0) {
-      return res.status(400).json({ error: 'marginMultiplier must be a positive number' });
-    }
-
-    const calculation = await PriceService.calculateFinalPriceDetailed({
-      referencePrice,
-      marginMultiplier,
-      roundingMultiple: req.body.roundingMultiple,
-    });
-
-    res.json({
-      referencePrice,
-      marginMultiplier,
-      exchangeRate: calculation.exchangeRate,
-      exchangeRateRetrievalSource: calculation.retrievalSource,
-      exchangeRateProvider: calculation.provider || null,
-      exchangeRateFetchedAt: calculation.fetchedAt || null,
-      exchangeRateExpiresAt: calculation.expiresAt || null,
-      finalPrice: calculation.finalPrice,
-      rawFinalPrice: calculation.rawFinalPrice,
-      formula: calculation.formula,
-      roundedFinalPrice: Math.round(calculation.finalPrice),
-      roundingMultiple: calculation.roundingMultiple,
-      currency: 'CLP',
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (typeof referencePrice !== 'number' || referencePrice <= 0) {
+    throw new ValidationError('referencePrice must be a positive number');
   }
+
+  if (typeof marginMultiplier !== 'number' || marginMultiplier <= 0) {
+    throw new ValidationError('marginMultiplier must be a positive number');
+  }
+
+  const calculation = await PriceService.calculateFinalPriceDetailed({
+    referencePrice,
+    marginMultiplier,
+    roundingMultiple: req.body.roundingMultiple,
+  });
+
+  res.json({
+    referencePrice,
+    marginMultiplier,
+    exchangeRate: calculation.exchangeRate,
+    exchangeRateRetrievalSource: calculation.retrievalSource,
+    exchangeRateProvider: calculation.provider || null,
+    exchangeRateFetchedAt: calculation.fetchedAt || null,
+    exchangeRateExpiresAt: calculation.expiresAt || null,
+    finalPrice: calculation.finalPrice,
+    rawFinalPrice: calculation.rawFinalPrice,
+    formula: calculation.formula,
+    roundedFinalPrice: Math.round(calculation.finalPrice),
+    roundingMultiple: calculation.roundingMultiple,
+    currency: 'CLP',
+  });
+});
+
+/**
+ * GET /api/listings/price-history/export
+ * Export full price history as CSV (all records, no pagination cap).
+ * Query params: listingId?, from?, to?, limit? (default: no limit)
+ */
+router.get('/price-history/export', async (req: Request, res: Response) => {
+  const { listingId, from, to } = req.query;
+
+  const fromDate = from ? new Date(String(from)) : undefined;
+  const toDate = to ? new Date(String(to)) : undefined;
+
+  if (fromDate && Number.isNaN(fromDate.getTime())) {
+    throw new ValidationError('Invalid "from" date');
+  }
+  if (toDate && Number.isNaN(toDate.getTime())) {
+    throw new ValidationError('Invalid "to" date');
+  }
+
+  const history = await PriceService.getPriceHistoryForExport({
+    listingId: listingId as string | undefined,
+    from: fromDate,
+    to: toDate,
+  });
+
+  const header = ['id', 'listingId', 'oldPrice', 'newPrice', 'oldReferencePrice', 'newReferencePrice', 'oldExchangeRate', 'newExchangeRate', 'percentChange', 'reason', 'changedBy', 'notes', 'createdAt'];
+  const rows = history.map((h) => [
+    h.id,
+    h.listingId,
+    String(h.oldPrice),
+    String(h.newPrice),
+    String(h.oldReferencePrice),
+    String(h.newReferencePrice),
+    String(h.oldExchangeRate),
+    String(h.newExchangeRate),
+    String(h.percentChange ?? ''),
+    h.reason,
+    h.changedBy || '',
+    h.notes || '',
+    h.createdAt.toISOString(),
+  ]);
+
+  const csv = [header, ...rows]
+    .map((cols) => cols.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="price-history.csv"');
+  res.send(csv);
 });
 
 /**
@@ -190,12 +188,8 @@ router.post('/price-preview', async (req: Request, res: Response) => {
  * Get listings by card
  */
 router.get('/card/:cardId', async (req: Request, res: Response) => {
-  try {
-    const listings = await ListingService.getListingsByCard(req.params.cardId);
-    res.json(listings);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  const listings = await ListingService.getListingsByCard(req.params.cardId);
+  res.json(listings);
 });
 
 /**
@@ -203,57 +197,53 @@ router.get('/card/:cardId', async (req: Request, res: Response) => {
  * Show how current listing price compares against a recalculation with current USD/CLP.
  */
 router.get('/:id/price-debug', async (req: Request, res: Response) => {
-  try {
-    const listing = await ListingService.getListing(req.params.id);
-    if (!listing) {
-      return res.status(404).json({ error: 'Listing not found' });
-    }
-
-    const currentRateMeta = await ExchangeRateService.getUSDtoCLPRateMeta();
-    const recalculation = await PriceService.calculateFinalPrice({
-      referencePrice: listing.referencePrice,
-      marginMultiplier: listing.marginMultiplier,
-    });
-    const recalculatedFinalPrice = recalculation.finalPrice;
-    const delta = recalculatedFinalPrice - listing.finalPrice;
-    const deltaPercent = listing.finalPrice === 0 ? 0 : (delta / listing.finalPrice) * 100;
-    const recentHistory = await PriceService.getPriceHistory(listing.id, 10);
-
-    res.json({
-      listingId: listing.id,
-      cardId: listing.cardId,
-      cardName: listing.card.cardName,
-      condition: listing.condition,
-      quantity: listing.quantity,
-      pricing: {
-        storedReferencePrice: listing.referencePrice,
-        storedMarginMultiplier: listing.marginMultiplier,
-        storedExchangeRate: listing.exchangeRate,
-        storedFinalPrice: listing.finalPrice,
-        storedLastSyncedAt: listing.lastSyncedAt,
-      },
-      currentExchangeRate: {
-        rate: currentRateMeta.rate,
-        retrievalSource: currentRateMeta.retrievalSource,
-        provider: currentRateMeta.provider || null,
-        fetchedAt: currentRateMeta.fetchedAt || null,
-        expiresAt: currentRateMeta.expiresAt || null,
-      },
-      recalculation: {
-        formula: `${listing.referencePrice} * ${listing.marginMultiplier} * ${currentRateMeta.rate}`,
-        rawRecalculatedFinalPrice: recalculation.rawFinalPrice,
-        recalculatedFinalPrice,
-        roundedRecalculatedFinalPrice: Math.round(recalculatedFinalPrice),
-        roundingMultiple: recalculation.roundingMultiple,
-        delta,
-        deltaPercent,
-        isVolatile: PriceService.isVolatileChange(listing.finalPrice, recalculatedFinalPrice),
-      },
-      recentHistory,
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const listing = await ListingService.getListing(req.params.id);
+  if (!listing) {
+    throw new NotFoundError('Listing not found');
   }
+
+  const currentRateMeta = await ExchangeRateService.getUSDtoCLPRateMeta();
+  const recalculation = await PriceService.calculateFinalPrice({
+    referencePrice: listing.referencePrice,
+    marginMultiplier: listing.marginMultiplier,
+  });
+  const recalculatedFinalPrice = recalculation.finalPrice;
+  const delta = recalculatedFinalPrice - listing.finalPrice;
+  const deltaPercent = listing.finalPrice === 0 ? 0 : (delta / listing.finalPrice) * 100;
+  const recentHistory = await PriceService.getPriceHistory(listing.id, 10);
+
+  res.json({
+    listingId: listing.id,
+    cardId: listing.cardId,
+    cardName: listing.card.cardName,
+    condition: listing.condition,
+    quantity: listing.quantity,
+    pricing: {
+      storedReferencePrice: listing.referencePrice,
+      storedMarginMultiplier: listing.marginMultiplier,
+      storedExchangeRate: listing.exchangeRate,
+      storedFinalPrice: listing.finalPrice,
+      storedLastSyncedAt: listing.lastSyncedAt,
+    },
+    currentExchangeRate: {
+      rate: currentRateMeta.rate,
+      retrievalSource: currentRateMeta.retrievalSource,
+      provider: currentRateMeta.provider || null,
+      fetchedAt: currentRateMeta.fetchedAt || null,
+      expiresAt: currentRateMeta.expiresAt || null,
+    },
+    recalculation: {
+      formula: `${listing.referencePrice} * ${listing.marginMultiplier} * ${currentRateMeta.rate}`,
+      rawRecalculatedFinalPrice: recalculation.rawFinalPrice,
+      recalculatedFinalPrice,
+      roundedRecalculatedFinalPrice: Math.round(recalculatedFinalPrice),
+      roundingMultiple: recalculation.roundingMultiple,
+      delta,
+      deltaPercent,
+      isVolatile: PriceService.isVolatileChange(listing.finalPrice, recalculatedFinalPrice),
+    },
+    recentHistory,
+  });
 });
 
 /**
@@ -261,15 +251,30 @@ router.get('/:id/price-debug', async (req: Request, res: Response) => {
  * Get listing by ID
  */
 router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const listing = await ListingService.getListing(req.params.id);
-    if (!listing) {
-      return res.status(404).json({ error: 'Listing not found' });
-    }
-    res.json(listing);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const listing = await ListingService.getListing(req.params.id);
+  if (!listing) {
+    throw new NotFoundError('Listing not found');
   }
+  res.json(listing);
+});
+
+// PATCH /api/listings/:id/stock
+// Modifica el stock manualmente (sumar/restar/setear cantidad)
+// Body: { op: 'set'|'inc'|'dec', value: number }
+router.patch('/:id/stock', async (req: Request, res: Response) => {
+  const { op, value } = req.body as { op: 'set'|'inc'|'dec'; value: number };
+  if (!['set','inc','dec'].includes(op) || typeof value !== 'number') {
+    throw new ValidationError('Invalid op or value');
+  }
+  const listing = await ListingService.getListing(req.params.id);
+  if (!listing) throw new NotFoundError('Listing not found');
+  let newQty = listing.quantity;
+  if (op === 'set') newQty = value;
+  if (op === 'inc') newQty += value;
+  if (op === 'dec') newQty -= value;
+  if (newQty < 0) newQty = 0;
+  const updated = await ListingService.updateQuantity(listing.id, newQty);
+  res.json({ success: true, listingId: listing.id, quantity: updated.quantity });
 });
 
 export default router;
