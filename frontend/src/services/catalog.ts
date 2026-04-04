@@ -299,21 +299,25 @@ export async function syncCatalog(params?: {
   return data;
 }
 
+/** Fetches all editions with card/listing counts. Pass `tcgId` to filter by game; `activeOnly` defaults to true on the backend. */
 export async function getEditions(params?: { tcgId?: string; activeOnly?: boolean }): Promise<EditionWithCounts[]> {
   const response = await apiClient.get('/editions', { params });
   return response.data;
 }
 
+/** Retrieves a single edition with its metadata and card/listing counts. */
 export async function getEditionById(id: string): Promise<EditionWithCounts> {
   const response = await apiClient.get(`/editions/${id}`);
   return response.data;
 }
 
+/** Retrieves all cards in an edition along with their listings — used for inventory management. */
 export async function getEditionCardsWithStock(editionId: string): Promise<EditionInventory> {
   const response = await apiClient.get(`/editions/${editionId}/cards-with-stock`);
   return response.data;
 }
 
+/** Downloads a pre-filled CSV template for the specified edition, ready for stock entry. */
 export async function downloadEditionCsvTemplate(editionId: string): Promise<Blob> {
   const response = await apiClient.get(`/editions/${editionId}/csv-template`, {
     responseType: 'blob',
@@ -321,16 +325,25 @@ export async function downloadEditionCsvTemplate(editionId: string): Promise<Blo
   return response.data;
 }
 
+/** Performs bulk stock quantity updates for multiple listings in a single request. */
 export async function batchUpdateStock(updates: Array<{ listingId: string; quantity: number }>): Promise<{ updated: number }> {
   const response = await apiClient.post('/listings/batch-stock', { updates });
   return response.data;
 }
 
+/**
+ * Returns listings whose stock is at or below the given threshold (default: 2).
+ * Useful for low-stock alerts on the dashboard.
+ */
 export async function getLowStockListings(threshold?: number): Promise<Listing[]> {
   const response = await apiClient.get('/listings/low-stock', { params: { threshold } });
   return response.data;
 }
 
+/**
+ * Retrieves historical price records. Pass `listingId` to filter to a specific listing;
+ * omit it to retrieve global price history across all listings.
+ */
 export async function getPriceHistory(listingId?: string, limit?: number): Promise<Array<{ listingId: string; price: number; currency: string; source: string; recordedAt: string }>> {
   const response = await apiClient.get('/price-history', { params: { listingId, limit } });
   return response.data;
