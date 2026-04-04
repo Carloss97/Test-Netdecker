@@ -493,18 +493,22 @@ export class InventoryService {
     }
 
     const rows: string[][] = [];
+
+    // ExcelJS cell value helper types for clarity
+    interface CellFormulaValue { result?: unknown }
+    interface CellRichTextValue { richText: Array<{ text: string }> }
+
     worksheet.eachRow({ includeEmpty: false }, (row) => {
       const values: string[] = [];
       row.eachCell({ includeEmpty: true }, (cell) => {
-        // Convert cell value to string, handling formulas and rich-text
         const raw = cell.value;
         if (raw === null || raw === undefined) {
           values.push('');
         } else if (typeof raw === 'object' && 'result' in raw) {
-          values.push(String((raw as { result: unknown }).result ?? ''));
+          values.push(String((raw as CellFormulaValue).result ?? ''));
         } else if (typeof raw === 'object' && 'richText' in raw) {
           values.push(
-            ((raw as { richText: Array<{ text: string }> }).richText || [])
+            ((raw as CellRichTextValue).richText || [])
               .map((rt) => rt.text)
               .join(''),
           );

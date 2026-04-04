@@ -103,7 +103,12 @@ router.post('/import/card', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Card not found in external database' });
     }
 
-    const condition = req.body.condition as CardCondition | undefined;
+    const VALID_CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG'];
+    const rawCondition = req.body.condition ? String(req.body.condition).toUpperCase() : undefined;
+    const condition = rawCondition && VALID_CONDITIONS.includes(rawCondition as CardCondition)
+      ? (rawCondition as CardCondition)
+      : undefined;
+
     const result = await ExternalImportService.importCard(externalCard, {
       createListing: req.body.createListing === true || req.body.createListing === 'true',
       referencePrice: req.body.referencePrice ? parseFloat(req.body.referencePrice) : undefined,

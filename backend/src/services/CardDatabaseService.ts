@@ -128,13 +128,18 @@ export class ScryfallService {
   }
 
   static async getCardById(scryfallId: string): Promise<ExternalCard | null> {
-    const cacheKey = `scryfall:id:${scryfallId}`;
+    // Scryfall IDs are UUIDs — validate to prevent path-traversal SSRF
+    if (!/^[0-9a-f-]{36}$/i.test(scryfallId)) {
+      return null;
+    }
+    const safeId = encodeURIComponent(scryfallId);
+    const cacheKey = `scryfall:id:${safeId}`;
     const cached = await cacheGet(cacheKey);
     if (cached) return cached as ExternalCard;
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${scryfallId}`);
+      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${safeId}`);
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
@@ -265,12 +270,17 @@ export class PokemonTCGService {
   }
 
   static async getCardById(cardId: string): Promise<ExternalCard | null> {
-    const cacheKey = `pokemontcg:id:${cardId}`;
+    // Pokémon TCG card IDs follow format like "sv1-001" or "base1-4" — alphanumeric + hyphens
+    if (!/^[a-z0-9]([a-z0-9-]{0,60}[a-z0-9])?$/i.test(cardId)) {
+      return null;
+    }
+    const safeId = encodeURIComponent(cardId);
+    const cacheKey = `pokemontcg:id:${safeId}`;
     const cached = await cacheGet(cacheKey);
     if (cached) return cached as ExternalCard;
 
     try {
-      const { data } = await axios.get(`${POKEMON_BASE}/cards/${cardId}`, { headers: this.headers() });
+      const { data } = await axios.get(`${POKEMON_BASE}/cards/${safeId}`, { headers: this.headers() });
       const card = pokemonCardToExternal(data.data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
