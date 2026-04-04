@@ -4,15 +4,18 @@
 
 ## Objetivo del Sprint
 
-Cerrar brechas criticas para operacion diaria estable: inventario masivo robusto, pricing pipeline completo y admin funcional sin apoyo tecnico.
+Cerrar brechas criticas para operacion diaria estable: inventario masivo robusto, pricing pipeline con APIs nativas por TCG, integración completa de One Piece y admin funcional sin apoyo tecnico.
 
 ## Historias y Tareas
 
-### 1. Backfill de `tcgplayerProductId` por lotes
-- Ejecutar comando/endpoint de backfill sobre todo el catalogo.
-- Medir y reportar cobertura final por TCG (Magic, Pokemon, Yu-Gi-Oh!, One Piece).
-- Documentar % de cartas con productId y casos sin match.
-- Criterio de cierre: 95%+ de cartas con productId o justificacion clara de faltantes.
+### 1. Integración de APIs Nativas por TCG ✅ COMPLETADO
+- ✅ Scryfall para Magic: datos + precios USD en tiempo real
+- ✅ Pokémon TCG API para Pokémon: datos + precios USD embebidos
+- ✅ YGOPRODeck para Yu-Gi-Oh: datos + precios multi-fuente (CardMarket, TCGPlayer, eBay, Amazon)
+- ✅ OPTCGAPI para One Piece: datos + precios USD (market_price + inventory_price)
+- ✅ Eliminación completa de dependencias TCGPlayer
+- ✅ Error handling robusto con timeouts y validación de respuestas
+- Criterio de cierre: All 4 TCGs funcionan con APIs nativas. Dashboard muestra coverage % por TCG.
 
 ### 2. Umbrales de volatilidad y aprobacion manual
 - Implementar configuracion de umbrales de volatilidad por TCG y edicion.
@@ -37,7 +40,7 @@ Cerrar brechas criticas para operacion diaria estable: inventario masivo robusto
 ---
 
 ## Progreso
-- [ ] 1. Backfill de tcgplayerProductId por lotes
+- [x] 1. Integración de APIs Nativas por TCG
 - [ ] 2. Umbrales de volatilidad y aprobacion manual
 - [ ] 3. Rollback parcial y exportacion historial
 - [ ] 4. Admin: login y auditoria

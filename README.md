@@ -47,7 +47,11 @@ Plataforma completa para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, 
 - Visualización de stock disponible
 
 ### 💲 Precios Dinámicos
-- Sincronización con TCGplayer (referencia principal)
+- Sincronización con múltiples APIs nativas por TCG:
+  - **Magic**: Scryfall (datos + precios USD)
+  - **Pokémon**: Pokémon TCG API (datos + precios USD)
+  - **Yu-Gi-Oh**: YGOPRODeck (datos + precios multi-fuente: CardMarket, TCGPlayer, eBay, Amazon)
+  - **One Piece**: OPTCGAPI (datos + precios USD market/inventory)
 - Conversión automática a CLP usando tasa USD actual
 - Cálculo de margen dinámico por demanda/volatilidad
 - Actualización automática con límites de seguridad
@@ -121,7 +125,7 @@ Resultado esperado:
 
 Regla general del motor:
 - Precio final CLP = precio referencia USD x margen x tipo de cambio.
-- Prioridad de precio: TCGplayer (si hay productId) y luego fallback por fuente externa del TCG.
+- Prioridad de precio: API nativa del TCG (Scryfall, Pokémon TCG API, YGOPRODeck, OPTCGAPI)
 
 #### Fase C: Actualizar stock (restock y ventas)
 
@@ -138,28 +142,24 @@ Buenas prácticas:
 - Mantener "catálogo y precio" automatizado.
 - Mantener "stock" como proceso controlado por operación (importaciones y ventas).
 
-### 3) One Piece: estado actual e integración pendiente
+### 3) One Piece: estado actual e integración completa
 
 Estado actual:
-- One Piece existe a nivel de modelo de datos y TCG base.
-- Aún no está integrado end-to-end en los flujos externos (browse sets/import/sync de fuentes) con la misma cobertura que Magic, Pokémon y Yu-Gi-Oh.
+- ✅ One Piece está completamente integrado end-to-end
+- Soporta todos los flujos: search, import sets, sync automático, precios en USD
 
-Qué falta para dejar One Piece al mismo nivel:
-- Conector de fuente externa estable para sets/cartas/precios.
-- Mapeo de setCode y cardCode al formato de esa fuente.
-- Integración en flujos de:
-  - Browse sets
-  - Import por set
-  - Sync automático de sets nuevos
-  - Referencia de precios para price sync
+Cómo funciona operativamente:
+- Igual que Magic, Pokémon y Yu-Gi-Oh:
+  1. Detectar set nuevo en Sync sets nuevos
+  2. Importar cartas del set desde OPTCGAPI
+  3. Crear listings (opcional) con margen inicial
+  4. Sincronizar precios automáticamente (cron job cada 6 horas)
+  5. Mantener stock por restock (CSV/XLSX) y ventas (checkout)
 
-Cómo funcionará operativamente cuando esté integrado:
-- Igual que los otros TCG:
-  1. Detectar set nuevo en Sync sets nuevos.
-  2. Importar cartas del set.
-  3. Crear listings (opcional) con margen inicial.
-  4. Sincronizar precios por cron/manual.
-  5. Mantener stock por restock (CSV/XLSX) y ventas (checkout).
+Fuente de datos:
+- API: https://www.optcgapi.com/ (comunitaria, sin autenticación)
+- Proporciona: card names, set codes, rarities, market prices USD, inventory prices USD
+- Tasa de actualización: aproximadamente cada 2 semanas
 
 ### 4) Runbook rápido para tienda (resumen)
 
@@ -251,7 +251,7 @@ cd backend
 npm run dev
 ```
 
-El servidor estará disponible en `http://localhost:3001`
+El servidor estará disponible en `http://localhost:3333`
 
 ### Terminal 2: Frontend
 
@@ -264,7 +264,7 @@ La app estará disponible en `http://localhost:3000`
 
 ### API Base
 
-En desarrollo, el frontend redirige automáticamente las peticiones `/api/*` a `http://localhost:3001/api/*` mediante el proxy de Vite.
+En desarrollo, el frontend redirige automáticamente las peticiones `/api/*` a `http://localhost:3333/api/*` mediante el proxy de Vite.
 
 ## Endpoints API Base (MVP)
 
@@ -336,14 +336,15 @@ Ejemplos:
 ## Próximos Pasos
 
 - [x] Implementar endpoints base de checkout y órdenes
+- [x] Integración de APIs nativas por TCG (Scryfall, Pokémon TCG API, YGOPRODeck, OPTCGAPI)
+- [x] Job de sincronización automática de precios (cada 6 horas)
+- [x] Soporte completo para One Piece
 - [ ] Integración con pagos (Stripe, Mercado Pago)
-- [ ] Job de sincronización automática de precios (cada 4-6 horas)
 - [ ] Panel admin con autenticación
-- [ ] Importación de catálogo desde TCGplayer/CSV
 - [ ] Notificaciones de cambios de precio
 - [ ] Búsqueda avanzada con filtros múltiples
 - [ ] Recomendaciones y trending cards
-- [ ] Integración con múltiples fuentes de precio
+- [ ] Integración con múltiples fuentes de precio adicionales
 
 ## Variables de Entorno
 
@@ -352,9 +353,11 @@ Ver `.env.example` en backend/ para la lista completa.
 Principales:
 - `DATABASE_URL` - Conexión PostgreSQL
 - `REDIS_URL` - Conexión Redis
-- `PORT` - Puerto de la API (default: 3001)
-- `TCGPLAYER_API_KEY` - API Key de TCGplayer (opcional)
+- `PORT` - Puerto de la API (default: 3333)
+- `NODE_ENV` - Entorno (development/production)
 - `EXCHANGE_RATE_API_URL` - URL para obtener tasas de cambio
+- `PRICE_SYNC_ENABLED` - Habilitar sync automático de precios
+- `PRICE_SYNC_CRON` - Configuración de cron job para sync (ej: "0 */6 * * *" = cada 6 horas)
 
 ## Contribución
 

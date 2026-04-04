@@ -10,16 +10,15 @@ Ultima actualizacion: 2026-04-04
 ## Foco Actual (Lo que nos compete ahora)
 
 ### Prioridad Alta (ejecutar ahora)
+- Seccion 3 - Pricing Pipeline: Umbrales de volatilidad y aprobacion manual para cambios extremos.
 - Seccion 2 - Inventario Masivo: robustecer flujo operativo (rollback parcial y exportes completos).
-- Seccion 3 - Pricing Pipeline: completar cobertura de `tcgplayerProductId` y endurecer control de volatilidad.
 - Seccion 5 - Admin y Operacion Diaria: cerrar capacidades minimas para operar sin apoyo tecnico.
 
 ### Prioridad Media (despues de estabilizar lo anterior)
 - Seccion 4 - Checkout y Control de Stock: TTL de reservas y ciclo completo de estado de orden.
-- Seccion 6 - Fuentes externas: mejorar enriquecimiento de catalogo (TCGPlayer oficial / Cardmarket).
+- Seccion 7 - Cierre Comercial: material de venta, reporte de ahorro, demo comercial.
 
 ### Fuera de foco inmediato (para plan futuro)
-- Seccion 7 - Comercial (material de venta, reporte de ahorro, demo comercial).
 - Integracion completa con tienda externa ya operativa (ver roadmap futuro en `INTEGRATION_ROADMAP_FUTURE.md`).
 
 ## Seccion 1 - Fundacion Tecnica
@@ -63,17 +62,18 @@ Ultima actualizacion: 2026-04-04
 - [x] Deteccion de cambios volatiles
 - [x] Endpoint batch para sincronizacion masiva de precios
 - [x] **Job scheduler automatico** cada 6 horas (configurable via PRICE_SYNC_CRON)
-- [x] **Integracion real con fuentes de precios externas** (Scryfall, Pokemon TCG API, YGOPRODeck) — el cron job ahora busca precios de mercado actualizados por card
-- [x] **Integracion TCGplayer por productId**: PriceSync prioriza TCGplayer cuando existe `tcgplayerProductId` (con fallback automatico a fuentes externas)
-- [x] **Backfill por lote de `tcgplayerProductId`**: comando CLI y endpoint admin para poblar IDs faltantes
-- [x] **Endpoint de cobertura TCGplayer**: `%` global y por TCG de cartas con `tcgplayerProductId`
-- [x] **Rate limiter estricto TCGplayer**: cola, cache y reintentos para respetar limite bajo de requests
+- [x] **Integracion real con APIs nativas por TCG**:
+  - Magic: Scryfall (datos + precios USD)
+  - Pokémon: Pokémon TCG API (datos + precios USD)
+  - Yu-Gi-Oh: YGOPRODeck (datos + precios multi-fuente: CardMarket, TCGPlayer, eBay, Amazon)
+  - One Piece: OPTCGAPI (datos + precios USD market/inventory)
+- [x] **Eliminación de TCGPlayer API integration**: Todas las referencias removidas, usar APIs nativas
+- [x] **Error handling robusto**: Timeouts configurable, validación de respuestas, logging con prefijos de servicio
 - [x] **Bootstrap de catalogo por lote**: comando CLI y endpoint admin para cargar sets completos en BD
 - [x] **Sync automatico de sets nuevos**: cron + endpoint admin para detectar y cargar sets que aun no existen en BD
 
 ### Pendientes
-- [~] Backfill completo de `tcgplayerProductId` sobre todo el catalogo historico (parcial: script y endpoint corriendo, falta cobertura 100% y monitoreo de progreso)
-- [~] Umbrales de volatilidad configurables por TCG/edicion (estructura lista, falta exponer en UI y parametrizar)
+- [ ] Umbrales de volatilidad configurables por TCG/edicion (estructura lista, falta exponer en UI y parametrizar)
 - [ ] Flujo de aprobacion manual para cambios extremos
 - [~] Dashboard de monitoreo de sincronizaciones (parcial: vista básica en dashboard, falta monitoreo granular y alertas)
 
@@ -110,20 +110,24 @@ Ultima actualizacion: 2026-04-04
 ## Seccion 6 - Bases de Datos de Cartas Externas
 
 ### Completadas
-- [x] **CardDatabaseService**: integracion con Scryfall (Magic), Pokemon TCG API, YGOPRODeck (Yu-Gi-Oh!)
-- [x] **ExternalImportService**: importa cartas externas a la BD local con upsert
+- [x] **CardDatabaseService**: integracion con Scryfall (Magic), Pokemon TCG API, YGOPRODeck (Yu-Gi-Oh!), OPTCGAPI (One Piece)
+- [x] **ExternalImportService**: importa cartas externas a la BD local con upsert, soporta todos los TCGs incluyendo One Piece
 - [x] **Endpoints /api/external**: busqueda, listado de sets, importacion de carta individual, busqueda+importacion, importacion de set completo
-- [x] **UI de busqueda de cartas externas**: nueva tab "Buscar Cartas Externas" en el frontend
-- [x] **Precios de referencia desde fuentes externas**: Scryfall (USD market price), Pokemon TCG API (TCGplayer prices), YGOPRODeck (TCGplayer/Cardmarket prices)
+- [x] **UI de busqueda de cartas externas**: nueva tab "Buscar Cartas Externas" en el frontend con soporte completo para One Piece
+- [x] **Precios de referencia desde fuentes externas**:
+  - Scryfall: USD market price (Magic)
+  - Pokémon TCG API: USD prices (Pokémon)
+  - YGOPRODeck: precios multi-fuente CardMarket/TCGPlayer/eBay/Amazon (Yu-Gi-Oh)
+  - OPTCGAPI: USD market_price + inventory_price (One Piece) ✅
 - [x] Cache Redis de resultados externos (3 horas TTL)
-- [x] Campo dedicado `tcgplayerProductId` en `Card` (Prisma) para evitar depender de parsing en tags
+- [x] **Eliminacion de tcgplayerProductId campo**: Ya no es necesario, se usa directamente las APIs nativas
 - [x] UI/UX modernizada base: shell visual, header/footer nuevos, mejor layout de catalogo e importacion
 - [x] Importacion de inventario preparada para CSV/XLSX con flujo mas claro de validacion/importacion
-- [x] Fix Yu-Gi-Oh en importacion por set desde Browse Sets (mismatch set code vs set name resuelto)
+- [x] Fix Yu-Gi-Oh en importacion por set desde Browse Sets
+- [x] **One Piece completamente integrado**: Search, browse sets, import, sync automático de precios
 
 ### Pendientes
-- [ ] Integracion completa con catalogo TCGPlayer (set/product search oficial) para mejorar cobertura de productId y enriquecer metadatos faltantes
-- [ ] Integracion con Cardmarket API (requiere registro y acceso EU)
+- [ ] Integración con Cardmarket API (requiere registro y acceso EU) para mejorar precios de Yu-Gi-Oh en region europea
 
 ## Seccion 7 - Cierre Comercial con Dueno de Tienda
 
@@ -137,16 +141,15 @@ Ultima actualizacion: 2026-04-04
 - [ ] Material comercial (propuesta de valor + roadmap de 90 dias)
 
 ## Siguientes Pasos Recomendados (Orden de Ejecucion)
-1. Completar backfill de `tcgplayerProductId` por lotes y medir cobertura final por TCG.
-2. Implementar umbrales de volatilidad configurables por TCG/edicion + flujo de aprobacion manual para cambios extremos.
-3. Cerrar brechas de inventario masivo: rollback parcial configurable y exportacion CSV completa del historial.
-4. Implementar TTL de carrito y cleanup job para reservas expiradas.
-5. Agregar login admin y roles (admin/staff) + auditoria de acciones por usuario.
-6. Integrar pasarela de pago local (Stripe o Mercado Pago).
-7. Avanzar con integracion completa de One Piece en flujos externos (browse/import/sync/precios).
+1. Implementar umbrales de volatilidad configurables por TCG/edicion + flujo de aprobacion manual para cambios extremos.
+2. Cerrar brechas de inventario masivo: rollback parcial configurable y exportacion CSV completa del historial.
+3. Implementar TTL de carrito y cleanup job para reservas expiradas.
+4. Agregar login admin y roles (admin/staff) + auditoria de acciones por usuario.
+5. Integrar pasarela de pago local (Stripe o Mercado Pago).
+6. Mejorar dashboard con monitoreo granular de sincronizaciones y alertas automáticas.
+7. Integración con Cardmarket API para mejorar covertura de precios en región europea.
 
 ## Decisiones Pendientes (Requieren Input Humano)
-- **TCGPlayer API**: Requiere aplicar en https://developer.tcgplayer.com/ — una vez con key, reemplazar ExchangeRateService.fetchRate con datos reales de TCGPlayer.
 - **Cardmarket**: Mercado europeo, requiere registro — si la tienda vende en Europa/latinoamerica con precios europeos.
 - **Pasarela de pago**: Stripe (tarjeta de credito internacional) vs Mercado Pago (opciones locales Chile) — decision de negocio.
 - **Autenticacion**: Simple JWT propio vs servicio externo (Auth0, Supabase Auth) — impacto en tiempo de desarrollo.
