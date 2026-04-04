@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PricingPage } from './pages/PricingPage';
 import { ImportPage } from './pages/ImportPage';
+import { CardSearchPage } from './pages/CardSearchPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/inventario" element={<InventoryPage />} />
           <Route path="/precios" element={<PricingPage />} />
           <Route path="/importar" element={<ImportPage />} />
+          <Route path="/buscar" element={<CardSearchPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>
