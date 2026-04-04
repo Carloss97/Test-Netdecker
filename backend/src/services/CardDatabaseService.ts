@@ -98,7 +98,7 @@ export class ScryfallService {
       await sleep(SCRYFALL_DELAY_MS);
       const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
         params: { q: query, page, order: 'name' },
-        timeout: 15000,
+        timeout: 30000,
       });
       if (!data || !Array.isArray(data.data)) {
         console.warn('[Scryfall] searchCards: Invalid response structure');
@@ -124,7 +124,7 @@ export class ScryfallService {
       await sleep(SCRYFALL_DELAY_MS);
       const params: Record<string, string> = { exact: name };
       if (setCode) params.set = setCode.toLowerCase();
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/named`, { params, timeout: 15000 });
+      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/named`, { params, timeout: 30000 });
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
@@ -146,7 +146,7 @@ export class ScryfallService {
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${safeId}`, { timeout: 15000 });
+      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${safeId}`, { timeout: 30000 });
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
@@ -170,7 +170,7 @@ export class ScryfallService {
         await sleep(SCRYFALL_DELAY_MS);
         const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
           params: { q: `set:${setCode.toLowerCase()}`, page, order: 'collector_number' },
-          timeout: 15000,
+          timeout: 30000,
         });
         if (!data || !Array.isArray(data.data)) {
           console.warn(`[Scryfall] getSetCards ${setCode} page ${page}: Invalid response structure`);
@@ -199,7 +199,7 @@ export class ScryfallService {
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/sets`, { timeout: 15000 });
+      const { data } = await axios.get(`${SCRYFALL_BASE}/sets`, { timeout: 30000 });
       if (!data || !Array.isArray(data.data)) {
         console.warn('[Scryfall] listSets: Invalid response structure');
         return [];
@@ -544,7 +544,9 @@ export class YGOProDeckService {
       await cacheSet(cacheKey, cards, CACHE_TTL);
       return cards;
     } catch (err: unknown) {
-      console.error('[YGOPRODeck] searchCards error:', (err as Error).message);
+      const status = (err as { response?: { status?: number } }).response?.status;
+      const message = (err as Error).message;
+      console.error(`[YGOPRODeck] searchCards error (status ${status}):`, message);
       return [];
     }
   }
@@ -569,7 +571,9 @@ export class YGOProDeckService {
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
     } catch (err: unknown) {
-      console.error('[YGOPRODeck] getCardById error:', (err as Error).message);
+      const status = (err as { response?: { status?: number } }).response?.status;
+      const message = (err as Error).message;
+      console.error(`[YGOPRODeck] getCardById error (status ${status}):`, message);
       return null;
     }
   }
@@ -581,6 +585,8 @@ export class YGOProDeckService {
 
     try {
       const setName = await this.resolveSetName(setNameOrCode);
+      console.log(`[YGOPRODeck] getSetCards: Resolved "${setNameOrCode}" → "${setName}"`);
+
       const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, {
         params: { cardset: setName },
         timeout: 15000,
@@ -595,7 +601,9 @@ export class YGOProDeckService {
       }
       return cards;
     } catch (err: unknown) {
-      console.error('[YGOPRODeck] getSetCards error:', (err as Error).message);
+      const status = (err as { response?: { status?: number } }).response?.status;
+      const message = (err as Error).message;
+      console.error(`[YGOPRODeck] getSetCards error for "${setNameOrCode}" (status ${status}):`, message);
       return [];
     }
   }
