@@ -82,8 +82,11 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('bootstrap');
     setCatalogActionError(null);
     try {
+      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(catalogTcg)
+        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+        : undefined;
       const payload = await bootstrapCatalog({
-        tcg: catalogTcg || undefined,
+        tcg,
         setCode: setCode.trim() || undefined,
         setLimit: setLimit ? Number.parseInt(setLimit, 10) : undefined,
         dryRun,
@@ -103,8 +106,11 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('sync');
     setCatalogActionError(null);
     try {
+      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(catalogTcg)
+        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+        : undefined;
       const payload = await syncCatalog({
-        tcg: catalogTcg || undefined,
+        tcg,
         dryRun,
         createListings,
         initialQuantity: Number.parseInt(initialQuantity || '0', 10),

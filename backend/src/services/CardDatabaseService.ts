@@ -298,24 +298,62 @@ export class PokemonTCGService {
       const allCards: ExternalCard[] = [];
       let page = 1;
       let hasMore = true;
+      let totalCards = 0;
 
       while (hasMore) {
-        const { data } = await axios.get(`${POKEMON_BASE}/cards`, {
-          params: { q: `set.id:${setId}`, page, pageSize: 250 },
-          headers: this.headers(),
-        });
-        const cards = (data.data as Record<string, unknown>[]).map(pokemonCardToExternal);
-        allCards.push(...cards);
-        hasMore = data.page * data.pageSize < data.totalCount;
-        page++;
-        if (page > 10) break; // safety cap
+        try {
+          const { data } = await axios.get(`${POKEMON_BASE}/cards`, {
+            params: { q: `set.id:${setId}`, page, pageSize: 250 },
+            headers: this.headers(),
+            timeout: 10000, // 10 second timeout
+          });
+
+          if (!data || !Array.isArray(data.data)) {
+            console.warn(
+              `[PokemonTCG] Invalid response for set ${setId} page ${page}: missing data.data`,
+            );
+            break;
+          }
+
+          const cards = (data.data as Record<string, unknown>[])
+            .map(pokemonCardToExternal)
+            .filter((card) => {
+              // Skip cards with ALL prices missing
+              if (card.priceMarket === undefined && card.priceMid === undefined && card.priceLow === undefined) {
+                console.warn(
+                  `[PokemonTCG] Card ${card.cardName} (${card.externalId}) has no pricing data`,
+                );
+                return false;
+              }
+              return true;
+            });
+
+          allCards.push(...cards);
+          totalCards = data.totalCount || 0;
+          hasMore = (data.page || page) * (data.pageSize || 250) < totalCards;
+          page++;
+
+          if (page > 10) {
+            console.warn(`[PokemonTCG] Set ${setId}: Hit safety cap at page 10. Total cards so far: ${allCards.length}`);
+            break;
+          }
+        } catch (pageErr) {
+          const msg = pageErr instanceof Error ? pageErr.message : String(pageErr);
+          console.error(`[PokemonTCG] Error fetching set ${setId} page ${page}: ${msg}`);
+          // Continue to next set rather than failing entire batch
+          break;
+        }
       }
 
-      if (allCards.length > 0) {
+      if (allCards.length === 0) {
+        console.warn(`[PokemonTCG] No valid cards found for set ${setId}`);
+      } else {
         await cacheSet(cacheKey, allCards, CACHE_TTL);
       }
       return allCards;
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[PokemonTCG] Fatal error fetching set cards for ${setId}: ${msg}`);
       return [];
     }
   }
