@@ -159,7 +159,7 @@ export interface CatalogBootstrapResponse {
   setsProcessed: number;
   cardsProcessed: number;
   bySet: Array<{
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
     setCode: string;
     setName: string;
     totalCards: number;
@@ -179,7 +179,7 @@ export interface CatalogSyncResponse {
   updatedCards: number;
   skippedCards: number;
   bySet: Array<{
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
     setCode: string;
     setName: string;
     imported: boolean;

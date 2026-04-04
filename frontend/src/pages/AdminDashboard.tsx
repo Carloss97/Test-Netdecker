@@ -82,8 +82,8 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('bootstrap');
     setCatalogActionError(null);
     try {
-      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(catalogTcg)
-        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(catalogTcg)
+        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')
         : undefined;
       const payload = await bootstrapCatalog({
         tcg,
@@ -106,8 +106,8 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('sync');
     setCatalogActionError(null);
     try {
-      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(catalogTcg)
-        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(catalogTcg)
+        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')
         : undefined;
       const payload = await syncCatalog({
         tcg,
@@ -151,7 +151,7 @@ export function AdminDashboardPage() {
                 <option value="MAGIC">Magic</option>
                 <option value="POKEMON">Pokémon</option>
                 <option value="YUGIOH">Yu-Gi-Oh!</option>
-                <option value="ONE_PIECE" disabled>One Piece (search only)</option>
+                <option value="ONE_PIECE">One Piece</option>
               </select>
             </div>
             <div>
@@ -194,8 +194,8 @@ export function AdminDashboardPage() {
             </button>
           </div>
           <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-            <strong>Sync/Bootstrap:</strong> Magic, Pokémon, Yu-Gi-Oh! only (One Piece is search-only from OPTCGAPI).<br/>
-            <strong>Pricing:</strong> Magic & YGO: TCGPlayer→CardMarket. Pokémon: PokémonTCG API. One Piece: OPTCGAPI market prices.
+            <strong>Sync/Bootstrap:</strong> Imports card sets from Magic, Pokémon, Yu-Gi-Oh!, One Piece external APIs. Each TCG uses its native API: Scryfall, PokémonTCG, YGOPRODeck, OPTCGAPI.<br/>
+            <strong>Pricing:</strong> Reference prices fetched from each API during import. Update via price sync cron job.
           </p>
         </div>
 
@@ -258,8 +258,8 @@ export function AdminDashboardPage() {
           {coverage && (
             <Section title="📊 Card Coverage & Price Sources">
               <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
-                <strong>Coverage:</strong> % of cards with TCGPlayer product IDs (US market only).<br/>
-                <strong>Price Sources:</strong> Magic/YGO use TCGPlayer → CardMarket fallback. Pokémon uses TCGPlayer fallback → PokémonTCG API. One Piece uses OPTCGAPI direct market prices.
+                <strong>Total Cards:</strong> {coverage?.global.totalCards.toLocaleString()} imported across all TCGs.<br/>
+                <strong>Price Sources:</strong> Magic (Scryfall), Pokémon (PokemonTCG API), Yu-Gi-Oh! (YGOPRODeck), One Piece (OPTCGAPI).
               </p>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
                 <KpiCard

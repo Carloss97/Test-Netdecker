@@ -81,8 +81,6 @@ export class ExternalImportService {
 
     const edition = await this.resolveEdition(tcg.id, externalCard);
     const rarity = this.normalizeRarity(externalCard.rarity);
-    const parsedProductId = Number.parseInt(externalCard.externalId, 10);
-    const tcgplayerProductId = Number.isFinite(parsedProductId) ? parsedProductId : undefined;
 
     const existing = await prisma.card.findUnique({
       where: {
@@ -105,7 +103,6 @@ export class ExternalImportService {
           cardName: externalCard.cardName,
           cardNumber: externalCard.cardNumber,
           rarity,
-          tcgplayerProductId,
           colorIdentity: externalCard.colorIdentity,
           imageUrl: externalCard.imageUrl,
           description: externalCard.description,
@@ -122,7 +119,6 @@ export class ExternalImportService {
           cardName: externalCard.cardName,
           cardNumber: externalCard.cardNumber,
           rarity,
-          tcgplayerProductId,
           colorIdentity: externalCard.colorIdentity,
           imageUrl: externalCard.imageUrl,
           description: externalCard.description,

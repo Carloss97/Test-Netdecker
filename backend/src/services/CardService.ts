@@ -6,7 +6,6 @@ interface CreateCardInput {
   tcgId: string;
   editionId: string;
   cardCode: string;
-  tcgplayerProductId?: number;
   cardName: string;
   cardNumber?: string;
   rarity: string;

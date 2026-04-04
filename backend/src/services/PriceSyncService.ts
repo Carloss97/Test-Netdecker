@@ -66,50 +66,28 @@ async function fetchExternalMarketPrice(
   cardCode: string,
   tcgName: string,
   rarity?: string,
-  tcgplayerProductId?: number | null,
-  tags?: string,
 ): Promise<number | null> {
-  // Priority source: TCGplayer product pricing when a product id is available.
-  const tagProductMatch = tags?.match(/tcgplayer(?:ProductId)?[:=](\d+)/i);
-  const codeProductMatch = cardCode.match(/^\d+$/);
-  const resolvedTcgplayerProductId =
-    tcgplayerProductId ?? Number(tagProductMatch?.[1] || codeProductMatch?.[0]);
-
   try {
-    // 1. YGOPRODeck for Yu-Gi-Oh (multi-source: TCGPlayer + CardMarket + eBay + Amazon)
-    if (tcgName === 'YUGIOH') {
-      const card = await YGOProDeckService.getCardById(cardCode);
-      if (card?.priceMarket !== undefined) {
-        return card.priceMarket;
-      }
-    }
+    // Each TCG uses its native API for pricing
 
-    // 2. OPTCGAPI for One Piece (market_price in USD)
-    if (tcgName === 'ONE_PIECE') {
-      const card = await OptcgapiService.getCardById(cardCode);
-      if (card?.priceMarket !== undefined) {
-        return card.priceMarket;
-      }
-    }
-
-    // 3. TCGPlayer fallback (when productId is available)
-    if (Number.isFinite(resolvedTcgplayerProductId) && resolvedTcgplayerProductId > 0) {
-      const tcgplayerPrice = await TCGPlayerService.getMarketPriceByProduct(resolvedTcgplayerProductId, rarity);
-      if (tcgplayerPrice !== null) {
-        return tcgplayerPrice;
-      }
-    }
-
-    // 4. Scryfall for Magic
     if (tcgName === 'MAGIC') {
       const card = await ScryfallService.getCardById(cardCode);
       return card?.priceMarket ?? card?.priceMid ?? null;
     }
 
-    // 5. Pokémon TCG API for Pokémon
     if (tcgName === 'POKEMON') {
       const card = await PokemonTCGService.getCardById(cardCode);
       return card?.priceMarket ?? card?.priceMid ?? null;
+    }
+
+    if (tcgName === 'YUGIOH') {
+      const card = await YGOProDeckService.getCardById(cardCode);
+      return card?.priceMarket ?? null;
+    }
+
+    if (tcgName === 'ONE_PIECE') {
+      const card = await OptcgapiService.getCardById(cardCode);
+      return card?.priceMarket ?? null;
     }
   } catch {
     // Fall through to return null
@@ -164,8 +142,6 @@ export class PriceSyncService {
               select: {
                 cardCode: true,
                 rarity: true,
-                tags: true,
-                tcgplayerProductId: true,
                 tcg: { select: { name: true } },
               },
             },
@@ -180,8 +156,6 @@ export class PriceSyncService {
                 listing.card.cardCode,
                 listing.card.tcg.name,
                 listing.card.rarity ?? undefined,
-                listing.card.tcgplayerProductId,
-                listing.card.tags,
               ).catch(() => null);
 
               return {

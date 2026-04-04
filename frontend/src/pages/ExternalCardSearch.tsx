@@ -302,7 +302,7 @@ export function ExternalCardSearch() {
       <div className="surface-card" style={{ marginBottom: 16, padding: 16 }}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 10, color: '#333' }}>Select TCG</label>
         <p style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
-          <strong>💡</strong> Magic, Pokémon, Yu-Gi-Oh! → Import to catalog. One Piece → Search only (real-time OPTCGAPI).
+          <strong>💡</strong> Search and import cards from Magic, Pokémon, Yu-Gi-Oh!, One Piece. Each TCG uses its native API for accurate data.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {(Object.keys(TCG_LABELS) as TCGParam[]).map((t) => (
@@ -371,23 +371,18 @@ export function ExternalCardSearch() {
       {/* Set bulk import */}
       <div className="surface-card" style={{ marginBottom: 20, padding: 16 }}>
         <h3 style={{ marginTop: 0 }}>Import Full Set</h3>
-        {tcg === 'ONE_PIECE' && (
-          <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 4, padding: 12, marginBottom: 12, fontSize: 12, color: '#856404' }}>
-            ⚠️ One Piece is search-only. Browse and import cards individually from search results.
-          </div>
-        )}
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="Import full set by code (e.g. MH3, sv1-5, OP-01)"
+            placeholder="Import full set by code (e.g. MH3, SV05, OP-01)"
             value={importSetCode}
             onChange={(e) => setImportSetCode(e.target.value)}
             style={{ padding: '8px', flex: 1, minWidth: 200 }}
           />
           <button
             onClick={handleImportSet}
-            disabled={importingAll || !importSetCode.trim() || tcg === 'ONE_PIECE'}
-            style={{ padding: '8px 16px', background: tcg === 'ONE_PIECE' ? '#ccc' : '#7b1fa2', color: '#fff', border: 'none', borderRadius: 4, cursor: tcg === 'ONE_PIECE' ? 'not-allowed' : 'pointer' }}
+            disabled={importingAll || !importSetCode.trim()}
+            style={{ padding: '8px 16px', background: '#7b1fa2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
           >
             {importingAll ? 'Importing…' : 'Import Set'}
           </button>

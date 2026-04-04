@@ -354,10 +354,6 @@ export class InventoryService {
         const marginMultiplier = Number(row.marginMultiplier || 1.2);
         const condition = parseCondition(row.condition);
         const rarity = normalizeRarity(row.rarity);
-        const parsedTcgplayerProductId = Number.parseInt(row.tcgplayerProductId || '', 10);
-        const tcgplayerProductId = Number.isFinite(parsedTcgplayerProductId)
-          ? parsedTcgplayerProductId
-          : undefined;
 
         if (!editionCode || !cardCode || !cardName) {
           throw new Error('Missing required fields: editionCode, cardCode, cardName');
@@ -411,7 +407,6 @@ export class InventoryService {
             cardName,
             cardNumber: row.cardNumber || null,
             rarity,
-            tcgplayerProductId,
             tags: row.tags || '',
             imageUrl: row.imageUrl || null
           },
@@ -422,7 +417,6 @@ export class InventoryService {
             cardName,
             cardNumber: row.cardNumber || null,
             rarity,
-            tcgplayerProductId,
             tags: row.tags || '',
             imageUrl: row.imageUrl || null
           }

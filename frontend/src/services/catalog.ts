@@ -274,7 +274,7 @@ export async function getTcgplayerCoverage() {
 }
 
 export async function bootstrapCatalog(params?: {
-  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   setCode?: string;
   setLimit?: number;
   dryRun?: boolean;
@@ -287,7 +287,7 @@ export async function bootstrapCatalog(params?: {
 }
 
 export async function syncCatalog(params?: {
-  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   dryRun?: boolean;
   createListings?: boolean;
   initialQuantity?: number;

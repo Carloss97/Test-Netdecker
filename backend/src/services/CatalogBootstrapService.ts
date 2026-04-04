@@ -2,7 +2,7 @@ import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExternalImportService } from './ExternalImportService.js';
 
 export interface CatalogBootstrapOptions {
-  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   setCode?: string;
   setLimit?: number;
   dryRun?: boolean;
@@ -12,7 +12,7 @@ export interface CatalogBootstrapOptions {
 }
 
 export interface CatalogBootstrapSetResult {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   setCode: string;
   setName: string;
   totalCards: number;
@@ -33,7 +33,7 @@ export interface CatalogBootstrapResult {
   bySet: CatalogBootstrapSetResult[];
 }
 
-const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH'> = ['MAGIC', 'POKEMON', 'YUGIOH'];
+const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'];
 
 function normalizeSetCode(raw: string): string {
   return raw.trim().toUpperCase();

@@ -31,6 +31,7 @@ enum CardCondition {
 
 enum PriceUpdateReason {
   TCGPLAYER_SYNC
+  EXTERNAL_API_SYNC
   MANUAL_UPDATE
   DEMAND_ADJUSTMENT
   VOLATILE_ALERT
@@ -92,11 +93,10 @@ model Card {
   edition        Edition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
   
   // Card identifiers and metadata
-  cardCode       String    // TCGplayer ID, Scryfall ID, etc.
-  tcgplayerProductId Int?
+  cardCode       String    // External API ID (Scryfall UUID, Pokemon ID, YGO ID, OPTCG ID)
   cardName       String
   cardNumber     String?   // Collector number
-  rarity         String    // "Rare", "Common", etc. (ahora requerido y parte de la unicidad)
+  rarity         String    // "Rare", "Common", etc.
   colorIdentity String?   // For Magic: "WUB", for others: relevant color system
   
   // For search and filtering
@@ -112,7 +112,6 @@ model Card {
   @@index([tcgId])
   @@index([editionId])
   @@index([cardCode])
-  @@index([tcgplayerProductId])
   
   // Relations
   listings       Listing[]
@@ -137,7 +136,7 @@ model Listing {
   quantity       Int       @default(0)
 
   // Pricing
-  referencePrice Float    // Price in USD from TCGplayer/other source
+  referencePrice Float    // Price in USD from external APIs (Scryfall, Pokemon TCG, YGOPRODeck, OPTCGAPI)
   marginMultiplier Float  @default(1.2)  // 1.2 = 20% markup
   exchangeRate   Float    @default(1.0)  // USD to CLP rate at time of calculation
 
