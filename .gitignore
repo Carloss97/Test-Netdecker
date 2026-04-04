@@ -1,0 +1,46 @@
+# .gitignore para TCG Singles Platform
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Frontend
+frontend/dist/
+frontend/build/
+
+# Backend
+backend/dist/
+backend/build/
+backend/uploads/
+
+# Database
+*.db
+*.sqlite
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Logs
+logs/
+*.log

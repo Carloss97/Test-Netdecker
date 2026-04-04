@@ -1,0 +1,16 @@
+{
+  "name": "tcg-singles-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo runner scripts for backend and frontend",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

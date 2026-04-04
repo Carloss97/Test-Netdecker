@@ -1,0 +1,91 @@
+// src/index.ts
+import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import 'express-async-errors';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Import routes
+import tcgRoutes from './routes/tcg.routes.js';
+import cardRoutes from './routes/card.routes.js';
+import listingRoutes from './routes/listing.routes.js';
+import inventoryRoutes from './routes/inventory.routes.js';
+import cartRoutes from './routes/cart.routes.js';
+import healthRoutes from './routes/health.routes.js';
+import { startPriceSyncCron } from './jobs/priceSync.job.js';
+
+const app: Express = express();
+const PORT = process.env.PORT || 3001;
+
+// ============================================
+// MIDDLEWARE
+// ============================================
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Request logging
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// ============================================
+// ROUTES
+// ============================================
+
+app.use('/api/health', healthRoutes);
+app.use('/api/tcgs', tcgRoutes);
+app.use('/api/cards', cardRoutes);
+app.use('/api/listings', listingRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/cart', cartRoutes);
+
+// ============================================
+// ERROR HANDLING
+// ============================================
+
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  
+  res.status(statusCode).json({
+    error: {
+      message,
+      statusCode,
+      timestamp: new Date().toISOString(),
+    }
+  });
+});
+
+// 404 Handler
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    error: {
+      message: 'Route not found',
+      path: req.path,
+    }
+  });
+});
+
+// ============================================
+// SERVER STARTUP
+// ============================================
+
+app.listen(PORT, () => {
+  startPriceSyncCron();
+
+  console.log(`
+╔═══════════════════════════════════════════╗
+║   TCG Singles Platform - Backend Server   ║
+║              Running on port ${PORT}              ║
+╚═══════════════════════════════════════════╝
+  `);
+});
+
+export default app;
