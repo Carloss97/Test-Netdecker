@@ -316,17 +316,15 @@ export class PokemonTCGService {
           }
 
           const cards = (data.data as Record<string, unknown>[])
-            .map(pokemonCardToExternal)
-            .filter((card) => {
-              // Skip cards with ALL prices missing
-              if (card.priceMarket === undefined && card.priceMid === undefined && card.priceLow === undefined) {
-                console.warn(
-                  `[PokemonTCG] Card ${card.cardName} (${card.externalId}) has no pricing data`,
-                );
-                return false;
-              }
-              return true;
-            });
+            .map(pokemonCardToExternal);
+
+          // Count cards with missing prices for debugging
+          const missingPrices = cards.filter(c =>
+            c.priceMarket === undefined && c.priceMid === undefined && c.priceLow === undefined
+          ).length;
+          if (missingPrices > 0) {
+            console.warn(`[PokemonTCG] Set ${setId} page ${page}: ${missingPrices} cards have no pricing data (will be imported)`);
+          }
 
           allCards.push(...cards);
           totalCards = data.totalCount || 0;

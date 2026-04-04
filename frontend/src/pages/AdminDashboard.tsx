@@ -194,7 +194,8 @@ export function AdminDashboardPage() {
             </button>
           </div>
           <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-            Populate historical catalog or sync new sets directly from this console. Only works with Magic, Pokémon, and Yu-Gi-Oh!
+            <strong>Sync/Bootstrap:</strong> Magic, Pokémon, Yu-Gi-Oh! only (One Piece is search-only from OPTCGAPI).<br/>
+            <strong>Pricing:</strong> Magic & YGO: TCGPlayer→CardMarket. Pokémon: PokémonTCG API. One Piece: OPTCGAPI market prices.
           </p>
         </div>
 
@@ -255,7 +256,11 @@ export function AdminDashboardPage() {
           </Section>
 
           {coverage && (
-            <Section title="TCGplayer Coverage">
+            <Section title="📊 Card Coverage & Price Sources">
+              <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+                <strong>Coverage:</strong> % of cards with TCGPlayer product IDs (US market only).<br/>
+                <strong>Price Sources:</strong> Magic/YGO use TCGPlayer → CardMarket fallback. Pokémon uses TCGPlayer fallback → PokémonTCG API. One Piece uses OPTCGAPI direct market prices.
+              </p>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
                 <KpiCard
                   label="Global Coverage"
