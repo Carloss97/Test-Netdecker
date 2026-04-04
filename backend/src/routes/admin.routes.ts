@@ -263,7 +263,13 @@ router.post('/catalog/reset', async (req: Request, res: Response) => {
   await prisma.order.deleteMany();
   await prisma.cart.deleteMany();
   await prisma.priceHistory.deleteMany();
-  await (prisma as unknown as { priceSyncRun: { deleteMany: () => Promise<unknown> } }).priceSyncRun.deleteMany();
+  // priceSyncRun is accessed via the same delegate pattern used in PriceSyncService
+  const priceSyncRunDelegate = (prisma as unknown as Record<string, unknown>)['priceSyncRun'] as
+    | { deleteMany: () => Promise<unknown> }
+    | undefined;
+  if (priceSyncRunDelegate) {
+    await priceSyncRunDelegate.deleteMany();
+  }
   await prisma.listing.deleteMany();
   await prisma.card.deleteMany();
   await prisma.edition.deleteMany();

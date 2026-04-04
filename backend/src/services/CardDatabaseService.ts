@@ -500,11 +500,14 @@ function extractYgoPrice(priceEntry: YgoPrice | Record<string, unknown>): number
  * Card codes look like "LOB-EN001" or "BLAR-EN001" — the set code
  * is everything before the last hyphen+region+number suffix.
  * e.g. "LOB-EN001" → "LOB", "BLAR-EN001" → "BLAR", "LD10-EN001" → "LD10"
+ * If the code doesn't match the expected pattern (e.g. no hyphen), the full code
+ * is returned as-is so it can still be used as a unique identifier.
  */
 function extractYgoSetCodePrefix(cardSetCode: string): string {
   const normalized = cardSetCode.trim().toUpperCase();
-  // Remove trailing hyphen + optional region letters + card number
+  // Remove trailing hyphen + optional region letters (0-3 chars) + card number
   const match = normalized.match(/^(.+)-[A-Z]{0,3}\d+$/);
+  // If no match (e.g. code has no hyphen), return full normalized string as fallback
   return match?.[1] ?? normalized;
 }
 

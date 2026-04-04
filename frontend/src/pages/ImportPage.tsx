@@ -29,6 +29,14 @@ interface ImportRecord {
   createdAt: string;
 }
 
+interface PaginatedImports {
+  items: ImportRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export function ImportPage() {
   const [activeTab, setActiveTab] = useState<'catalog' | 'csv'>('catalog');
 
@@ -146,7 +154,7 @@ export function ImportPage() {
     }
   };
 
-  const importList = ((imports as { items?: ImportRecord[] } | null)?.items ?? []);
+  const importList = ((imports as PaginatedImports | null)?.items ?? []);
 
   return (
     <div>
