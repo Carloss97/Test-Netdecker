@@ -3,11 +3,21 @@ import { useAsync } from '../hooks/useAsync';
 import { getAvailableListings, syncListingPrices, getPriceVolatility } from '../services/catalog';
 import type { Listing } from '../types';
 
-interface VolatileItem {
+interface VolatileEvent {
+  priceHistoryId?: string;
+  listingId?: string;
   cardName?: string;
-  changePercent?: number;
+  editionCode?: string;
+  percentChange?: number;
   oldPrice?: number;
   newPrice?: number;
+  createdAt?: string;
+}
+
+interface VolatileResponse {
+  success: boolean;
+  total: number;
+  events: VolatileEvent[];
 }
 
 export function PricingPage() {
@@ -19,7 +29,7 @@ export function PricingPage() {
     () => getAvailableListings()
   );
 
-  const { data: volatile, status: volatileStatus } = useAsync<VolatileItem[]>(
+  const { data: volatileData, status: volatileStatus } = useAsync<VolatileResponse>(
     () => getPriceVolatility()
   );
 
@@ -59,14 +69,14 @@ export function PricingPage() {
         </button>
       </div>
 
-      {volatileStatus === 'success' && volatile && volatile.length > 0 && (
+      {volatileStatus === 'success' && volatileData && volatileData.events?.length > 0 && (
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="section-title" style={{ marginBottom: 12 }}>⚠ Alertas de Precio (cambio &gt;10%)</div>
-          {volatile.slice(0, 5).map((v, i) => (
+          {volatileData.events.slice(0, 5).map((v, i) => (
             <div key={i} className="alert-row">
               <span style={{ flex: 1, fontWeight: 500, fontSize: '0.875rem' }}>{v.cardName ?? 'Carta desconocida'}</span>
-              <span style={{ color: (v.changePercent ?? 0) > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '0.875rem' }}>
-                {(v.changePercent ?? 0) > 0 ? '+' : ''}{v.changePercent?.toFixed(1)}%
+              <span style={{ color: (v.percentChange ?? 0) > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '0.875rem' }}>
+                {(v.percentChange ?? 0) > 0 ? '+' : ''}{v.percentChange?.toFixed(1)}%
               </span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                 ${v.oldPrice?.toFixed(2)} → ${v.newPrice?.toFixed(2)}
