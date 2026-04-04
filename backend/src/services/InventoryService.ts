@@ -498,9 +498,9 @@ export class InventoryService {
     interface CellFormulaValue { result?: unknown }
     interface CellRichTextValue { richText: Array<{ text: string }> }
 
-    worksheet.eachRow({ includeEmpty: false }, (row) => {
+    worksheet.eachRow({ includeEmpty: false }, (row: ExcelJS.Row) => {
       const values: string[] = [];
-      row.eachCell({ includeEmpty: true }, (cell) => {
+      row.eachCell({ includeEmpty: true }, (cell: ExcelJS.Cell) => {
         const raw = cell.value;
         if (raw === null || raw === undefined) {
           values.push('');
