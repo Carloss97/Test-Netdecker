@@ -6,6 +6,7 @@ import prisma from '../utils/db.js';
 import { TCGType, CardCondition } from '@prisma/client';
 import type { ExternalCard } from './CardDatabaseService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
+import { ExchangeRateService } from './ExchangeRateService.js';
 
 export interface ImportExternalCardOptions {
   createListing?: boolean;
@@ -148,14 +149,20 @@ export class ExternalImportService {
       const marginMultiplier = options.marginMultiplier ?? 1.2;
       const quantity = options.quantity ?? 0;
 
+      // Fetch the real exchange rate for accurate CLP price calculation
+      const exchangeRate = await ExchangeRateService.getUSDtoCLPRate().catch(() => 1.0);
+
       if (existingListing) {
         const updated = await prisma.listing.update({
           where: { id: existingListing.id },
           data: {
             referencePrice: refPrice,
             marginMultiplier,
-            finalPrice: refPrice * marginMultiplier * existingListing.exchangeRate,
+            exchangeRate,
+            finalPrice: refPrice * marginMultiplier * exchangeRate,
             lastSyncedAt: new Date(),
+            // Preserve everHadStock — only update to true if new quantity > 0
+            ...(quantity > 0 ? { everHadStock: true } : {}),
           },
         });
         listingId = updated.id;
@@ -169,10 +176,11 @@ export class ExternalImportService {
             quantity,
             referencePrice: refPrice,
             marginMultiplier,
-            exchangeRate: 1.0,
-            finalPrice: refPrice * marginMultiplier,
+            exchangeRate,
+            finalPrice: refPrice * marginMultiplier * exchangeRate,
             status: 'active',
             lastSyncedAt: new Date(),
+            everHadStock: quantity > 0,
           },
         });
         listingId = created.id;

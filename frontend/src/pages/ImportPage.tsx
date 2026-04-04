@@ -7,6 +7,7 @@ import {
   validateInventoryCsv,
   importInventoryCsv,
   getInventoryImports,
+  resetCatalog,
 } from '../services/catalog';
 
 type TcgCode = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
@@ -47,6 +48,11 @@ export function ImportPage() {
   const [csvMsg, setCsvMsg] = useState<string | null>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ── Reset state ──
+  const [resetting, setResetting] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const { data: tcgs } = useAsync(() => getTCGs());
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 10 }));
@@ -91,7 +97,14 @@ export function ImportPage() {
     setValidating(true);
     try {
       const result = await validateInventoryCsv(file);
-      setValidationResult(result as { valid: boolean; errors?: string[]; totalRows?: number });
+      // Backend returns { success: true, validationOnly: true, result: { total, success, failed, errors } }
+      const apiResult = (result as { result?: { total?: number; success?: number; failed?: number; errors?: Array<{ row: number; message: string }> } }).result;
+      const hasErrors = (apiResult?.errors?.length ?? 0) > 0 || (apiResult?.failed ?? 0) > 0;
+      setValidationResult({
+        valid: !hasErrors,
+        totalRows: apiResult?.total,
+        errors: apiResult?.errors?.map((e) => `Fila ${e.row}: ${e.message}`) ?? [],
+      });
     } catch {
       setCsvError('Error al validar archivo CSV');
     } finally {
@@ -118,7 +131,22 @@ export function ImportPage() {
     }
   };
 
-  const importList = (imports as ImportRecord[] | null) ?? [];
+  const handleReset = async () => {
+    if (!window.confirm('⚠️ ¿Seguro que quieres BORRAR todos los datos del catálogo (cartas, ediciones, listings, historial de precios e importaciones)? Esta acción NO se puede deshacer.')) return;
+    setResetting(true);
+    setResetMsg(null);
+    setResetError(null);
+    try {
+      const res = await resetCatalog();
+      setResetMsg(res.message);
+    } catch {
+      setResetError('Error al resetear catálogo');
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const importList = ((imports as { items?: ImportRecord[] } | null)?.items ?? []);
 
   return (
     <div>
@@ -326,6 +354,31 @@ export function ImportPage() {
                 </table>
               </div>
             )}
+          </div>
+
+          {/* ── Danger Zone ── */}
+          <div className="card" style={{ marginTop: 20, border: '1px solid #fca5a5' }}>
+            <div className="section-title" style={{ marginBottom: 8, color: 'var(--danger)' }}>⚠ Zona de Peligro</div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+              Elimina TODOS los datos del catálogo (cartas, ediciones, listings, historial de precios e importaciones).
+              Los registros de TCG y el tipo de cambio se conservan.
+            </p>
+            {resetMsg && (
+              <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, color: '#15803d', fontSize: '0.875rem' }}>
+                ✓ {resetMsg}
+              </div>
+            )}
+            {resetError && (
+              <div className="error-message" style={{ marginBottom: 12 }}>⚠ {resetError}</div>
+            )}
+            <button
+              className="btn btn-sm"
+              style={{ background: 'var(--danger)', color: '#fff', borderColor: 'var(--danger)' }}
+              onClick={handleReset}
+              disabled={resetting}
+            >
+              {resetting ? '⏳ Reseteando…' : '🗑 Resetear Catálogo'}
+            </button>
           </div>
         </div>
       )}

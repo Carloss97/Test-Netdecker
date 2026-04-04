@@ -105,9 +105,14 @@ export class ListingService {
    * Update listing quantity (e.g., after purchase)
    */
   static async updateQuantity(id: string, quantity: number) {
+    const safeQty = Math.max(0, quantity);
     return prisma.listing.update({
       where: { id },
-      data: { quantity: Math.max(0, quantity) },
+      data: {
+        quantity: safeQty,
+        // Once a listing has stock, mark it permanently
+        ...(safeQty > 0 ? { everHadStock: true } : {}),
+      },
       include: { card: true }
     });
   }

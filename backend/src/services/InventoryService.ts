@@ -336,7 +336,11 @@ export class InventoryService {
           if (!dryRun) {
             await prisma.listing.update({
               where: { id: row.listingId },
-              data: { quantity }
+              data: {
+                quantity,
+                // Mark as ever having had stock if quantity > 0
+                ...(quantity > 0 ? { everHadStock: true } : {}),
+              }
             });
           }
 
@@ -444,7 +448,8 @@ export class InventoryService {
             finalPrice: pricing.finalPrice,
             editionId: edition.id,
             currency: 'CLP',
-            status: 'active'
+            status: 'active',
+            ...(quantity > 0 ? { everHadStock: true } : {}),
           },
           create: {
             cardId: card.id,
@@ -457,7 +462,8 @@ export class InventoryService {
             exchangeRate: pricing.exchangeRate,
             finalPrice: pricing.finalPrice,
             currency: 'CLP',
-            status: 'active'
+            status: 'active',
+            everHadStock: quantity > 0,
           }
         } as any);
 

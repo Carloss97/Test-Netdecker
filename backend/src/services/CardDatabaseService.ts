@@ -495,6 +495,19 @@ function extractYgoPrice(priceEntry: YgoPrice | Record<string, unknown>): number
   return undefined;
 }
 
+/**
+ * Extracts the set code prefix from a YGOPRODeck card set code.
+ * Card codes look like "LOB-EN001" or "BLAR-EN001" — the set code
+ * is everything before the last hyphen+region+number suffix.
+ * e.g. "LOB-EN001" → "LOB", "BLAR-EN001" → "BLAR", "LD10-EN001" → "LD10"
+ */
+function extractYgoSetCodePrefix(cardSetCode: string): string {
+  const normalized = cardSetCode.trim().toUpperCase();
+  // Remove trailing hyphen + optional region letters + card number
+  const match = normalized.match(/^(.+)-[A-Z]{0,3}\d+$/);
+  return match?.[1] ?? normalized;
+}
+
 function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): ExternalCard {
   const cardSets = (card.card_sets as YgoCardSet[] | undefined) || [];
   const images = (card.card_images as Array<Record<string, string>> | undefined) || [];
@@ -502,17 +515,29 @@ function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): E
 
   const normalizedFilter = setFilter?.trim().toLowerCase();
 
-  // Pick the set matching the filter, or the first one
+  // YGOPRODeck card_sets[].set_code contains the full card code (e.g. "LOB-EN001"),
+  // not just the set code ("LOB"). Match by extracting the prefix OR by set name.
   const matchSet = normalizedFilter
     ? cardSets.find(
-        (s) =>
-          s.set_code?.trim().toLowerCase() === normalizedFilter ||
-          s.set_name?.trim().toLowerCase() === normalizedFilter,
+        (s) => {
+          const code = s.set_code?.trim() ?? '';
+          const prefix = extractYgoSetCodePrefix(code).toLowerCase();
+          return (
+            prefix === normalizedFilter ||
+            s.set_name?.trim().toLowerCase() === normalizedFilter
+          );
+        },
       ) || cardSets[0]
     : cardSets[0];
 
-  const editionCode = matchSet?.set_code?.toUpperCase() || 'UNKNOWN';
-  const editionName = matchSet?.set_name || 'Unknown Set';
+  // When a setFilter is provided, always use it as the authoritative edition code
+  // so all cards from the same set share the same Edition record.
+  const editionCode = setFilter
+    ? setFilter.trim().toUpperCase()
+    : (matchSet?.set_code
+        ? extractYgoSetCodePrefix(matchSet.set_code)
+        : 'UNKNOWN');
+  const editionName = matchSet?.set_name || setFilter || 'Unknown Set';
   const rarity = matchSet?.set_rarity;
 
   const imageUrl = images[0]?.image_url;
@@ -531,6 +556,8 @@ function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): E
     source: 'ygoprodeck',
     tcg: 'YUGIOH',
     cardName: card.name as string,
+    // Extract card number from the matched set code (e.g. "LOB-EN001" → "LOB-EN001")
+    cardNumber: matchSet?.set_code ?? undefined,
     editionCode,
     editionName,
     rarity,
