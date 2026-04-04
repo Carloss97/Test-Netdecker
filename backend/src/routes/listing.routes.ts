@@ -258,6 +258,31 @@ router.get('/:id', async (req: Request, res: Response) => {
   res.json(listing);
 });
 
+/**
+ * POST /api/listings/batch-stock
+ * Bulk update quantities for multiple listings.
+ * Body: { updates: [{ listingId: string, quantity: number }] }
+ */
+router.post('/batch-stock', async (req: Request, res: Response) => {
+  const { updates } = req.body as { updates?: Array<{ listingId: string; quantity: number }> };
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    throw new ValidationError('updates must be a non-empty array');
+  }
+
+  for (const update of updates) {
+    if (typeof update.listingId !== 'string' || !update.listingId) {
+      throw new ValidationError('Each update must have a valid listingId string');
+    }
+    if (typeof update.quantity !== 'number' || update.quantity < 0) {
+      throw new ValidationError(`quantity must be a non-negative number (listingId: ${update.listingId})`);
+    }
+  }
+
+  const results = await ListingService.bulkUpdateQuantities(updates);
+  res.json({ success: true, updated: results.updated, results });
+});
+
 // PATCH /api/listings/:id/stock
 // Modifica el stock manualmente (sumar/restar/setear cantidad)
 // Body: { op: 'set'|'inc'|'dec', value: number }
