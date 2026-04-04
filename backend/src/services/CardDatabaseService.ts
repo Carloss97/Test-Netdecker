@@ -13,8 +13,8 @@ import { cacheGet, cacheSet } from '../utils/redis.js';
 
 export interface ExternalCard {
   externalId: string;       // ID in the source database
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck';
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   cardName: string;
   cardNumber?: string;
   editionCode: string;
@@ -35,7 +35,7 @@ export interface ExternalEdition {
   name: string;
   releaseDate?: string;
   totalCards?: number;
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck';
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg';
 }
 
 const CACHE_TTL = 3600 * 3; // 3 hours
@@ -498,7 +498,7 @@ export class YGOProDeckService {
 
 export class CardDatabaseService {
   static async searchCards(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
     query: string,
     options: { setCode?: string; page?: number } = {},
   ): Promise<ExternalCard[]> {
@@ -509,13 +509,51 @@ export class CardDatabaseService {
         return PokemonTCGService.searchCards(query, options.setCode, options.page);
       case 'YUGIOH':
         return YGOProDeckService.searchCards(query, options.setCode);
+      case 'ONE_PIECE':
+        // Simulación temporal de cartas de One Piece para desarrollo
+        return [
+          {
+            externalId: 'OP01-001',
+            source: 'onepiecetcg',
+            tcg: 'ONE_PIECE',
+            cardName: 'Monkey D. Luffy',
+            cardNumber: 'OP01-001',
+            editionCode: 'OP01',
+            editionName: 'Romance Dawn',
+            rarity: 'Leader',
+            colorIdentity: 'Red',
+            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-001.png',
+            description: 'Captain of the Straw Hat Pirates.',
+            tags: 'Straw Hat|Leader',
+            priceLow: 10,
+            priceMid: 15,
+            priceMarket: 20,
+          },
+          {
+            externalId: 'OP01-002',
+            source: 'onepiecetcg',
+            tcg: 'ONE_PIECE',
+            cardName: 'Roronoa Zoro',
+            cardNumber: 'OP01-002',
+            editionCode: 'OP01',
+            editionName: 'Romance Dawn',
+            rarity: 'Super Rare',
+            colorIdentity: 'Red',
+            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-002.png',
+            description: 'Swordsman of the Straw Hat Pirates.',
+            tags: 'Straw Hat|Super Rare',
+            priceLow: 5,
+            priceMid: 8,
+            priceMarket: 12,
+          },
+        ];
       default:
         return [];
     }
   }
 
   static async getCardById(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
     cardId: string,
   ): Promise<ExternalCard | null> {
     switch (tcg) {
@@ -525,13 +563,54 @@ export class CardDatabaseService {
         return PokemonTCGService.getCardById(cardId);
       case 'YUGIOH':
         return YGOProDeckService.getCardById(cardId);
+      case 'ONE_PIECE':
+        // Simulación temporal de carta de One Piece
+        if (cardId === 'OP01-001') {
+          return {
+            externalId: 'OP01-001',
+            source: 'onepiecetcg',
+            tcg: 'ONE_PIECE',
+            cardName: 'Monkey D. Luffy',
+            cardNumber: 'OP01-001',
+            editionCode: 'OP01',
+            editionName: 'Romance Dawn',
+            rarity: 'Leader',
+            colorIdentity: 'Red',
+            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-001.png',
+            description: 'Captain of the Straw Hat Pirates.',
+            tags: 'Straw Hat|Leader',
+            priceLow: 10,
+            priceMid: 15,
+            priceMarket: 20,
+          };
+        }
+        if (cardId === 'OP01-002') {
+          return {
+            externalId: 'OP01-002',
+            source: 'onepiecetcg',
+            tcg: 'ONE_PIECE',
+            cardName: 'Roronoa Zoro',
+            cardNumber: 'OP01-002',
+            editionCode: 'OP01',
+            editionName: 'Romance Dawn',
+            rarity: 'Super Rare',
+            colorIdentity: 'Red',
+            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-002.png',
+            description: 'Swordsman of the Straw Hat Pirates.',
+            tags: 'Straw Hat|Super Rare',
+            priceLow: 5,
+            priceMid: 8,
+            priceMarket: 12,
+          };
+        }
+        return null;
       default:
         return null;
     }
   }
 
   static async getSetCards(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
     setCode: string,
   ): Promise<ExternalCard[]> {
     switch (tcg) {
@@ -541,12 +620,53 @@ export class CardDatabaseService {
         return PokemonTCGService.getSetCards(setCode);
       case 'YUGIOH':
         return YGOProDeckService.getSetCards(setCode);
+      case 'ONE_PIECE':
+        // Simulación temporal de cartas por set de One Piece
+        if (setCode === 'OP01') {
+          return [
+            {
+              externalId: 'OP01-001',
+              source: 'onepiecetcg',
+              tcg: 'ONE_PIECE',
+              cardName: 'Monkey D. Luffy',
+              cardNumber: 'OP01-001',
+              editionCode: 'OP01',
+              editionName: 'Romance Dawn',
+              rarity: 'Leader',
+              colorIdentity: 'Red',
+              imageUrl: 'https://images.pokemontcg.io/onepiece/op01-001.png',
+              description: 'Captain of the Straw Hat Pirates.',
+              tags: 'Straw Hat|Leader',
+              priceLow: 10,
+              priceMid: 15,
+              priceMarket: 20,
+            },
+            {
+              externalId: 'OP01-002',
+              source: 'onepiecetcg',
+              tcg: 'ONE_PIECE',
+              cardName: 'Roronoa Zoro',
+              cardNumber: 'OP01-002',
+              editionCode: 'OP01',
+              editionName: 'Romance Dawn',
+              rarity: 'Super Rare',
+              colorIdentity: 'Red',
+              imageUrl: 'https://images.pokemontcg.io/onepiece/op01-002.png',
+              description: 'Swordsman of the Straw Hat Pirates.',
+              tags: 'Straw Hat|Super Rare',
+              priceLow: 5,
+              priceMid: 8,
+              priceMarket: 12,
+            },
+          ];
+        }
+        return [];
       default:
         return [];
     }
   }
 
-  static async listSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH'): Promise<ExternalEdition[]> {
+  static async listSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'): Promise<ExternalEdition[]> {
     switch (tcg) {
       case 'MAGIC':
         return ScryfallService.listSets();
@@ -554,6 +674,17 @@ export class CardDatabaseService {
         return PokemonTCGService.listSets();
       case 'YUGIOH':
         return YGOProDeckService.listSets();
+      case 'ONE_PIECE':
+        // Simulación temporal de sets de One Piece
+        return [
+          {
+            code: 'OP01',
+            name: 'Romance Dawn',
+            releaseDate: '2022-12-02',
+            totalCards: 2,
+            source: 'onepiecetcg',
+          },
+        ];
       default:
         return [];
     }

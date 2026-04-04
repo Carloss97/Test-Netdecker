@@ -7,6 +7,21 @@ Ultima actualizacion: 2026-04-04
 - Estado tecnico: Backend y frontend compilan sin errores.
 - Prioridad de negocio: Reducir errores de stock, sobreventa y tiempo de actualizacion de precios.
 
+## Foco Actual (Lo que nos compete ahora)
+
+### Prioridad Alta (ejecutar ahora)
+- Seccion 2 - Inventario Masivo: robustecer flujo operativo (rollback parcial y exportes completos).
+- Seccion 3 - Pricing Pipeline: completar cobertura de `tcgplayerProductId` y endurecer control de volatilidad.
+- Seccion 5 - Admin y Operacion Diaria: cerrar capacidades minimas para operar sin apoyo tecnico.
+
+### Prioridad Media (despues de estabilizar lo anterior)
+- Seccion 4 - Checkout y Control de Stock: TTL de reservas y ciclo completo de estado de orden.
+- Seccion 6 - Fuentes externas: mejorar enriquecimiento de catalogo (TCGPlayer oficial / Cardmarket).
+
+### Fuera de foco inmediato (para plan futuro)
+- Seccion 7 - Comercial (material de venta, reporte de ahorro, demo comercial).
+- Integracion completa con tienda externa ya operativa (ver roadmap futuro en `INTEGRATION_ROADMAP_FUTURE.md`).
+
 ## Seccion 1 - Fundacion Tecnica
 
 ### Completadas
@@ -104,6 +119,7 @@ Ultima actualizacion: 2026-04-04
 - [x] Campo dedicado `tcgplayerProductId` en `Card` (Prisma) para evitar depender de parsing en tags
 - [x] UI/UX modernizada base: shell visual, header/footer nuevos, mejor layout de catalogo e importacion
 - [x] Importacion de inventario preparada para CSV/XLSX con flujo mas claro de validacion/importacion
+- [x] Fix Yu-Gi-Oh en importacion por set desde Browse Sets (mismatch set code vs set name resuelto)
 
 ### Pendientes
 - [ ] Integracion completa con catalogo TCGPlayer (set/product search oficial) para mejorar cobertura de productId y enriquecer metadatos faltantes
@@ -121,13 +137,13 @@ Ultima actualizacion: 2026-04-04
 - [ ] Material comercial (propuesta de valor + roadmap de 90 dias)
 
 ## Siguientes Pasos Recomendados (Orden de Ejecucion)
-1. Configurar PostgreSQL y Redis localmente, ejecutar `npm run prisma:push` y `npm run prisma:seed`.
-2. Ejecutar bootstrap de catalogo por lote para cargar sets completos en BD.
-3. Probar busqueda de cartas externas (Scryfall/Pokemon/YGO) en la nueva tab.
-4. Activar sync automatico de precios con `PRICE_SYNC_ENABLED=true` en `.env`.
-5. Implementar TTL de carrito y cleanup job para reservas expiradas.
-6. Agregar login admin y roles (admin/staff) antes de abrir a usuarios reales.
-7. Integrar pasarela de pago local (Stripe o Mercado Pago).
+1. Completar backfill de `tcgplayerProductId` por lotes y medir cobertura final por TCG.
+2. Implementar umbrales de volatilidad configurables por TCG/edicion + flujo de aprobacion manual para cambios extremos.
+3. Cerrar brechas de inventario masivo: rollback parcial configurable y exportacion CSV completa del historial.
+4. Implementar TTL de carrito y cleanup job para reservas expiradas.
+5. Agregar login admin y roles (admin/staff) + auditoria de acciones por usuario.
+6. Integrar pasarela de pago local (Stripe o Mercado Pago).
+7. Avanzar con integracion completa de One Piece en flujos externos (browse/import/sync/precios).
 
 ## Decisiones Pendientes (Requieren Input Humano)
 - **TCGPlayer API**: Requiere aplicar en https://developer.tcgplayer.com/ — una vez con key, reemplazar ExchangeRateService.fetchRate con datos reales de TCGPlayer.

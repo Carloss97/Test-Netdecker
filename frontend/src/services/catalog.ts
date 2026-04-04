@@ -174,8 +174,9 @@ export async function exportInventoryImportsCsv(params?: {
 // External card database API
 // ─────────────────────────────────────────────
 
+
 export async function searchExternalCards(
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
   query: string,
   options: { setCode?: string; page?: number } = {},
 ) {
@@ -185,21 +186,24 @@ export async function searchExternalCards(
   return data;
 }
 
-export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH') {
+
+export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE') {
   const { data } = await apiClient.get('/external/sets', { params: { tcg } });
   return data;
 }
 
+
 export async function getExternalCardById(
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
   cardId: string,
 ) {
   const { data } = await apiClient.get(`/external/cards/${tcg}/${cardId}`);
   return data;
 }
 
+
 export async function importExternalCard(params: {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   cardId: string;
   createListing?: boolean;
   referencePrice?: number;
@@ -211,8 +215,9 @@ export async function importExternalCard(params: {
   return data;
 }
 
+
 export async function importExternalSearch(params: {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   query: string;
   setCode?: string;
   page?: number;
@@ -224,8 +229,9 @@ export async function importExternalSearch(params: {
   return data;
 }
 
+
 export async function importExternalSet(params: {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
   setCode: string;
   createListing?: boolean;
   marginMultiplier?: number;

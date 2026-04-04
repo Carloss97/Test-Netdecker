@@ -8,11 +8,11 @@ import { CardCondition } from '@prisma/client';
 
 const router = express.Router();
 
-type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH';
-const VALID_TCGS: TCGParam[] = ['MAGIC', 'POKEMON', 'YUGIOH'];
+type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+const VALID_TCGS: TCGParam[] = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'];
 
 function parseTCG(raw: unknown): TCGParam | null {
-  const upper = String(raw || '').toUpperCase() as TCGParam;
+  const upper = String(raw || '').toUpperCase().replace(/[- ]/g, '_') as TCGParam;
   return VALID_TCGS.includes(upper) ? upper : null;
 }
 
@@ -24,7 +24,7 @@ router.get('/search', async (req: Request, res: Response) => {
   try {
     const tcg = parseTCG(req.query.tcg);
     if (!tcg) {
-      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH' });
+      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE' });
     }
 
     const query = String(req.query.query || req.query.name || '').trim();
@@ -50,7 +50,7 @@ router.get('/sets', async (req: Request, res: Response) => {
   try {
     const tcg = parseTCG(req.query.tcg);
     if (!tcg) {
-      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH' });
+      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE' });
     }
 
     const sets = await CardDatabaseService.listSets(tcg);

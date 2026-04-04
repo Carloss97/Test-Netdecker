@@ -8,12 +8,14 @@ import {
 } from '../services/catalog';
 import type { ExternalCard, ExternalEdition } from '../types';
 
-type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH';
+
+type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
 
 const TCG_LABELS: Record<TCGParam, string> = {
   MAGIC: 'Magic: The Gathering',
   POKEMON: 'Pokémon',
   YUGIOH: 'Yu-Gi-Oh!',
+  ONE_PIECE: 'One Piece',
 };
 
 const SOURCE_LABELS: Record<string, string> = {

@@ -56,7 +56,7 @@ export function AdminDashboardPage() {
   const alertsQuery = useAsync(() => getStockAlerts(5));
   const volatilityQuery = useAsync(() => getPriceVolatility(10));
   const coverageQuery = useAsync(() => getTcgplayerCoverage());
-  const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | ''>('');
+  const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
   const [initialQuantity, setInitialQuantity] = useState('0');

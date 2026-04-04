@@ -1,0 +1,42 @@
+* Host localhost:3000 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:3000...
+* Established connection to localhost (::1 port 3000) from ::1 port 60062 
+* using HTTP/1.x
+=> Send header, 169 bytes (0xa9)
+0000: POST /api/admin/backfill/tcgplayer-product-id HTTP/1.1
+0038: Host: localhost:3000
+004e: User-Agent: curl/8.18.0
+0067: Accept: */*
+0074: Content-Type: application/json
+0094: Content-Length: 2
+00a7: 
+=> Send data, 2 bytes (0x2)
+0000: {\
+* upload completely sent off: 2 bytes
+<= Recv header, 26 bytes (0x1a)
+0000: HTTP/1.1 400 Bad Request
+<= Recv header, 14 bytes (0xe)
+0000: Vary: Origin
+<= Recv header, 23 bytes (0x17)
+0000: x-powered-by: Express
+<= Recv header, 32 bytes (0x20)
+0000: access-control-allow-origin: *
+<= Recv header, 47 bytes (0x2f)
+0000: content-type: application/json; charset=utf-8
+<= Recv header, 21 bytes (0x15)
+0000: content-length: 149
+<= Recv header, 42 bytes (0x2a)
+0000: etag: W/"95-VxsAP2518CKZTNkS17XNgQYU7ww"
+<= Recv header, 37 bytes (0x25)
+0000: date: Sat, 04 Apr 2026 14:54:39 GMT
+<= Recv header, 19 bytes (0x13)
+0000: connection: close
+<= Recv header, 2 bytes (0x2)
+0000: 
+<= Recv data, 149 bytes (0x95)
+0000: {"error":{"message":"Expected property name or '}' in JSON at po
+0040: sition 1 (line 1 column 2)","statusCode":400,"timestamp":"2026-0
+0080: 4-04T14:54:39.644Z"}}
+* shutting down connection #0

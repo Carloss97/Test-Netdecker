@@ -1,3 +1,28 @@
+
+// ...
+
+// PATCH /api/listings/:id/stock
+// Modifica el stock manualmente (sumar/restar/setear cantidad)
+// Body: { op: 'set'|'inc'|'dec', value: number }
+router.patch('/:id/stock', async (req: Request, res: Response) => {
+  try {
+    const { op, value } = req.body as { op: 'set'|'inc'|'dec'; value: number };
+    if (!['set','inc','dec'].includes(op) || typeof value !== 'number') {
+      return res.status(400).json({ error: 'Invalid op or value' });
+    }
+    const listing = await ListingService.getListing(req.params.id);
+    if (!listing) return res.status(404).json({ error: 'Listing not found' });
+    let newQty = listing.quantity;
+    if (op === 'set') newQty = value;
+    if (op === 'inc') newQty += value;
+    if (op === 'dec') newQty -= value;
+    if (newQty < 0) newQty = 0;
+    const updated = await ListingService.updateQuantity(listing.id, newQty);
+    res.json({ success: true, listingId: listing.id, quantity: updated.quantity });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
 // src/routes/listing.routes.ts
 import express, { Request, Response } from 'express';
 import { ListingService } from '../services/ListingService.js';
