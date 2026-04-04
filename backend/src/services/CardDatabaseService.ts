@@ -355,6 +355,37 @@ interface YgoCardSet {
   set_price?: string;
 }
 
+interface YgoPrice {
+  cardmarket_price?: string;
+  tcgplayer_price?: string;
+  coolstuffinc_price?: string;
+  ebay_price?: string;
+  amazon_price?: string;
+}
+
+/**
+ * Extract best price from YGOPRODeck multi-source pricing.
+ * Priority: TCGPlayer > CardMarket > CoolStuffInc > eBay > Amazon
+ * If TCGPlayer unavailable: use CardMarket (EUR) with fallback to others
+ */
+function extractYgoPrice(priceEntry: YgoPrice | Record<string, unknown>): number | undefined {
+  const prices = [
+    { source: 'TCGPlayer', value: priceEntry.tcgplayer_price },
+    { source: 'CardMarket', value: priceEntry.cardmarket_price },
+    { source: 'CoolStuffInc', value: priceEntry.coolstuffinc_price },
+    { source: 'eBay', value: priceEntry.ebay_price },
+    { source: 'Amazon', value: priceEntry.amazon_price },
+  ];
+
+  for (const { value } of prices) {
+    if (value && typeof value === 'string') {
+      const parsed = parseFloat(value);
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
 function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): ExternalCard {
   const cardSets = (card.card_sets as YgoCardSet[] | undefined) || [];
   const images = (card.card_images as Array<Record<string, string>> | undefined) || [];
@@ -376,9 +407,11 @@ function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): E
   const rarity = matchSet?.set_rarity;
 
   const imageUrl = images[0]?.image_url;
-  const priceEntry = prices[0] || {};
-  const priceMarket = priceEntry.tcgplayer_price ? parseFloat(priceEntry.tcgplayer_price) : undefined;
-  const priceLow = priceEntry.cardmarket_price ? parseFloat(priceEntry.cardmarket_price) : undefined;
+  const priceEntry = (prices[0] || {}) as Record<string, unknown>;
+
+  // Use multi-source price extraction: priority TCGPlayer > CardMarket > others
+  const priceMarket = extractYgoPrice(priceEntry);
+  const priceLow = priceEntry.cardmarket_price ? parseFloat(priceEntry.cardmarket_price as string) : undefined;
 
   const types: string[] = [];
   if (card.type) types.push(card.type as string);
@@ -493,6 +526,169 @@ export class YGOProDeckService {
 }
 
 // ─────────────────────────────────────────────
+// OPTCGAPI (One Piece TCG)  https://optcgapi.com/
+// ─────────────────────────────────────────────
+
+const OPTCG_BASE = 'https://www.optcgapi.com/api';
+
+interface OptcgResponse {
+  inventory_price?: number;
+  market_price?: number;
+  card_name?: string;
+  set_name?: string;
+  set_id?: string;
+  rarity?: string;
+  card_set_id?: string;
+  card_image?: string;
+  card_text?: string;
+  date_scraped?: string;
+}
+
+function optcgCardToExternal(card: OptcgResponse): ExternalCard {
+  const marketPrice = card.market_price ? parseFloat(String(card.market_price)) : undefined;
+  const inventoryPrice = card.inventory_price ? parseFloat(String(card.inventory_price)) : undefined;
+
+  return {
+    externalId: card.card_set_id || String(card.set_id) || 'unknown',
+    source: 'onepiecetcg',
+    tcg: 'ONE_PIECE',
+    cardName: card.card_name || '',
+    editionCode: card.set_id?.toUpperCase() || 'UNKNOWN',
+    editionName: card.set_name || 'Unknown Set',
+    rarity: card.rarity,
+    imageUrl: card.card_image,
+    description: card.card_text,
+    tags: `rarity:${card.rarity}`,
+    priceLow: inventoryPrice,
+    priceMarket: marketPrice,
+  };
+}
+
+export class OptcgapiService {
+  private static readonly RATE_LIMIT_MS = 500; // Conservative: 2 req/sec for community API
+  private static lastRequestTime = 0;
+
+  private static async enforceRateLimit(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.RATE_LIMIT_MS) {
+      await sleep(this.RATE_LIMIT_MS - timeSinceLastRequest);
+    }
+    this.lastRequestTime = Date.now();
+  }
+
+  static async searchCards(query: string): Promise<ExternalCard[]> {
+    const cacheKey = `optcg:search:${query}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached as ExternalCard[];
+
+    try {
+      // Get all cards and filter by name client-side (since OPTCGAPI doesn't support search param)
+      const allCards = await this.getAllCards();
+      const filtered = allCards.filter((card) =>
+        card.cardName.toLowerCase().includes(query.toLowerCase()),
+      );
+
+      await cacheSet(cacheKey, filtered, CACHE_TTL);
+      return filtered;
+    } catch {
+      return [];
+    }
+  }
+
+  static async getCardById(cardId: string): Promise<ExternalCard | null> {
+    const cacheKey = `optcg:id:${cardId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached as ExternalCard;
+
+    try {
+      // Get all cards and find by ID
+      const allCards = await this.getAllCards();
+      const card = allCards.find((c) => c.externalId === cardId);
+
+      if (card) {
+        await cacheSet(cacheKey, card, CACHE_TTL);
+        return card;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  static async getAllCards(): Promise<ExternalCard[]> {
+    const cacheKey = 'optcg:all-cards';
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached as ExternalCard[];
+
+    try {
+      await this.enforceRateLimit();
+      const { data } = await axios.get(`${OPTCG_BASE}/allSetCards/`);
+
+      const cards: ExternalCard[] = (data as OptcgResponse[])
+        .filter((r) => r.card_name && r.market_price !== undefined)
+        .map(optcgCardToExternal);
+
+      if (cards.length > 0) {
+        await cacheSet(cacheKey, cards, CACHE_TTL);
+      }
+      return cards;
+    } catch (err) {
+      console.error('OPTCGAPI error:', err instanceof Error ? err.message : err);
+      return [];
+    }
+  }
+
+  static async getSetCards(setId: string): Promise<ExternalCard[]> {
+    const cacheKey = `optcg:set:${setId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached as ExternalCard[];
+
+    try {
+      const allCards = await this.getAllCards();
+      const filtered = allCards.filter((card) => card.editionCode.toUpperCase() === setId.toUpperCase());
+
+      if (filtered.length > 0) {
+        await cacheSet(cacheKey, filtered, CACHE_TTL);
+      }
+      return filtered;
+    } catch {
+      return [];
+    }
+  }
+
+  static async listSets(): Promise<ExternalEdition[]> {
+    const cacheKey = 'optcg:sets';
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached as ExternalEdition[];
+
+    try {
+      const allCards = await this.getAllCards();
+      const setsMap = new Map<string, { name: string; code: string }>();
+
+      allCards.forEach((card) => {
+        if (!setsMap.has(card.editionCode)) {
+          setsMap.set(card.editionCode, { code: card.editionCode, name: card.editionName });
+        }
+      });
+
+      const sets: ExternalEdition[] = Array.from(setsMap.values()).map((set) => ({
+        code: set.code,
+        name: set.name,
+        source: 'onepiecetcg' as const,
+      }));
+
+      if (sets.length > 0) {
+        await cacheSet(cacheKey, sets, CACHE_TTL);
+      }
+      return sets;
+    } catch {
+      return [];
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
 // Unified facade
 // ─────────────────────────────────────────────
 
@@ -510,43 +706,7 @@ export class CardDatabaseService {
       case 'YUGIOH':
         return YGOProDeckService.searchCards(query, options.setCode);
       case 'ONE_PIECE':
-        // Simulación temporal de cartas de One Piece para desarrollo
-        return [
-          {
-            externalId: 'OP01-001',
-            source: 'onepiecetcg',
-            tcg: 'ONE_PIECE',
-            cardName: 'Monkey D. Luffy',
-            cardNumber: 'OP01-001',
-            editionCode: 'OP01',
-            editionName: 'Romance Dawn',
-            rarity: 'Leader',
-            colorIdentity: 'Red',
-            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-001.png',
-            description: 'Captain of the Straw Hat Pirates.',
-            tags: 'Straw Hat|Leader',
-            priceLow: 10,
-            priceMid: 15,
-            priceMarket: 20,
-          },
-          {
-            externalId: 'OP01-002',
-            source: 'onepiecetcg',
-            tcg: 'ONE_PIECE',
-            cardName: 'Roronoa Zoro',
-            cardNumber: 'OP01-002',
-            editionCode: 'OP01',
-            editionName: 'Romance Dawn',
-            rarity: 'Super Rare',
-            colorIdentity: 'Red',
-            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-002.png',
-            description: 'Swordsman of the Straw Hat Pirates.',
-            tags: 'Straw Hat|Super Rare',
-            priceLow: 5,
-            priceMid: 8,
-            priceMarket: 12,
-          },
-        ];
+        return OptcgapiService.searchCards(query);
       default:
         return [];
     }
@@ -564,46 +724,7 @@ export class CardDatabaseService {
       case 'YUGIOH':
         return YGOProDeckService.getCardById(cardId);
       case 'ONE_PIECE':
-        // Simulación temporal de carta de One Piece
-        if (cardId === 'OP01-001') {
-          return {
-            externalId: 'OP01-001',
-            source: 'onepiecetcg',
-            tcg: 'ONE_PIECE',
-            cardName: 'Monkey D. Luffy',
-            cardNumber: 'OP01-001',
-            editionCode: 'OP01',
-            editionName: 'Romance Dawn',
-            rarity: 'Leader',
-            colorIdentity: 'Red',
-            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-001.png',
-            description: 'Captain of the Straw Hat Pirates.',
-            tags: 'Straw Hat|Leader',
-            priceLow: 10,
-            priceMid: 15,
-            priceMarket: 20,
-          };
-        }
-        if (cardId === 'OP01-002') {
-          return {
-            externalId: 'OP01-002',
-            source: 'onepiecetcg',
-            tcg: 'ONE_PIECE',
-            cardName: 'Roronoa Zoro',
-            cardNumber: 'OP01-002',
-            editionCode: 'OP01',
-            editionName: 'Romance Dawn',
-            rarity: 'Super Rare',
-            colorIdentity: 'Red',
-            imageUrl: 'https://images.pokemontcg.io/onepiece/op01-002.png',
-            description: 'Swordsman of the Straw Hat Pirates.',
-            tags: 'Straw Hat|Super Rare',
-            priceLow: 5,
-            priceMid: 8,
-            priceMarket: 12,
-          };
-        }
-        return null;
+        return OptcgapiService.getCardById(cardId);
       default:
         return null;
     }
@@ -621,46 +742,7 @@ export class CardDatabaseService {
       case 'YUGIOH':
         return YGOProDeckService.getSetCards(setCode);
       case 'ONE_PIECE':
-        // Simulación temporal de cartas por set de One Piece
-        if (setCode === 'OP01') {
-          return [
-            {
-              externalId: 'OP01-001',
-              source: 'onepiecetcg',
-              tcg: 'ONE_PIECE',
-              cardName: 'Monkey D. Luffy',
-              cardNumber: 'OP01-001',
-              editionCode: 'OP01',
-              editionName: 'Romance Dawn',
-              rarity: 'Leader',
-              colorIdentity: 'Red',
-              imageUrl: 'https://images.pokemontcg.io/onepiece/op01-001.png',
-              description: 'Captain of the Straw Hat Pirates.',
-              tags: 'Straw Hat|Leader',
-              priceLow: 10,
-              priceMid: 15,
-              priceMarket: 20,
-            },
-            {
-              externalId: 'OP01-002',
-              source: 'onepiecetcg',
-              tcg: 'ONE_PIECE',
-              cardName: 'Roronoa Zoro',
-              cardNumber: 'OP01-002',
-              editionCode: 'OP01',
-              editionName: 'Romance Dawn',
-              rarity: 'Super Rare',
-              colorIdentity: 'Red',
-              imageUrl: 'https://images.pokemontcg.io/onepiece/op01-002.png',
-              description: 'Swordsman of the Straw Hat Pirates.',
-              tags: 'Straw Hat|Super Rare',
-              priceLow: 5,
-              priceMid: 8,
-              priceMarket: 12,
-            },
-          ];
-        }
-        return [];
+        return OptcgapiService.getSetCards(setCode);
       default:
         return [];
     }
@@ -675,16 +757,7 @@ export class CardDatabaseService {
       case 'YUGIOH':
         return YGOProDeckService.listSets();
       case 'ONE_PIECE':
-        // Simulación temporal de sets de One Piece
-        return [
-          {
-            code: 'OP01',
-            name: 'Romance Dawn',
-            releaseDate: '2022-12-02',
-            totalCards: 2,
-            source: 'onepiecetcg',
-          },
-        ];
+        return OptcgapiService.listSets();
       default:
         return [];
     }

@@ -190,4 +190,105 @@ router.post('/import/set', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/external/ygoprodeck/card-sets
+ * Browse all Yu-Gi-Oh card sets with pricing from YGOPRODeck.
+ */
+router.get('/ygoprodeck/card-sets', async (req: Request, res: Response) => {
+  try {
+    const sets = await CardDatabaseService.listSets('YUGIOH');
+    res.json({ success: true, source: 'ygoprodeck', total: sets.length, sets });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * GET /api/external/optcgapi/cards
+ * Browse all One Piece cards with pricing from OPTCGAPI.
+ * Optional query params: limit (default: 100), offset (default: 0)
+ */
+router.get('/optcgapi/cards', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(String(req.query.limit || '100'), 10) || 100, 500);
+    const offset = Math.max(parseInt(String(req.query.offset || '0'), 10) || 0, 0);
+
+    // For now, get all cards (OPTCGAPI doesn't support pagination params)
+    // In production, you'd implement in-memory pagination
+    const allCards = await CardDatabaseService.listSets('ONE_PIECE').then(async (sets) => {
+      // Get all cards from all sets
+      const cards: Array<{
+        externalId: string;
+        source: string;
+        tcg: string;
+        cardName: string;
+        editionCode: string;
+        editionName: string;
+        rarity?: string;
+        imageUrl?: string;
+        priceLow?: number;
+        priceMarket?: number;
+      }> = [];
+      for (const set of sets) {
+        const setCards = await CardDatabaseService.getSetCards('ONE_PIECE', set.code);
+        cards.push(...setCards);
+      }
+      return cards;
+    });
+
+    const paginated = allCards.slice(offset, offset + limit);
+    res.json({
+      success: true,
+      source: 'optcgapi',
+      total: allCards.length,
+      limit,
+      offset,
+      returned: paginated.length,
+      cards: paginated,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+/**
+ * POST /api/external/optcgapi/import/bulk
+ * Import ALL One Piece cards in bulk from OPTCGAPI.
+ * Body: { createListing?, marginMultiplier?, quantity?, condition? }
+ */
+router.post('/optcgapi/import/bulk', async (req: Request, res: Response) => {
+  try {
+    // Get all One Piece cards from OPTCGAPI
+    const sets = await CardDatabaseService.listSets('ONE_PIECE');
+    const allCards: Awaited<ReturnType<typeof CardDatabaseService.getSetCards>> = [];
+
+    for (const set of sets) {
+      const setCards = await CardDatabaseService.getSetCards('ONE_PIECE', set.code);
+      allCards.push(...setCards);
+    }
+
+    if (allCards.length === 0) {
+      return res.status(404).json({ error: 'No One Piece cards found in OPTCGAPI' });
+    }
+
+    // Import all cards together
+    const result = await ExternalImportService.bulkImportCards(allCards, {
+      createListing: req.body.createListing === true || req.body.createListing === 'true',
+      marginMultiplier: req.body.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
+      quantity: req.body.quantity ? parseInt(req.body.quantity, 10) : undefined,
+      condition: req.body.condition ? (req.body.condition as CardCondition) : undefined,
+    });
+
+    res.json({
+      success: true,
+      source: 'optcgapi',
+      tcg: 'ONE_PIECE',
+      totalCards: allCards.length,
+      ...result,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 export default router;

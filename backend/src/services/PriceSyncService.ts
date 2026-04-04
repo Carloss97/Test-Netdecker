@@ -1,7 +1,7 @@
 import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { PriceUpdateReason } from '@prisma/client';
-import { ScryfallService, YGOProDeckService, PokemonTCGService } from './CardDatabaseService.js';
+import { ScryfallService, YGOProDeckService, PokemonTCGService, OptcgapiService } from './CardDatabaseService.js';
 import { TCGPlayerService } from './TCGPlayerService.js';
 
 export interface PriceSyncUpdateInput {
@@ -75,30 +75,44 @@ async function fetchExternalMarketPrice(
   const resolvedTcgplayerProductId =
     tcgplayerProductId ?? Number(tagProductMatch?.[1] || codeProductMatch?.[0]);
 
-  if (Number.isFinite(resolvedTcgplayerProductId) && resolvedTcgplayerProductId > 0) {
-    const tcgplayerPrice = await TCGPlayerService.getMarketPriceByProduct(resolvedTcgplayerProductId, rarity);
-    if (tcgplayerPrice !== null) {
-      return tcgplayerPrice;
-    }
-  }
-
   try {
+    // 1. YGOPRODeck for Yu-Gi-Oh (multi-source: TCGPlayer + CardMarket + eBay + Amazon)
+    if (tcgName === 'YUGIOH') {
+      const card = await YGOProDeckService.getCardById(cardCode);
+      if (card?.priceMarket !== undefined) {
+        return card.priceMarket;
+      }
+    }
+
+    // 2. OPTCGAPI for One Piece (market_price in USD)
+    if (tcgName === 'ONE_PIECE') {
+      const card = await OptcgapiService.getCardById(cardCode);
+      if (card?.priceMarket !== undefined) {
+        return card.priceMarket;
+      }
+    }
+
+    // 3. TCGPlayer fallback (when productId is available)
+    if (Number.isFinite(resolvedTcgplayerProductId) && resolvedTcgplayerProductId > 0) {
+      const tcgplayerPrice = await TCGPlayerService.getMarketPriceByProduct(resolvedTcgplayerProductId, rarity);
+      if (tcgplayerPrice !== null) {
+        return tcgplayerPrice;
+      }
+    }
+
+    // 4. Scryfall for Magic
     if (tcgName === 'MAGIC') {
       const card = await ScryfallService.getCardById(cardCode);
       return card?.priceMarket ?? card?.priceMid ?? null;
     }
 
+    // 5. Pokémon TCG API for Pokémon
     if (tcgName === 'POKEMON') {
       const card = await PokemonTCGService.getCardById(cardCode);
       return card?.priceMarket ?? card?.priceMid ?? null;
     }
-
-    if (tcgName === 'YUGIOH') {
-      const card = await YGOProDeckService.getCardById(cardCode);
-      return card?.priceMarket ?? null;
-    }
   } catch {
-    // Fall through
+    // Fall through to return null
   }
   return null;
 }
