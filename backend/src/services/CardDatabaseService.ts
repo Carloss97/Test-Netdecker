@@ -98,14 +98,20 @@ export class ScryfallService {
       await sleep(SCRYFALL_DELAY_MS);
       const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
         params: { q: query, page, order: 'name' },
+        timeout: 15000,
       });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[Scryfall] searchCards: Invalid response structure');
+        return [];
+      }
       const cards = (data.data as Record<string, unknown>[]).map(scryfallCardToExternal);
       await cacheSet(cacheKey, cards, CACHE_TTL);
       return cards;
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } }).response?.status;
       if (status === 404) return [];
-      throw err;
+      console.error('[Scryfall] searchCards error:', (err as Error).message);
+      return [];
     }
   }
 
@@ -118,11 +124,12 @@ export class ScryfallService {
       await sleep(SCRYFALL_DELAY_MS);
       const params: Record<string, string> = { exact: name };
       if (setCode) params.set = setCode.toLowerCase();
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/named`, { params });
+      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/named`, { params, timeout: 15000 });
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[Scryfall] getCardByName error:', (err as Error).message);
       return null;
     }
   }
@@ -139,11 +146,12 @@ export class ScryfallService {
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${safeId}`);
+      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${safeId}`, { timeout: 15000 });
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[Scryfall] getCardById error:', (err as Error).message);
       return null;
     }
   }
@@ -162,11 +170,18 @@ export class ScryfallService {
         await sleep(SCRYFALL_DELAY_MS);
         const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
           params: { q: `set:${setCode.toLowerCase()}`, page, order: 'collector_number' },
+          timeout: 15000,
         });
+        if (!data || !Array.isArray(data.data)) {
+          console.warn(`[Scryfall] getSetCards ${setCode} page ${page}: Invalid response structure`);
+          hasMore = false;
+          break;
+        }
         allCards.push(...(data.data as Record<string, unknown>[]).map(scryfallCardToExternal));
         hasMore = data.has_more === true;
         page++;
-      } catch {
+      } catch (err: unknown) {
+        console.error(`[Scryfall] getSetCards ${setCode} page ${page} error:`, (err as Error).message);
         hasMore = false;
       }
     }
@@ -184,7 +199,11 @@ export class ScryfallService {
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/sets`);
+      const { data } = await axios.get(`${SCRYFALL_BASE}/sets`, { timeout: 15000 });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[Scryfall] listSets: Invalid response structure');
+        return [];
+      }
       const sets: ExternalEdition[] = (data.data as Record<string, unknown>[]).map((s) => ({
         code: String(s.code).toUpperCase(),
         name: s.name as string,
@@ -194,7 +213,8 @@ export class ScryfallService {
       }));
       await cacheSet(cacheKey, sets, CACHE_TTL);
       return sets;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[Scryfall] listSets error:', (err as Error).message);
       return [];
     }
   }
@@ -260,11 +280,17 @@ export class PokemonTCGService {
       const { data } = await axios.get(`${POKEMON_BASE}/cards`, {
         params: { q: query, page, pageSize },
         headers: this.headers(),
+        timeout: 10000,
       });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[PokemonTCG] searchCards: Invalid response structure');
+        return [];
+      }
       const cards = (data.data as Record<string, unknown>[]).map(pokemonCardToExternal);
       await cacheSet(cacheKey, cards, CACHE_TTL);
       return cards;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[PokemonTCG] searchCards error:', (err as Error).message);
       return [];
     }
   }
@@ -280,11 +306,19 @@ export class PokemonTCGService {
     if (cached) return cached as ExternalCard;
 
     try {
-      const { data } = await axios.get(`${POKEMON_BASE}/cards/${safeId}`, { headers: this.headers() });
+      const { data } = await axios.get(`${POKEMON_BASE}/cards/${safeId}`, {
+        headers: this.headers(),
+        timeout: 10000,
+      });
+      if (!data || !data.data) {
+        console.warn('[PokemonTCG] getCardById: Invalid response structure');
+        return null;
+      }
       const card = pokemonCardToExternal(data.data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[PokemonTCG] getCardById error:', (err as Error).message);
       return null;
     }
   }
@@ -362,7 +396,14 @@ export class PokemonTCGService {
     if (cached) return cached as ExternalEdition[];
 
     try {
-      const { data } = await axios.get(`${POKEMON_BASE}/sets`, { headers: this.headers() });
+      const { data } = await axios.get(`${POKEMON_BASE}/sets`, {
+        headers: this.headers(),
+        timeout: 15000,
+      });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[PokemonTCG] listSets: Invalid response structure');
+        return [];
+      }
       const sets: ExternalEdition[] = (data.data as Record<string, unknown>[]).map((s) => ({
         code: String(s.id || '').toUpperCase(),
         name: s.name as string,
@@ -372,7 +413,8 @@ export class PokemonTCGService {
       }));
       await cacheSet(cacheKey, sets, CACHE_TTL);
       return sets;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[PokemonTCG] listSets error:', (err as Error).message);
       return [];
     }
   }
@@ -493,11 +535,16 @@ export class YGOProDeckService {
     try {
       const params: Record<string, string> = { fname: name };
       if (setCode) params.cardset = await this.resolveSetName(setCode);
-      const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, { params });
+      const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, { params, timeout: 15000 });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[YGOPRODeck] searchCards: Invalid response structure');
+        return [];
+      }
       const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setCode));
       await cacheSet(cacheKey, cards, CACHE_TTL);
       return cards;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[YGOPRODeck] searchCards error:', (err as Error).message);
       return [];
     }
   }
@@ -508,13 +555,21 @@ export class YGOProDeckService {
     if (cached) return cached as ExternalCard;
 
     try {
-      const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, { params: { id: cardId } });
+      const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, {
+        params: { id: cardId },
+        timeout: 15000,
+      });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[YGOPRODeck] getCardById: Invalid response structure');
+        return null;
+      }
       const rawCards = data.data as Record<string, unknown>[];
       if (!rawCards?.length) return null;
       const card = ygoCardToExternal(rawCards[0]);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[YGOPRODeck] getCardById error:', (err as Error).message);
       return null;
     }
   }
@@ -528,13 +583,19 @@ export class YGOProDeckService {
       const setName = await this.resolveSetName(setNameOrCode);
       const { data } = await axios.get(`${YGOPRO_BASE}/cardinfo.php`, {
         params: { cardset: setName },
+        timeout: 15000,
       });
+      if (!data || !Array.isArray(data.data)) {
+        console.warn('[YGOPRODeck] getSetCards: Invalid response structure');
+        return [];
+      }
       const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setNameOrCode));
       if (cards.length > 0) {
         await cacheSet(cacheKey, cards, CACHE_TTL);
       }
       return cards;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[YGOPRODeck] getSetCards error:', (err as Error).message);
       return [];
     }
   }
@@ -545,7 +606,11 @@ export class YGOProDeckService {
     if (cached) return cached as ExternalEdition[];
 
     try {
-      const { data } = await axios.get(`${YGOPRO_BASE}/cardsets.php`);
+      const { data } = await axios.get(`${YGOPRO_BASE}/cardsets.php`, { timeout: 15000 });
+      if (!Array.isArray(data)) {
+        console.warn('[YGOPRODeck] listSets: Invalid response structure (not an array)');
+        return [];
+      }
       const sets: ExternalEdition[] = (data as Record<string, unknown>[]).map((s) => ({
         code: String(s.set_code || '').toUpperCase(),
         name: s.set_name as string,
@@ -555,7 +620,8 @@ export class YGOProDeckService {
       }));
       await cacheSet(cacheKey, sets, CACHE_TTL);
       return sets;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[YGOPRODeck] listSets error:', (err as Error).message);
       return [];
     }
   }
@@ -583,12 +649,17 @@ interface OptcgResponse {
 function optcgCardToExternal(card: OptcgResponse): ExternalCard {
   const marketPrice = card.market_price ? parseFloat(String(card.market_price)) : undefined;
   const inventoryPrice = card.inventory_price ? parseFloat(String(card.inventory_price)) : undefined;
+  // Validate required fields
+  const cardName = (card.card_name || '').trim();
+  if (!cardName) {
+    console.warn('[OPTCGAPI] Card missing card_name, using placeholder');
+  }
 
   return {
     externalId: card.card_set_id || String(card.set_id) || 'unknown',
     source: 'onepiecetcg',
     tcg: 'ONE_PIECE',
-    cardName: card.card_name || '',
+    cardName: cardName || 'Unknown Card',
     editionCode: card.set_id?.toUpperCase() || 'UNKNOWN',
     editionName: card.set_name || 'Unknown Set',
     rarity: card.rarity,
@@ -627,7 +698,8 @@ export class OptcgapiService {
 
       await cacheSet(cacheKey, filtered, CACHE_TTL);
       return filtered;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[OPTCGAPI] searchCards error:', (err as Error).message);
       return [];
     }
   }
@@ -647,7 +719,8 @@ export class OptcgapiService {
         return card;
       }
       return null;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[OPTCGAPI] getCardById error:', (err as Error).message);
       return null;
     }
   }
@@ -659,18 +732,24 @@ export class OptcgapiService {
 
     try {
       await this.enforceRateLimit();
-      const { data } = await axios.get(`${OPTCG_BASE}/allSetCards/`);
+      const { data } = await axios.get(`${OPTCG_BASE}/allSetCards/`, { timeout: 30000 });
+
+      if (!Array.isArray(data)) {
+        console.warn('[OPTCGAPI] getAllCards: Response is not an array');
+        return [];
+      }
 
       const cards: ExternalCard[] = (data as OptcgResponse[])
-        .filter((r) => r.card_name && r.market_price !== undefined)
-        .map(optcgCardToExternal);
+        .map(optcgCardToExternal)
+        .filter((c) => c.cardName && c.cardName !== 'Unknown Card'); // Only import valid cards
 
       if (cards.length > 0) {
         await cacheSet(cacheKey, cards, CACHE_TTL);
       }
+      console.info(`[OPTCGAPI] getAllCards: Loaded ${cards.length} cards`);
       return cards;
     } catch (err) {
-      console.error('OPTCGAPI error:', err instanceof Error ? err.message : err);
+      console.error('[OPTCGAPI] getAllCards error:', err instanceof Error ? err.message : err);
       return [];
     }
   }
@@ -688,7 +767,8 @@ export class OptcgapiService {
         await cacheSet(cacheKey, filtered, CACHE_TTL);
       }
       return filtered;
-    } catch {
+    } catch (err: unknown) {
+      console.error('[OPTCGAPI] getSetCards error:', (err as Error).message);
       return [];
     }
   }

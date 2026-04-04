@@ -9,18 +9,11 @@ import { CardCondition } from '@prisma/client';
 const router = express.Router();
 
 type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
-type ImportableTCG = 'MAGIC' | 'POKEMON' | 'YUGIOH';
 const VALID_TCGS: TCGParam[] = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'];
-const IMPORTABLE_TCGS: ImportableTCG[] = ['MAGIC', 'POKEMON', 'YUGIOH'];
 
 function parseTCG(raw: unknown): TCGParam | null {
   const upper = String(raw || '').toUpperCase().replace(/[- ]/g, '_') as TCGParam;
   return VALID_TCGS.includes(upper) ? upper : null;
-}
-
-function parseImportableTCG(raw: unknown): ImportableTCG | null {
-  const upper = String(raw || '').toUpperCase().replace(/[- ]/g, '_') as ImportableTCG;
-  return IMPORTABLE_TCGS.includes(upper) ? upper : null;
 }
 
 /**
@@ -97,7 +90,7 @@ router.post('/import/card', async (req: Request, res: Response) => {
   try {
     const tcg = parseTCG(req.body.tcg);
     if (!tcg) {
-      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH' });
+      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE' });
     }
 
     const cardId = String(req.body.cardId || '').trim();
@@ -137,9 +130,9 @@ router.post('/import/card', async (req: Request, res: Response) => {
  */
 router.post('/import/search', async (req: Request, res: Response) => {
   try {
-    const tcg = parseImportableTCG(req.body.tcg);
+    const tcg = parseTCG(req.body.tcg);
     if (!tcg) {
-      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH' });
+      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE' });
     }
 
     const query = String(req.body.query || req.body.name || '').trim();
@@ -169,9 +162,9 @@ router.post('/import/search', async (req: Request, res: Response) => {
  */
 router.post('/import/set', async (req: Request, res: Response) => {
   try {
-    const tcg = parseImportableTCG(req.body.tcg);
+    const tcg = parseTCG(req.body.tcg);
     if (!tcg) {
-      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH' });
+      return res.status(400).json({ error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE' });
     }
 
     const setCode = String(req.body.setCode || '').trim();

@@ -240,7 +240,7 @@ export class ExternalImportService {
    * Search an external TCG database and import all results.
    */
   static async searchAndImport(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
     query: string,
     options: ImportExternalCardOptions & { setCode?: string; page?: number } = {},
   ): Promise<BulkImportResult> {
@@ -255,7 +255,7 @@ export class ExternalImportService {
    * Import all cards from an edition/set code.
    */
   static async importSet(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
     setCode: string,
     options: ImportExternalCardOptions = {},
   ): Promise<BulkImportResult> {
