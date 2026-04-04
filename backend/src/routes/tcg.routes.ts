@@ -1,6 +1,7 @@
 // src/routes/tcg.routes.ts
 import express, { Request, Response } from 'express';
 import { TCGService } from '../services/TCGService.js';
+import { NotFoundError } from '../utils/errors.js';
 
 const router = express.Router();
 
@@ -8,13 +9,9 @@ const router = express.Router();
  * GET /api/tcgs
  * Get all TCGs
  */
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    const tcgs = await TCGService.getAllTCGs();
-    res.json(tcgs);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+router.get('/', async (_req: Request, res: Response) => {
+  const tcgs = await TCGService.getAllTCGs();
+  res.json(tcgs);
 });
 
 /**
@@ -22,15 +19,11 @@ router.get('/', async (req: Request, res: Response) => {
  * Get TCG by ID
  */
 router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const tcg = await TCGService.getTCGById(req.params.id);
-    if (!tcg) {
-      return res.status(404).json({ error: 'TCG not found' });
-    }
-    res.json(tcg);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const tcg = await TCGService.getTCGById(req.params.id);
+  if (!tcg) {
+    throw new NotFoundError('TCG not found');
   }
+  res.json(tcg);
 });
 
 export default router;

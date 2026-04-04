@@ -4,6 +4,7 @@ import { ListingService } from '../services/ListingService.js';
 // @ts-ignore - .js extension is required for Node ESM runtime after build.
 import { InventoryService } from '../services/InventoryService.js';
 import multer from 'multer';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -35,58 +36,49 @@ function parseImportQuery(req: Request) {
  * Returns import history.
  */
 router.get('/imports', async (req: Request, res: Response) => {
-  try {
-    const query = parseImportQuery(req);
-    const result = await InventoryService.getImports(query);
-
-    res.json({ success: true, ...result });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  const query = parseImportQuery(req);
+  const result = await InventoryService.getImports(query);
+  res.json({ success: true, ...result });
 });
 
 /**
  * GET /api/inventory/imports/export
- * Exports all filtered imports as CSV.
+ * Exports all filtered imports as CSV (complete history, no page cap).
  */
 router.get('/imports/export', async (req: Request, res: Response) => {
-  try {
-    const query = parseImportQuery(req);
-    const items = await InventoryService.getImportsForExport(query);
+  const query = parseImportQuery(req);
+  const items = await InventoryService.getImportsForExport(query);
 
-    const header = ['id', 'fileName', 'status', 'totalRecords', 'successCount', 'failureCount', 'importedBy', 'createdAt', 'completedAt'];
-    const rows = items.map((item: {
-      id: string;
-      fileName: string;
-      status: string;
-      totalRecords: number;
-      successCount: number;
-      failureCount: number;
-      importedBy: string | null;
-      createdAt: Date;
-      completedAt: Date | null;
-    }) => [
-      item.id,
-      item.fileName,
-      item.status,
-      String(item.totalRecords),
-      String(item.successCount),
-      String(item.failureCount),
-      item.importedBy || '',
-      item.createdAt.toISOString(),
-      item.completedAt ? item.completedAt.toISOString() : '',
-    ]);
+  const header = ['id', 'fileName', 'status', 'totalRecords', 'successCount', 'failureCount', 'importedBy', 'createdAt', 'completedAt'];
+  const rows = items.map((item: {
+    id: string;
+    fileName: string;
+    status: string;
+    totalRecords: number;
+    successCount: number;
+    failureCount: number;
+    importedBy: string | null;
+    createdAt: Date;
+    completedAt: Date | null;
+  }) => [
+    item.id,
+    item.fileName,
+    item.status,
+    String(item.totalRecords),
+    String(item.successCount),
+    String(item.failureCount),
+    item.importedBy || '',
+    item.createdAt.toISOString(),
+    item.completedAt ? item.completedAt.toISOString() : '',
+  ]);
 
-    const csv = [header, ...rows]
-      .map((cols: string[]) => cols.map((value: string) => `"${String(value).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+  const csv = [header, ...rows]
+    .map((cols: string[]) => cols.map((value: string) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="inventory-import-history.csv"');
-    res.send(csv);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="inventory-import-history.csv"');
+  res.send(csv);
 });
 
 /**
@@ -94,30 +86,26 @@ router.get('/imports/export', async (req: Request, res: Response) => {
  * Returns one import detail.
  */
 router.get('/imports/:importId', async (req: Request, res: Response) => {
-  try {
-    const item = await InventoryService.getImportById(req.params.importId);
-    if (!item) {
-      return res.status(404).json({ error: 'Import not found' });
-    }
-
-    let parsedErrors: Array<{ row: number; message: string }> = [];
-    if (item.errors) {
-      try {
-        parsedErrors = JSON.parse(item.errors);
-      } catch {
-        parsedErrors = [{ row: 0, message: 'Could not parse stored import errors JSON' }];
-      }
-    }
-    res.json({
-      success: true,
-      import: {
-        ...item,
-        parsedErrors
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const item = await InventoryService.getImportById(req.params.importId);
+  if (!item) {
+    throw new NotFoundError('Import not found');
   }
+
+  let parsedErrors: Array<{ row: number; message: string }> = [];
+  if (item.errors) {
+    try {
+      parsedErrors = JSON.parse(item.errors);
+    } catch {
+      parsedErrors = [{ row: 0, message: 'Could not parse stored import errors JSON' }];
+    }
+  }
+  res.json({
+    success: true,
+    import: {
+      ...item,
+      parsedErrors
+    }
+  });
 });
 
 /**
@@ -125,24 +113,18 @@ router.get('/imports/:importId', async (req: Request, res: Response) => {
  * Update a single listing quantity
  */
 router.post('/update-quantity', async (req: Request, res: Response) => {
-  try {
-    const { listingId, quantity } = req.body;
-    
-    if (!listingId || quantity === undefined) {
-      return res.status(400).json({
-        error: 'listingId and quantity are required'
-      });
-    }
+  const { listingId, quantity } = req.body;
 
-    const updated = await ListingService.updateQuantity(listingId, quantity);
-    res.json({
-      success: true,
-      message: `Quantity updated to ${quantity}`,
-      listing: updated
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (!listingId || quantity === undefined) {
+    throw new ValidationError('listingId and quantity are required');
   }
+
+  const updated = await ListingService.updateQuantity(listingId, quantity);
+  res.json({
+    success: true,
+    message: `Quantity updated to ${quantity}`,
+    listing: updated
+  });
 });
 
 /**
@@ -150,23 +132,17 @@ router.post('/update-quantity', async (req: Request, res: Response) => {
  * Bulk update quantities (e.g., from CSV)
  */
 router.post('/bulk-update', async (req: Request, res: Response) => {
-  try {
-    const { updates } = req.body;
-    
-    if (!Array.isArray(updates)) {
-      return res.status(400).json({
-        error: 'updates must be an array of { listingId, quantity }'
-      });
-    }
+  const { updates } = req.body;
 
-    const results = await ListingService.bulkUpdateQuantities(updates);
-    res.json({
-      success: true,
-      results
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (!Array.isArray(updates)) {
+    throw new ValidationError('updates must be an array of { listingId, quantity }');
   }
+
+  const results = await ListingService.bulkUpdateQuantities(updates);
+  res.json({
+    success: true,
+    results
+  });
 });
 
 /**
@@ -174,24 +150,18 @@ router.post('/bulk-update', async (req: Request, res: Response) => {
  * Decrease quantity (for purchases)
  */
 router.post('/decrease', async (req: Request, res: Response) => {
-  try {
-    const { listingId, amount } = req.body;
-    
-    if (!listingId || !amount) {
-      return res.status(400).json({
-        error: 'listingId and amount are required'
-      });
-    }
+  const { listingId, amount } = req.body;
 
-    const updated = await ListingService.decreaseQuantity(listingId, amount);
-    res.json({
-      success: true,
-      message: `Quantity decreased by ${amount}`,
-      listing: updated
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (!listingId || !amount) {
+    throw new ValidationError('listingId and amount are required');
   }
+
+  const updated = await ListingService.decreaseQuantity(listingId, amount);
+  res.json({
+    success: true,
+    message: `Quantity decreased by ${amount}`,
+    listing: updated
+  });
 });
 
 /**
@@ -206,25 +176,21 @@ router.post('/decrease', async (req: Request, res: Response) => {
  *    headers: tcg,editionCode,editionName,cardCode,cardName,cardNumber,rarity,tags,imageUrl,condition,quantity,referencePrice,marginMultiplier
  */
 router.post('/import-csv', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'File is required in form-data key "file"' });
-    }
-
-    const dryRun = String(req.body?.dryRun || '').toLowerCase() === 'true';
-    const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
-      dryRun,
-      fileName: req.file.originalname,
-      importedBy: req.body?.importedBy || 'admin'
-    });
-
-    res.json({
-      success: true,
-      result
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (!req.file) {
+    throw new ValidationError('File is required in form-data key "file"');
   }
+
+  const dryRun = String(req.body?.dryRun || '').toLowerCase() === 'true';
+  const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
+    dryRun,
+    fileName: req.file.originalname,
+    importedBy: req.body?.importedBy || 'admin'
+  });
+
+  res.json({
+    success: true,
+    result
+  });
 });
 
 /**
@@ -232,32 +198,28 @@ router.post('/import-csv', upload.single('file'), async (req: Request, res: Resp
  * Validates CSV without writing to database.
  */
 router.post('/import-csv/validate', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'File is required in form-data key "file"' });
-    }
-
-    const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
-      dryRun: true,
-      fileName: req.file.originalname,
-      importedBy: req.body?.importedBy || 'admin'
-    });
-
-    res.json({
-      success: true,
-      validationOnly: true,
-      result
-    });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  if (!req.file) {
+    throw new ValidationError('File is required in form-data key "file"');
   }
+
+  const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
+    dryRun: true,
+    fileName: req.file.originalname,
+    importedBy: req.body?.importedBy || 'admin'
+  });
+
+  res.json({
+    success: true,
+    validationOnly: true,
+    result
+  });
 });
 
 /**
  * GET /api/inventory/import-csv/template
  * Returns a CSV template for full upsert imports.
  */
-router.get('/import-csv/template', (req: Request, res: Response) => {
+router.get('/import-csv/template', (_req: Request, res: Response) => {
   const template = [
     'tcg,editionCode,editionName,cardCode,cardName,cardNumber,rarity,tags,imageUrl,condition,quantity,referencePrice,marginMultiplier',
     'MAGIC,MH3,Modern Horizons 3,123,Lightning Bolt,123,Common,instant|burn,,NM,10,2.5,1.2'
