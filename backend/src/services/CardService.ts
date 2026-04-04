@@ -84,7 +84,30 @@ export class CardService {
 
     return prisma.card.findMany({
       where,
-      include: { listings: true },
+      include: { listings: true, edition: true },
+      take: limit,
+    });
+  }
+
+  /**
+   * Search cards by code (case-insensitive, partial match).
+   * Returns all matching cards across editions and rarities.
+   */
+  static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
+    const where: any = {
+      cardCode: {
+        contains: code,
+        mode: 'insensitive'
+      }
+    };
+
+    if (tcgId) {
+      where.tcgId = tcgId;
+    }
+
+    return prisma.card.findMany({
+      where,
+      include: { listings: true, edition: true },
       take: limit,
     });
   }

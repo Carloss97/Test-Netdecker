@@ -39,6 +39,7 @@ export function InventoryPage() {
   const [selectedEdition, setSelectedEdition] = useState<string | null>(null);
   const [cards, setCards] = useState<CardWithStock[]>([]);
   const [setSearch, setSetSearch] = useState('');
+  const [cardSearch, setCardSearch] = useState('');
 
   const [loadingTcgs, setLoadingTcgs] = useState(false);
   const [loadingEditions, setLoadingEditions] = useState(false);
@@ -94,6 +95,16 @@ export function InventoryPage() {
     e.editionCode.toLowerCase().includes(setSearch.toLowerCase())
   );
 
+  const filteredCards = cards.filter((c) => {
+    if (!cardSearch.trim()) return true;
+    const q = cardSearch.toLowerCase();
+    return (
+      c.cardName.toLowerCase().includes(q) ||
+      (c.cardCode ?? '').toLowerCase().includes(q) ||
+      (c.cardNumber ?? '').toLowerCase().includes(q)
+    );
+  });
+
   const startEdit = useCallback((listingId: string, currentQty: number) => {
     setEditingCell(listingId);
     setEditValue(String(currentQty));
@@ -115,6 +126,15 @@ export function InventoryPage() {
   const cancelEdit = useCallback(() => {
     setEditingCell(null);
     setEditValue('');
+  }, []);
+
+  const adjustQty = useCallback((listingId: string, currentQty: number, delta: number) => {
+    const newQty = Math.max(0, currentQty + delta);
+    setDirtyRows((prev) => {
+      const next = new Map(prev);
+      next.set(listingId, newQty);
+      return next;
+    });
   }, []);
 
   const handleSaveChanges = async () => {
@@ -211,23 +231,23 @@ export function InventoryPage() {
         >
           <div
             style={{
-              background: 'var(--surface)', borderRadius: 12, padding: 20,
-              maxWidth: 360, width: '90%', textAlign: 'center',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+              background: 'var(--surface)', borderRadius: 12, padding: 24,
+              maxWidth: 480, width: '95%', textAlign: 'center',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontWeight: 600, marginBottom: 12, fontSize: '1rem' }}>
+            <div style={{ fontWeight: 600, marginBottom: 14, fontSize: '1.05rem' }}>
               {previewCard.name}
             </div>
             {previewCard.imageUrl ? (
               <img
                 src={previewCard.imageUrl}
                 alt={previewCard.name}
-                style={{ maxWidth: '100%', borderRadius: 8, maxHeight: 400, objectFit: 'contain' }}
+                style={{ maxWidth: '100%', borderRadius: 10, maxHeight: 520, objectFit: 'contain' }}
               />
             ) : (
-              <div style={{ color: 'var(--text-muted)', padding: '40px 0', fontSize: '0.875rem' }}>
+              <div style={{ color: 'var(--text-muted)', padding: '60px 0', fontSize: '0.875rem' }}>
                 Sin imagen disponible
               </div>
             )}
@@ -335,7 +355,9 @@ export function InventoryPage() {
                 <span style={{ fontWeight: 600, color: 'var(--text)' }}>
                   {selectedEditionObj.editionName}
                   <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8, fontSize: '0.8rem' }}>
-                    {cards.length} cartas
+                    {filteredCards.length !== cards.length
+                      ? `${filteredCards.length} / ${cards.length} cartas`
+                      : `${cards.length} cartas`}
                   </span>
                 </span>
               ) : (
@@ -368,6 +390,18 @@ export function InventoryPage() {
             )}
           </div>
 
+          {/* Card search filter */}
+          {selectedEdition && cards.length > 0 && (
+            <input
+              type="text"
+              className="input input-sm"
+              placeholder="Buscar carta por nombre o código…"
+              value={cardSearch}
+              onChange={(e) => setCardSearch(e.target.value)}
+              style={{ marginBottom: 8, width: '100%' }}
+            />
+          )}
+
           <div className="table-wrapper">
             {!selectedEdition ? (
               <div className="empty-state">
@@ -383,6 +417,12 @@ export function InventoryPage() {
                 <h3>Sin cartas</h3>
                 <p>Este set no tiene cartas en el catálogo aún</p>
               </div>
+            ) : filteredCards.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">🔍</div>
+                <h3>Sin resultados</h3>
+                <p>No se encontraron cartas con ese término</p>
+              </div>
             ) : (
               <table className="data-table">
                 <thead>
@@ -391,13 +431,13 @@ export function InventoryPage() {
                     <th>Nombre</th>
                     <th>Rareza</th>
                     <th>Cond.</th>
-                    <th style={{ width: 80 }}>Stock</th>
+                    <th style={{ width: 120 }}>Stock</th>
                     <th>Precio USD</th>
                     <th>Precio CLP</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {cards.map((card, idx) => {
+                  {filteredCards.map((card, idx) => {
                     const mainListing = card.listings[0];
                     const isDirty = mainListing ? dirtyRows.has(mainListing.id) : false;
                     return (
@@ -447,14 +487,32 @@ export function InventoryPage() {
                                 }}
                               />
                             ) : (
-                              <span
-                                className="qty-display"
-                                onClick={() => startEdit(mainListing.id, getDisplayQty(mainListing))}
-                                title="Clic para editar"
-                              >
-                                {getDisplayQty(mainListing)}
-                                <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>✏</span>
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                  title="Reducir stock"
+                                  onClick={() => adjustQty(mainListing.id, getDisplayQty(mainListing), -1)}
+                                >
+                                  −
+                                </button>
+                                <span
+                                  className="qty-display"
+                                  onClick={() => startEdit(mainListing.id, getDisplayQty(mainListing))}
+                                  title="Clic para editar"
+                                >
+                                  {getDisplayQty(mainListing)}
+                                  <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>✏</span>
+                                </span>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                  title="Aumentar stock"
+                                  onClick={() => adjustQty(mainListing.id, getDisplayQty(mainListing), +1)}
+                                >
+                                  +
+                                </button>
+                              </div>
                             )
                           ) : (
                             <span style={{ color: 'var(--text-muted)' }}>—</span>

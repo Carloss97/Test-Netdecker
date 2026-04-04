@@ -18,6 +18,14 @@ export async function searchCards(name: string, tcgId?: string, limit?: number) 
   return data;
 }
 
+/** Search cards by card code (partial match). Returns all rarities/editions that match. */
+export async function searchCardsByCode(code: string, tcgId?: string, limit?: number) {
+  const { data } = await apiClient.get('/cards/search', {
+    params: { code, tcgId, limit }
+  });
+  return data;
+}
+
 export async function getCardById(id: string) {
   const { data } = await apiClient.get(`/cards/${id}`);
   return data;
