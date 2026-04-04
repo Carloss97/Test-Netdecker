@@ -208,12 +208,11 @@ router.post('/decrease', async (req: Request, res: Response) => {
 router.post('/import-csv', upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'CSV file is required in form-data key "file"' });
+      return res.status(400).json({ error: 'File is required in form-data key "file"' });
     }
 
-    const content = req.file.buffer.toString('utf8');
     const dryRun = String(req.body?.dryRun || '').toLowerCase() === 'true';
-    const result = await InventoryService.importFromCsv(content, {
+    const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
       dryRun,
       fileName: req.file.originalname,
       importedBy: req.body?.importedBy || 'admin'
@@ -235,11 +234,10 @@ router.post('/import-csv', upload.single('file'), async (req: Request, res: Resp
 router.post('/import-csv/validate', upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'CSV file is required in form-data key "file"' });
+      return res.status(400).json({ error: 'File is required in form-data key "file"' });
     }
 
-    const content = req.file.buffer.toString('utf8');
-    const result = await InventoryService.importFromCsv(content, {
+    const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
       dryRun: true,
       fileName: req.file.originalname,
       importedBy: req.body?.importedBy || 'admin'

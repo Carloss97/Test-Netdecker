@@ -58,3 +58,75 @@ export interface InventoryValue {
   totalProfit: number;
   itemCount: number;
 }
+
+// External card database types
+export interface ExternalCard {
+  externalId: string;
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  cardName: string;
+  cardNumber?: string;
+  editionCode: string;
+  editionName: string;
+  rarity?: string;
+  colorIdentity?: string;
+  imageUrl?: string;
+  description?: string;
+  tags?: string;
+  priceLow?: number;
+  priceMid?: number;
+  priceMarket?: number;
+}
+
+export interface ExternalEdition {
+  code: string;
+  name: string;
+  releaseDate?: string;
+  totalCards?: number;
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck';
+}
+
+export interface AdminDashboard {
+  kpis: {
+    catalog: {
+      totalCards: number;
+      totalListings: number;
+      activeListings: number;
+      lowStockListings: number;
+      outOfStockListings: number;
+    };
+    inventory: {
+      totalValueCLP: number;
+      currency: string;
+    };
+    orders: {
+      total: number;
+      pending: number;
+    };
+    exchangeRate: {
+      usdToCLP: number;
+      source: string;
+      fetchedAt?: string;
+    } | null;
+  };
+  recentImports: Array<{
+    id: string;
+    fileName: string;
+    status: string;
+    totalRecords: number;
+    successCount: number;
+    failureCount: number;
+    createdAt: string;
+  }>;
+  recentSyncRuns: Array<{
+    id: string;
+    source: string;
+    status: string;
+    total: number;
+    updated: number;
+    volatile: number;
+    failed: number;
+    startedAt: string;
+    completedAt?: string;
+  }>;
+}

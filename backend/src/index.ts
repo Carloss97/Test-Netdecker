@@ -14,6 +14,8 @@ import listingRoutes from './routes/listing.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import healthRoutes from './routes/health.routes.js';
+import externalRoutes from './routes/external.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 
 const app: Express = express();
@@ -43,6 +45,8 @@ app.use('/api/cards', cardRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/external', externalRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ============================================
 // ERROR HANDLING
