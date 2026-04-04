@@ -36,6 +36,10 @@ export interface CatalogSyncResult {
 
 const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH'> = ['MAGIC', 'POKEMON', 'YUGIOH'];
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class CatalogSyncService {
   static async syncNewSets(options: CatalogSyncOptions = {}): Promise<CatalogSyncResult> {
     const dryRun = options.dryRun === true;
@@ -111,6 +115,9 @@ export class CatalogSyncService {
               updated: importResult.updated,
               skipped: importResult.skipped,
             });
+
+            // Rate limit: add delay between set imports to avoid overwhelming external APIs
+            await sleep(500);
           } else {
             bySet.push({
               tcg,

@@ -45,7 +45,7 @@ const CACHE_TTL = 3600 * 3; // 3 hours
 // ─────────────────────────────────────────────
 
 const SCRYFALL_BASE = 'https://api.scryfall.com';
-const SCRYFALL_DELAY_MS = 100; // Scryfall requests ~50–100 ms delay recommended
+const SCRYFALL_DELAY_MS = 500; // Increased from 100ms to 500ms for bulk operations; Scryfall recommends caution with bulk requests
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -94,25 +94,42 @@ export class ScryfallService {
     const cached = await cacheGet(cacheKey);
     if (cached) return cached as ExternalCard[];
 
-    try {
-      await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
-        params: { q: query, page, order: 'name' },
-        timeout: 30000,
-      });
-      if (!data || !Array.isArray(data.data)) {
-        console.warn('[Scryfall] searchCards: Invalid response structure');
+    let retryDelay = 1000;
+    let retries = 0;
+    const maxRetries = 3;
+
+    while (retries < maxRetries) {
+      try {
+        await sleep(SCRYFALL_DELAY_MS);
+        const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
+          params: { q: query, page, order: 'name' },
+          timeout: 30000,
+        });
+        if (!data || !Array.isArray(data.data)) {
+          console.warn('[Scryfall] searchCards: Invalid response structure');
+          return [];
+        }
+        const cards = (data.data as Record<string, unknown>[]).map(scryfallCardToExternal);
+        await cacheSet(cacheKey, cards, CACHE_TTL);
+        return cards;
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } }).response?.status;
+
+        if (status === 429 && retries < maxRetries - 1) {
+          console.warn(`[Scryfall] searchCards rate limited (429). Waiting ${retryDelay}ms before retry...`);
+          await sleep(retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 30000);
+          retries++;
+          continue;
+        }
+
+        if (status === 404) return [];
+        console.error('[Scryfall] searchCards error:', (err as Error).message);
         return [];
       }
-      const cards = (data.data as Record<string, unknown>[]).map(scryfallCardToExternal);
-      await cacheSet(cacheKey, cards, CACHE_TTL);
-      return cards;
-    } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } }).response?.status;
-      if (status === 404) return [];
-      console.error('[Scryfall] searchCards error:', (err as Error).message);
-      return [];
     }
+
+    return [];
   }
 
   static async getCardByName(name: string, setCode?: string): Promise<ExternalCard | null> {
@@ -164,6 +181,7 @@ export class ScryfallService {
     const allCards: ExternalCard[] = [];
     let page = 1;
     let hasMore = true;
+    let retryDelay = 1000; // Start with 1 second backoff for 429 errors
 
     while (hasMore && page <= maxPages) {
       try {
@@ -180,8 +198,21 @@ export class ScryfallService {
         allCards.push(...(data.data as Record<string, unknown>[]).map(scryfallCardToExternal));
         hasMore = data.has_more === true;
         page++;
+        retryDelay = 1000; // Reset on success
       } catch (err: unknown) {
-        console.error(`[Scryfall] getSetCards ${setCode} page ${page} error:`, (err as Error).message);
+        const status = (err as { response?: { status?: number } }).response?.status;
+        const message = (err as Error).message;
+
+        if (status === 429) {
+          // Rate limited: wait and retry
+          console.warn(`[Scryfall] getSetCards ${setCode} rate limited (429). Waiting ${retryDelay}ms before retry...`);
+          await sleep(retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 30000); // Exponential backoff, max 30s
+          // Retry the same page (don't increment page)
+          continue;
+        }
+
+        console.error(`[Scryfall] getSetCards ${setCode} page ${page} error (status ${status}):`, message);
         hasMore = false;
       }
     }
