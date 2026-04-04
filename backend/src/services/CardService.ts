@@ -98,11 +98,25 @@ export class CardService {
   }
 
   /**
-   * Get cards by TCG
+   * Get cards by TCG (can accept either tcgId or tcgName like "POKEMON")
    */
-  static async getCardsByTCG(tcgId: string) {
+  static async getCardsByTCG(tcgIdentifier: string) {
+    // First, try to find the TCG by ID or by name (enum)
+    const tcg = await prisma.tcg.findFirst({
+      where: {
+        OR: [
+          { id: tcgIdentifier },
+          { name: tcgIdentifier as any }
+        ]
+      }
+    });
+
+    if (!tcg) {
+      throw new NotFoundError(`TCG "${tcgIdentifier}" not found`);
+    }
+
     return prisma.card.findMany({
-      where: { tcgId },
+      where: { tcgId: tcg.id },
       include: {
         listings: true,
         edition: true
