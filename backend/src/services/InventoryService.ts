@@ -260,7 +260,6 @@ export class InventoryService {
     return prisma.inventoryImport.findMany({
       where,
       orderBy: { [sortBy]: sortDir },
-      take: 5000,
     });
   }
 

@@ -169,4 +169,35 @@ export class PriceService {
       take: limit,
     });
   }
+
+  /**
+   * Get complete price history for CSV export (no pagination cap).
+   * Supports optional filters: listingId, date range.
+   */
+  static async getPriceHistoryForExport(filters: {
+    listingId?: string;
+    from?: Date;
+    to?: Date;
+  } = {}) {
+    const where: {
+      listingId?: string;
+      createdAt?: { gte?: Date; lte?: Date };
+    } = {};
+
+    if (filters.listingId) {
+      where.listingId = filters.listingId;
+    }
+
+    if (filters.from || filters.to) {
+      where.createdAt = {
+        ...(filters.from ? { gte: filters.from } : {}),
+        ...(filters.to ? { lte: filters.to } : {}),
+      };
+    }
+
+    return prisma.priceHistory.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
