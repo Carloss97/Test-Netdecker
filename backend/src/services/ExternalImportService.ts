@@ -43,6 +43,41 @@ export class ExternalImportService {
   }
 
   /**
+   * Return a reasonable default price based on TCG and rarity.
+   * Used when external APIs don't provide pricing data.
+   */
+  private static getDefaultPrice(tcg: TCGType, rarity?: string): number {
+    // Base prices by TCG (in USD)
+    const basePrices: Record<TCGType, number> = {
+      MAGIC: 0.50,
+      POKEMON: 0.75,
+      YUGIOH: 0.50,
+      ONE_PIECE: 0.35,
+    };
+
+    const basePrice = basePrices[tcg] || 0.50;
+
+    // Multiplier by rarity (common=1x, rare=2-10x, etc)
+    const rarityLower = (rarity || '').toLowerCase();
+    let rarityMultiplier = 1;
+    if (rarityLower.includes('mythic') || rarityLower.includes('secret') || rarityLower.includes('ultimate')) {
+      rarityMultiplier = 3.0;
+    } else if (rarityLower.includes('ultra') || rarityLower.includes('gold') || rarityLower.includes('rainbow')) {
+      rarityMultiplier = 2.0;
+    } else if (rarityLower.includes('super') || rarityLower.includes('hyper')) {
+      rarityMultiplier = 1.5;
+    } else if (rarityLower.includes('rare') || rarityLower.includes('holo')) {
+      rarityMultiplier = 1.2;
+    } else if (rarityLower.includes('uncommon')) {
+      rarityMultiplier = 1.0;
+    } else {
+      rarityMultiplier = 0.75; // common
+    }
+
+    return Math.round(basePrice * rarityMultiplier * 100) / 100;
+  }
+
+  /**
    * Resolve or create the TCG record from TCGType.
    */
   private static async resolveTCG(tcgType: TCGType) {
@@ -132,13 +167,16 @@ export class ExternalImportService {
     let listingId: string | undefined;
 
     if (options.createListing) {
-      // Determine the reference price: prefer passed option, then external market price
-      const refPrice =
-        options.referencePrice ??
-        externalCard.priceMarket ??
-        externalCard.priceMid ??
-        externalCard.priceLow ??
-        0;
+      // Determine the reference price: prefer passed option, then external market price, then default
+      const externalPrice = externalCard.priceMarket ?? externalCard.priceMid ?? externalCard.priceLow;
+      const refPrice = options.referencePrice ?? externalPrice ?? this.getDefaultPrice(externalCard.tcg as TCGType, rarity);
+      
+      // Log precio para debugging
+      if (!externalPrice) {
+        console.warn(`[Import] ${externalCard.tcg} ${externalCard.cardName}: No external price found (using default $${refPrice.toFixed(2)})`);
+      } else {
+        console.info(`[Import] ${externalCard.tcg} ${externalCard.cardName}: Using API price $${externalPrice.toFixed(2)}`);
+      }
 
       const condition = options.condition || CardCondition.NM;
 

@@ -115,8 +115,10 @@ export class PriceService {
       roundingMultiple,
     });
 
-    // Create history record
-    const percentChange = ((calculation.finalPrice - oldPrice) / oldPrice) * 100;
+    // Create history record (avoid division-by-zero when old price is 0)
+    const percentChange = oldPrice === 0
+      ? (calculation.finalPrice > 0 ? 100 : 0)
+      : ((calculation.finalPrice - oldPrice) / oldPrice) * 100;
 
     await prisma.$transaction([
       // Update listing
@@ -155,6 +157,9 @@ export class PriceService {
    * Returns true if change > 10% or < -10%
    */
   static isVolatileChange(oldPrice: number, newPrice: number, threshold: number = 10): boolean {
+    if (oldPrice === 0) {
+      return newPrice > 0;
+    }
     const percentChange = ((newPrice - oldPrice) / oldPrice) * 100;
     return Math.abs(percentChange) > threshold;
   }

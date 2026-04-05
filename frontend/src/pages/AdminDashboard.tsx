@@ -7,6 +7,7 @@ import {
   getStockAlerts,
   getTcgplayerCoverage,
   syncCatalog,
+  resetCatalog,
 } from '../services/catalog';
 import type { AdminDashboard, CatalogBootstrapResponse, CatalogSyncResponse, TcgplayerCoverage } from '../types';
 
@@ -70,6 +71,10 @@ export function AdminDashboardPage() {
     payload: CatalogBootstrapResponse | CatalogSyncResponse;
   } | null>(null);
   const [catalogActionError, setCatalogActionError] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const dashboard = dashboardQuery.data as { success: boolean } & AdminDashboard | null;
   const coverage = coverageQuery.data as { success: boolean } & TcgplayerCoverage | null;
@@ -125,14 +130,114 @@ export function AdminDashboardPage() {
     }
   };
 
+  const handleResetDatabase = async () => {
+    setResetLoading(true);
+    setResetError(null);
+    setResetMessage(null);
+    try {
+      const result = await resetCatalog();
+      setResetMessage(result.message || 'Base de datos reseteada exitosamente');
+      setShowResetConfirm(false);
+      // Refresh dashboard after reset
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err: unknown) {
+      setResetError(err instanceof Error ? err.message : 'Error al resetear base de datos');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ margin: 0 }}>⚙️ Admin Dashboard</h2>
-        <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #ddd', background: '#fff' }}>
-          🔄 Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #ddd', background: '#fff' }}>
+            🔄 Refresh
+          </button>
+          <button onClick={() => setShowResetConfirm(true)} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #d32f2f', background: '#ffebee', color: '#d32f2f', fontWeight: 500 }}>
+            🗑️ Reset DB
+          </button>
+        </div>
       </div>
+
+      {dashboardQuery.status === 'pending' && <p>Loading dashboard…</p>}
+      {dashboardQuery.status === 'error' && (
+        <p style={{ color: 'red' }}>
+          Failed to load dashboard. Is the backend running?
+        </p>
+      )}
+
+      {/* Reset Database Modal */}
+      {showResetConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 8,
+            padding: 24,
+            maxWidth: 400,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', color: '#d32f2f' }}>⚠️ Confirmar Reset de Base de Datos</h3>
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: 14 }}>
+              Esta acción eliminará todos los sets, cartas, inventario y historico de precios. Los registros de TCG y tasas de cambio serán preservados.
+            </p>
+            <p style={{ margin: '0 0 16px 0', color: '#999', fontSize: 13, fontweight: 'bold' }}>
+              Esta acción es irreversible. ¿Estás seguro?
+            </p>
+            {resetError && (
+              <p style={{ color: '#d32f2f', fontSize: 13, marginBottom: 12 }}>❌ {resetError}</p>
+            )}
+            {resetMessage && (
+              <p style={{ color: '#388e3c', fontSize: 13, marginBottom: 12 }}>✅ {resetMessage}</p>
+            )}
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                disabled={resetLoading}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 4,
+                  border: '1px solid #ddd',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleResetDatabase}
+                disabled={resetLoading}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 4,
+                  border: 'none',
+                  background: '#d32f2f',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                {resetLoading ? '⏳ Reseteando...' : '🗑️ Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {dashboardQuery.status === 'pending' && <p>Loading dashboard…</p>}
       {dashboardQuery.status === 'error' && (

@@ -1,14 +1,17 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import {
   getTCGs,
+  getEditions,
   listExternalSets,
   importExternalSet,
   validateInventoryCsv,
   importInventoryCsv,
   getInventoryImports,
+  exportInventoryCsv,
   resetCatalog,
 } from '../services/catalog';
+import type { EditionWithCounts } from '../types';
 
 type TcgCode = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
 
@@ -47,6 +50,13 @@ export function ImportPage() {
   const [importingSet, setImportingSet] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [localEditions, setLocalEditions] = useState<EditionWithCounts[]>([]);
+  const [loadingLocalEditions, setLoadingLocalEditions] = useState(false);
+  const [selectedExportEditionId, setSelectedExportEditionId] = useState('');
+  const [exportingScope, setExportingScope] = useState<'edition' | 'tcg' | 'all' | null>(null);
+  const [setSearch, setSetSearch] = useState('');
+  const [sortColumn, setSortColumn] = useState<'code' | 'name' | 'cards' | 'releaseDate'>('code');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // ── CSV tab state ──
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -64,6 +74,27 @@ export function ImportPage() {
 
   const { data: tcgs } = useAsync(() => getTCGs());
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 10 }));
+
+  useEffect(() => {
+    const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
+    const selected = tcgList.find((t) => t.name === selectedTcg);
+    if (!selected) {
+      setLocalEditions([]);
+      setSelectedExportEditionId('');
+      return;
+    }
+
+    setLoadingLocalEditions(true);
+    getEditions({ tcgId: selected.id, activeOnly: false })
+      .then((data) => {
+        setLocalEditions(data);
+        setSelectedExportEditionId('');
+      })
+      .catch(() => {
+        setLocalEditions([]);
+      })
+      .finally(() => setLoadingLocalEditions(false));
+  }, [selectedTcg, tcgs]);
 
   const handleLoadSets = async () => {
     if (!selectedTcg) return;
@@ -92,6 +123,50 @@ export function ImportPage() {
       setImportError(`Error al importar set "${code}"`);
     } finally {
       setImportingSet(null);
+    }
+  };
+
+  const handleExportInventory = async (scope: 'edition' | 'tcg' | 'all') => {
+    setExportingScope(scope);
+    setImportError(null);
+    setImportMsg(null);
+
+    try {
+      const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
+      const selected = tcgList.find((t) => t.name === selectedTcg);
+
+      if (scope === 'tcg' && !selected?.id) {
+        setImportError('Selecciona un TCG para exportar por TCG');
+        return;
+      }
+
+      if (scope === 'edition' && !selectedExportEditionId) {
+        setImportError('Selecciona una edición para exportar por set/edición');
+        return;
+      }
+
+      const blob = await exportInventoryCsv({
+        scope,
+        tcgId: scope === 'tcg' ? selected?.id : undefined,
+        editionId: scope === 'edition' ? selectedExportEditionId : undefined,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download =
+        scope === 'edition'
+          ? `inventory-edition-${selectedExportEditionId}.csv`
+          : scope === 'tcg'
+            ? `inventory-tcg-${selected?.name || 'unknown'}.csv`
+            : 'inventory-all.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      setImportMsg('CSV de inventario exportado correctamente');
+    } catch {
+      setImportError('Error al exportar inventario');
+    } finally {
+      setExportingScope(null);
     }
   };
 
@@ -156,6 +231,37 @@ export function ImportPage() {
 
   const importList = ((imports as PaginatedImports | null)?.items ?? []);
 
+  const filteredSortedSets = [...externalSets]
+    .filter((s) => {
+      if (!setSearch.trim()) return true;
+      const q = setSearch.toLowerCase();
+      return s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      const mult = sortDirection === 'asc' ? 1 : -1;
+      switch (sortColumn) {
+        case 'code':
+          return mult * a.code.localeCompare(b.code);
+        case 'name':
+          return mult * a.name.localeCompare(b.name);
+        case 'cards':
+          return mult * ((a.totalCards ?? 0) - (b.totalCards ?? 0));
+        case 'releaseDate':
+          return mult * String(a.releaseDate ?? '').localeCompare(String(b.releaseDate ?? ''));
+        default:
+          return 0;
+      }
+    });
+
+  const handleSort = (column: 'code' | 'name' | 'cards' | 'releaseDate') => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortColumn(column);
+    setSortDirection('asc');
+  };
+
   return (
     <div>
       <div className="tabs">
@@ -163,7 +269,7 @@ export function ImportPage() {
           className={`tab-btn${activeTab === 'catalog' ? ' active' : ''}`}
           onClick={() => setActiveTab('catalog')}
         >
-          🌐 Importar Catálogo
+          🌐 Importar / Exportar
         </button>
         <button
           className={`tab-btn${activeTab === 'csv' ? ' active' : ''}`}
@@ -211,24 +317,79 @@ export function ImportPage() {
             </div>
           </div>
 
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="section-title" style={{ marginBottom: 12 }}>Exportar Inventario (Re-importable)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto auto', gap: 10, alignItems: 'end' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>TCG para exportar por juego/set</label>
+                <select
+                  className="input"
+                  value={selectedTcg}
+                  onChange={(e) => setSelectedTcg(e.target.value)}
+                >
+                  <option value="">-- Selecciona un TCG --</option>
+                  {((tcgs as { id: string; name: string; displayName: string }[] | null) ?? []).map((t) => (
+                    <option key={t.id} value={t.name}>{t.displayName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Set / Edición</label>
+                <select
+                  className="input"
+                  value={selectedExportEditionId}
+                  onChange={(e) => setSelectedExportEditionId(e.target.value)}
+                  disabled={!selectedTcg || loadingLocalEditions}
+                >
+                  <option value="">-- Selecciona una edición --</option>
+                  {localEditions.map((ed) => (
+                    <option key={ed.id} value={ed.id}>{ed.editionCode} · {ed.editionName}</option>
+                  ))}
+                </select>
+              </div>
+              <button className="btn btn-secondary" onClick={() => handleExportInventory('edition')} disabled={exportingScope !== null}>
+                {exportingScope === 'edition' ? '⏳ Exportando…' : '⬇ Exportar Set'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => handleExportInventory('tcg')} disabled={exportingScope !== null}>
+                {exportingScope === 'tcg' ? '⏳ Exportando…' : '⬇ Exportar TCG'}
+              </button>
+              <button className="btn btn-primary" onClick={() => handleExportInventory('all')} disabled={exportingScope !== null}>
+                {exportingScope === 'all' ? '⏳ Exportando…' : '⬇ Exportar Total'}
+              </button>
+            </div>
+            <p style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Este CSV usa el formato de importación full-upsert para restauración tras reset de base de datos.
+            </p>
+          </div>
+
           {externalSets.length > 0 && (
             <div className="card">
               <div className="section-title" style={{ marginBottom: 12 }}>
                 Sets Disponibles ({externalSets.length})
               </div>
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="text"
+                  className="input"
+                  value={setSearch}
+                  onChange={(e) => setSetSearch(e.target.value)}
+                  placeholder="Buscar set por código o nombre..."
+                  style={{ maxWidth: 420 }}
+                />
+              </div>
               <div className="table-wrapper">
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Código</th>
-                      <th>Nombre</th>
-                      <th>Cartas</th>
-                      <th>Lanzamiento</th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('code')}>Código {sortColumn === 'code' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>Nombre {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('cards')}>Cartas {sortColumn === 'cards' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('releaseDate')}>Lanzamiento {sortColumn === 'releaseDate' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                       <th>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {externalSets.map((s) => (
+                    {filteredSortedSets.map((s) => (
                       <tr key={s.code}>
                         <td><span className="badge badge-gray">{s.code}</span></td>
                         <td style={{ fontWeight: 500 }}>{s.name}</td>

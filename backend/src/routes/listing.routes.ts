@@ -48,10 +48,13 @@ router.get('/inventory-value', async (_req: Request, res: Response) => {
  * Body: { updates: [{ listingId: string, referencePrice: number, marginMultiplier?: number }] }
  */
 router.post('/sync-prices', async (req: Request, res: Response) => {
-  const { updates, roundingMultiple, notes } = req.body as {
+  const { updates, roundingMultiple, notes, fetchExternalPrices, tcgName, editionId } = req.body as {
     updates?: Array<{ listingId: string; referencePrice: number; marginMultiplier?: number }>;
     roundingMultiple?: number;
     notes?: string;
+    fetchExternalPrices?: boolean;
+    tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+    editionId?: string;
   };
 
   if (updates !== undefined && (!Array.isArray(updates) || !updates.length)) {
@@ -64,6 +67,12 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
     notes: notes || 'Manual sync via API',
     changedBy: 'system',
     roundingMultiple,
+    tcgName,
+    editionId,
+    // For manual sync without explicit updates, fetch external prices by default.
+    fetchExternalPrices: typeof fetchExternalPrices === 'boolean'
+      ? fetchExternalPrices
+      : updates === undefined,
   });
 
   res.json(result);

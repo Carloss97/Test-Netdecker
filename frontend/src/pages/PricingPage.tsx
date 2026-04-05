@@ -24,6 +24,9 @@ export function PricingPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [selectedTcg, setSelectedTcg] = useState<'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'>('ALL');
+  const [syncScope, setSyncScope] = useState<'all' | 'tcg' | 'edition'>('all');
+  const [selectedEditionId, setSelectedEditionId] = useState('');
 
   const { data: listings, status: listingsStatus, error: listingsError, execute: reloadListings } = useAsync<Listing[]>(
     () => getAvailableListings()
@@ -34,6 +37,19 @@ export function PricingPage() {
   );
 
   const activeListings = (listings ?? []).filter((l) => l.quantity > 0);
+  const filteredListings = activeListings.filter((l) => {
+    if (selectedTcg === 'ALL') return true;
+    const tcgName = (l.card as Listing['card'] & { tcg?: { name?: string } })?.tcg?.name;
+    return tcgName === selectedTcg;
+  });
+  const availableEditions = filteredListings
+    .map((l) => ({
+      id: l.editionId,
+      name: (l.card as Listing['card'] & { edition?: { editionName?: string; editionCode?: string } })?.edition?.editionName || 'Edición',
+      code: (l.card as Listing['card'] & { edition?: { editionName?: string; editionCode?: string } })?.edition?.editionCode || '',
+    }))
+    .filter((e, idx, arr) => arr.findIndex((x) => x.id === e.id) === idx)
+    .sort((a, b) => `${a.code} ${a.name}`.localeCompare(`${b.code} ${b.name}`));
 
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -43,7 +59,25 @@ export function PricingPage() {
     setSyncMsg(null);
     setSyncError(null);
     try {
-      const result = await syncListingPrices(undefined, undefined, 'Manual sync from PricingPage');
+      const filters: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'; editionId?: string } = {};
+      if (syncScope === 'tcg') {
+        if (selectedTcg === 'ALL') {
+          setSyncError('Selecciona un TCG para sincronizar por juego');
+          setSyncing(false);
+          return;
+        }
+        filters.tcgName = selectedTcg;
+      }
+      if (syncScope === 'edition') {
+        if (!selectedEditionId) {
+          setSyncError('Selecciona una edición para sincronizar por set');
+          setSyncing(false);
+          return;
+        }
+        filters.editionId = selectedEditionId;
+      }
+
+      const result = await syncListingPrices(undefined, undefined, 'Manual sync from PricingPage', true, filters);
       setSyncMsg(`Sincronización completada: ${(result as { updated?: number }).updated ?? 0} actualizados`);
       reloadListings();
     } catch {
@@ -56,7 +90,29 @@ export function PricingPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select className="input input-sm" value={syncScope} onChange={(e) => setSyncScope(e.target.value as 'all' | 'tcg' | 'edition')}>
+            <option value="all">Sync total</option>
+            <option value="tcg">Sync por TCG</option>
+            <option value="edition">Sync por edición</option>
+          </select>
+          {syncScope === 'tcg' && (
+            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')}>
+              <option value="ALL">Selecciona TCG</option>
+              <option value="MAGIC">MAGIC</option>
+              <option value="POKEMON">POKEMON</option>
+              <option value="YUGIOH">YUGIOH</option>
+              <option value="ONE_PIECE">ONE_PIECE</option>
+            </select>
+          )}
+          {syncScope === 'edition' && (
+            <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)}>
+              <option value="">Selecciona edición</option>
+              {availableEditions.map((ed) => (
+                <option key={ed.id} value={ed.id}>{ed.code} · {ed.name}</option>
+              ))}
+            </select>
+          )}
           {syncMsg && (
             <span style={{ color: 'var(--success)', fontSize: '0.875rem' }}>✓ {syncMsg}</span>
           )}
@@ -89,7 +145,19 @@ export function PricingPage() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div className="section-title" style={{ margin: 0 }}>
-            Listings con Stock ({activeListings.length})
+            Listings con Stock ({filteredListings.length})
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(['ALL', 'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'] as const).map((tcg) => (
+              <button
+                key={tcg}
+                type="button"
+                className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setSelectedTcg(tcg)}
+              >
+                {tcg === 'ALL' ? 'Todos' : tcg}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -97,11 +165,11 @@ export function PricingPage() {
           <div className="loading-spinner">⏳ Cargando precios…</div>
         ) : listingsStatus === 'error' ? (
           <div className="error-message">⚠ {listingsError?.message}</div>
-        ) : activeListings.length === 0 ? (
+        ) : filteredListings.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">💰</div>
             <h3>Sin listings activos</h3>
-            <p>No hay cartas con stock disponible</p>
+            <p>No hay cartas con stock disponible para este TCG</p>
           </div>
         ) : (
           <div className="table-wrapper">
@@ -117,7 +185,8 @@ export function PricingPage() {
                 </tr>
               </thead>
               <tbody>
-                {activeListings.map((listing) => (
+                {filteredListings.map((listing) => {
+                  return (
                   <tr key={listing.id}>
                     <td style={{ fontWeight: 500 }}>{listing.card?.cardName ?? '—'}</td>
                     <td>
@@ -142,7 +211,7 @@ export function PricingPage() {
                         : '—'}
                     </td>
                   </tr>
-                ))}
+                );})}
               </tbody>
             </table>
           </div>

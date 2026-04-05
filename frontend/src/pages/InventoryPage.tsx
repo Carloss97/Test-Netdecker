@@ -27,6 +27,67 @@ const RARITY_BADGE: Record<string, string> = {
   holo: 'badge-blue',
 };
 
+// Mapeo de rareza a nivel para ordenamiento (mayor rareza = número mayor)
+// Incluye variaciones de múltiples TCGs
+const RARITY_LEVEL: Record<string, number> = {
+  // Common
+  'common': 1,
+  'kommon': 1,
+  
+  // Uncommon
+  'uncommon': 2,
+  'holo': 2,
+  
+  // Rare (various rarities across TCGs)
+  'rare': 3,
+  'holographic rare': 3,
+  'shiny rare': 3,
+  'reverse holo rare': 3,
+  'parallel': 3,
+  
+  // Super Rare / Ultra Rare
+  'super rare': 4,
+  'hyper rare': 4,
+  'sr': 4,
+  'starred rare': 4,
+  
+  // Ultra Rare / Secret Rare
+  'ultra rare': 5,
+  'secret rare': 5,
+  'rainbow rare': 5,
+  'alt art': 5,
+  'ur': 5,
+  'ssr': 5,
+  'gold rare': 5,
+  
+  // Mythic / Legendary (most rare)
+  'mythic': 6,
+  'mythic rare': 6,
+  'legendary': 6,
+  'ultimate rare': 6,
+  'pr': 6,
+};
+
+function getRarityLevel(rarity?: string): number {
+  if (!rarity) return 0;
+  const lower = rarity.toLowerCase().trim();
+  const mapped = RARITY_LEVEL[lower];
+  
+  // Si está en el mapeo, usa ese valor
+  if (mapped !== undefined) return mapped;
+  
+  // Si no está mapeado pero contiene caracteres indicadores, asigna un nivel heurístico
+  if (/secret|ultimate|rainbow|mythic|legend/.test(lower)) return 6;
+  if (/ultra|gold/.test(lower)) return 5;
+  if (/super|hyper|star/.test(lower)) return 4;
+  if (/rare|holo|parallel/.test(lower)) return 3;
+  if (/uncommon|holo/.test(lower)) return 2;
+  if (/common/.test(lower)) return 1;
+  
+  // Default para rarezas desconocidas: nivel 1
+  return 1;
+}
+
 function getRarityBadge(rarity?: string): string {
   if (!rarity) return 'badge-gray';
   return RARITY_BADGE[rarity.toLowerCase()] ?? 'badge-gray';
@@ -40,6 +101,8 @@ export function InventoryPage() {
   const [cards, setCards] = useState<CardWithStock[]>([]);
   const [setSearch, setSetSearch] = useState('');
   const [cardSearch, setCardSearch] = useState('');
+  const [sortColumn, setSortColumn] = useState<'number' | 'name' | 'rarity' | 'stock' | 'price' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [loadingTcgs, setLoadingTcgs] = useState(false);
   const [loadingEditions, setLoadingEditions] = useState(false);
@@ -103,6 +166,46 @@ export function InventoryPage() {
       (c.cardCode ?? '').toLowerCase().includes(q) ||
       (c.cardNumber ?? '').toLowerCase().includes(q)
     );
+  });
+
+  const handleSortColumn = (column: 'number' | 'name' | 'rarity' | 'stock' | 'price') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedCards = [...filteredCards].sort((a, b) => {
+    const mult = sortDirection === 'asc' ? 1 : -1;
+    
+    switch (sortColumn) {
+      case 'number': {
+        const numA = parseInt(a.cardNumber ?? '0', 10) || 0;
+        const numB = parseInt(b.cardNumber ?? '0', 10) || 0;
+        return mult * (numA - numB);
+      }
+      case 'name':
+        return mult * a.cardName.localeCompare(b.cardName);
+      case 'rarity': {
+        const rarityA = getRarityLevel(a.rarity);
+        const rarityB = getRarityLevel(b.rarity);
+        return mult * (rarityA - rarityB);
+      }
+      case 'stock': {
+        const qtyA = a.listings[0]?.quantity ?? 0;
+        const qtyB = b.listings[0]?.quantity ?? 0;
+        return mult * (qtyA - qtyB);
+      }
+      case 'price': {
+        const priceA = a.listings[0]?.finalPrice ?? 0;
+        const priceB = b.listings[0]?.finalPrice ?? 0;
+        return mult * (priceA - priceB);
+      }
+      default:
+        return 0;
+    }
   });
 
   const startEdit = useCallback((listingId: string, currentQty: number) => {
@@ -392,14 +495,25 @@ export function InventoryPage() {
 
           {/* Card search filter */}
           {selectedEdition && cards.length > 0 && (
-            <input
-              type="text"
-              className="input input-sm"
-              placeholder="Buscar carta por nombre o código…"
-              value={cardSearch}
-              onChange={(e) => setCardSearch(e.target.value)}
-              style={{ marginBottom: 8, width: '100%' }}
-            />
+            <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                className="input input-sm"
+                placeholder="🔍 Buscar por nombre, código o número…"
+                value={cardSearch}
+                onChange={(e) => setCardSearch(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              {cardSearch && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setCardSearch('')}
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           )}
 
           <div className="table-wrapper">
@@ -427,17 +541,46 @@ export function InventoryPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: 40 }}>#</th>
-                    <th>Nombre</th>
-                    <th>Rareza</th>
-                    <th>Cond.</th>
-                    <th style={{ width: 120 }}>Stock</th>
-                    <th>Precio USD</th>
+                    <th
+                      style={{ width: 40, cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => handleSortColumn('number')}
+                      title="Clic para ordenar"
+                    >
+                      # {sortColumn === 'number' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => handleSortColumn('name')}
+                      title="Clic para ordenar"
+                    >
+                      Nombre {sortColumn === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => handleSortColumn('rarity')}
+                      title="Clic para ordenar"
+                    >
+                      Rareza {sortColumn === 'rarity' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th
+                      style={{ width: 120, cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => handleSortColumn('stock')}
+                      title="Clic para ordenar"
+                    >
+                      Stock {sortColumn === 'stock' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => handleSortColumn('price')}
+                      title="Clic para ordenar"
+                    >
+                      Precio USD {sortColumn === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
                     <th>Precio CLP</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCards.map((card, idx) => {
+                  {sortedCards.map((card, idx) => {
                     const mainListing = card.listings[0];
                     const isDirty = mainListing ? dirtyRows.has(mainListing.id) : false;
                     return (
@@ -466,9 +609,6 @@ export function InventoryPage() {
                               {card.rarity}
                             </span>
                           ) : '—'}
-                        </td>
-                        <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                          {mainListing?.condition ?? '—'}
                         </td>
                         <td>
                           {mainListing ? (

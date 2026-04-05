@@ -114,6 +114,39 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
     orderBy: [{ cardNumber: 'asc' }, { cardName: 'asc' }],
   });
 
+  // Ensure each card has at least one listing. If not, create one.
+  for (const card of cards) {
+    if (card.listings.length === 0) {
+      const newListing = await prisma.listing.create({
+        data: {
+          cardId: card.id,
+          editionId: edition.id,
+          condition: 'NM',
+          rarity: card.rarity,
+          quantity: 0,
+          referencePrice: 0,
+          marginMultiplier: 1.2,
+          exchangeRate: 1.0,
+          finalPrice: 0,
+          currency: 'CLP',
+          status: 'active',
+        },
+        select: {
+          id: true,
+          condition: true,
+          quantity: true,
+          referencePrice: true,
+          marginMultiplier: true,
+          finalPrice: true,
+          currency: true,
+          lastSyncedAt: true,
+          status: true,
+        },
+      });
+      card.listings.push(newListing);
+    }
+  }
+
   const cardsWithStock = cards.filter((c) => c.listings.some((l) => l.quantity > 0)).length;
 
   res.json({

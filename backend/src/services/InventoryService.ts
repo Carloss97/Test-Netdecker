@@ -26,6 +26,12 @@ interface ImportHistoryQuery {
   sortDir?: 'asc' | 'desc';
 }
 
+interface InventoryExportQuery {
+  scope: 'edition' | 'tcg' | 'all';
+  editionId?: string;
+  tcgId?: string;
+}
+
 function buildImportWhere(query: ImportHistoryQuery): {
   status?: string;
   createdAt?: { gte?: Date; lte?: Date };
@@ -261,6 +267,64 @@ export class InventoryService {
       where,
       orderBy: { [sortBy]: sortDir },
     });
+  }
+
+  static async getInventoryForExport(query: InventoryExportQuery) {
+    const where: {
+      status: string;
+      editionId?: string;
+      card?: { tcgId?: string };
+    } = {
+      status: 'active',
+    };
+
+    if (query.scope === 'edition') {
+      if (!query.editionId) {
+        throw new Error('editionId is required when scope=edition');
+      }
+      where.editionId = query.editionId;
+    }
+
+    if (query.scope === 'tcg') {
+      if (!query.tcgId) {
+        throw new Error('tcgId is required when scope=tcg');
+      }
+      where.card = { tcgId: query.tcgId };
+    }
+
+    const listings = await prisma.listing.findMany({
+      where,
+      include: {
+        card: {
+          include: {
+            tcg: true,
+            edition: true,
+          },
+        },
+      },
+      orderBy: [
+        { card: { tcg: { name: 'asc' } } },
+        { card: { edition: { editionCode: 'asc' } } },
+        { card: { cardNumber: 'asc' } },
+        { card: { cardName: 'asc' } },
+      ],
+    });
+
+    return listings.map((l) => ({
+      tcg: l.card.tcg.name,
+      editionCode: l.card.edition.editionCode,
+      editionName: l.card.edition.editionName,
+      cardCode: l.card.cardCode,
+      cardName: l.card.cardName,
+      cardNumber: l.card.cardNumber || '',
+      rarity: l.rarity || l.card.rarity || 'Unknown',
+      tags: l.card.tags || '',
+      imageUrl: l.card.imageUrl || '',
+      condition: l.condition || 'NM',
+      quantity: l.quantity,
+      referencePrice: l.referencePrice,
+      marginMultiplier: l.marginMultiplier,
+    }));
   }
 
   static async importFromCsv(content: string, options: ImportOptions = {}): Promise<ImportResult> {

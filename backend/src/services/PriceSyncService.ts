@@ -1,8 +1,7 @@
 import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { PriceUpdateReason } from '@prisma/client';
-import { ScryfallService, YGOProDeckService, PokemonTCGService, OptcgapiService } from './CardDatabaseService.js';
-import { TCGPlayerService } from './TCGPlayerService.js';
+import { CardDatabaseService, ScryfallService, YGOProDeckService, PokemonTCGService, OptcgapiService } from './CardDatabaseService.js';
 
 export interface PriceSyncUpdateInput {
   listingId: string;
@@ -18,6 +17,9 @@ export interface RunPriceSyncInput {
   roundingMultiple?: number;
   /** When true (default for cron), tries to fetch latest market price from external APIs */
   fetchExternalPrices?: boolean;
+  /** Optional manual sync filters */
+  tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  editionId?: string;
 }
 
 export interface PriceSyncResult {
@@ -29,9 +31,16 @@ export interface PriceSyncResult {
   failed: number;
   roundingMultiple: number;
   errors: Array<{ listingId: string; message: string }>;
+  pricingSourceStats?: {
+    fromApi: number;
+    fromStored: number;
+    fromFallback: number;
+  };
   startedAt: string;
   completedAt: string;
 }
+
+type SyncTcgName = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
 
 type PriceSyncRunDelegate = {
   create: (args: unknown) => Promise<{ id: string }>;
@@ -95,6 +104,68 @@ async function fetchExternalMarketPrice(
   return null;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const SET_SYNC_DELAY_MS: Record<SyncTcgName, number> = {
+  MAGIC: 550,
+  POKEMON: 120,
+  YUGIOH: 60,
+  ONE_PIECE: 350,
+};
+
+function normalizeSetCodeForTcg(tcgName: SyncTcgName, editionCode: string): string {
+  if (tcgName === 'POKEMON') {
+    return editionCode.toLowerCase();
+  }
+  return editionCode;
+}
+
+async function fetchSetPriceLookup(
+  tcgName: SyncTcgName,
+  editionCode: string,
+): Promise<Map<string, number>> {
+  const normalizedEditionCode = normalizeSetCodeForTcg(tcgName, editionCode);
+  const cards = await CardDatabaseService.getSetCards(tcgName, normalizedEditionCode);
+  const lookup = new Map<string, number>();
+
+  for (const card of cards) {
+    const price = card.priceMarket ?? card.priceMid ?? card.priceLow;
+    if (typeof price === 'number' && Number.isFinite(price) && price > 0) {
+      lookup.set(card.externalId, price);
+    }
+  }
+
+  return lookup;
+}
+
+function estimateFallbackReferencePrice(tcgName: string, rarity?: string): number {
+  const baseByTcg: Record<string, number> = {
+    MAGIC: 0.5,
+    POKEMON: 0.75,
+    YUGIOH: 0.5,
+    ONE_PIECE: 0.35,
+  };
+  const base = baseByTcg[tcgName] ?? 0.5;
+  const r = (rarity || '').toLowerCase();
+
+  let multiplier = 0.75;
+  if (r.includes('mythic') || r.includes('secret') || r.includes('ultimate') || r.includes('legendary')) {
+    multiplier = 3;
+  } else if (r.includes('ultra') || r.includes('gold') || r.includes('rainbow') || r.includes('alt')) {
+    multiplier = 2;
+  } else if (r.includes('super') || r.includes('hyper') || r === 'sr' || r === 'ur') {
+    multiplier = 1.5;
+  } else if (r.includes('rare') || r.includes('holo') || r.includes('parallel')) {
+    multiplier = 1.2;
+  } else if (r.includes('uncommon')) {
+    multiplier = 1;
+  }
+
+  return Number((base * multiplier).toFixed(2));
+}
+
 export class PriceSyncService {
   static async runPriceSync(input: RunPriceSyncInput): Promise<PriceSyncResult> {
     const startedAt = new Date();
@@ -128,12 +199,28 @@ export class PriceSyncService {
 
     try {
       let updates = input.updates;
-      const shouldFetchExternal =
-        input.fetchExternalPrices !== false && input.source === 'cron';
+      const shouldFetchExternal = input.fetchExternalPrices !== false;
+      let pricingSourceStats: { fromApi: number; fromStored: number; fromFallback: number } | undefined;
 
       if (!updates || updates.length === 0) {
+        const where: {
+          status: string;
+          editionId?: string;
+          card?: { tcg: { name: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' } };
+        } = {
+          status: 'active',
+        };
+
+        if (input.editionId) {
+          where.editionId = input.editionId;
+        }
+
+        if (input.tcgName) {
+          where.card = { tcg: { name: input.tcgName } };
+        }
+
         const listings = await prisma.listing.findMany({
-          where: { status: 'active' },
+          where,
           select: {
             id: true,
             referencePrice: true,
@@ -143,28 +230,111 @@ export class PriceSyncService {
                 cardCode: true,
                 rarity: true,
                 tcg: { select: { name: true } },
+                edition: { select: { editionCode: true } },
               },
             },
           }
         });
 
         if (shouldFetchExternal) {
-          // Build updates with fresh external prices where available
-          updates = await Promise.all(
-            listings.map(async (listing) => {
-              const externalPrice = await fetchExternalMarketPrice(
-                listing.card.cardCode,
-                listing.card.tcg.name,
-                listing.card.rarity ?? undefined,
-              ).catch(() => null);
+          let fromApi = 0;
+          let fromStored = 0;
+          let fromFallback = 0;
 
-              return {
-                listingId: listing.id,
-                referencePrice: externalPrice ?? listing.referencePrice,
-                marginMultiplier: listing.marginMultiplier,
-              };
-            }),
-          );
+          const useSetSnapshotOptimization = Boolean(input.editionId || input.tcgName);
+
+          if (useSetSnapshotOptimization) {
+            const grouped = new Map<string, typeof listings>();
+            for (const listing of listings) {
+              const tcgName = listing.card.tcg.name as SyncTcgName;
+              const editionCode = listing.card.edition.editionCode;
+              const key = `${tcgName}|${editionCode}`;
+              if (!grouped.has(key)) {
+                grouped.set(key, []);
+              }
+              grouped.get(key)!.push(listing);
+            }
+
+            const builtUpdates: PriceSyncUpdateInput[] = [];
+
+            for (const [key, groupedListings] of grouped.entries()) {
+              const [tcgNameRaw, editionCode] = key.split('|');
+              const tcgName = tcgNameRaw as SyncTcgName;
+
+              // Respect provider-specific limits by spacing set-level calls.
+              await sleep(SET_SYNC_DELAY_MS[tcgName] ?? 100);
+
+              const setPriceLookup = await fetchSetPriceLookup(tcgName, editionCode).catch(() => new Map<string, number>());
+
+              for (const listing of groupedListings) {
+                const externalPrice = setPriceLookup.get(listing.card.cardCode) ?? null;
+                const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
+                const fallbackRef = estimateFallbackReferencePrice(
+                  listing.card.tcg.name,
+                  listing.card.rarity ?? undefined,
+                );
+
+                let chosenReference = fallbackRef;
+                if (externalPrice && externalPrice > 0) {
+                  chosenReference = externalPrice;
+                  fromApi += 1;
+                } else if (safeStoredRef) {
+                  chosenReference = safeStoredRef;
+                  fromStored += 1;
+                } else {
+                  fromFallback += 1;
+                }
+
+                builtUpdates.push({
+                  listingId: listing.id,
+                  referencePrice: chosenReference,
+                  marginMultiplier: listing.marginMultiplier,
+                });
+              }
+            }
+
+            updates = builtUpdates;
+            console.info(`[PriceSyncService] Set-snapshot optimization used: ${grouped.size} set calls for ${listings.length} listings`);
+          } else {
+            // Build updates with per-card external prices for full/global sync.
+            updates = await Promise.all(
+              listings.map(async (listing) => {
+                const externalPrice = await fetchExternalMarketPrice(
+                  listing.card.cardCode,
+                  listing.card.tcg.name,
+                  listing.card.rarity ?? undefined,
+                ).catch(() => null);
+
+                const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
+                const fallbackRef = estimateFallbackReferencePrice(
+                  listing.card.tcg.name,
+                  listing.card.rarity ?? undefined,
+                );
+
+                let chosenReference = fallbackRef;
+                if (externalPrice && externalPrice > 0) {
+                  chosenReference = externalPrice;
+                  fromApi += 1;
+                } else if (safeStoredRef) {
+                  chosenReference = safeStoredRef;
+                  fromStored += 1;
+                } else {
+                  fromFallback += 1;
+                }
+
+                return {
+                  listingId: listing.id,
+                  referencePrice: chosenReference,
+                  marginMultiplier: listing.marginMultiplier,
+                };
+              }),
+            );
+          }
+
+          pricingSourceStats = { fromApi, fromStored, fromFallback };
+          const resolvedFromApi = updates.filter((u) => u.referencePrice > 0).length;
+          console.info(`[PriceSyncService] External pricing resolved for ${resolvedFromApi}/${updates.length} listings`);
+          console.info(`[PriceSyncService] Price source stats: API=${fromApi}, stored=${fromStored}, fallback=${fromFallback}`);
         } else {
           updates = listings.map((listing) => ({
             listingId: listing.id,
@@ -250,6 +420,7 @@ export class PriceSyncService {
         failed: result.failed,
         roundingMultiple: resolvedRounding,
         errors: result.errors,
+        pricingSourceStats,
         startedAt: startedAt.toISOString(),
         completedAt: completedAt.toISOString(),
       };

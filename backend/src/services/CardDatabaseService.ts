@@ -69,6 +69,11 @@ function scryfallCardToExternal(card: Record<string, unknown>): ExternalCard {
   if (Array.isArray(card.keywords)) tags.push(...(card.keywords as string[]));
   if (card.type_line) tags.push(...String(card.type_line).split(' — ').map((t) => t.trim()));
 
+  const usd = prices.usd ? parseFloat(prices.usd) : undefined;
+  const usdFoil = prices.usd_foil ? parseFloat(prices.usd_foil) : undefined;
+  const usdEtched = prices.usd_etched ? parseFloat(prices.usd_etched) : undefined;
+  const preferredMarket = usd ?? usdFoil ?? usdEtched;
+
   return {
     externalId: card.id as string,
     source: 'scryfall',
@@ -82,9 +87,9 @@ function scryfallCardToExternal(card: Record<string, unknown>): ExternalCard {
     imageUrl,
     description: card.oracle_text as string | undefined,
     tags: tags.join('|'),
-    priceLow: prices.usd_foil ? parseFloat(prices.usd_foil) : undefined,
-    priceMid: prices.usd ? parseFloat(prices.usd) : undefined,
-    priceMarket: prices.usd ? parseFloat(prices.usd) : undefined,
+    priceLow: usdFoil ?? usdEtched,
+    priceMid: usd,
+    priceMarket: preferredMarket,
   };
 }
 

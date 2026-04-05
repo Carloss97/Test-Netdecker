@@ -71,8 +71,17 @@ export async function syncListingPrices(
   updates?: Array<{ listingId: string; referencePrice: number; marginMultiplier?: number }>,
   roundingMultiple?: number,
   notes?: string,
+  fetchExternalPrices?: boolean,
+  filters?: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'; editionId?: string },
 ) {
-  const { data } = await apiClient.post('/listings/sync-prices', { updates, roundingMultiple, notes });
+  const { data } = await apiClient.post('/listings/sync-prices', {
+    updates,
+    roundingMultiple,
+    notes,
+    fetchExternalPrices,
+    ...(filters?.tcgName ? { tcgName: filters.tcgName } : {}),
+    ...(filters?.editionId ? { editionId: filters.editionId } : {}),
+  });
   return data;
 }
 
@@ -144,6 +153,18 @@ export async function importInventoryCsv(file: File, importedBy: string = 'admin
   });
 
   return data;
+}
+
+export async function exportInventoryCsv(params?: {
+  scope?: 'edition' | 'tcg' | 'all';
+  editionId?: string;
+  tcgId?: string;
+}) {
+  const response = await apiClient.get('/inventory/export-csv', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data as Blob;
 }
 
 export async function getInventoryImports(params?: {

@@ -82,6 +82,69 @@ router.get('/imports/export', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/inventory/export-csv?scope=edition|tcg|all&editionId=...&tcgId=...
+ * Exports inventory in a re-importable full-upsert CSV format.
+ */
+router.get('/export-csv', async (req: Request, res: Response) => {
+  const scopeRaw = String(req.query.scope || 'all').toLowerCase();
+  const scope = ['edition', 'tcg', 'all'].includes(scopeRaw)
+    ? (scopeRaw as 'edition' | 'tcg' | 'all')
+    : 'all';
+
+  const editionId = req.query.editionId ? String(req.query.editionId) : undefined;
+  const tcgId = req.query.tcgId ? String(req.query.tcgId) : undefined;
+
+  const rows = await InventoryService.getInventoryForExport({ scope, editionId, tcgId });
+
+  const header = [
+    'tcg',
+    'editionCode',
+    'editionName',
+    'cardCode',
+    'cardName',
+    'cardNumber',
+    'rarity',
+    'tags',
+    'imageUrl',
+    'condition',
+    'quantity',
+    'referencePrice',
+    'marginMultiplier',
+  ];
+
+  const csvRows = rows.map((row) => [
+    row.tcg,
+    row.editionCode,
+    row.editionName,
+    row.cardCode,
+    row.cardName,
+    row.cardNumber,
+    row.rarity,
+    row.tags,
+    row.imageUrl,
+    row.condition,
+    String(row.quantity),
+    String(row.referencePrice),
+    String(row.marginMultiplier),
+  ]);
+
+  const csv = [header, ...csvRows]
+    .map((cols) => cols.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const fileName =
+    scope === 'edition'
+      ? `inventory-edition-${editionId || 'unknown'}.csv`
+      : scope === 'tcg'
+        ? `inventory-tcg-${tcgId || 'unknown'}.csv`
+        : 'inventory-all.csv';
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.send(csv);
+});
+
+/**
  * GET /api/inventory/imports/:importId
  * Returns one import detail.
  */
