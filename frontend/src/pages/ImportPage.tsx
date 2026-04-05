@@ -44,7 +44,7 @@ export function ImportPage() {
   const [activeTab, setActiveTab] = useState<'catalog' | 'csv'>('catalog');
 
   // ── Catalog tab state ──
-  const [selectedTcg, setSelectedTcg] = useState('');
+  const [catalogTcg, setCatalogTcg] = useState('');
   const [loadingSets, setLoadingSets] = useState(false);
   const [externalSets, setExternalSets] = useState<ExternalSetItem[]>([]);
   const [importingSet, setImportingSet] = useState<string | null>(null);
@@ -52,6 +52,7 @@ export function ImportPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [localEditions, setLocalEditions] = useState<EditionWithCounts[]>([]);
   const [loadingLocalEditions, setLoadingLocalEditions] = useState(false);
+  const [exportTcg, setExportTcg] = useState('');
   const [selectedExportEditionId, setSelectedExportEditionId] = useState('');
   const [exportingScope, setExportingScope] = useState<'edition' | 'tcg' | 'all' | null>(null);
   const [setSearch, setSetSearch] = useState('');
@@ -75,9 +76,11 @@ export function ImportPage() {
   const { data: tcgs } = useAsync(() => getTCGs());
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 10 }));
 
+  const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
+  const selectedCatalogTcgDisplay = tcgList.find((t) => t.name === catalogTcg)?.displayName;
+
   useEffect(() => {
-    const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
-    const selected = tcgList.find((t) => t.name === selectedTcg);
+    const selected = tcgList.find((t) => t.name === exportTcg);
     if (!selected) {
       setLocalEditions([]);
       setSelectedExportEditionId('');
@@ -94,15 +97,39 @@ export function ImportPage() {
         setLocalEditions([]);
       })
       .finally(() => setLoadingLocalEditions(false));
-  }, [selectedTcg, tcgs]);
+  }, [exportTcg, tcgs]);
+
+  useEffect(() => {
+    // Prevent mixing set lists across TCGs and reset table controls.
+    setExternalSets([]);
+    setSetSearch('');
+    setSortColumn('code');
+    setSortDirection('asc');
+  }, [catalogTcg]);
+
+  useEffect(() => {
+    if (!catalogTcg) return;
+    setLoadingSets(true);
+    setImportMsg(null);
+    setImportError(null);
+    listExternalSets(catalogTcg as TcgCode)
+      .then((result) => {
+        const arr = Array.isArray(result) ? result : ((result as { sets?: ExternalSetItem[] }).sets ?? []);
+        setExternalSets(arr as ExternalSetItem[]);
+      })
+      .catch(() => {
+        setImportError('Error al cargar sets externos');
+      })
+      .finally(() => setLoadingSets(false));
+  }, [catalogTcg]);
 
   const handleLoadSets = async () => {
-    if (!selectedTcg) return;
+    if (!catalogTcg) return;
     setLoadingSets(true);
     setImportMsg(null);
     setImportError(null);
     try {
-      const result = await listExternalSets(selectedTcg as TcgCode);
+      const result = await listExternalSets(catalogTcg as TcgCode);
       const arr = Array.isArray(result) ? result : ((result as { sets?: ExternalSetItem[] }).sets ?? []);
       setExternalSets(arr as ExternalSetItem[]);
     } catch {
@@ -117,7 +144,7 @@ export function ImportPage() {
     setImportMsg(null);
     setImportError(null);
     try {
-      await importExternalSet({ tcg: selectedTcg as TcgCode, setCode: code });
+      await importExternalSet({ tcg: catalogTcg as TcgCode, setCode: code });
       setImportMsg(`Set "${code}" importado correctamente`);
     } catch {
       setImportError(`Error al importar set "${code}"`);
@@ -132,8 +159,7 @@ export function ImportPage() {
     setImportMsg(null);
 
     try {
-      const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
-      const selected = tcgList.find((t) => t.name === selectedTcg);
+      const selected = tcgList.find((t) => t.name === exportTcg);
 
       if (scope === 'tcg' && !selected?.id) {
         setImportError('Selecciona un TCG para exportar por TCG');
@@ -297,8 +323,8 @@ export function ImportPage() {
               <div style={{ flex: 1 }}>
                 <select
                   className="input"
-                  value={selectedTcg}
-                  onChange={(e) => setSelectedTcg(e.target.value)}
+                  value={catalogTcg}
+                  onChange={(e) => setCatalogTcg(e.target.value)}
                   style={{ maxWidth: 300 }}
                 >
                   <option value="">-- Selecciona un TCG --</option>
@@ -310,9 +336,9 @@ export function ImportPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleLoadSets}
-                disabled={!selectedTcg || loadingSets}
+                disabled={!catalogTcg || loadingSets}
               >
-                {loadingSets ? '⏳ Cargando…' : '🔍 Ver Sets Disponibles'}
+                {loadingSets ? '⏳ Cargando sets…' : '🔄 Recargar Sets'}
               </button>
             </div>
           </div>
@@ -324,8 +350,8 @@ export function ImportPage() {
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>TCG para exportar por juego/set</label>
                 <select
                   className="input"
-                  value={selectedTcg}
-                  onChange={(e) => setSelectedTcg(e.target.value)}
+                  value={exportTcg}
+                  onChange={(e) => setExportTcg(e.target.value)}
                 >
                   <option value="">-- Selecciona un TCG --</option>
                   {((tcgs as { id: string; name: string; displayName: string }[] | null) ?? []).map((t) => (
@@ -339,7 +365,7 @@ export function ImportPage() {
                   className="input"
                   value={selectedExportEditionId}
                   onChange={(e) => setSelectedExportEditionId(e.target.value)}
-                  disabled={!selectedTcg || loadingLocalEditions}
+                  disabled={!exportTcg || loadingLocalEditions}
                 >
                   <option value="">-- Selecciona una edición --</option>
                   {localEditions.map((ed) => (
@@ -367,6 +393,9 @@ export function ImportPage() {
               <div className="section-title" style={{ marginBottom: 12 }}>
                 Sets Disponibles ({externalSets.length})
               </div>
+              <div style={{ marginBottom: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Mostrando sets de: <strong>{selectedCatalogTcgDisplay || catalogTcg}</strong>
+              </div>
               <div style={{ marginBottom: 12 }}>
                 <input
                   type="text"
@@ -389,8 +418,8 @@ export function ImportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSortedSets.map((s) => (
-                      <tr key={s.code}>
+                    {filteredSortedSets.map((s, idx) => (
+                      <tr key={`${s.code}-${s.name}-${idx}`}>
                         <td><span className="badge badge-gray">{s.code}</span></td>
                         <td style={{ fontWeight: 500 }}>{s.name}</td>
                         <td>{s.totalCards ?? '—'}</td>
