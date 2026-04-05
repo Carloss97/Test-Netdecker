@@ -25,16 +25,21 @@ export function PricingPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [selectedTcg, setSelectedTcg] = useState<'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'>('ALL');
+  const [selectedTcg, setSelectedTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'>('MAGIC');
   const [syncScope, setSyncScope] = useState<'all' | 'tcg' | 'edition'>('all');
   const [selectedEditionId, setSelectedEditionId] = useState('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncMinutes, setAutoSyncMinutes] = useState(60);
   const [autoSyncStrategy, setAutoSyncStrategy] = useState<'scope' | 'round-robin-tcg'>('scope');
   const [staleDays, setStaleDays] = useState(7);
-  const [pricingModeFilter, setPricingModeFilter] = useState<'all' | 'api' | 'manual'>('all');
+  const [volatilityWindow, setVolatilityWindow] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
+  const [listingSearch, setListingSearch] = useState('');
+  const [sortColumn, setSortColumn] = useState<'name' | 'code' | 'rarity' | 'stock' | 'mode' | 'reference' | 'final' | 'lastSync'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
   const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
+  const [volatileData, setVolatileData] = useState<VolatileResponse | null>(null);
+  const [volatileStatus, setVolatileStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const syncingRef = useRef(false);
   const roundRobinIndexRef = useRef(0);
 
@@ -42,19 +47,58 @@ export function PricingPage() {
     () => getAvailableListings()
   );
 
-  const { data: volatileData, status: volatileStatus } = useAsync<VolatileResponse>(
-    () => getPriceVolatility()
-  );
+  useEffect(() => {
+    setVolatileStatus('pending');
+    getPriceVolatility(20, volatilityWindow)
+      .then((data) => {
+        setVolatileData(data as VolatileResponse);
+        setVolatileStatus('success');
+      })
+      .catch(() => {
+        setVolatileData(null);
+        setVolatileStatus('error');
+      });
+  }, [volatilityWindow]);
 
   const activeListings = (listings ?? []).filter((l) => l.quantity > 0);
   const filteredListings = activeListings.filter((l) => {
-    if (selectedTcg === 'ALL') return true;
     const tcgName = (l.card as Listing['card'] & { tcg?: { name?: string } })?.tcg?.name;
     return tcgName === selectedTcg;
   }).filter((l) => {
-    if (pricingModeFilter === 'all') return true;
-    if (pricingModeFilter === 'manual') return l.status === 'manual';
-    return l.status !== 'manual';
+    const q = listingSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (l.card?.cardName ?? '').toLowerCase().includes(q)
+      || (l.card?.cardCode ?? '').toLowerCase().includes(q)
+    );
+  });
+  const sortedListings = [...filteredListings].sort((a, b) => {
+    const mult = sortDirection === 'asc' ? 1 : -1;
+    const aLastSync = a.lastSyncedAt ? new Date(a.lastSyncedAt).getTime() : 0;
+    const bLastSync = b.lastSyncedAt ? new Date(b.lastSyncedAt).getTime() : 0;
+    const aMode = a.status === 'manual' ? 'manual' : 'api';
+    const bMode = b.status === 'manual' ? 'manual' : 'api';
+
+    switch (sortColumn) {
+      case 'name':
+        return mult * (a.card?.cardName ?? '').localeCompare(b.card?.cardName ?? '');
+      case 'code':
+        return mult * (a.card?.cardCode ?? '').localeCompare(b.card?.cardCode ?? '');
+      case 'rarity':
+        return mult * (a.card?.rarity ?? '').localeCompare(b.card?.rarity ?? '');
+      case 'stock':
+        return mult * (a.quantity - b.quantity);
+      case 'mode':
+        return mult * aMode.localeCompare(bMode);
+      case 'reference':
+        return mult * ((a.referencePrice ?? 0) - (b.referencePrice ?? 0));
+      case 'final':
+        return mult * ((a.finalPrice ?? 0) - (b.finalPrice ?? 0));
+      case 'lastSync':
+        return mult * (aLastSync - bLastSync);
+      default:
+        return 0;
+    }
   });
   const availableEditions = filteredListings
     .map((l) => ({
@@ -72,7 +116,7 @@ export function PricingPage() {
     if (!Number.isFinite(lastSyncMs)) return true;
     return Date.now() - lastSyncMs > staleThresholdMs;
   };
-  const staleListings = filteredListings.filter((listing) => {
+  const staleListings = sortedListings.filter((listing) => {
     return isListingStale(listing);
   });
   const nextRoundRobinTcg = roundRobinOrder[roundRobinIndexRef.current % roundRobinOrder.length];
@@ -80,7 +124,7 @@ export function PricingPage() {
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
-  const updatePricingMode = async (listing: Listing, mode: 'manual' | 'api') => {
+  const setPricingMode = async (listing: Listing, mode: 'manual' | 'api') => {
     setUpdatingPricingId(listing.id);
     setSyncError(null);
     setSyncMsg(null);
@@ -94,7 +138,7 @@ export function PricingPage() {
           return;
         }
         await updateListingPricingMode(listing.id, 'manual', manualPrice);
-        setSyncMsg('Precio manual guardado. Este listing queda fuera del sync automático/API.');
+        setSyncMsg('Modo manual activado y precio guardado.');
       } else {
         await updateListingPricingMode(listing.id, 'api');
         setSyncMsg('Modo API restaurado para el listing.');
@@ -106,6 +150,20 @@ export function PricingPage() {
     } finally {
       setUpdatingPricingId(null);
     }
+  };
+
+  const saveManualPrice = async (listing: Listing) => {
+    if (listing.status !== 'manual') return;
+    await setPricingMode(listing, 'manual');
+  };
+
+  const toggleSort = (column: 'name' | 'code' | 'rarity' | 'stock' | 'mode' | 'reference' | 'final' | 'lastSync') => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortColumn(column);
+    setSortDirection('asc');
   };
 
   const handleSync = async (silent: boolean = false) => {
@@ -125,12 +183,6 @@ export function PricingPage() {
       }
 
       if (syncScope === 'tcg') {
-        if (selectedTcg === 'ALL') {
-          if (!silent) setSyncError('Selecciona un TCG para sincronizar por juego');
-          setSyncing(false);
-          syncingRef.current = false;
-          return;
-        }
         filters.tcgName = selectedTcg;
       }
       if (syncScope === 'edition') {
@@ -205,8 +257,7 @@ export function PricingPage() {
             <option value="edition">Sincronizar por edición</option>
           </select>
           {syncScope === 'tcg' && (
-            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')} title="TCG puntual a sincronizar cuando el alcance es por TCG">
-              <option value="ALL">Selecciona un TCG</option>
+            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')} title="TCG puntual a sincronizar cuando el alcance es por TCG">
               <option value="MAGIC">MAGIC</option>
               <option value="POKEMON">POKEMON</option>
               <option value="YUGIOH">YUGIOH</option>
@@ -236,23 +287,6 @@ export function PricingPage() {
           Define el alcance de la sincronización manual: total, por TCG o por edición específica.
         </div>
       </div>
-
-      {volatileStatus === 'success' && volatileData && volatileData.events?.length > 0 && (
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div className="section-title" style={{ marginBottom: 12 }}>⚠ Alertas de Precio (cambio &gt;10%)</div>
-          {volatileData.events.slice(0, 5).map((v, i) => (
-            <div key={i} className="alert-row">
-              <span style={{ flex: 1, fontWeight: 500, fontSize: '0.875rem' }}>{v.cardName ?? 'Carta desconocida'}</span>
-              <span style={{ color: (v.percentChange ?? 0) > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '0.875rem' }}>
-                {(v.percentChange ?? 0) > 0 ? '+' : ''}{v.percentChange?.toFixed(1)}%
-              </span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                ${v.oldPrice?.toFixed(2)} → ${v.newPrice?.toFixed(2)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="section-title" style={{ marginBottom: 10 }}>⏱ Configuración de Sincronización</div>
@@ -320,31 +354,66 @@ export function PricingPage() {
         </div>
       </div>
 
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="section-title" style={{ marginBottom: 10 }}>⚠ Cambios de Precio Volátiles</div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Ventana de análisis</label>
+          <select className="input input-sm" value={volatilityWindow} onChange={(e) => setVolatilityWindow(e.target.value as '24h' | '7d' | '30d' | '90d')}>
+            <option value="24h">Últimas 24 horas</option>
+            <option value="7d">Últimos 7 días</option>
+            <option value="30d">Últimos 30 días</option>
+            <option value="90d">Últimos 90 días</option>
+          </select>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Solo considera cambios detectados por API y excluye precios que pasaron de 0 por primera carga.
+          </span>
+        </div>
+        {volatileStatus === 'pending' && (
+          <div className="loading-spinner">⏳ Cargando cambios volátiles…</div>
+        )}
+        {volatileStatus === 'success' && volatileData && volatileData.events?.length > 0 && (
+          <div>
+            {volatileData.events.slice(0, 5).map((v, i) => (
+              <div key={i} className="alert-row">
+                <span style={{ flex: 1, fontWeight: 500, fontSize: '0.875rem' }}>{v.cardName ?? 'Carta desconocida'}</span>
+                <span style={{ color: (v.percentChange ?? 0) > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '0.875rem' }}>
+                  {(v.percentChange ?? 0) > 0 ? '+' : ''}{v.percentChange?.toFixed(1)}%
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  ${v.oldPrice?.toFixed(2)} → ${v.newPrice?.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {volatileStatus === 'success' && (!volatileData || !volatileData.events || volatileData.events.length === 0) && (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sin cambios volátiles en la ventana seleccionada.</div>
+        )}
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div className="section-title" style={{ margin: 0 }}>
-            Listings con stock ({filteredListings.length})
+            Listings con stock ({sortedListings.length})
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select
+            <input
               className="input input-sm"
-              value={pricingModeFilter}
-              onChange={(e) => setPricingModeFilter(e.target.value as 'all' | 'api' | 'manual')}
-              title="Filtrar por modo de precio"
-            >
-              <option value="all">Todos los modos</option>
-              <option value="api">Solo API</option>
-              <option value="manual">Solo manual</option>
-            </select>
-            {(['ALL', 'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'] as const).map((tcg) => (
+              style={{ minWidth: 220 }}
+              value={listingSearch}
+              onChange={(e) => setListingSearch(e.target.value)}
+              placeholder="Buscar por nombre o código"
+              title="Filtrar listings por nombre o código de carta"
+            />
+            {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'] as const).map((tcg) => (
               <button
                 key={tcg}
                 type="button"
                 className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setSelectedTcg(tcg)}
-                title={`Filtrar tabla por ${tcg === 'ALL' ? 'todos los TCG' : tcg}`}
+                title={`Filtrar tabla por ${tcg}`}
               >
-                {tcg === 'ALL' ? 'Todos' : tcg}
+                {tcg}
               </button>
             ))}
           </div>
@@ -354,7 +423,7 @@ export function PricingPage() {
           <div className="loading-spinner">⏳ Cargando precios…</div>
         ) : listingsStatus === 'error' ? (
           <div className="error-message">⚠ {listingsError?.message}</div>
-        ) : filteredListings.length === 0 ? (
+        ) : sortedListings.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">💰</div>
             <h3>Sin listings activos</h3>
@@ -365,18 +434,17 @@ export function PricingPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Carta</th>
-                  <th>Rareza</th>
-                  <th>Stock</th>
-                  <th>Modo Precio</th>
-                  <th>Precio Ref (USD)</th>
-                  <th>Precio Final (CLP)</th>
-                  <th>Acción</th>
-                  <th>Última sincronización</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('name')}>Carta {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('rarity')}>Rareza {sortColumn === 'rarity' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('stock')}>Stock {sortColumn === 'stock' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('mode')}>Modo Precio {sortColumn === 'mode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('reference')}>Precio Ref (USD) {sortColumn === 'reference' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('final')}>Precio Final (CLP) {sortColumn === 'final' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('lastSync')}>Última sincronización {sortColumn === 'lastSync' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredListings.map((listing) => {
+                {sortedListings.map((listing) => {
                   const isManual = listing.status === 'manual';
                   const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
                   return (
@@ -401,18 +469,32 @@ export function PricingPage() {
                       </span>
                     </td>
                     <td>
-                      <span className={`badge ${isManual ? 'badge-yellow' : 'badge-blue'}`}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={isManual}
+                          disabled={updatingPricingId === listing.id}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setManualPriceDrafts((prev) => ({
+                                ...prev,
+                                [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
+                              }));
+                              void setPricingMode(listing, 'manual');
+                            } else {
+                              void setPricingMode(listing, 'api');
+                            }
+                          }}
+                          title="Alternar entre precio API y precio manual"
+                        />
                         {isManual ? 'Manual' : 'API'}
-                      </span>
+                      </label>
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>
                       {listing.referencePrice != null ? `$${listing.referencePrice.toFixed(2)}` : '—'}
                     </td>
                     <td style={{ fontWeight: 600 }}>
-                      {listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {isManual ? (
                         <input
                           type="number"
                           className="input input-sm"
@@ -420,27 +502,18 @@ export function PricingPage() {
                           onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
                           style={{ width: 120 }}
                           disabled={updatingPricingId === listing.id}
-                          title="Precio manual CLP para este listing"
+                          title="Precio final manual en CLP"
+                          onBlur={() => { void saveManualPrice(listing); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void saveManualPrice(listing);
+                            }
+                          }}
                         />
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          disabled={updatingPricingId === listing.id}
-                          onClick={() => updatePricingMode(listing, 'manual')}
-                          title="Fijar precio manual y excluir del sync API"
-                        >
-                          {updatingPricingId === listing.id && isManual ? '⏳ Guardando…' : 'Fijar manual'}
-                        </button>
-                        {isManual && (
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            disabled={updatingPricingId === listing.id}
-                            onClick={() => updatePricingMode(listing, 'api')}
-                            title="Volver a precio calculado por API"
-                          >
-                            Usar API
-                          </button>
-                        )}
-                      </div>
+                      ) : (
+                        listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
+                      )}
                     </td>
                     <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       {listing.lastSyncedAt

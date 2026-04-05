@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchCards, searchCardsByCode, getListingsByCard, updateListingStock } from '../services/catalog';
+import { searchCards, searchCardsByCode, getListingsByCard, updateListingStock, updateListingPricingMode } from '../services/catalog';
 import type { Card, Listing } from '../types';
 
 const RARITY_BADGE: Record<string, string> = {
@@ -53,6 +53,11 @@ export function CardSearchPage() {
   const [loadingListings, setLoadingListings] = useState<string | null>(null);
   const [cardListings, setCardListings] = useState<Record<string, Listing[]>>({});
   const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
+  const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
+  const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
+  const [listingFilter, setListingFilter] = useState('');
+  const [listingSort, setListingSort] = useState<'rarity' | 'condition' | 'stock' | 'usd' | 'clp' | 'mode'>('stock');
+  const [listingSortDir, setListingSortDir] = useState<'asc' | 'desc'>('desc');
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +127,59 @@ export function CardSearchPage() {
     } finally {
       setUpdatingStockId(null);
     }
+  };
+
+  const setPricingMode = async (cardId: string, listing: Listing, mode: 'manual' | 'api') => {
+    setUpdatingPricingId(listing.id);
+    try {
+      if (mode === 'manual') {
+        const rawDraft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
+        const manualPrice = Number(rawDraft);
+        if (!Number.isFinite(manualPrice) || manualPrice <= 0) {
+          setError('Ingresa un precio manual CLP válido (> 0)');
+          return;
+        }
+        await updateListingPricingMode(listing.id, 'manual', manualPrice);
+      } else {
+        await updateListingPricingMode(listing.id, 'api');
+      }
+
+      setCardListings((prev) => ({
+        ...prev,
+        [cardId]: (prev[cardId] ?? []).map((row) =>
+          row.id === listing.id
+            ? {
+                ...row,
+                status: mode === 'manual' ? 'manual' : 'active',
+                finalPrice: mode === 'manual'
+                  ? Number(manualPriceDrafts[listing.id] ?? Math.round(row.finalPrice || 0))
+                  : row.finalPrice,
+              }
+            : row,
+        ),
+      }));
+
+      const refreshed = await getListingsByCard(cardId);
+      setCardListings((prev) => ({ ...prev, [cardId]: refreshed }));
+    } catch {
+      setError('No se pudo actualizar el modo de precio del listing');
+    } finally {
+      setUpdatingPricingId(null);
+    }
+  };
+
+  const saveManualPrice = async (cardId: string, listing: Listing) => {
+    if (listing.status !== 'manual') return;
+    await setPricingMode(cardId, listing, 'manual');
+  };
+
+  const toggleListingSort = (column: 'rarity' | 'condition' | 'stock' | 'usd' | 'clp' | 'mode') => {
+    if (listingSort === column) {
+      setListingSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setListingSort(column);
+    setListingSortDir('asc');
   };
 
   // Group results by cardName for name searches so same card in different rarities are shown together
@@ -324,19 +382,65 @@ export function CardSearchPage() {
                 ) : (cardListings[first.id] ?? []).length === 0 ? (
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sin listings en inventario</div>
                 ) : (
-                  <table className="data-table" style={{ fontSize: '0.82rem' }}>
+                  <>
+                    <div style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        className="input input-sm"
+                        style={{ maxWidth: 280 }}
+                        value={listingFilter}
+                        onChange={(e) => setListingFilter(e.target.value)}
+                        placeholder="Filtrar listings por rareza/condición/código"
+                      />
+                    </div>
+                    <table className="data-table" style={{ fontSize: '0.82rem' }}>
                     <thead>
                       <tr>
-                        <th>Rareza</th>
-                        <th>Condición</th>
-                        <th>Stock</th>
-                        <th>Precio USD</th>
-                        <th>Precio CLP</th>
-                        <th>Estado</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('rarity')}>Rareza {listingSort === 'rarity' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('condition')}>Condición {listingSort === 'condition' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('stock')}>Stock {listingSort === 'stock' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('usd')}>Precio USD {listingSort === 'usd' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('clp')}>Precio CLP {listingSort === 'clp' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('mode')}>Modo {listingSort === 'mode' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th>Precio manual</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(cardListings[first.id] ?? []).map((listing) => (
+                      {(cardListings[first.id] ?? [])
+                        .filter((listing) => {
+                          const q = listingFilter.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            (listing.card?.rarity ?? '').toLowerCase().includes(q)
+                            || (listing.condition ?? '').toLowerCase().includes(q)
+                            || (listing.card?.cardCode ?? '').toLowerCase().includes(q)
+                          );
+                        })
+                        .sort((a, b) => {
+                          const mult = listingSortDir === 'asc' ? 1 : -1;
+                          switch (listingSort) {
+                            case 'rarity':
+                              return mult * (a.card?.rarity ?? '').localeCompare(b.card?.rarity ?? '');
+                            case 'condition':
+                              return mult * a.condition.localeCompare(b.condition);
+                            case 'stock':
+                              return mult * (a.quantity - b.quantity);
+                            case 'usd':
+                              return mult * ((a.referencePrice ?? 0) - (b.referencePrice ?? 0));
+                            case 'clp':
+                              return mult * ((a.finalPrice ?? 0) - (b.finalPrice ?? 0));
+                            case 'mode': {
+                              const aMode = a.status === 'manual' ? 'manual' : 'api';
+                              const bMode = b.status === 'manual' ? 'manual' : 'api';
+                              return mult * aMode.localeCompare(bMode);
+                            }
+                            default:
+                              return 0;
+                          }
+                        })
+                        .map((listing) => {
+                          const isManual = listing.status === 'manual';
+                          const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
+                          return (
                         <tr key={listing.id}>
                           <td>
                             <span className={`badge ${getRarityBadge(listing.card?.rarity)}`}>
@@ -382,14 +486,55 @@ export function CardSearchPage() {
                           <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
                           <td style={{ fontWeight: 500 }}>{listing.finalPrice ? fmtCLP(listing.finalPrice) : '—'}</td>
                           <td>
-                            <span className={`badge ${listing.status === 'active' ? 'badge-blue' : 'badge-gray'}`}>
-                              {listing.status}
+                            <span className={`badge ${isManual ? 'badge-yellow' : 'badge-blue'}`}>
+                              {isManual ? 'Manual' : 'API'}
                             </span>
                           </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isManual}
+                                  disabled={updatingPricingId === listing.id}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setManualPriceDrafts((prev) => ({
+                                        ...prev,
+                                        [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
+                                      }));
+                                      void setPricingMode(first.id, listing, 'manual');
+                                    } else {
+                                      void setPricingMode(first.id, listing, 'api');
+                                    }
+                                  }}
+                                  title="Activar/desactivar precio manual"
+                                />
+                                Manual
+                              </label>
+                              <input
+                                type="number"
+                                className="input input-sm"
+                                value={draft}
+                                onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                                style={{ width: 110 }}
+                                disabled={updatingPricingId === listing.id || !isManual}
+                                onBlur={() => { void saveManualPrice(first.id, listing); }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    void saveManualPrice(first.id, listing);
+                                  }
+                                }}
+                              />
+                            </div>
+                          </td>
                         </tr>
-                      ))}
+                          );
+                        })}
                     </tbody>
                   </table>
+                  </>
                 )}
               </div>
             )}

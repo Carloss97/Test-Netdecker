@@ -71,6 +71,9 @@ export function DashboardPage() {
         {/* Recent Imports */}
         <div className="card">
           <div className="section-title" style={{ marginBottom: 12 }}>Importaciones Recientes</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+            Auditoría rápida de cargas CSV y catálogos: archivo, estado, volumen y fecha para detectar fallas tempranas.
+          </div>
           {(!data?.recentImports || data.recentImports.length === 0) ? (
             <div className="empty-state" style={{ padding: '20px 0' }}>
               <div>No hay importaciones recientes</div>

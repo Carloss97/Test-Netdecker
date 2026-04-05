@@ -7,6 +7,7 @@ export interface PriceSyncUpdateInput {
   listingId: string;
   referencePrice: number;
   marginMultiplier?: number;
+  source?: 'api' | 'stored' | 'fallback' | 'manual_input';
 }
 
 export interface RunPriceSyncInput {
@@ -289,6 +290,11 @@ export class PriceSyncService {
                   listingId: listing.id,
                   referencePrice: chosenReference,
                   marginMultiplier: listing.marginMultiplier,
+                  source: externalPrice && externalPrice > 0
+                    ? 'api'
+                    : safeStoredRef
+                      ? 'stored'
+                      : 'fallback',
                 });
               }
             }
@@ -326,6 +332,11 @@ export class PriceSyncService {
                   listingId: listing.id,
                   referencePrice: chosenReference,
                   marginMultiplier: listing.marginMultiplier,
+                  source: externalPrice && externalPrice > 0
+                    ? 'api'
+                    : safeStoredRef
+                      ? 'stored'
+                      : 'fallback',
                 };
               }),
             );
@@ -340,8 +351,16 @@ export class PriceSyncService {
             listingId: listing.id,
             referencePrice: listing.referencePrice,
             marginMultiplier: listing.marginMultiplier,
+            source: 'stored',
           }));
         }
+      }
+
+      if (updates && updates.length > 0) {
+        updates = updates.map((u) => ({
+          ...u,
+          source: u.source ?? 'manual_input',
+        }));
       }
 
       result.total = updates.length;
@@ -369,16 +388,25 @@ export class PriceSyncService {
             roundingMultiple: resolvedRounding,
           });
 
-          const isVolatile = PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice);
+          const isApiSourced = update.source === 'api';
+          const isVolatile = isApiSourced && listing.finalPrice > 0
+            ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice)
+            : false;
           if (isVolatile) {
             result.volatile += 1;
           }
+
+          const reason = isVolatile
+            ? PriceUpdateReason.VOLATILE_ALERT
+            : isApiSourced
+              ? PriceUpdateReason.EXTERNAL_API_SYNC
+              : PriceUpdateReason.TCGPLAYER_SYNC;
 
           await PriceService.updateListingPrice(
             update.listingId,
             update.referencePrice,
             resolvedMargin,
-            isVolatile ? PriceUpdateReason.VOLATILE_ALERT : PriceUpdateReason.TCGPLAYER_SYNC,
+            reason,
             input.changedBy || input.source,
             input.notes || (input.source === 'cron' ? 'Scheduled price sync' : 'Manual price sync'),
             resolvedRounding,

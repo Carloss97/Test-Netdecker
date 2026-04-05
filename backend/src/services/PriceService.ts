@@ -158,7 +158,8 @@ export class PriceService {
    */
   static isVolatileChange(oldPrice: number, newPrice: number, threshold: number = 10): boolean {
     if (oldPrice === 0) {
-      return newPrice > 0;
+      // First priced import is not treated as volatility.
+      return false;
     }
     const percentChange = ((newPrice - oldPrice) / oldPrice) * 100;
     return Math.abs(percentChange) > threshold;

@@ -57,9 +57,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function AdminDashboardPage() {
   const dashboardQuery = useAsync(() => getAdminDashboard());
   const alertsQuery = useAsync(() => getStockAlerts(5));
-  const volatilityQuery = useAsync(() => getPriceVolatility(10));
   const coverageQuery = useAsync(() => getTcgplayerCoverage());
   const pricingConfigQuery = useAsync(() => getAdminPricingConfig());
+  const [volatilityWindow, setVolatilityWindow] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
+  const [volatileLoading, setVolatileLoading] = useState(false);
+  const [volatileEvents, setVolatileEvents] = useState<Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }>>([]);
   const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
@@ -96,7 +98,19 @@ export function AdminDashboardPage() {
     };
   } | null;
   const alerts = (alertsQuery.data as { alerts?: Array<{ listingId: string; cardName: string; editionCode: string; condition: string; quantity: number; finalPrice: number }> } | null)?.alerts ?? [];
-  const volatileEvents = (volatilityQuery.data as { events?: Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }> } | null)?.events ?? [];
+
+  useEffect(() => {
+    setVolatileLoading(true);
+    getPriceVolatility(20, volatilityWindow)
+      .then((data) => {
+        const events = (data as { events?: Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }> }).events ?? [];
+        setVolatileEvents(events);
+      })
+      .catch(() => {
+        setVolatileEvents([]);
+      })
+      .finally(() => setVolatileLoading(false));
+  }, [volatilityWindow]);
 
   const handleRefresh = () => window.location.reload();
 
@@ -301,26 +315,44 @@ export function AdminDashboardPage() {
                 <option value="YUGIOH">Yu-Gi-Oh!</option>
                 <option value="ONE_PIECE">One Piece</option>
               </select>
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                Limita la operación a un juego. Si dejas "Todos", afecta todo el catálogo.
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Código de set</label>
               <input placeholder="Ej: MH3" value={setCode} onChange={(e) => setSetCode(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} />
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                Ejecuta sobre un set puntual. Recomendado para pruebas controladas.
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Límite de sets</label>
               <input placeholder="Máximo" value={setLimit} onChange={(e) => setSetLimit(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                Tope de sets por ejecución para no sobrecargar APIs.
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Stock inicial</label>
               <input placeholder="0" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                Cantidad asignada a listings nuevos creados por esta operación.
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margen</label>
               <input placeholder="1.2" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" />
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                Multiplicador sobre precio USD de referencia. 1.20 = +20%.
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Concurrencia</label>
               <input placeholder="4" value={concurrency} onChange={(e) => setConcurrency(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                Cantidad de tareas paralelas. Menor valor = menos riesgo de rate-limit.
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
@@ -332,6 +364,9 @@ export function AdminDashboardPage() {
               <input type="checkbox" checked={createListings} onChange={(e) => setCreateListings(e.target.checked)} />
               <span style={{ fontSize: 13 }}>Crear listings</span>
             </label>
+          </div>
+          <div style={{ fontSize: 11, color: '#777', marginBottom: 12 }}>
+            Para evitar romper inventario: primero ejecuta en Simulación con 1 TCG y un set pequeño.
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
@@ -664,8 +699,29 @@ export function AdminDashboardPage() {
       )}
 
       {/* Volatile price changes */}
-      {volatilityQuery.status !== 'error' && volatileEvents.length > 0 && (
+      {(volatileLoading || volatileEvents.length > 0) && (
         <Section title="Cambios de Precio Volátiles Recientes">
+          <div style={{ marginBottom: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 12, color: '#666' }}>Ventana</label>
+            <select
+              value={volatilityWindow}
+              onChange={(e) => setVolatilityWindow(e.target.value as '24h' | '7d' | '30d' | '90d')}
+              style={{ padding: '6px 8px', borderRadius: 4, border: '1px solid #ddd' }}
+            >
+              <option value="24h">24 horas</option>
+              <option value="7d">7 días</option>
+              <option value="30d">30 días</option>
+              <option value="90d">90 días</option>
+            </select>
+            <span style={{ fontSize: 12, color: '#666' }}>
+              Solo cambios API con precio anterior mayor a 0.
+            </span>
+          </div>
+          {volatileLoading ? (
+            <div style={{ fontSize: 13, color: '#666' }}>⏳ Cargando cambios volátiles…</div>
+          ) : volatileEvents.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#666' }}>Sin cambios volátiles para la ventana seleccionada.</div>
+          ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#fce4ec' }}>
@@ -699,6 +755,7 @@ export function AdminDashboardPage() {
               ))}
             </tbody>
           </table>
+          )}
         </Section>
       )}
     </div>

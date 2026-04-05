@@ -307,9 +307,12 @@ export async function getStockAlerts(threshold?: number) {
   return data;
 }
 
-export async function getPriceVolatility(limit?: number) {
+export async function getPriceVolatility(limit?: number, window?: '24h' | '7d' | '30d' | '90d') {
   const { data } = await apiClient.get('/admin/price-volatility', {
-    params: limit ? { limit } : undefined,
+    params: {
+      ...(limit ? { limit } : {}),
+      ...(window ? { window } : {}),
+    },
   });
   return data;
 }
