@@ -20,6 +20,70 @@ interface VolatileResponse {
   events: VolatileEvent[];
 }
 
+function ModeToggle({
+  checked,
+  disabled,
+  onToggle,
+  onLabel,
+  offLabel,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+  onLabel: string;
+  offLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      title={checked ? `Cambiar a ${offLabel}` : `Cambiar a ${onLabel}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        border: 'none',
+        background: 'transparent',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        padding: 0,
+        opacity: disabled ? 0.7 : 1,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'relative',
+          width: 46,
+          height: 24,
+          borderRadius: 999,
+          background: checked ? 'linear-gradient(135deg, #16a34a, #22c55e)' : '#cbd5e1',
+          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+          transition: 'background 0.15s ease',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 3,
+            left: checked ? 23 : 3,
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: '#fff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+            transition: 'left 0.15s ease',
+          }}
+        />
+      </span>
+      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: checked ? '#166534' : 'var(--text-muted)' }}>
+        {checked ? onLabel : offLabel}
+      </span>
+    </button>
+  );
+}
+
 export function PricingPage() {
   const roundRobinOrder: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'];
   const [syncing, setSyncing] = useState(false);
@@ -135,7 +199,7 @@ export function PricingPage() {
         const manualPrice = Number(rawDraft);
         if (!Number.isFinite(manualPrice) || manualPrice <= 0) {
           setSyncError('Ingresa un precio manual CLP válido (> 0)');
-          return;
+          return false;
         }
         await updateListingPricingMode(listing.id, 'manual', manualPrice);
         setSyncMsg('Modo manual activado y precio guardado.');
@@ -145,8 +209,10 @@ export function PricingPage() {
       }
 
       reloadListings();
+      return true;
     } catch {
       setSyncError('No se pudo actualizar el modo de precio del listing');
+      return false;
     } finally {
       setUpdatingPricingId(null);
     }
@@ -154,7 +220,7 @@ export function PricingPage() {
 
   const saveManualPrice = async (listing: Listing) => {
     if (listing.status !== 'manual') return;
-    await setPricingMode(listing, 'manual');
+    return setPricingMode(listing, 'manual');
   };
 
   const toggleSort = (column: 'name' | 'code' | 'rarity' | 'stock' | 'mode' | 'reference' | 'final' | 'lastSync') => {
@@ -431,16 +497,25 @@ export function PricingPage() {
           </div>
         ) : (
           <div className="table-wrapper">
-            <table className="data-table">
+            <table className="data-table" style={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '30%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '14%' }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('name')}>Carta {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('rarity')}>Rareza {sortColumn === 'rarity' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('stock')}>Stock {sortColumn === 'stock' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('mode')}>Modo Precio {sortColumn === 'mode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('reference')}>Precio Ref (USD) {sortColumn === 'reference' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('final')}>Precio Final (CLP) {sortColumn === 'final' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('lastSync')}>Última sincronización {sortColumn === 'lastSync' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('mode')}>Precio manual {sortColumn === 'mode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('lastSync')}>Última sync {sortColumn === 'lastSync' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                 </tr>
               </thead>
               <tbody>
@@ -468,39 +543,17 @@ export function PricingPage() {
                         {listing.quantity}
                       </span>
                     </td>
-                    <td>
-                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={isManual}
-                          disabled={updatingPricingId === listing.id}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setManualPriceDrafts((prev) => ({
-                                ...prev,
-                                [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
-                              }));
-                              void setPricingMode(listing, 'manual');
-                            } else {
-                              void setPricingMode(listing, 'api');
-                            }
-                          }}
-                          title="Alternar entre precio API y precio manual"
-                        />
-                        {isManual ? 'Manual' : 'API'}
-                      </label>
-                    </td>
                     <td style={{ fontSize: '0.85rem' }}>
                       {listing.referencePrice != null ? `$${listing.referencePrice.toFixed(2)}` : '—'}
                     </td>
-                    <td style={{ fontWeight: 600 }}>
+                    <td style={{ fontWeight: 600, overflow: 'hidden' }}>
                       {isManual ? (
                         <input
                           type="number"
                           className="input input-sm"
                           value={draft}
                           onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
-                          style={{ width: 120 }}
+                          style={{ width: '100%', maxWidth: 110 }}
                           disabled={updatingPricingId === listing.id}
                           title="Precio final manual en CLP"
                           onBlur={() => { void saveManualPrice(listing); }}
@@ -514,6 +567,27 @@ export function PricingPage() {
                       ) : (
                         listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
                       )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                        <ModeToggle
+                          checked={isManual}
+                          disabled={updatingPricingId === listing.id}
+                          onToggle={() => {
+                            if (!isManual) {
+                              setManualPriceDrafts((prev) => ({
+                                ...prev,
+                                [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
+                              }));
+                              void setPricingMode(listing, 'manual');
+                            } else {
+                              void setPricingMode(listing, 'api');
+                            }
+                          }}
+                          onLabel="Manual"
+                          offLabel=""
+                        />
+                      </div>
                     </td>
                     <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       {listing.lastSyncedAt

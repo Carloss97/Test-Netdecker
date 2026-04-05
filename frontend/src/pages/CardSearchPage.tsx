@@ -31,6 +31,70 @@ function fmtCLP(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 }
 
+function ModeToggle({
+  checked,
+  disabled,
+  onToggle,
+  onLabel,
+  offLabel,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+  onLabel: string;
+  offLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      title={checked ? `Cambiar a ${offLabel}` : `Cambiar a ${onLabel}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        border: 'none',
+        background: 'transparent',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        padding: 0,
+        opacity: disabled ? 0.7 : 1,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'relative',
+          width: 46,
+          height: 24,
+          borderRadius: 999,
+          background: checked ? 'linear-gradient(135deg, #16a34a, #22c55e)' : '#cbd5e1',
+          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+          transition: 'background 0.15s ease',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 3,
+            left: checked ? 23 : 3,
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: '#fff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+            transition: 'left 0.15s ease',
+          }}
+        />
+      </span>
+      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: checked ? '#166534' : 'var(--text-muted)' }}>
+        {checked ? onLabel : offLabel}
+      </span>
+    </button>
+  );
+}
+
 interface CardWithListings extends Card {
   edition?: { id: string; editionCode: string; editionName: string };
   listings: Listing[];
@@ -137,7 +201,7 @@ export function CardSearchPage() {
         const manualPrice = Number(rawDraft);
         if (!Number.isFinite(manualPrice) || manualPrice <= 0) {
           setError('Ingresa un precio manual CLP válido (> 0)');
-          return;
+          return false;
         }
         await updateListingPricingMode(listing.id, 'manual', manualPrice);
       } else {
@@ -161,8 +225,10 @@ export function CardSearchPage() {
 
       const refreshed = await getListingsByCard(cardId);
       setCardListings((prev) => ({ ...prev, [cardId]: refreshed }));
+      return true;
     } catch {
       setError('No se pudo actualizar el modo de precio del listing');
+      return false;
     } finally {
       setUpdatingPricingId(null);
     }
@@ -170,7 +236,7 @@ export function CardSearchPage() {
 
   const saveManualPrice = async (cardId: string, listing: Listing) => {
     if (listing.status !== 'manual') return;
-    await setPricingMode(cardId, listing, 'manual');
+    return setPricingMode(cardId, listing, 'manual');
   };
 
   const toggleListingSort = (column: 'rarity' | 'condition' | 'stock' | 'usd' | 'clp' | 'mode') => {
@@ -392,7 +458,16 @@ export function CardSearchPage() {
                         placeholder="Filtrar listings por rareza/condición/código"
                       />
                     </div>
-                    <table className="data-table" style={{ fontSize: '0.82rem' }}>
+                    <table className="data-table" style={{ fontSize: '0.82rem', tableLayout: 'fixed' }}>
+                      <colgroup>
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '20%' }} />
+                      </colgroup>
                     <thead>
                       <tr>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('rarity')}>Rareza {listingSort === 'rarity' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -401,7 +476,6 @@ export function CardSearchPage() {
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('usd')}>Precio USD {listingSort === 'usd' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('clp')}>Precio CLP {listingSort === 'clp' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('mode')}>Modo {listingSort === 'mode' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                        <th>Precio manual</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -484,41 +558,16 @@ export function CardSearchPage() {
                             </div>
                           </td>
                           <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
-                          <td style={{ fontWeight: 500 }}>{listing.finalPrice ? fmtCLP(listing.finalPrice) : '—'}</td>
-                          <td>
-                            <span className={`badge ${isManual ? 'badge-yellow' : 'badge-blue'}`}>
-                              {isManual ? 'Manual' : 'API'}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={isManual}
-                                  disabled={updatingPricingId === listing.id}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setManualPriceDrafts((prev) => ({
-                                        ...prev,
-                                        [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
-                                      }));
-                                      void setPricingMode(first.id, listing, 'manual');
-                                    } else {
-                                      void setPricingMode(first.id, listing, 'api');
-                                    }
-                                  }}
-                                  title="Activar/desactivar precio manual"
-                                />
-                                Manual
-                              </label>
+                          <td style={{ fontWeight: 500 }}>
+                            {isManual ? (
                               <input
                                 type="number"
                                 className="input input-sm"
                                 value={draft}
                                 onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
-                                style={{ width: 110 }}
-                                disabled={updatingPricingId === listing.id || !isManual}
+                                style={{ width: '100%', maxWidth: 110 }}
+                                disabled={updatingPricingId === listing.id}
+                                title="Precio final manual en CLP"
                                 onBlur={() => { void saveManualPrice(first.id, listing); }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
@@ -527,7 +576,28 @@ export function CardSearchPage() {
                                   }
                                 }}
                               />
-                            </div>
+                            ) : (
+                              listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
+                            )}
+                          </td>
+                          <td>
+                            <ModeToggle
+                              checked={isManual}
+                              disabled={updatingPricingId === listing.id}
+                              onToggle={() => {
+                                if (!isManual) {
+                                  setManualPriceDrafts((prev) => ({
+                                    ...prev,
+                                    [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
+                                  }));
+                                  void setPricingMode(first.id, listing, 'manual');
+                                } else {
+                                  void setPricingMode(first.id, listing, 'api');
+                                }
+                              }}
+                              onLabel="Manual"
+                              offLabel=""
+                            />
                           </td>
                         </tr>
                           );
