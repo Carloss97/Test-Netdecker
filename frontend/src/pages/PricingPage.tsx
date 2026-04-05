@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { getAvailableListings, syncListingPrices, getPriceVolatility } from '../services/catalog';
 import type { Listing } from '../types';
@@ -27,6 +27,10 @@ export function PricingPage() {
   const [selectedTcg, setSelectedTcg] = useState<'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'>('ALL');
   const [syncScope, setSyncScope] = useState<'all' | 'tcg' | 'edition'>('all');
   const [selectedEditionId, setSelectedEditionId] = useState('');
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncMinutes, setAutoSyncMinutes] = useState(60);
+  const [staleDays, setStaleDays] = useState(7);
+  const syncingRef = useRef(false);
 
   const { data: listings, status: listingsStatus, error: listingsError, execute: reloadListings } = useAsync<Listing[]>(
     () => getAvailableListings()
@@ -51,41 +55,94 @@ export function PricingPage() {
     .filter((e, idx, arr) => arr.findIndex((x) => x.id === e.id) === idx)
     .sort((a, b) => `${a.code} ${a.name}`.localeCompare(`${b.code} ${b.name}`));
 
+  const staleThresholdMs = staleDays * 24 * 60 * 60 * 1000;
+  const isListingStale = (listing: Listing) => {
+    if (!listing.lastSyncedAt) return true;
+    const lastSyncMs = new Date(listing.lastSyncedAt).getTime();
+    if (!Number.isFinite(lastSyncMs)) return true;
+    return Date.now() - lastSyncMs > staleThresholdMs;
+  };
+  const staleListings = filteredListings.filter((listing) => {
+    return isListingStale(listing);
+  });
+
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
-  const handleSync = async () => {
+  const handleSync = async (silent: boolean = false) => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
     setSyncing(true);
-    setSyncMsg(null);
-    setSyncError(null);
+    if (!silent) {
+      setSyncMsg(null);
+      setSyncError(null);
+    }
     try {
       const filters: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'; editionId?: string } = {};
       if (syncScope === 'tcg') {
         if (selectedTcg === 'ALL') {
-          setSyncError('Selecciona un TCG para sincronizar por juego');
+          if (!silent) setSyncError('Selecciona un TCG para sincronizar por juego');
           setSyncing(false);
+          syncingRef.current = false;
           return;
         }
         filters.tcgName = selectedTcg;
       }
       if (syncScope === 'edition') {
         if (!selectedEditionId) {
-          setSyncError('Selecciona una edición para sincronizar por set');
+          if (!silent) setSyncError('Selecciona una edición para sincronizar por set');
           setSyncing(false);
+          syncingRef.current = false;
           return;
         }
         filters.editionId = selectedEditionId;
       }
 
       const result = await syncListingPrices(undefined, undefined, 'Manual sync from PricingPage', true, filters);
-      setSyncMsg(`Sincronización completada: ${(result as { updated?: number }).updated ?? 0} actualizados`);
+      if (!silent) {
+        setSyncMsg(`Sincronización completada: ${(result as { updated?: number }).updated ?? 0} actualizados`);
+      }
       reloadListings();
     } catch {
-      setSyncError('Error al sincronizar precios');
+      if (!silent) {
+        setSyncError('Error al sincronizar precios');
+      }
     } finally {
       setSyncing(false);
+      syncingRef.current = false;
     }
   };
+
+  useEffect(() => {
+    const savedEnabled = window.localStorage.getItem('pricing:autoSyncEnabled');
+    const savedMinutes = window.localStorage.getItem('pricing:autoSyncMinutes');
+    const savedStaleDays = window.localStorage.getItem('pricing:staleDays');
+
+    if (savedEnabled === 'true') setAutoSyncEnabled(true);
+    if (savedMinutes) {
+      const parsed = Number(savedMinutes);
+      if (Number.isFinite(parsed) && parsed >= 5) setAutoSyncMinutes(parsed);
+    }
+    if (savedStaleDays) {
+      const parsed = Number(savedStaleDays);
+      if (Number.isFinite(parsed) && parsed >= 1) setStaleDays(parsed);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('pricing:autoSyncEnabled', String(autoSyncEnabled));
+    window.localStorage.setItem('pricing:autoSyncMinutes', String(autoSyncMinutes));
+    window.localStorage.setItem('pricing:staleDays', String(staleDays));
+  }, [autoSyncEnabled, autoSyncMinutes, staleDays]);
+
+  useEffect(() => {
+    if (!autoSyncEnabled) return;
+    const intervalMs = Math.max(5, autoSyncMinutes) * 60 * 1000;
+    const id = window.setInterval(() => {
+      handleSync(true);
+    }, intervalMs);
+    return () => window.clearInterval(id);
+  }, [autoSyncEnabled, autoSyncMinutes, syncScope, selectedTcg, selectedEditionId]);
 
   return (
     <div>
@@ -142,6 +199,54 @@ export function PricingPage() {
         </div>
       )}
 
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="section-title" style={{ marginBottom: 10 }}>⏱ Configuración de Sincronización</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.9rem' }}>
+            <input
+              type="checkbox"
+              checked={autoSyncEnabled}
+              onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+            />
+            Activar sincronización automática
+          </label>
+          <select
+            className="input input-sm"
+            value={autoSyncMinutes}
+            onChange={(e) => setAutoSyncMinutes(Number(e.target.value))}
+            disabled={!autoSyncEnabled}
+          >
+            <option value={15}>Cada 15 min</option>
+            <option value={30}>Cada 30 min</option>
+            <option value={60}>Cada 60 min</option>
+            <option value={180}>Cada 3 horas</option>
+            <option value={360}>Cada 6 horas</option>
+          </select>
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            Scope actual del auto-sync: {syncScope === 'all' ? 'Total' : syncScope === 'tcg' ? 'Por TCG' : 'Por edición'}
+          </span>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="section-title" style={{ marginBottom: 10 }}>📌 Estado de Actualización</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Considerar desactualizado después de
+          </label>
+          <select className="input input-sm" value={staleDays} onChange={(e) => setStaleDays(Number(e.target.value))}>
+            <option value={1}>1 día</option>
+            <option value={3}>3 días</option>
+            <option value={7}>7 días</option>
+            <option value={14}>14 días</option>
+            <option value={30}>30 días</option>
+          </select>
+          <span className={`badge ${staleListings.length > 0 ? 'badge-yellow' : 'badge-green'}`}>
+            {staleListings.length} listing(s) con precio desactualizado
+          </span>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div className="section-title" style={{ margin: 0 }}>
@@ -188,7 +293,15 @@ export function PricingPage() {
                 {filteredListings.map((listing) => {
                   return (
                   <tr key={listing.id}>
-                    <td style={{ fontWeight: 500 }}>{listing.card?.cardName ?? '—'}</td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{listing.card?.cardName ?? '—'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        Código: {listing.card?.cardCode ?? '—'}
+                        <span className={`badge ${isListingStale(listing) ? 'badge-yellow' : 'badge-green'}`}>
+                          {isListingStale(listing) ? 'Desactualizado' : 'Actualizado'}
+                        </span>
+                      </div>
+                    </td>
                     <td>
                       {listing.card?.rarity ? (
                         <span className="badge badge-gray">{listing.card.rarity}</span>
