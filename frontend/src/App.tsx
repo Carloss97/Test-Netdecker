@@ -6,6 +6,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { PricingPage } from './pages/PricingPage';
 import { ImportPage } from './pages/ImportPage';
 import { CardSearchPage } from './pages/CardSearchPage';
+import { AdminDashboardPage } from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/precios" element={<PricingPage />} />
           <Route path="/importar" element={<ImportPage />} />
           <Route path="/buscar" element={<CardSearchPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

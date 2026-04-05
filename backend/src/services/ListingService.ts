@@ -2,7 +2,7 @@
 // src/services/ListingService.ts
 import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
-import { CardCondition } from '@prisma/client';
+import { CardCondition, PriceUpdateReason } from '@prisma/client';
 
 interface CreateListingInput {
   cardId: string;
@@ -80,7 +80,7 @@ export class ListingService {
     const where: any = {
       AND: [
         { quantity: { gt: 0 } },
-        { status: 'active' }
+        { status: { in: ['active', 'manual'] } }
       ]
     };
 
@@ -160,7 +160,7 @@ export class ListingService {
       where: {
         AND: [
           { quantity: { lte: threshold, gt: 0 } },
-          { status: 'active' }
+          { status: { in: ['active', 'manual'] } }
         ]
       },
       include: {
@@ -215,5 +215,101 @@ export class ListingService {
       totalProfit: totalValue - totalCost,
       itemCount: listings.reduce((sum, l) => sum + l.quantity, 0)
     };
+  }
+
+  /**
+   * Force a manual final CLP price for a listing and lock it from global API sync.
+   */
+  static async setManualPrice(id: string, manualFinalPrice: number, changedBy: string = 'system', notes?: string) {
+    if (!Number.isFinite(manualFinalPrice) || manualFinalPrice <= 0) {
+      throw new Error('manualFinalPrice must be a positive number');
+    }
+
+    const listing = await this.getListing(id);
+    if (!listing) {
+      throw new Error(`Listing not found: ${id}`);
+    }
+
+    const oldPrice = listing.finalPrice;
+    const percentChange = oldPrice === 0
+      ? (manualFinalPrice > 0 ? 100 : 0)
+      : ((manualFinalPrice - oldPrice) / oldPrice) * 100;
+
+    await prisma.$transaction([
+      prisma.listing.update({
+        where: { id },
+        data: {
+          finalPrice: manualFinalPrice,
+          status: 'manual',
+          lastSyncedAt: new Date(),
+        },
+      }),
+      prisma.priceHistory.create({
+        data: {
+          listingId: id,
+          oldPrice,
+          newPrice: manualFinalPrice,
+          oldReferencePrice: listing.referencePrice,
+          newReferencePrice: listing.referencePrice,
+          oldExchangeRate: listing.exchangeRate,
+          newExchangeRate: listing.exchangeRate,
+          reason: PriceUpdateReason.MANUAL_UPDATE,
+          percentChange,
+          changedBy,
+          notes: notes || 'Manual price override enabled',
+        },
+      }),
+    ]);
+
+    return this.getListing(id);
+  }
+
+  /**
+   * Restore API-managed pricing for a listing and recalculate from reference price.
+   */
+  static async setApiPricingMode(id: string, changedBy: string = 'system', notes?: string) {
+    const listing = await this.getListing(id);
+    if (!listing) {
+      throw new Error(`Listing not found: ${id}`);
+    }
+
+    const calculation = await PriceService.calculateFinalPrice({
+      referencePrice: listing.referencePrice,
+      marginMultiplier: listing.marginMultiplier,
+    });
+
+    const oldPrice = listing.finalPrice;
+    const percentChange = oldPrice === 0
+      ? (calculation.finalPrice > 0 ? 100 : 0)
+      : ((calculation.finalPrice - oldPrice) / oldPrice) * 100;
+
+    await prisma.$transaction([
+      prisma.listing.update({
+        where: { id },
+        data: {
+          finalPrice: calculation.finalPrice,
+          exchangeRate: calculation.exchangeRate,
+          status: 'active',
+          lastSyncedAt: new Date(),
+        },
+      }),
+      prisma.priceHistory.create({
+        data: {
+          listingId: id,
+          oldPrice,
+          newPrice: calculation.finalPrice,
+          oldReferencePrice: listing.referencePrice,
+          newReferencePrice: listing.referencePrice,
+          oldExchangeRate: listing.exchangeRate,
+          newExchangeRate: calculation.exchangeRate,
+          reason: PriceUpdateReason.MANUAL_UPDATE,
+          percentChange,
+          changedBy,
+          notes: notes || 'Manual override disabled, API pricing restored',
+        },
+      }),
+    ]);
+
+    return this.getListing(id);
   }
 }

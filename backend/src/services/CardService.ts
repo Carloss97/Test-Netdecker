@@ -94,11 +94,30 @@ export class CardService {
    * Returns all matching cards across editions and rarities.
    */
   static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
+    const normalized = code.trim();
     const where: any = {
-      cardCode: {
-        contains: code,
-        mode: 'insensitive'
-      }
+      OR: [
+        {
+          cardCode: {
+            contains: normalized,
+            mode: 'insensitive'
+          }
+        },
+        {
+          cardNumber: {
+            contains: normalized,
+            mode: 'insensitive'
+          }
+        },
+        {
+          edition: {
+            editionCode: {
+              contains: normalized,
+              mode: 'insensitive'
+            }
+          }
+        }
+      ]
     };
 
     if (tcgId) {

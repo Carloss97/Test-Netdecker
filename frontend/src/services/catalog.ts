@@ -48,6 +48,27 @@ export async function getListingById(id: string) {
   return data;
 }
 
+export async function updateListingStock(
+  listingId: string,
+  op: 'set' | 'inc' | 'dec',
+  value: number,
+) {
+  const { data } = await apiClient.patch(`/listings/${listingId}/stock`, { op, value });
+  return data as { success: boolean; listingId: string; quantity: number };
+}
+
+export async function updateListingPricingMode(
+  listingId: string,
+  mode: 'manual' | 'api',
+  manualPrice?: number,
+) {
+  const { data } = await apiClient.patch(`/listings/${listingId}/pricing-mode`, {
+    mode,
+    ...(mode === 'manual' && typeof manualPrice === 'number' ? { manualPrice } : {}),
+  });
+  return data as { success: boolean; pricingMode: 'manual' | 'api'; listing: Listing };
+}
+
 export async function previewListingPrice(referencePrice: number, marginMultiplier: number, roundingMultiple?: number) {
   const { data } = await apiClient.post('/listings/price-preview', {
     referencePrice,
@@ -300,6 +321,21 @@ export async function getAdminEditions() {
 
 export async function getTcgplayerCoverage() {
   const { data } = await apiClient.get('/admin/tcgplayer-coverage');
+  return data;
+}
+
+export async function getAdminPricingConfig() {
+  const { data } = await apiClient.get('/admin/pricing-config');
+  return data;
+}
+
+export async function updateAdminPricingConfig(params: {
+  defaultMarginMultiplier?: number;
+  applyMarginToExisting?: boolean;
+  exchangeRateMode?: 'api' | 'manual';
+  manualUsdToClp?: number;
+}) {
+  const { data } = await apiClient.post('/admin/pricing-config', params);
   return data;
 }
 

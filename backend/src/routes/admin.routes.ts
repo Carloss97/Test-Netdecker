@@ -28,9 +28,9 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
   ] = await Promise.all([
     prisma.card.count(),
     prisma.listing.count(),
-    prisma.listing.count({ where: { status: 'active', quantity: { gt: 0 } } }),
-    prisma.listing.count({ where: { status: 'active', quantity: { gt: 0, lte: 5 } } }),
-    prisma.listing.count({ where: { status: 'active', quantity: { lte: 0 }, everHadStock: true } }),
+    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0 } } }),
+    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0, lte: 5 } } }),
+    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { lte: 0 }, everHadStock: true } }),
     prisma.order.count(),
     prisma.order.count({ where: { status: 'PENDING' } }),
     prisma.inventoryImport.findMany({
@@ -51,7 +51,7 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
 
   // Inventory value (sum of finalPrice * quantity for active listings)
   const inventoryValueResult = await prisma.listing.aggregate({
-    where: { status: 'active', quantity: { gt: 0 } },
+    where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0 } },
     _sum: { finalPrice: true },
   });
 
@@ -100,7 +100,7 @@ router.get('/stock-alerts', async (req: Request, res: Response) => {
 
   const alerts = await prisma.listing.findMany({
     where: {
-      status: 'active',
+      status: { in: ['active', 'manual'] },
       everHadStock: true,
       quantity: { lte: threshold },
     },
@@ -243,6 +243,87 @@ router.post('/catalog/sync', async (req: Request, res: Response) => {
   });
 
   res.json({ success: true, ...result });
+});
+
+/**
+ * GET /api/admin/pricing-config
+ * Returns pricing configuration and current exchange mode.
+ */
+router.get('/pricing-config', async (_req: Request, res: Response) => {
+  const [exchangeRateMeta, listingStats] = await Promise.all([
+    ExchangeRateService.getUSDtoCLPRateMeta(),
+    prisma.listing.aggregate({
+      _avg: { marginMultiplier: true },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const isManual = exchangeRateMeta.provider === 'manual';
+
+  res.json({
+    success: true,
+    config: {
+      defaultMarginMultiplier: listingStats._avg.marginMultiplier ?? Number(process.env.DEFAULT_MARGIN_MULTIPLIER || 1.2),
+      listingCount: listingStats._count._all,
+      exchangeRate: {
+        mode: isManual ? 'manual' : 'api',
+        activeRate: exchangeRateMeta.rate,
+        source: exchangeRateMeta.retrievalSource,
+        provider: exchangeRateMeta.provider || null,
+        fetchedAt: exchangeRateMeta.fetchedAt || null,
+      },
+    },
+  });
+});
+
+/**
+ * POST /api/admin/pricing-config
+ * Body: { defaultMarginMultiplier?: number, applyMarginToExisting?: boolean, exchangeRateMode?: 'api'|'manual', manualUsdToClp?: number }
+ */
+router.post('/pricing-config', async (req: Request, res: Response) => {
+  const {
+    defaultMarginMultiplier,
+    applyMarginToExisting,
+    exchangeRateMode,
+    manualUsdToClp,
+  } = req.body as {
+    defaultMarginMultiplier?: number;
+    applyMarginToExisting?: boolean;
+    exchangeRateMode?: 'api' | 'manual';
+    manualUsdToClp?: number;
+  };
+
+  let updatedMargins = 0;
+  if (typeof defaultMarginMultiplier === 'number' && Number.isFinite(defaultMarginMultiplier) && defaultMarginMultiplier > 0 && applyMarginToExisting) {
+    const marginUpdate = await prisma.listing.updateMany({
+      data: { marginMultiplier: defaultMarginMultiplier },
+    });
+    updatedMargins = marginUpdate.count;
+  }
+
+  if (exchangeRateMode === 'manual') {
+    if (typeof manualUsdToClp !== 'number' || !Number.isFinite(manualUsdToClp) || manualUsdToClp <= 0) {
+      return res.status(400).json({ success: false, error: 'manualUsdToClp must be a positive number when exchangeRateMode=manual' });
+    }
+    await ExchangeRateService.setManualUSDtoCLPRate(manualUsdToClp);
+  }
+
+  if (exchangeRateMode === 'api') {
+    await ExchangeRateService.refreshUSDtoCLPRateFromApi();
+  }
+
+  const refreshed = await ExchangeRateService.getUSDtoCLPRateMeta();
+
+  res.json({
+    success: true,
+    updatedMargins,
+    exchangeRate: {
+      mode: refreshed.provider === 'manual' ? 'manual' : 'api',
+      activeRate: refreshed.rate,
+      provider: refreshed.provider || null,
+      source: refreshed.retrievalSource,
+    },
+  });
 });
 
 /**

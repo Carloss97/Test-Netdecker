@@ -107,6 +107,67 @@ export class ExchangeRateService {
     };
   }
 
+  static async setManualUSDtoCLPRate(rate: number): Promise<void> {
+    if (!Number.isFinite(rate) || rate <= 0) {
+      throw new Error('Manual exchange rate must be a positive number');
+    }
+
+    await prisma.exchangeRate.upsert({
+      where: {
+        fromCurrency_toCurrency: {
+          fromCurrency: 'USD',
+          toCurrency: 'CLP',
+        }
+      },
+      update: {
+        rate,
+        source: 'manual',
+        fetchedAt: new Date(),
+        expiresAt: null,
+      },
+      create: {
+        fromCurrency: 'USD',
+        toCurrency: 'CLP',
+        rate,
+        source: 'manual',
+        fetchedAt: new Date(),
+        expiresAt: null,
+      }
+    });
+
+    await cacheSet(CACHE_KEY, rate, CACHE_TTL);
+  }
+
+  static async refreshUSDtoCLPRateFromApi(): Promise<number> {
+    const { rate } = await this.fetchRate('USD', 'CLP');
+
+    await prisma.exchangeRate.upsert({
+      where: {
+        fromCurrency_toCurrency: {
+          fromCurrency: 'USD',
+          toCurrency: 'CLP',
+        }
+      },
+      update: {
+        rate,
+        source: 'exchangerate-api.com',
+        fetchedAt: new Date(),
+        expiresAt: new Date(Date.now() + CACHE_TTL * 1000),
+      },
+      create: {
+        fromCurrency: 'USD',
+        toCurrency: 'CLP',
+        rate,
+        source: 'exchangerate-api.com',
+        fetchedAt: new Date(),
+        expiresAt: new Date(Date.now() + CACHE_TTL * 1000),
+      }
+    });
+
+    await cacheSet(CACHE_KEY, rate, CACHE_TTL);
+    return rate;
+  }
+
   /**
    * Fetch rate from external API
    */

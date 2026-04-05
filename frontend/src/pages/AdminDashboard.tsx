@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import {
   bootstrapCatalog,
   getAdminDashboard,
+  getAdminPricingConfig,
   getPriceVolatility,
   getStockAlerts,
   getTcgplayerCoverage,
   syncCatalog,
   resetCatalog,
+  updateAdminPricingConfig,
 } from '../services/catalog';
 import type { AdminDashboard, CatalogBootstrapResponse, CatalogSyncResponse, TcgplayerCoverage } from '../types';
 
@@ -57,6 +59,7 @@ export function AdminDashboardPage() {
   const alertsQuery = useAsync(() => getStockAlerts(5));
   const volatilityQuery = useAsync(() => getPriceVolatility(10));
   const coverageQuery = useAsync(() => getTcgplayerCoverage());
+  const pricingConfigQuery = useAsync(() => getAdminPricingConfig());
   const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
@@ -71,6 +74,13 @@ export function AdminDashboardPage() {
     payload: CatalogBootstrapResponse | CatalogSyncResponse;
   } | null>(null);
   const [catalogActionError, setCatalogActionError] = useState<string | null>(null);
+  const [configMargin, setConfigMargin] = useState('1.2');
+  const [applyMarginToExisting, setApplyMarginToExisting] = useState(true);
+  const [exchangeRateMode, setExchangeRateMode] = useState<'api' | 'manual'>('api');
+  const [manualUsdToClp, setManualUsdToClp] = useState('950');
+  const [savingPricingConfig, setSavingPricingConfig] = useState(false);
+  const [pricingConfigMsg, setPricingConfigMsg] = useState<string | null>(null);
+  const [pricingConfigErr, setPricingConfigErr] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -78,10 +88,50 @@ export function AdminDashboardPage() {
 
   const dashboard = dashboardQuery.data as { success: boolean } & AdminDashboard | null;
   const coverage = coverageQuery.data as { success: boolean } & TcgplayerCoverage | null;
+  const pricingConfigData = pricingConfigQuery.data as {
+    success: boolean;
+    config?: {
+      defaultMarginMultiplier: number;
+      exchangeRate: { mode: 'api' | 'manual'; activeRate: number };
+    };
+  } | null;
   const alerts = (alertsQuery.data as { alerts?: Array<{ listingId: string; cardName: string; editionCode: string; condition: string; quantity: number; finalPrice: number }> } | null)?.alerts ?? [];
   const volatileEvents = (volatilityQuery.data as { events?: Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }> } | null)?.events ?? [];
 
   const handleRefresh = () => window.location.reload();
+
+  const handleSavePricingConfig = async () => {
+    setSavingPricingConfig(true);
+    setPricingConfigErr(null);
+    setPricingConfigMsg(null);
+    try {
+      const margin = Number.parseFloat(configMargin);
+      const manualRate = Number.parseFloat(manualUsdToClp);
+
+      const result = await updateAdminPricingConfig({
+        defaultMarginMultiplier: Number.isFinite(margin) && margin > 0 ? margin : undefined,
+        applyMarginToExisting,
+        exchangeRateMode,
+        manualUsdToClp: exchangeRateMode === 'manual' ? manualRate : undefined,
+      });
+
+      setPricingConfigMsg(`Configuración guardada. Margen actualizado en ${(result as { updatedMargins?: number }).updatedMargins ?? 0} listing(s).`);
+      pricingConfigQuery.execute();
+      dashboardQuery.execute();
+    } catch (err: unknown) {
+      setPricingConfigErr(err instanceof Error ? err.message : 'No se pudo guardar configuración');
+    } finally {
+      setSavingPricingConfig(false);
+    }
+  };
+
+  useEffect(() => {
+    if (pricingConfigData?.config) {
+      setConfigMargin(String(pricingConfigData.config.defaultMarginMultiplier));
+      setExchangeRateMode(pricingConfigData.config.exchangeRate.mode);
+      setManualUsdToClp(String(pricingConfigData.config.exchangeRate.activeRate));
+    }
+  }, [pricingConfigData]);
 
   const handleBootstrapCatalog = async () => {
     setCatalogActionLoading('bootstrap');
@@ -101,7 +151,7 @@ export function AdminDashboardPage() {
       });
       setCatalogActionResult({ kind: 'bootstrap', payload });
     } catch (err: unknown) {
-      setCatalogActionError(err instanceof Error ? err.message : 'Bootstrap failed');
+      setCatalogActionError(err instanceof Error ? err.message : 'Error en carga inicial de catálogo');
     } finally {
       setCatalogActionLoading(null);
     }
@@ -124,7 +174,7 @@ export function AdminDashboardPage() {
       });
       setCatalogActionResult({ kind: 'sync', payload });
     } catch (err: unknown) {
-      setCatalogActionError(err instanceof Error ? err.message : 'Sync failed');
+      setCatalogActionError(err instanceof Error ? err.message : 'Error al sincronizar catálogo');
     } finally {
       setCatalogActionLoading(null);
     }
@@ -152,21 +202,21 @@ export function AdminDashboardPage() {
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0 }}>⚙️ Admin Dashboard</h2>
+        <h2 style={{ margin: 0 }}>⚙️ Panel de Administración</h2>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #ddd', background: '#fff' }}>
-            🔄 Refresh
+            🔄 Recargar
           </button>
           <button onClick={() => setShowResetConfirm(true)} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #d32f2f', background: '#ffebee', color: '#d32f2f', fontWeight: 500 }}>
-            🗑️ Reset DB
+            🗑️ Resetear BD
           </button>
         </div>
       </div>
 
-      {dashboardQuery.status === 'pending' && <p>Loading dashboard…</p>}
+      {dashboardQuery.status === 'pending' && <p>Cargando panel…</p>}
       {dashboardQuery.status === 'error' && (
         <p style={{ color: 'red' }}>
-          Failed to load dashboard. Is the backend running?
+          No se pudo cargar el panel. Verifica que el backend esté corriendo.
         </p>
       )}
 
@@ -195,7 +245,7 @@ export function AdminDashboardPage() {
             <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: 14 }}>
               Esta acción eliminará todos los sets, cartas, inventario y historico de precios. Los registros de TCG y tasas de cambio serán preservados.
             </p>
-            <p style={{ margin: '0 0 16px 0', color: '#999', fontSize: 13, fontweight: 'bold' }}>
+            <p style={{ margin: '0 0 16px 0', color: '#999', fontSize: 13, fontWeight: 'bold' }}>
               Esta acción es irreversible. ¿Estás seguro?
             </p>
             {resetError && (
@@ -239,20 +289,13 @@ export function AdminDashboardPage() {
         </div>
       )}
 
-      {dashboardQuery.status === 'pending' && <p>Loading dashboard…</p>}
-      {dashboardQuery.status === 'error' && (
-        <p style={{ color: 'red' }}>
-          Failed to load dashboard. Is the backend running?
-        </p>
-      )}
-
-      <Section title="🗂️ Catalog Sync Console">
+      <Section title="🗂️ Consola de Catálogo">
         <div className="surface-card" style={{ padding: 16, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>TCG</label>
               <select value={catalogTcg} onChange={(e) => setCatalogTcg(e.target.value as any)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}>
-                <option value="">All TCGs</option>
+                <option value="">Todos los TCG</option>
                 <option value="MAGIC">Magic</option>
                 <option value="POKEMON">Pokémon</option>
                 <option value="YUGIOH">Yu-Gi-Oh!</option>
@@ -260,47 +303,50 @@ export function AdminDashboardPage() {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Set Code</label>
-              <input placeholder="e.g. MH3" value={setCode} onChange={(e) => setSetCode(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} />
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Código de set</label>
+              <input placeholder="Ej: MH3" value={setCode} onChange={(e) => setSetCode(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Set Limit</label>
-              <input placeholder="Max sets" value={setLimit} onChange={(e) => setSetLimit(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Límite de sets</label>
+              <input placeholder="Máximo" value={setLimit} onChange={(e) => setSetLimit(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Initial Qty</label>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Stock inicial</label>
               <input placeholder="0" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margin</label>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margen</label>
               <input placeholder="1.2" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Concurrency</label>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Concurrencia</label>
               <input placeholder="4" value={concurrency} onChange={(e) => setConcurrency(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
               <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
-              <span style={{ fontSize: 13 }}>Dry run</span>
+              <span style={{ fontSize: 13 }}>Simulación (sin guardar)</span>
             </label>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
               <input type="checkbox" checked={createListings} onChange={(e) => setCreateListings(e.target.checked)} />
-              <span style={{ fontSize: 13 }}>Create listings</span>
+              <span style={{ fontSize: 13 }}>Crear listings</span>
             </label>
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
-              {catalogActionLoading === 'bootstrap' ? '⏳ Bootstrapping...' : '▶️ Bootstrap'}
+              {catalogActionLoading === 'bootstrap' ? '⏳ Cargando catálogo...' : '▶️ Carga inicial'}
             </button>
             <button type="button" onClick={handleSyncCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#388e3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
-              {catalogActionLoading === 'sync' ? '⏳ Syncing...' : '🔄 Sync New Sets'}
+              {catalogActionLoading === 'sync' ? '⏳ Sincronizando...' : '🔄 Sincronizar sets nuevos'}
             </button>
           </div>
+          <p style={{ marginTop: 6, fontSize: 12, color: '#666' }}>
+            Carga inicial crea catálogo base. Sincronizar sets nuevos solo trae sets recientes o cambios.
+          </p>
           <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-            <strong>Sync/Bootstrap:</strong> Imports card sets from Magic, Pokémon, Yu-Gi-Oh!, One Piece external APIs. Each TCG uses its native API: Scryfall, PokémonTCG, YGOPRODeck, OPTCGAPI.<br/>
-            <strong>Pricing:</strong> Reference prices fetched from each API during import. Update via price sync cron job.
+            <strong>Sincronización/Carga inicial:</strong> Importa sets desde APIs externas de Magic, Pokémon, Yu-Gi-Oh! y One Piece.<br/>
+            <strong>Precios:</strong> El precio de referencia se obtiene durante la importación y se actualiza con la sincronización de precios.
           </p>
         </div>
 
@@ -309,7 +355,7 @@ export function AdminDashboardPage() {
         {catalogActionResult && (
           <div className="surface-card" style={{ padding: 16 }}>
             <strong>
-              Resultado {catalogActionResult.kind === 'bootstrap' ? 'bootstrap' : 'sync'}
+              Resultado {catalogActionResult.kind === 'bootstrap' ? 'carga inicial' : 'sincronización'}
             </strong>
             <pre style={{ whiteSpace: 'pre-wrap', marginTop: 12, fontSize: 12 }}>
               {JSON.stringify(catalogActionResult.payload, null, 2)}
@@ -318,65 +364,134 @@ export function AdminDashboardPage() {
         )}
       </Section>
 
+      <Section title="💱 Parámetros de Precio">
+        <div className="surface-card" style={{ padding: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margen por defecto</label>
+              <input
+                type="number"
+                step="0.05"
+                value={configMargin}
+                onChange={(e) => setConfigMargin(e.target.value)}
+                title="Multiplicador aplicado al precio base. Ejemplo: 1.20 = +20%"
+                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Modo de dólar</label>
+              <select
+                value={exchangeRateMode}
+                onChange={(e) => setExchangeRateMode(e.target.value as 'api' | 'manual')}
+                title="API automática usa proveedor externo. Manual usa el valor ingresado"
+                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
+              >
+                <option value="api">API automática</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>USD/CLP manual</label>
+              <input
+                type="number"
+                value={manualUsdToClp}
+                onChange={(e) => setManualUsdToClp(e.target.value)}
+                disabled={exchangeRateMode !== 'manual'}
+                title="Valor USD/CLP usado cuando el modo está en manual"
+                style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
+              />
+            </div>
+          </div>
+
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontSize: 13 }}>
+            <input type="checkbox" checked={applyMarginToExisting} onChange={(e) => setApplyMarginToExisting(e.target.checked)} />
+            Aplicar margen a listings existentes
+          </label>
+
+          {pricingConfigData?.config && (
+            <p style={{ marginBottom: 12, color: '#666', fontSize: 13 }}>
+              Estado actual: dólar en modo <strong>{pricingConfigData.config.exchangeRate.mode.toUpperCase()}</strong> · tasa activa <strong>{pricingConfigData.config.exchangeRate.activeRate.toLocaleString()} CLP</strong>
+            </p>
+          )}
+          <p style={{ marginBottom: 12, color: '#666', fontSize: 12 }}>
+            Recomendación: aplica margen global solo cuando quieras recalcular precios de todo el inventario.
+          </p>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={handleSavePricingConfig}
+              disabled={savingPricingConfig}
+              title="Guarda margen y configuración de dólar para precios"
+              style={{ padding: '10px 16px', background: '#5d4037', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
+            >
+              {savingPricingConfig ? '⏳ Guardando...' : '💾 Guardar parámetros'}
+            </button>
+            {pricingConfigMsg && <span style={{ color: '#2e7d32', fontSize: 13 }}>{pricingConfigMsg}</span>}
+            {pricingConfigErr && <span style={{ color: '#c62828', fontSize: 13 }}>{pricingConfigErr}</span>}
+          </div>
+        </div>
+      </Section>
+
       {dashboard && (
         <>
           {/* KPI cards */}
-          <Section title="Catalog Overview">
+          <Section title="Resumen del Catálogo">
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               <KpiCard
-                label="Total Cards"
+                label="Cartas Totales"
                 value={dashboard.kpis.catalog.totalCards.toLocaleString()}
                 color="#1976d2"
               />
               <KpiCard
-                label="Active Listings"
+                label="Listings Activos"
                 value={dashboard.kpis.catalog.activeListings.toLocaleString()}
-                sub={`of ${dashboard.kpis.catalog.totalListings} total`}
+                sub={`de ${dashboard.kpis.catalog.totalListings} total`}
                 color="#388e3c"
               />
               <KpiCard
-                label="Low Stock"
+                label="Stock Bajo"
                 value={dashboard.kpis.catalog.lowStockListings.toLocaleString()}
-                sub="≤5 units"
+                sub="≤5 unidades"
                 color="#f57c00"
               />
               <KpiCard
-                label="Out of Stock"
+                label="Sin Stock"
                 value={dashboard.kpis.catalog.outOfStockListings.toLocaleString()}
                 color="#d32f2f"
               />
               <KpiCard
-                label="Inventory Value"
+                label="Valor Inventario"
                 value={`$${Math.round(dashboard.kpis.inventory.totalValueCLP / 1000).toLocaleString()}K`}
-                sub="CLP (active listings)"
+                sub="CLP (listings activos)"
                 color="#7b1fa2"
               />
               <KpiCard
-                label="Orders"
+                label="Órdenes"
                 value={dashboard.kpis.orders.total.toLocaleString()}
-                sub={`${dashboard.kpis.orders.pending} pending`}
+                sub={`${dashboard.kpis.orders.pending} pendientes`}
                 color="#0288d1"
               />
             </div>
           </Section>
 
           {coverage && (
-            <Section title="📊 Card Coverage & Price Sources">
+            <Section title="📊 Cobertura de Cartas y Fuentes de Precio">
               <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
-                <strong>Total Cards:</strong> {coverage?.global.totalCards.toLocaleString()} imported across all TCGs.<br/>
-                <strong>Price Sources:</strong> Magic (Scryfall), Pokémon (PokemonTCG API), Yu-Gi-Oh! (YGOPRODeck), One Piece (OPTCGAPI).
+                <strong>Cartas totales:</strong> {coverage?.global.totalCards.toLocaleString()} importadas en todos los TCG.<br/>
+                <strong>Fuentes:</strong> Magic (Scryfall), Pokémon (PokemonTCG API), Yu-Gi-Oh! (YGOPRODeck), One Piece (OPTCGAPI).
               </p>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
                 <KpiCard
-                  label="Global Coverage"
+                  label="Cobertura Global"
                   value={`${coverage.global.coveragePercent.toFixed(2)}%`}
-                  sub={`${coverage.global.coveredCards} / ${coverage.global.totalCards} cards`}
+                  sub={`${coverage.global.coveredCards} / ${coverage.global.totalCards} cartas`}
                   color="#5d4037"
                 />
                 <KpiCard
-                  label="Missing IDs"
+                  label="IDs Faltantes"
                   value={coverage.global.uncoveredCards.toLocaleString()}
-                  sub="Cards pending productId"
+                  sub="Cartas pendientes de productId"
                   color="#8d6e63"
                 />
               </div>
@@ -384,9 +499,9 @@ export function AdminDashboardPage() {
                 <thead>
                   <tr style={{ background: '#f5f5f5' }}>
                     <th style={thStyle}>TCG</th>
-                    <th style={thStyle}>Coverage</th>
-                    <th style={thStyle}>Covered</th>
-                    <th style={thStyle}>Missing</th>
+                    <th style={thStyle}>Cobertura</th>
+                    <th style={thStyle}>Cubiertas</th>
+                    <th style={thStyle}>Faltantes</th>
                     <th style={thStyle}>Total</th>
                   </tr>
                 </thead>
@@ -407,11 +522,11 @@ export function AdminDashboardPage() {
 
           {/* Exchange rate */}
           {dashboard.kpis.exchangeRate && (
-            <Section title="Exchange Rate">
+            <Section title="Tipo de Cambio">
               <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, padding: 16, display: 'inline-block' }}>
                 <strong>1 USD = {dashboard.kpis.exchangeRate.usdToCLP.toLocaleString()} CLP</strong>
                 <span style={{ marginLeft: 16, color: '#888', fontSize: 12 }}>
-                  Source: {dashboard.kpis.exchangeRate.source}
+                  Fuente: {dashboard.kpis.exchangeRate.source}
                   {dashboard.kpis.exchangeRate.fetchedAt
                     ? ` · ${new Date(dashboard.kpis.exchangeRate.fetchedAt).toLocaleString()}`
                     : ''}
@@ -422,16 +537,16 @@ export function AdminDashboardPage() {
 
           {/* Recent imports */}
           {dashboard.recentImports.length > 0 && (
-            <Section title="Recent Imports">
+            <Section title="Importaciones Recientes">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f5f5f5' }}>
-                    <th style={thStyle}>File</th>
-                    <th style={thStyle}>Status</th>
-                    <th style={thStyle}>Records</th>
+                    <th style={thStyle}>Archivo</th>
+                    <th style={thStyle}>Estado</th>
+                    <th style={thStyle}>Registros</th>
                     <th style={thStyle}>OK</th>
-                    <th style={thStyle}>Errors</th>
-                    <th style={thStyle}>Date</th>
+                    <th style={thStyle}>Errores</th>
+                    <th style={thStyle}>Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -466,17 +581,17 @@ export function AdminDashboardPage() {
 
           {/* Recent price sync runs */}
           {dashboard.recentSyncRuns.length > 0 && (
-            <Section title="Recent Price Sync Runs">
+            <Section title="Sincronizaciones de Precio Recientes">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f5f5f5' }}>
-                    <th style={thStyle}>Source</th>
-                    <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Fuente</th>
+                    <th style={thStyle}>Estado</th>
                     <th style={thStyle}>Total</th>
-                    <th style={thStyle}>Updated</th>
-                    <th style={thStyle}>Volatile</th>
-                    <th style={thStyle}>Failed</th>
-                    <th style={thStyle}>Date</th>
+                    <th style={thStyle}>Actualizados</th>
+                    <th style={thStyle}>Volátiles</th>
+                    <th style={thStyle}>Fallidos</th>
+                    <th style={thStyle}>Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -514,15 +629,15 @@ export function AdminDashboardPage() {
 
       {/* Stock alerts */}
       {alertsQuery.status !== 'error' && alerts.length > 0 && (
-        <Section title={`Low Stock Alerts (≤5 units)`}>
+        <Section title={`Alertas de Stock Bajo (≤5 unidades)`}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#fff8e1' }}>
-                <th style={thStyle}>Card</th>
-                <th style={thStyle}>Edition</th>
-                <th style={thStyle}>Condition</th>
-                <th style={thStyle}>Qty</th>
-                <th style={thStyle}>Price (CLP)</th>
+                <th style={thStyle}>Carta</th>
+                <th style={thStyle}>Edición</th>
+                <th style={thStyle}>Condición</th>
+                <th style={thStyle}>Stock</th>
+                <th style={thStyle}>Precio (CLP)</th>
               </tr>
             </thead>
             <tbody>
@@ -550,16 +665,16 @@ export function AdminDashboardPage() {
 
       {/* Volatile price changes */}
       {volatilityQuery.status !== 'error' && volatileEvents.length > 0 && (
-        <Section title="Recent Volatile Price Changes">
+        <Section title="Cambios de Precio Volátiles Recientes">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#fce4ec' }}>
-                <th style={thStyle}>Card</th>
-                <th style={thStyle}>Edition</th>
-                <th style={thStyle}>Old Price</th>
-                <th style={thStyle}>New Price</th>
-                <th style={thStyle}>Change %</th>
-                <th style={thStyle}>Date</th>
+                <th style={thStyle}>Carta</th>
+                <th style={thStyle}>Edición</th>
+                <th style={thStyle}>Precio Anterior</th>
+                <th style={thStyle}>Precio Nuevo</th>
+                <th style={thStyle}>Cambio %</th>
+                <th style={thStyle}>Fecha</th>
               </tr>
             </thead>
             <tbody>

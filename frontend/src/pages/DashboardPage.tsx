@@ -152,6 +152,7 @@ export function DashboardPage() {
           <a href="/inventario" className="btn btn-primary">📦 Gestionar Inventario</a>
           <a href="/precios" className="btn btn-secondary">💰 Ver Precios</a>
           <a href="/importar" className="btn btn-secondary">📥 Importar Catálogo</a>
+          <a href="/admin" className="btn btn-secondary">⚙️ Parámetros Admin</a>
         </div>
       </div>
     </div>

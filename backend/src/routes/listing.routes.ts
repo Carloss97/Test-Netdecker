@@ -311,4 +311,49 @@ router.patch('/:id/stock', async (req: Request, res: Response) => {
   res.json({ success: true, listingId: listing.id, quantity: updated.quantity });
 });
 
+// PATCH /api/listings/:id/pricing-mode
+// Cambia modo de precio del listing:
+// - manual: fija precio final CLP y excluye del sync global
+// - api: vuelve a cálculo automático por referencia/margen/tipo de cambio
+// Body: { mode: 'manual'|'api', manualPrice?: number }
+router.patch('/:id/pricing-mode', async (req: Request, res: Response) => {
+  const { mode, manualPrice } = req.body as { mode?: 'manual' | 'api'; manualPrice?: number };
+
+  if (mode !== 'manual' && mode !== 'api') {
+    throw new ValidationError('mode must be either "manual" or "api"');
+  }
+
+  if (mode === 'manual') {
+    if (typeof manualPrice !== 'number' || !Number.isFinite(manualPrice) || manualPrice <= 0) {
+      throw new ValidationError('manualPrice must be a positive number when mode=manual');
+    }
+
+    const updated = await ListingService.setManualPrice(
+      req.params.id,
+      manualPrice,
+      'admin',
+      'Manual price set from UI',
+    );
+
+    res.json({
+      success: true,
+      listing: updated,
+      pricingMode: 'manual',
+    });
+    return;
+  }
+
+  const updated = await ListingService.setApiPricingMode(
+    req.params.id,
+    'admin',
+    'API pricing restored from UI',
+  );
+
+  res.json({
+    success: true,
+    listing: updated,
+    pricingMode: 'api',
+  });
+});
+
 export default router;

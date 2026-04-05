@@ -301,7 +301,7 @@ export function ImportPage() {
           className={`tab-btn${activeTab === 'csv' ? ' active' : ''}`}
           onClick={() => setActiveTab('csv')}
         >
-          📋 CSV Stock
+          📋 CSV de Stock
         </button>
       </div>
 
@@ -337,10 +337,14 @@ export function ImportPage() {
                 className="btn btn-primary"
                 onClick={handleLoadSets}
                 disabled={!catalogTcg || loadingSets}
+                title="Recarga los sets disponibles del TCG seleccionado"
               >
                 {loadingSets ? '⏳ Cargando sets…' : '🔄 Recargar Sets'}
               </button>
             </div>
+            <p style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Flujo recomendado: selecciona TCG, recarga sets y luego importa el set que necesites.
+            </p>
           </div>
 
           <div className="card" style={{ marginBottom: 20 }}>
@@ -352,6 +356,7 @@ export function ImportPage() {
                   className="input"
                   value={exportTcg}
                   onChange={(e) => setExportTcg(e.target.value)}
+                  title="Selecciona el juego para exportar por TCG o por set"
                 >
                   <option value="">-- Selecciona un TCG --</option>
                   {((tcgs as { id: string; name: string; displayName: string }[] | null) ?? []).map((t) => (
@@ -366,6 +371,7 @@ export function ImportPage() {
                   value={selectedExportEditionId}
                   onChange={(e) => setSelectedExportEditionId(e.target.value)}
                   disabled={!exportTcg || loadingLocalEditions}
+                  title="Selecciona la edición específica para exportación por set"
                 >
                   <option value="">-- Selecciona una edición --</option>
                   {localEditions.map((ed) => (
@@ -373,13 +379,13 @@ export function ImportPage() {
                   ))}
                 </select>
               </div>
-              <button className="btn btn-secondary" onClick={() => handleExportInventory('edition')} disabled={exportingScope !== null}>
+              <button className="btn btn-secondary" onClick={() => handleExportInventory('edition')} disabled={exportingScope !== null} title="Exporta solo la edición seleccionada">
                 {exportingScope === 'edition' ? '⏳ Exportando…' : '⬇ Exportar Set'}
               </button>
-              <button className="btn btn-secondary" onClick={() => handleExportInventory('tcg')} disabled={exportingScope !== null}>
+              <button className="btn btn-secondary" onClick={() => handleExportInventory('tcg')} disabled={exportingScope !== null} title="Exporta todas las ediciones del TCG seleccionado">
                 {exportingScope === 'tcg' ? '⏳ Exportando…' : '⬇ Exportar TCG'}
               </button>
-              <button className="btn btn-primary" onClick={() => handleExportInventory('all')} disabled={exportingScope !== null}>
+              <button className="btn btn-primary" onClick={() => handleExportInventory('all')} disabled={exportingScope !== null} title="Exporta el inventario completo de todos los TCG">
                 {exportingScope === 'all' ? '⏳ Exportando…' : '⬇ Exportar Total'}
               </button>
             </div>
@@ -404,6 +410,7 @@ export function ImportPage() {
                   onChange={(e) => setSetSearch(e.target.value)}
                   placeholder="Buscar set por código o nombre..."
                   style={{ maxWidth: 420 }}
+                  title="Filtra los sets por código o nombre"
                 />
               </div>
               <div className="table-wrapper">
@@ -429,6 +436,7 @@ export function ImportPage() {
                             className="btn btn-primary btn-sm"
                             onClick={() => handleImportSet(s.code)}
                             disabled={importingSet === s.code}
+                            title={`Importar catálogo completo del set ${s.code}`}
                           >
                             {importingSet === s.code ? '⏳ Importando…' : '⬇ Importar Set'}
                           </button>
@@ -502,7 +510,7 @@ export function ImportPage() {
                   </div>
                 )}
                 {validationResult.valid && (
-                  <button className="btn btn-primary" onClick={handleImportCsv} disabled={importing}>
+                  <button className="btn btn-primary" onClick={handleImportCsv} disabled={importing} title="Confirma la carga del CSV validado">
                     {importing ? '⏳ Importando…' : '✓ Confirmar Importación'}
                   </button>
                 )}

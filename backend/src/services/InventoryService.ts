@@ -271,11 +271,11 @@ export class InventoryService {
 
   static async getInventoryForExport(query: InventoryExportQuery) {
     const where: {
-      status: string;
+      status: { in: string[] };
       editionId?: string;
       card?: { tcgId?: string };
     } = {
-      status: 'active',
+      status: { in: ['active', 'manual'] },
     };
 
     if (query.scope === 'edition') {

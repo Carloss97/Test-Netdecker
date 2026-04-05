@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { getAvailableListings, syncListingPrices, getPriceVolatility } from '../services/catalog';
+import { getAvailableListings, syncListingPrices, getPriceVolatility, updateListingPricingMode } from '../services/catalog';
 import type { Listing } from '../types';
 
 interface VolatileEvent {
@@ -21,6 +21,7 @@ interface VolatileResponse {
 }
 
 export function PricingPage() {
+  const roundRobinOrder: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'];
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -29,8 +30,13 @@ export function PricingPage() {
   const [selectedEditionId, setSelectedEditionId] = useState('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncMinutes, setAutoSyncMinutes] = useState(60);
+  const [autoSyncStrategy, setAutoSyncStrategy] = useState<'scope' | 'round-robin-tcg'>('scope');
   const [staleDays, setStaleDays] = useState(7);
+  const [pricingModeFilter, setPricingModeFilter] = useState<'all' | 'api' | 'manual'>('all');
+  const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
+  const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
   const syncingRef = useRef(false);
+  const roundRobinIndexRef = useRef(0);
 
   const { data: listings, status: listingsStatus, error: listingsError, execute: reloadListings } = useAsync<Listing[]>(
     () => getAvailableListings()
@@ -45,6 +51,10 @@ export function PricingPage() {
     if (selectedTcg === 'ALL') return true;
     const tcgName = (l.card as Listing['card'] & { tcg?: { name?: string } })?.tcg?.name;
     return tcgName === selectedTcg;
+  }).filter((l) => {
+    if (pricingModeFilter === 'all') return true;
+    if (pricingModeFilter === 'manual') return l.status === 'manual';
+    return l.status !== 'manual';
   });
   const availableEditions = filteredListings
     .map((l) => ({
@@ -65,9 +75,38 @@ export function PricingPage() {
   const staleListings = filteredListings.filter((listing) => {
     return isListingStale(listing);
   });
+  const nextRoundRobinTcg = roundRobinOrder[roundRobinIndexRef.current % roundRobinOrder.length];
 
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+
+  const updatePricingMode = async (listing: Listing, mode: 'manual' | 'api') => {
+    setUpdatingPricingId(listing.id);
+    setSyncError(null);
+    setSyncMsg(null);
+
+    try {
+      if (mode === 'manual') {
+        const rawDraft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
+        const manualPrice = Number(rawDraft);
+        if (!Number.isFinite(manualPrice) || manualPrice <= 0) {
+          setSyncError('Ingresa un precio manual CLP válido (> 0)');
+          return;
+        }
+        await updateListingPricingMode(listing.id, 'manual', manualPrice);
+        setSyncMsg('Precio manual guardado. Este listing queda fuera del sync automático/API.');
+      } else {
+        await updateListingPricingMode(listing.id, 'api');
+        setSyncMsg('Modo API restaurado para el listing.');
+      }
+
+      reloadListings();
+    } catch {
+      setSyncError('No se pudo actualizar el modo de precio del listing');
+    } finally {
+      setUpdatingPricingId(null);
+    }
+  };
 
   const handleSync = async (silent: boolean = false) => {
     if (syncingRef.current) return;
@@ -79,6 +118,12 @@ export function PricingPage() {
     }
     try {
       const filters: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'; editionId?: string } = {};
+      if (autoSyncStrategy === 'round-robin-tcg' && silent) {
+        const tcgName = roundRobinOrder[roundRobinIndexRef.current % roundRobinOrder.length];
+        roundRobinIndexRef.current = (roundRobinIndexRef.current + 1) % roundRobinOrder.length;
+        filters.tcgName = tcgName;
+      }
+
       if (syncScope === 'tcg') {
         if (selectedTcg === 'ALL') {
           if (!silent) setSyncError('Selecciona un TCG para sincronizar por juego');
@@ -116,12 +161,16 @@ export function PricingPage() {
   useEffect(() => {
     const savedEnabled = window.localStorage.getItem('pricing:autoSyncEnabled');
     const savedMinutes = window.localStorage.getItem('pricing:autoSyncMinutes');
+    const savedStrategy = window.localStorage.getItem('pricing:autoSyncStrategy');
     const savedStaleDays = window.localStorage.getItem('pricing:staleDays');
 
     if (savedEnabled === 'true') setAutoSyncEnabled(true);
     if (savedMinutes) {
       const parsed = Number(savedMinutes);
       if (Number.isFinite(parsed) && parsed >= 5) setAutoSyncMinutes(parsed);
+    }
+    if (savedStrategy === 'scope' || savedStrategy === 'round-robin-tcg') {
+      setAutoSyncStrategy(savedStrategy);
     }
     if (savedStaleDays) {
       const parsed = Number(savedStaleDays);
@@ -132,8 +181,9 @@ export function PricingPage() {
   useEffect(() => {
     window.localStorage.setItem('pricing:autoSyncEnabled', String(autoSyncEnabled));
     window.localStorage.setItem('pricing:autoSyncMinutes', String(autoSyncMinutes));
+    window.localStorage.setItem('pricing:autoSyncStrategy', autoSyncStrategy);
     window.localStorage.setItem('pricing:staleDays', String(staleDays));
-  }, [autoSyncEnabled, autoSyncMinutes, staleDays]);
+  }, [autoSyncEnabled, autoSyncMinutes, autoSyncStrategy, staleDays]);
 
   useEffect(() => {
     if (!autoSyncEnabled) return;
@@ -142,28 +192,29 @@ export function PricingPage() {
       handleSync(true);
     }, intervalMs);
     return () => window.clearInterval(id);
-  }, [autoSyncEnabled, autoSyncMinutes, syncScope, selectedTcg, selectedEditionId]);
+  }, [autoSyncEnabled, autoSyncMinutes, autoSyncStrategy, syncScope, selectedTcg, selectedEditionId]);
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <select className="input input-sm" value={syncScope} onChange={(e) => setSyncScope(e.target.value as 'all' | 'tcg' | 'edition')}>
-            <option value="all">Sync total</option>
-            <option value="tcg">Sync por TCG</option>
-            <option value="edition">Sync por edición</option>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select className="input input-sm" value={syncScope} onChange={(e) => setSyncScope(e.target.value as 'all' | 'tcg' | 'edition')} title="Define el alcance de la sincronización manual">
+            <option value="all">Sincronización total</option>
+            <option value="tcg">Sincronizar por TCG</option>
+            <option value="edition">Sincronizar por edición</option>
           </select>
           {syncScope === 'tcg' && (
-            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')}>
-              <option value="ALL">Selecciona TCG</option>
+            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')} title="TCG puntual a sincronizar cuando el alcance es por TCG">
+              <option value="ALL">Selecciona un TCG</option>
               <option value="MAGIC">MAGIC</option>
               <option value="POKEMON">POKEMON</option>
               <option value="YUGIOH">YUGIOH</option>
-              <option value="ONE_PIECE">ONE_PIECE</option>
+              <option value="ONE_PIECE">ONE PIECE</option>
             </select>
           )}
           {syncScope === 'edition' && (
-            <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)}>
+            <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)} title="Edición específica a sincronizar">
               <option value="">Selecciona edición</option>
               {availableEditions.map((ed) => (
                 <option key={ed.id} value={ed.id}>{ed.code} · {ed.name}</option>
@@ -176,10 +227,14 @@ export function PricingPage() {
           {syncError && (
             <span style={{ color: 'var(--danger)', fontSize: '0.875rem' }}>⚠ {syncError}</span>
           )}
+          </div>
+          <button className="btn btn-primary" onClick={() => { void handleSync(); }} disabled={syncing} title="Ejecuta la sincronización manual con los filtros actuales">
+            {syncing ? '⏳ Sincronizando…' : '🔄 Sincronizar Precios'}
+          </button>
         </div>
-        <button className="btn btn-primary" onClick={handleSync} disabled={syncing}>
-          {syncing ? '⏳ Sincronizando…' : '🔄 Sincronizar Precios'}
-        </button>
+        <div style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+          Define el alcance de la sincronización manual: total, por TCG o por edición específica.
+        </div>
       </div>
 
       {volatileStatus === 'success' && volatileData && volatileData.events?.length > 0 && (
@@ -215,6 +270,7 @@ export function PricingPage() {
             value={autoSyncMinutes}
             onChange={(e) => setAutoSyncMinutes(Number(e.target.value))}
             disabled={!autoSyncEnabled}
+            title="Frecuencia de ejecución de la sincronización automática"
           >
             <option value={15}>Cada 15 min</option>
             <option value={30}>Cada 30 min</option>
@@ -222,9 +278,26 @@ export function PricingPage() {
             <option value={180}>Cada 3 horas</option>
             <option value={360}>Cada 6 horas</option>
           </select>
+          <select
+            className="input input-sm"
+            value={autoSyncStrategy}
+            onChange={(e) => setAutoSyncStrategy(e.target.value as 'scope' | 'round-robin-tcg')}
+            disabled={!autoSyncEnabled}
+            title="Estrategia: usar alcance actual o rotar por TCG"
+          >
+            <option value="scope">Usar alcance actual</option>
+            <option value="round-robin-tcg">Rotar por TCG (1 por intervalo)</option>
+          </select>
           <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Scope actual del auto-sync: {syncScope === 'all' ? 'Total' : syncScope === 'tcg' ? 'Por TCG' : 'Por edición'}
+            {autoSyncStrategy === 'round-robin-tcg'
+              ? 'Modo rotativo: cada intervalo sincroniza solo 1 TCG'
+              : `Alcance actual del auto-sync: ${syncScope === 'all' ? 'Total' : syncScope === 'tcg' ? 'Por TCG' : 'Por edición'}`}
           </span>
+        </div>
+        <div style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+          {autoSyncStrategy === 'round-robin-tcg'
+            ? `Próximo TCG en ronda: ${nextRoundRobinTcg}`
+            : 'Consejo: usa modo rotativo por TCG para reducir carga de APIs en catálogos grandes.'}
         </div>
       </div>
 
@@ -242,7 +315,7 @@ export function PricingPage() {
             <option value={30}>30 días</option>
           </select>
           <span className={`badge ${staleListings.length > 0 ? 'badge-yellow' : 'badge-green'}`}>
-            {staleListings.length} listing(s) con precio desactualizado
+            {staleListings.length} registros con precio desactualizado
           </span>
         </div>
       </div>
@@ -250,15 +323,26 @@ export function PricingPage() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div className="section-title" style={{ margin: 0 }}>
-            Listings con Stock ({filteredListings.length})
+            Listings con stock ({filteredListings.length})
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select
+              className="input input-sm"
+              value={pricingModeFilter}
+              onChange={(e) => setPricingModeFilter(e.target.value as 'all' | 'api' | 'manual')}
+              title="Filtrar por modo de precio"
+            >
+              <option value="all">Todos los modos</option>
+              <option value="api">Solo API</option>
+              <option value="manual">Solo manual</option>
+            </select>
             {(['ALL', 'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'] as const).map((tcg) => (
               <button
                 key={tcg}
                 type="button"
                 className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setSelectedTcg(tcg)}
+                title={`Filtrar tabla por ${tcg === 'ALL' ? 'todos los TCG' : tcg}`}
               >
                 {tcg === 'ALL' ? 'Todos' : tcg}
               </button>
@@ -284,13 +368,17 @@ export function PricingPage() {
                   <th>Carta</th>
                   <th>Rareza</th>
                   <th>Stock</th>
+                  <th>Modo Precio</th>
                   <th>Precio Ref (USD)</th>
                   <th>Precio Final (CLP)</th>
-                  <th>Última Sync</th>
+                  <th>Acción</th>
+                  <th>Última sincronización</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredListings.map((listing) => {
+                  const isManual = listing.status === 'manual';
+                  const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
                   return (
                   <tr key={listing.id}>
                     <td>
@@ -312,11 +400,47 @@ export function PricingPage() {
                         {listing.quantity}
                       </span>
                     </td>
+                    <td>
+                      <span className={`badge ${isManual ? 'badge-yellow' : 'badge-blue'}`}>
+                        {isManual ? 'Manual' : 'API'}
+                      </span>
+                    </td>
                     <td style={{ fontSize: '0.85rem' }}>
                       {listing.referencePrice != null ? `$${listing.referencePrice.toFixed(2)}` : '—'}
                     </td>
                     <td style={{ fontWeight: 600 }}>
                       {listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                          type="number"
+                          className="input input-sm"
+                          value={draft}
+                          onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                          style={{ width: 120 }}
+                          disabled={updatingPricingId === listing.id}
+                          title="Precio manual CLP para este listing"
+                        />
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          disabled={updatingPricingId === listing.id}
+                          onClick={() => updatePricingMode(listing, 'manual')}
+                          title="Fijar precio manual y excluir del sync API"
+                        >
+                          {updatingPricingId === listing.id && isManual ? '⏳ Guardando…' : 'Fijar manual'}
+                        </button>
+                        {isManual && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            disabled={updatingPricingId === listing.id}
+                            onClick={() => updatePricingMode(listing, 'api')}
+                            title="Volver a precio calculado por API"
+                          >
+                            Usar API
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       {listing.lastSyncedAt

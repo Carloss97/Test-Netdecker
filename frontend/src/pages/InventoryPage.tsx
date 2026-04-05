@@ -279,7 +279,7 @@ export function InventoryPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setError('Error al descargar template CSV');
+      setError('Error al descargar plantilla CSV');
     }
   };
 
@@ -411,7 +411,7 @@ export function InventoryPage() {
 
         {/* Column 2: Set list */}
         <div className="inventory-col-sets">
-          <div className="section-title">Set / Edición</div>
+          <div className="section-title">Edición</div>
           {selectedTcg ? (
             <>
               <input
@@ -421,12 +421,16 @@ export function InventoryPage() {
                 value={setSearch}
                 onChange={(e) => setSetSearch(e.target.value)}
                 style={{ marginBottom: 8 }}
+                title="Filtra ediciones por nombre o código"
               />
+              <div style={{ marginBottom: 8, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Selecciona una edición para cargar sus cartas y editar stock manualmente.
+              </div>
               {loadingEditions ? (
                 <div className="loading-spinner" style={{ padding: 20 }}>⏳</div>
               ) : filteredEditions.length === 0 ? (
                 <div className="empty-state" style={{ padding: 20 }}>
-                  <div>Sin sets disponibles</div>
+                  <div>Sin ediciones disponibles</div>
                 </div>
               ) : (
                 filteredEditions.map((ed) => (
@@ -469,10 +473,10 @@ export function InventoryPage() {
             </div>
             {selectedEdition && (
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={handleDownloadTemplate}>
-                  ⬇ Template CSV
+                <button className="btn btn-secondary btn-sm" onClick={handleDownloadTemplate} title="Descarga plantilla CSV para editar cantidades fuera de la app">
+                  ⬇ Plantilla CSV
                 </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()}>
+                <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()} title="Sube un CSV para actualizar stock en lote">
                   ⬆ Subir CSV
                 </button>
                 <input
@@ -486,6 +490,7 @@ export function InventoryPage() {
                   className="btn btn-primary btn-sm"
                   onClick={handleSaveChanges}
                   disabled={dirtyRows.size === 0 || saving}
+                  title="Guarda todos los cambios de stock pendientes"
                 >
                   {saving ? '⏳ Guardando…' : `💾 Guardar${dirtyRows.size > 0 ? ` (${dirtyRows.size})` : ''}`}
                 </button>
@@ -503,6 +508,7 @@ export function InventoryPage() {
                 value={cardSearch}
                 onChange={(e) => setCardSearch(e.target.value)}
                 style={{ flex: 1 }}
+                title="Busca cartas por nombre, código interno o número de carta"
               />
               {cardSearch && (
                 <button
@@ -513,6 +519,11 @@ export function InventoryPage() {
                   ✕
                 </button>
               )}
+            </div>
+          )}
+          {selectedEdition && cards.length > 0 && (
+            <div style={{ marginBottom: 10, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Edición rápida: usa + y − para ajustar stock, o clic en el número para editar directo.
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchCards, searchCardsByCode, getListingsByCard } from '../services/catalog';
+import { searchCards, searchCardsByCode, getListingsByCard, updateListingStock } from '../services/catalog';
 import type { Card, Listing } from '../types';
 
 const RARITY_BADGE: Record<string, string> = {
@@ -52,6 +52,7 @@ export function CardSearchPage() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [loadingListings, setLoadingListings] = useState<string | null>(null);
   const [cardListings, setCardListings] = useState<Record<string, Listing[]>>({});
+  const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +95,32 @@ export function CardSearchPage() {
       setCardListings((prev) => ({ ...prev, [card.id]: [] }));
     } finally {
       setLoadingListings(null);
+    }
+  };
+
+  const adjustListingStock = async (cardId: string, listingId: string, delta: number) => {
+    const currentListings = cardListings[cardId] ?? [];
+    const current = currentListings.find((l) => l.id === listingId);
+    if (!current) return;
+
+    if (delta < 0 && current.quantity <= 0) return;
+
+    setUpdatingStockId(listingId);
+    try {
+      const op = delta > 0 ? 'inc' : 'dec';
+      const response = await updateListingStock(listingId, op, Math.abs(delta));
+      setCardListings((prev) => ({
+        ...prev,
+        [cardId]: (prev[cardId] ?? []).map((listing) =>
+          listing.id === listingId
+            ? { ...listing, quantity: response.quantity }
+            : listing,
+        ),
+      }));
+    } catch {
+      setError('No se pudo actualizar el stock del listing');
+    } finally {
+      setUpdatingStockId(null);
     }
   };
 
@@ -328,9 +355,29 @@ export function CardSearchPage() {
                             </span>
                           </td>
                           <td style={{ fontWeight: listing.quantity === 0 ? 400 : 600 }}>
-                            <span style={{ color: listing.quantity === 0 ? 'var(--text-muted)' : listing.quantity <= 2 ? '#dc2626' : 'var(--text)' }}>
-                              {listing.quantity}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                disabled={updatingStockId === listing.id || listing.quantity <= 0}
+                                title="Reducir stock"
+                                onClick={() => adjustListingStock(first.id, listing.id, -1)}
+                              >
+                                −
+                              </button>
+                              <span style={{ color: listing.quantity === 0 ? 'var(--text-muted)' : listing.quantity <= 2 ? '#dc2626' : 'var(--text)' }}>
+                                {listing.quantity}
+                              </span>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                disabled={updatingStockId === listing.id}
+                                title="Aumentar stock"
+                                onClick={() => adjustListingStock(first.id, listing.id, +1)}
+                              >
+                                +
+                              </button>
+                            </div>
                           </td>
                           <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
                           <td style={{ fontWeight: 500 }}>{listing.finalPrice ? fmtCLP(listing.finalPrice) : '—'}</td>
