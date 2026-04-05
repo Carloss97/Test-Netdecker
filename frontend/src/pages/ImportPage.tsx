@@ -13,7 +13,7 @@ import {
 } from '../services/catalog';
 import type { EditionWithCounts } from '../types';
 
-type TcgCode = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+type TcgCode = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
 
 interface ExternalSetItem {
   code: string;

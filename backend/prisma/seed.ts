@@ -28,6 +28,16 @@ async function main() {
       name: 'ONE_PIECE' as TCGType,
       displayName: 'One Piece Trading Card Game',
       description: 'Sailin\' for adventure'
+    },
+    {
+      name: 'DIGIMON' as TCGType,
+      displayName: 'Digimon Card Game',
+      description: 'Digivolve to victory'
+    },
+    {
+      name: 'WEISS_SCHWARZ' as TCGType,
+      displayName: 'Weiss Schwarz',
+      description: 'Anime-themed card game by Bushiroad'
     }
   ];
 

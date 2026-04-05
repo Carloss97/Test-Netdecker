@@ -3,7 +3,7 @@ import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExternalImportService } from './ExternalImportService.js';
 
 export interface CatalogSyncOptions {
-  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   dryRun?: boolean;
   createListings?: boolean;
   initialQuantity?: number;
@@ -12,7 +12,7 @@ export interface CatalogSyncOptions {
 }
 
 export interface CatalogSyncSetResult {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   setCode: string;
   setName: string;
   imported: boolean;
@@ -34,7 +34,9 @@ export interface CatalogSyncResult {
   bySet: CatalogSyncSetResult[];
 }
 
-const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH'> = ['MAGIC', 'POKEMON', 'YUGIOH'];
+const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = [
+  'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ',
+];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

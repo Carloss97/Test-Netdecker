@@ -62,8 +62,8 @@ export interface InventoryValue {
 // External card database types
 export interface ExternalCard {
   externalId: string;
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck';
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH';
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg' | 'tcgcsv';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   cardName: string;
   cardNumber?: string;
   editionCode: string;
@@ -132,7 +132,7 @@ export interface AdminDashboard {
 }
 
 export interface TcgplayerCoverageByTcg {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   tcgDisplayName: string;
   totalCards: number;
   coveredCards: number;
@@ -159,7 +159,7 @@ export interface CatalogBootstrapResponse {
   setsProcessed: number;
   cardsProcessed: number;
   bySet: Array<{
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
     setCode: string;
     setName: string;
     totalCards: number;
@@ -179,7 +179,7 @@ export interface CatalogSyncResponse {
   updatedCards: number;
   skippedCards: number;
   bySet: Array<{
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
     setCode: string;
     setName: string;
     imported: boolean;

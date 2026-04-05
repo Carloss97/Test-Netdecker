@@ -1,5 +1,5 @@
 // src/services/ExternalImportService.ts
-// Imports cards from external databases (Scryfall, PokémonTCG, YGOPRODeck) into
+// Imports cards from external databases (Scryfall, PokémonTCG, YGOPRODeck, TCGCsv) into
 // our local database (Card, Edition, Listing models).
 
 import prisma from '../utils/db.js';
@@ -53,6 +53,8 @@ export class ExternalImportService {
       POKEMON: 0.75,
       YUGIOH: 0.50,
       ONE_PIECE: 0.35,
+      DIGIMON: 0.35,
+      WEISS_SCHWARZ: 0.35,
     };
 
     const basePrice = basePrices[tcg] || 0.50;
@@ -286,7 +288,7 @@ export class ExternalImportService {
    * Search an external TCG database and import all results.
    */
   static async searchAndImport(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     query: string,
     options: ImportExternalCardOptions & { setCode?: string; page?: number } = {},
   ): Promise<BulkImportResult> {
@@ -301,7 +303,7 @@ export class ExternalImportService {
    * Import all cards from an edition/set code.
    */
   static async importSet(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     setCode: string,
     options: ImportExternalCardOptions = {},
   ): Promise<BulkImportResult> {

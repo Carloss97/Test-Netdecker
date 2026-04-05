@@ -53,7 +53,7 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
     roundingMultiple?: number;
     notes?: string;
     fetchExternalPrices?: boolean;
-    tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+    tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
     editionId?: string;
   };
 

@@ -70,6 +70,8 @@ export class TCGService {
       { name: 'POKEMON' as TCGType, displayName: 'Pokémon Trading Card Game' },
       { name: 'YUGIOH' as TCGType, displayName: 'Yu-Gi-Oh!' },
       { name: 'ONE_PIECE' as TCGType, displayName: 'One Piece Trading Card Game' },
+      { name: 'DIGIMON' as TCGType, displayName: 'Digimon Card Game' },
+      { name: 'WEISS_SCHWARZ' as TCGType, displayName: 'Weiss Schwarz' },
     ];
 
     for (const tcg of defaults) {

@@ -216,12 +216,12 @@ router.get('/editions', async (_req: Request, res: Response) => {
 
 /**
  * POST /api/admin/catalog/bootstrap
- * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
+ * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE'|'DIGIMON'|'WEISS_SCHWARZ', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
  */
 router.post('/catalog/bootstrap', async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
-  const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(tcgRaw)
-    ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')
+  const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(tcgRaw)
+    ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')
     : undefined;
 
   const result = await CatalogBootstrapService.bootstrapCatalog({

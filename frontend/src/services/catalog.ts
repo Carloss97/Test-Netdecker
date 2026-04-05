@@ -93,7 +93,7 @@ export async function syncListingPrices(
   roundingMultiple?: number,
   notes?: string,
   fetchExternalPrices?: boolean,
-  filters?: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'; editionId?: string },
+  filters?: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'; editionId?: string },
 ) {
   const { data } = await apiClient.post('/listings/sync-prices', {
     updates,
@@ -227,7 +227,7 @@ export async function exportInventoryImportsCsv(params?: {
 
 
 export async function searchExternalCards(
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
   query: string,
   options: { setCode?: string; page?: number } = {},
 ) {
@@ -238,14 +238,14 @@ export async function searchExternalCards(
 }
 
 
-export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE') {
+export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ') {
   const { data } = await apiClient.get('/external/sets', { params: { tcg } });
   return data;
 }
 
 
 export async function getExternalCardById(
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
   cardId: string,
 ) {
   const { data } = await apiClient.get(`/external/cards/${tcg}/${cardId}`);
@@ -254,7 +254,7 @@ export async function getExternalCardById(
 
 
 export async function importExternalCard(params: {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   cardId: string;
   createListing?: boolean;
   referencePrice?: number;
@@ -268,7 +268,7 @@ export async function importExternalCard(params: {
 
 
 export async function importExternalSearch(params: {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   query: string;
   setCode?: string;
   page?: number;
@@ -282,7 +282,7 @@ export async function importExternalSearch(params: {
 
 
 export async function importExternalSet(params: {
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   setCode: string;
   createListing?: boolean;
   marginMultiplier?: number;
@@ -343,7 +343,7 @@ export async function updateAdminPricingConfig(params: {
 }
 
 export async function bootstrapCatalog(params?: {
-  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   setCode?: string;
   setLimit?: number;
   dryRun?: boolean;
@@ -356,7 +356,7 @@ export async function bootstrapCatalog(params?: {
 }
 
 export async function syncCatalog(params?: {
-  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   dryRun?: boolean;
   createListings?: boolean;
   initialQuantity?: number;

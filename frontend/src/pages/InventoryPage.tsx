@@ -13,6 +13,8 @@ const TCG_META: Record<string, { emoji: string; label: string }> = {
   POKEMON: { emoji: '🎮', label: 'Pokémon' },
   YUGIOH: { emoji: '⚔️', label: 'Yu-Gi-Oh!' },
   ONE_PIECE: { emoji: '☠️', label: 'One Piece' },
+  DIGIMON: { emoji: '🦕', label: 'Digimon' },
+  WEISS_SCHWARZ: { emoji: '🌸', label: 'Weiss Schwarz' },
 };
 
 const RARITY_BADGE: Record<string, string> = {

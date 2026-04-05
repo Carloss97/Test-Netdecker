@@ -19,6 +19,8 @@ enum TCGType {
   POKEMON
   YUGIOH
   ONE_PIECE
+  DIGIMON
+  WEISS_SCHWARZ
 }
 
 enum CardCondition {
