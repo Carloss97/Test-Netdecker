@@ -62,7 +62,7 @@ export function AdminDashboardPage() {
   const [volatilityWindow, setVolatilityWindow] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
   const [volatileLoading, setVolatileLoading] = useState(false);
   const [volatileEvents, setVolatileEvents] = useState<Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }>>([]);
-  const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | ''>('');
+  const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ' | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
   const [initialQuantity, setInitialQuantity] = useState('0');
@@ -151,8 +151,8 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('bootstrap');
     setCatalogActionError(null);
     try {
-      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(catalogTcg)
-        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')
+      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(catalogTcg)
+        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')
         : undefined;
       const payload = await bootstrapCatalog({
         tcg,
@@ -175,8 +175,8 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('sync');
     setCatalogActionError(null);
     try {
-      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(catalogTcg)
-        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')
+      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(catalogTcg)
+        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')
         : undefined;
       const payload = await syncCatalog({
         tcg,
@@ -314,6 +314,8 @@ export function AdminDashboardPage() {
                 <option value="POKEMON">Pokémon</option>
                 <option value="YUGIOH">Yu-Gi-Oh!</option>
                 <option value="ONE_PIECE">One Piece</option>
+                <option value="DIGIMON">Digimon Card Game</option>
+                <option value="WEISS_SCHWARZ">Weiss Schwarz</option>
               </select>
               <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
                 Limita la operación a un juego. Si dejas "Todos", afecta todo el catálogo.

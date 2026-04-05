@@ -157,8 +157,11 @@ function parseTcg(raw: string): TCGType {
   if (normalized === 'ONEPIECE') {
     return 'ONE_PIECE';
   }
+  if (normalized === 'WEISS' || normalized === 'WEISS_SCHWARZ') {
+    return 'WEISS_SCHWARZ';
+  }
 
-  if (!['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'].includes(normalized)) {
+  if (!['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(normalized)) {
     throw new Error(`Invalid TCG value: ${raw}`);
   }
 

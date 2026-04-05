@@ -9,13 +9,15 @@ import {
 import type { ExternalCard, ExternalEdition } from '../types';
 
 
-type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
 
 const TCG_LABELS: Record<TCGParam, string> = {
   MAGIC: 'Magic: The Gathering',
   POKEMON: 'Pokémon',
   YUGIOH: 'Yu-Gi-Oh!',
   ONE_PIECE: 'One Piece',
+  DIGIMON: 'Digimon Card Game',
+  WEISS_SCHWARZ: 'Weiss Schwarz',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -23,6 +25,7 @@ const SOURCE_LABELS: Record<string, string> = {
   pokemontcg: 'Pokémon TCG API',
   ygoprodeck: 'YGOPRODeck',
   onepiecetcg: 'One Piece TCG',
+  tcgcsv: 'TCGCsv (TCGplayer)',
 };
 
 function PriceTag({ label, value }: { label: string; value?: number }) {
@@ -294,7 +297,7 @@ export function ExternalCardSearch() {
         <span className="badge" style={{ marginBottom: 10 }}>📦 External Data Sources</span>
         <h2 className="hero-title">Search & Import Cards from Official TCG APIs</h2>
         <p className="hero-subtitle">
-          Browse, preview prices and images, then import cards for Magic, Pokémon, Yu-Gi-Oh!, and One Piece directly to your catalog with a streamlined workflow designed for fast operations.
+          Browse, preview prices and images, then import cards for Magic, Pokémon, Yu-Gi-Oh!, One Piece, Digimon, and Weiss Schwarz directly to your catalog with a streamlined workflow designed for fast operations.
         </p>
       </div>
 
@@ -302,7 +305,7 @@ export function ExternalCardSearch() {
       <div className="surface-card" style={{ marginBottom: 16, padding: 16 }}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 10, color: '#333' }}>Select TCG</label>
         <p style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
-          <strong>💡</strong> Search and import cards from Magic, Pokémon, Yu-Gi-Oh!, One Piece. Each TCG uses its native API for accurate data.
+          <strong>💡</strong> Search and import cards from Magic, Pokémon, Yu-Gi-Oh!, One Piece, Digimon, and Weiss Schwarz. Each TCG uses its native API for accurate data.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {(Object.keys(TCG_LABELS) as TCGParam[]).map((t) => (

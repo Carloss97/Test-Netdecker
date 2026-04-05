@@ -3,9 +3,12 @@
 //   - Scryfall (Magic: The Gathering) — https://scryfall.com/docs/api
 //   - Pokémon TCG API         — https://pokemontcg.io/
 //   - YGOPRODeck API          — https://ygoprodeck.com/api-guide/
+//   - TCGCsv (tcgcsv.com)     — free TCGplayer mirror; primary source for
+//                               Digimon Card Game and Weiss Schwarz
 
 import axios from 'axios';
 import { cacheGet, cacheSet } from '../utils/redis.js';
+import { TCGCsvService } from './TCGCsvService.js';
 
 // ─────────────────────────────────────────────
 // Shared types
@@ -13,8 +16,8 @@ import { cacheGet, cacheSet } from '../utils/redis.js';
 
 export interface ExternalCard {
   externalId: string;       // ID in the source database
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg';
-  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg' | 'tcgcsv';
+  tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   cardName: string;
   cardNumber?: string;
   editionCode: string;
@@ -35,7 +38,7 @@ export interface ExternalEdition {
   name: string;
   releaseDate?: string;
   totalCards?: number;
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg';
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg' | 'tcgcsv';
 }
 
 const CACHE_TTL = 3600 * 3; // 3 hours
@@ -884,7 +887,7 @@ export class OptcgapiService {
 
 export class CardDatabaseService {
   static async searchCards(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     query: string,
     options: { setCode?: string; page?: number } = {},
   ): Promise<ExternalCard[]> {
@@ -897,13 +900,16 @@ export class CardDatabaseService {
         return YGOProDeckService.searchCards(query, options.setCode);
       case 'ONE_PIECE':
         return OptcgapiService.searchCards(query);
+      case 'DIGIMON':
+      case 'WEISS_SCHWARZ':
+        return TCGCsvService.searchCards(tcg, query);
       default:
         return [];
     }
   }
 
   static async getCardById(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     cardId: string,
   ): Promise<ExternalCard | null> {
     switch (tcg) {
@@ -915,13 +921,33 @@ export class CardDatabaseService {
         return YGOProDeckService.getCardById(cardId);
       case 'ONE_PIECE':
         return OptcgapiService.getCardById(cardId);
+      case 'DIGIMON':
+      case 'WEISS_SCHWARZ': {
+        // TCGCsv uses numeric productIds
+        const numericId = Number(cardId);
+        if (!Number.isFinite(numericId)) return null;
+        const prices = await TCGCsvService.getProductPrices(tcg, numericId);
+        if (!prices.length) return null;
+        // Return a minimal card record with pricing info
+        return {
+          externalId: cardId,
+          source: 'tcgcsv',
+          tcg,
+          cardName: cardId,
+          editionCode: 'UNKNOWN',
+          editionName: 'Unknown',
+          priceMarket: prices[0]?.marketPrice ?? undefined,
+          priceMid: prices[0]?.midPrice ?? undefined,
+          priceLow: prices[0]?.lowPrice ?? undefined,
+        } as ExternalCard;
+      }
       default:
         return null;
     }
   }
 
   static async getSetCards(
-    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE',
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     setCode: string,
   ): Promise<ExternalCard[]> {
     switch (tcg) {
@@ -933,12 +959,15 @@ export class CardDatabaseService {
         return YGOProDeckService.getSetCards(setCode);
       case 'ONE_PIECE':
         return OptcgapiService.getSetCards(setCode);
+      case 'DIGIMON':
+      case 'WEISS_SCHWARZ':
+        return TCGCsvService.getSetCards(tcg, setCode);
       default:
         return [];
     }
   }
 
-  static async listSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'): Promise<ExternalEdition[]> {
+  static async listSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'): Promise<ExternalEdition[]> {
     switch (tcg) {
       case 'MAGIC':
         return ScryfallService.listSets();
@@ -948,6 +977,9 @@ export class CardDatabaseService {
         return YGOProDeckService.listSets();
       case 'ONE_PIECE':
         return OptcgapiService.listSets();
+      case 'DIGIMON':
+      case 'WEISS_SCHWARZ':
+        return TCGCsvService.listSets(tcg);
       default:
         return [];
     }

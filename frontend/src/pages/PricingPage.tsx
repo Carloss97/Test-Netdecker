@@ -85,11 +85,11 @@ function ModeToggle({
 }
 
 export function PricingPage() {
-  const roundRobinOrder: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'];
+  const roundRobinOrder: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [selectedTcg, setSelectedTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'>('MAGIC');
+  const [selectedTcg, setSelectedTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'>('MAGIC');
   const [syncScope, setSyncScope] = useState<'all' | 'tcg' | 'edition'>('all');
   const [selectedEditionId, setSelectedEditionId] = useState('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
@@ -241,7 +241,7 @@ export function PricingPage() {
       setSyncError(null);
     }
     try {
-      const filters: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE'; editionId?: string } = {};
+      const filters: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'; editionId?: string } = {};
       if (autoSyncStrategy === 'round-robin-tcg' && silent) {
         const tcgName = roundRobinOrder[roundRobinIndexRef.current % roundRobinOrder.length];
         roundRobinIndexRef.current = (roundRobinIndexRef.current + 1) % roundRobinOrder.length;
@@ -323,11 +323,13 @@ export function PricingPage() {
             <option value="edition">Sincronizar por edición</option>
           </select>
           {syncScope === 'tcg' && (
-            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE')} title="TCG puntual a sincronizar cuando el alcance es por TCG">
+            <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')} title="TCG puntual a sincronizar cuando el alcance es por TCG">
               <option value="MAGIC">MAGIC</option>
               <option value="POKEMON">POKEMON</option>
               <option value="YUGIOH">YUGIOH</option>
               <option value="ONE_PIECE">ONE PIECE</option>
+              <option value="DIGIMON">DIGIMON</option>
+              <option value="WEISS_SCHWARZ">WEISS SCHWARZ</option>
             </select>
           )}
           {syncScope === 'edition' && (
@@ -471,7 +473,7 @@ export function PricingPage() {
               placeholder="Buscar por nombre o código"
               title="Filtrar listings por nombre o código de carta"
             />
-            {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'] as const).map((tcg) => (
+            {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map((tcg) => (
               <button
                 key={tcg}
                 type="button"

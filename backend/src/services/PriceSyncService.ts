@@ -2,6 +2,7 @@ import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { PriceUpdateReason } from '@prisma/client';
 import { CardDatabaseService, ScryfallService, YGOProDeckService, PokemonTCGService, OptcgapiService } from './CardDatabaseService.js';
+import { TCGCsvService } from './TCGCsvService.js';
 
 export interface PriceSyncUpdateInput {
   listingId: string;
@@ -19,7 +20,7 @@ export interface RunPriceSyncInput {
   /** When true (default for cron), tries to fetch latest market price from external APIs */
   fetchExternalPrices?: boolean;
   /** Optional manual sync filters */
-  tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+  tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   editionId?: string;
 }
 
@@ -41,7 +42,7 @@ export interface PriceSyncResult {
   completedAt: string;
 }
 
-type SyncTcgName = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE';
+type SyncTcgName = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
 
 type PriceSyncRunDelegate = {
   create: (args: unknown) => Promise<{ id: string }>;
@@ -99,6 +100,15 @@ async function fetchExternalMarketPrice(
       const card = await OptcgapiService.getCardById(cardCode);
       return card?.priceMarket ?? null;
     }
+
+    if (tcgName === 'DIGIMON' || tcgName === 'WEISS_SCHWARZ') {
+      const productId = Number(cardCode);
+      if (!Number.isFinite(productId)) return null;
+      return TCGCsvService.getBestPriceForProduct(
+        tcgName as 'DIGIMON' | 'WEISS_SCHWARZ',
+        productId,
+      );
+    }
   } catch {
     // Fall through to return null
   }
@@ -114,6 +124,8 @@ const SET_SYNC_DELAY_MS: Record<SyncTcgName, number> = {
   POKEMON: 120,
   YUGIOH: 60,
   ONE_PIECE: 350,
+  DIGIMON: 200,
+  WEISS_SCHWARZ: 200,
 };
 
 function normalizeSetCodeForTcg(tcgName: SyncTcgName, editionCode: string): string {
@@ -147,6 +159,8 @@ function estimateFallbackReferencePrice(tcgName: string, rarity?: string): numbe
     POKEMON: 0.75,
     YUGIOH: 0.5,
     ONE_PIECE: 0.35,
+    DIGIMON: 0.35,
+    WEISS_SCHWARZ: 0.35,
   };
   const base = baseByTcg[tcgName] ?? 0.5;
   const r = (rarity || '').toLowerCase();
@@ -207,7 +221,7 @@ export class PriceSyncService {
         const where: {
           status: string;
           editionId?: string;
-          card?: { tcg: { name: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' } };
+          card?: { tcg: { name: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ' } };
         } = {
           status: 'active',
         };
