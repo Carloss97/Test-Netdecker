@@ -7,6 +7,9 @@ import { PriceSyncService } from '../services/PriceSyncService.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
+import { PriceService } from '../services/PriceService.js';
+import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 
@@ -220,8 +223,8 @@ router.get('/editions', async (_req: Request, res: Response) => {
  */
 router.post('/catalog/bootstrap', async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
-  const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(tcgRaw)
-    ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')
+  const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
+    ? (tcgRaw as typeof SUPPORTED_TCGS[number])
     : undefined;
 
   const result = await CatalogBootstrapService.bootstrapCatalog({
@@ -246,8 +249,8 @@ router.post('/catalog/bootstrap', async (req: Request, res: Response) => {
  */
 router.post('/catalog/sync', async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
-  const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(tcgRaw)
-    ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+  const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
+    ? (tcgRaw as typeof SUPPORTED_TCGS[number])
     : undefined;
 
   const result = await CatalogSyncService.syncNewSets({
@@ -260,6 +263,142 @@ router.post('/catalog/sync', async (req: Request, res: Response) => {
   });
 
   res.json({ success: true, ...result });
+});
+
+/**
+ * POST /api/admin/pricing/preview
+ * Preview a potential pricing change before persisting.
+ *
+ * Body:
+ * {
+ *   listingId?: string,
+ *   referencePrice?: number,
+ *   marginMultiplier?: number,
+ *   roundingMultiple?: number
+ * }
+ *
+ * Usage:
+ * - listingId only: previews recalculation using current listing reference + margin.
+ * - listingId + overrides: previews applying the override values to that listing.
+ * - no listingId: requires referencePrice + marginMultiplier for generic preview.
+ */
+router.post('/pricing/preview', async (req: Request, res: Response) => {
+  const {
+    listingId,
+    referencePrice,
+    marginMultiplier,
+    roundingMultiple,
+  } = req.body as {
+    listingId?: string;
+    referencePrice?: number;
+    marginMultiplier?: number;
+    roundingMultiple?: number;
+  };
+
+  const hasListingId = typeof listingId === 'string' && listingId.trim().length > 0;
+  const hasExplicitReferencePrice = typeof referencePrice === 'number';
+  const hasExplicitMarginMultiplier = typeof marginMultiplier === 'number';
+
+  if (!hasListingId && (!hasExplicitReferencePrice || !hasExplicitMarginMultiplier)) {
+    throw new ValidationError('Provide listingId, or provide both referencePrice and marginMultiplier');
+  }
+
+  let listing: {
+    id: string;
+    cardId: string;
+    finalPrice: number;
+    referencePrice: number;
+    marginMultiplier: number;
+    card: { cardName: string; cardCode: string };
+    edition: { editionCode: string; editionName: string };
+  } | null = null;
+
+  if (hasListingId) {
+    listing = await prisma.listing.findUnique({
+      where: { id: listingId!.trim() },
+      include: {
+        card: { select: { cardName: true, cardCode: true } },
+        edition: { select: { editionCode: true, editionName: true } },
+      },
+    });
+
+    if (!listing) {
+      throw new NotFoundError('Listing not found');
+    }
+  }
+
+  const nextReferencePrice = hasExplicitReferencePrice
+    ? referencePrice!
+    : listing!.referencePrice;
+
+  const nextMarginMultiplier = hasExplicitMarginMultiplier
+    ? marginMultiplier!
+    : listing!.marginMultiplier;
+
+  if (!Number.isFinite(nextReferencePrice) || nextReferencePrice <= 0) {
+    throw new ValidationError('referencePrice must be a positive number');
+  }
+
+  if (!Number.isFinite(nextMarginMultiplier) || nextMarginMultiplier <= 0) {
+    throw new ValidationError('marginMultiplier must be a positive number');
+  }
+
+  if (roundingMultiple !== undefined && (!Number.isFinite(roundingMultiple) || roundingMultiple < 1)) {
+    throw new ValidationError('roundingMultiple must be a number >= 1 when provided');
+  }
+
+  const calculation = await PriceService.calculateFinalPriceDetailed({
+    referencePrice: nextReferencePrice,
+    marginMultiplier: nextMarginMultiplier,
+    roundingMultiple,
+  });
+
+  const currentFinalPrice = listing?.finalPrice ?? null;
+  const delta = currentFinalPrice === null ? null : calculation.finalPrice - currentFinalPrice;
+  const deltaPercent = currentFinalPrice === null
+    ? null
+    : currentFinalPrice === 0
+      ? (calculation.finalPrice > 0 ? 100 : 0)
+      : (delta! / currentFinalPrice) * 100;
+
+  res.json({
+    success: true,
+    listing: listing
+      ? {
+          id: listing.id,
+          cardId: listing.cardId,
+          cardName: listing.card.cardName,
+          cardCode: listing.card.cardCode,
+          editionCode: listing.edition.editionCode,
+          editionName: listing.edition.editionName,
+          currentReferencePrice: listing.referencePrice,
+          currentMarginMultiplier: listing.marginMultiplier,
+          currentFinalPrice: listing.finalPrice,
+        }
+      : null,
+    preview: {
+      referencePrice: nextReferencePrice,
+      marginMultiplier: nextMarginMultiplier,
+      exchangeRate: calculation.exchangeRate,
+      exchangeRateRetrievalSource: calculation.retrievalSource,
+      exchangeRateProvider: calculation.provider || null,
+      exchangeRateFetchedAt: calculation.fetchedAt || null,
+      exchangeRateExpiresAt: calculation.expiresAt || null,
+      roundingMultiple: calculation.roundingMultiple,
+      formula: calculation.formula,
+      rawFinalPrice: calculation.rawFinalPrice,
+      finalPrice: calculation.finalPrice,
+      roundedFinalPrice: Math.round(calculation.finalPrice),
+      currency: 'CLP',
+    },
+    diff: {
+      delta,
+      deltaPercent,
+      isVolatile: currentFinalPrice === null
+        ? null
+        : PriceService.isVolatileChange(currentFinalPrice, calculation.finalPrice),
+    },
+  });
 });
 
 /**
@@ -280,7 +419,7 @@ router.get('/pricing-config', async (_req: Request, res: Response) => {
   res.json({
     success: true,
     config: {
-      defaultMarginMultiplier: listingStats._avg.marginMultiplier ?? Number(process.env.DEFAULT_MARGIN_MULTIPLIER || 1.0),
+      defaultMarginMultiplier: listingStats._avg.marginMultiplier ?? DEFAULT_MARGIN_MULTIPLIER,
       listingCount: listingStats._count._all,
       exchangeRate: {
         mode: isManual ? 'manual' : 'api',

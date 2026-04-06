@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCsvRecords, parseCsv, detectImportMode, findDuplicateListingIds } from './InventoryService.js';
+import {
+  parseCsvRecords,
+  parseCsv,
+  detectImportMode,
+  findDuplicateListingIds,
+  validateListingUpdateRow,
+  validateFullUpsertRow,
+} from './InventoryService.js';
 
 test('parseCsvRecords handles quoted commas', () => {
   const content = 'cardName,notes\n"Lightning, Bolt","burn, instant"';
@@ -47,4 +54,54 @@ test('findDuplicateListingIds detects duplicates', () => {
 
   assert.equal(duplicates.length, 1);
   assert.equal(duplicates[0], 'abc');
+});
+
+test('validateListingUpdateRow validates and coerces quantity', () => {
+  const parsed = validateListingUpdateRow(
+    { listingId: 'listing-1', quantity: '4' },
+    new Set<string>(),
+  );
+
+  assert.equal(parsed.listingId, 'listing-1');
+  assert.equal(parsed.quantity, 4);
+});
+
+test('validateListingUpdateRow rejects duplicate listingId', () => {
+  assert.throws(
+    () => validateListingUpdateRow({ listingId: 'dup-1', quantity: '2' }, new Set(['dup-1'])),
+    /Duplicate listingId in CSV: dup-1/,
+  );
+});
+
+test('validateFullUpsertRow parses tcg aliases and defaults', () => {
+  const parsed = validateFullUpsertRow({
+    tcg: 'onepiece',
+    editionCode: 'OP-01',
+    cardCode: '001',
+    cardName: 'Luffy',
+    quantity: '3',
+    referencePrice: '2.5',
+  });
+
+  assert.equal(parsed.tcgType, 'ONE_PIECE');
+  assert.equal(parsed.editionName, 'OP-01');
+  assert.equal(parsed.quantity, 3);
+  assert.equal(parsed.referencePrice, 2.5);
+  assert.equal(parsed.marginMultiplier, 1);
+  assert.equal(parsed.condition, 'NM');
+  assert.equal(parsed.rarity, 'Unknown');
+});
+
+test('validateFullUpsertRow rejects invalid referencePrice', () => {
+  assert.throws(
+    () => validateFullUpsertRow({
+      tcg: 'MAGIC',
+      editionCode: 'MH3',
+      cardCode: '12',
+      cardName: 'Bolt',
+      quantity: '3',
+      referencePrice: '0',
+    }),
+    /Invalid referencePrice/,
+  );
 });

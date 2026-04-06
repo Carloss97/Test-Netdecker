@@ -212,6 +212,116 @@ test('POST /api/listings/price-preview rejects missing marginMultiplier', async 
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// Test: admin pricing preview validation
+// ────────────────────────────────────────────────────────────────────────────
+
+test('POST /api/admin/pricing/preview rejects missing listingId and missing explicit fields', async () => {
+  const app = express();
+  app.use(express.json());
+  app.post('/api/admin/pricing/preview', async (req: Request, res: Response) => {
+    const { listingId, referencePrice, marginMultiplier } = req.body as any;
+    const hasListingId = typeof listingId === 'string' && listingId.trim().length > 0;
+    const hasExplicitReferencePrice = typeof referencePrice === 'number';
+    const hasExplicitMarginMultiplier = typeof marginMultiplier === 'number';
+
+    if (!hasListingId && (!hasExplicitReferencePrice || !hasExplicitMarginMultiplier)) {
+      throw new ValidationError('Provide listingId, or provide both referencePrice and marginMultiplier');
+    }
+
+    res.json({ success: true });
+  });
+  app.use(buildErrorHandler());
+
+  const { status, body } = await makeRequest(app, 'POST', '/api/admin/pricing/preview', {});
+
+  assert.equal(status, 400);
+  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.match(body.error.message, /Provide listingId/);
+});
+
+test('POST /api/admin/pricing/preview rejects invalid roundingMultiple', async () => {
+  const app = express();
+  app.use(express.json());
+  app.post('/api/admin/pricing/preview', async (req: Request, res: Response) => {
+    const { referencePrice, marginMultiplier, roundingMultiple } = req.body as any;
+
+    if (typeof referencePrice !== 'number' || referencePrice <= 0) {
+      throw new ValidationError('referencePrice must be a positive number');
+    }
+    if (typeof marginMultiplier !== 'number' || marginMultiplier <= 0) {
+      throw new ValidationError('marginMultiplier must be a positive number');
+    }
+    if (roundingMultiple !== undefined && (!Number.isFinite(roundingMultiple) || roundingMultiple < 1)) {
+      throw new ValidationError('roundingMultiple must be a number >= 1 when provided');
+    }
+
+    res.json({ success: true });
+  });
+  app.use(buildErrorHandler());
+
+  const { status, body } = await makeRequest(
+    app,
+    'POST',
+    '/api/admin/pricing/preview',
+    { referencePrice: 2.5, marginMultiplier: 1.2, roundingMultiple: 0 },
+  );
+
+  assert.equal(status, 400);
+  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.match(body.error.message, /roundingMultiple/);
+});
+
+test('POST /api/admin/pricing/preview returns preview + diff for explicit inputs', async () => {
+  const app = express();
+  app.use(express.json());
+  app.post('/api/admin/pricing/preview', async (req: Request, res: Response) => {
+    const { referencePrice, marginMultiplier } = req.body as any;
+    if (typeof referencePrice !== 'number' || referencePrice <= 0) {
+      throw new ValidationError('referencePrice must be a positive number');
+    }
+    if (typeof marginMultiplier !== 'number' || marginMultiplier <= 0) {
+      throw new ValidationError('marginMultiplier must be a positive number');
+    }
+
+    const exchangeRate = 900;
+    const finalPrice = Math.round(referencePrice * marginMultiplier * exchangeRate);
+
+    res.json({
+      success: true,
+      listing: null,
+      preview: {
+        referencePrice,
+        marginMultiplier,
+        exchangeRate,
+        finalPrice,
+        currency: 'CLP',
+      },
+      diff: {
+        delta: null,
+        deltaPercent: null,
+        isVolatile: null,
+      },
+    });
+  });
+
+  const { status, body } = await makeRequest(
+    app,
+    'POST',
+    '/api/admin/pricing/preview',
+    { referencePrice: 3, marginMultiplier: 1.5 },
+  );
+
+  assert.equal(status, 200);
+  assert.equal(body.success, true);
+  assert.equal(body.listing, null);
+  assert.equal(body.preview.referencePrice, 3);
+  assert.equal(body.preview.marginMultiplier, 1.5);
+  assert.equal(body.preview.finalPrice, 4050);
+  assert.equal(body.preview.currency, 'CLP');
+  assert.equal(body.diff.delta, null);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // Test: sync-prices validation
 // ────────────────────────────────────────────────────────────────────────────
 

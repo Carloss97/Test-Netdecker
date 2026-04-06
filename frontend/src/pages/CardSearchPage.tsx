@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { searchCards, searchCardsByCode, getListingsByCard, updateListingPricingMode } from '../services/catalog';
 import type { Card, Listing } from '../types';
+import { parsePositiveNumberInput } from '../constants/pricing';
 
 const RARITY_BADGE: Record<string, string> = {
   common: 'badge-gray',
@@ -164,9 +165,9 @@ export function CardSearchPage() {
     try {
       if (mode === 'manual') {
         const rawDraft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
-        const manualPrice = Number(rawDraft);
-        if (!Number.isFinite(manualPrice) || manualPrice <= 0) {
-          setError('Ingresa un precio manual CLP válido (> 0)');
+        const manualPrice = parsePositiveNumberInput(rawDraft);
+        if (!manualPrice) {
+          setError('Ingresa un precio final en CLP valido (> 0). El precio de referencia USD se muestra aparte.');
           return false;
         }
         await updateListingPricingMode(listing.id, 'manual', manualPrice);
@@ -201,7 +202,7 @@ export function CardSearchPage() {
   };
 
   const saveManualPrice = async (cardId: string, listing: Listing) => {
-    if (listing.status !== 'manual') return;
+    if (listing.status !== 'manual' || updatingPricingId === listing.id) return;
     return setPricingMode(cardId, listing, 'manual');
   };
 
@@ -426,13 +427,11 @@ export function CardSearchPage() {
                     </div>
                     <table className="data-table" style={{ fontSize: '0.82rem', tableLayout: 'fixed' }}>
                       <colgroup>
-                        <col style={{ width: '14%' }} />
-                        <col style={{ width: '14%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '14%' }} />
-                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '24%' }} />
                         <col style={{ width: '14%' }} />
                         <col style={{ width: '20%' }} />
+                        <col style={{ width: '28%' }} />
+                        <col style={{ width: '14%' }} />
                       </colgroup>
                     <thead>
                       <tr>
@@ -440,7 +439,7 @@ export function CardSearchPage() {
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('stock')}>Stock {listingSort === 'stock' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('usd')}>Precio USD {listingSort === 'usd' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('clp')}>Precio CLP {listingSort === 'clp' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('mode')}>Modo manual {listingSort === 'mode' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('mode')}>Modo {listingSort === 'mode' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -490,7 +489,7 @@ export function CardSearchPage() {
                               <td style={{ fontWeight: 500 }}>
                                 {isManual ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '1.1em' }}>$</span>
+                                    <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '0.8em' }}>CLP</span>
                                     <input
                                       type="number"
                                       className="input input-sm"
@@ -499,6 +498,7 @@ export function CardSearchPage() {
                                       style={{ width: 90, fontSize: '1em', padding: '4px 8px' }}
                                       disabled={updatingPricingId === listing.id}
                                       title="Precio final manual en CLP"
+                                      placeholder="Final CLP"
                                       onBlur={() => { void saveManualPrice(first.id, listing); }}
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
@@ -512,7 +512,7 @@ export function CardSearchPage() {
                                   listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
                                 )}
                               </td>
-                              <td>
+                              <td style={{ textAlign: 'center' }}>
                                 <ModeToggle
                                   checked={isManual}
                                   disabled={updatingPricingId === listing.id}
@@ -527,8 +527,8 @@ export function CardSearchPage() {
                                       void setPricingMode(first.id, listing, 'api');
                                     }
                                   }}
-                                  onLabel="Manual"
-                                  offLabel=""
+                                  onLabel="modo manual"
+                                  offLabel="modo api"
                                 />
                               </td>
                             </tr>

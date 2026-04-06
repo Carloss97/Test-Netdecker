@@ -5,6 +5,13 @@ import { PriceService } from '../services/PriceService.js';
 import { CardService } from '../services/CardService.js';
 import { isValidCardCondition, isValidQuantity, isValidPrice } from '../utils/validators.js';
 import { ValidationError } from '../utils/errors.js';
+import { resolveMarginMultiplier } from '../config/pricing.js';
+
+function getActorFromRequest(req: Request): string {
+  const fromHeader = req.header('x-admin-user') || req.header('x-user-id');
+  const fromBody = typeof req.body?.updatedBy === 'string' ? req.body.updatedBy : undefined;
+  return (fromHeader || fromBody || 'system:admin').trim();
+}
 
 export class ListingController {
   /**
@@ -44,7 +51,7 @@ export class ListingController {
         condition,
         quantity,
         referencePrice,
-        marginMultiplier: marginMultiplier || 1.0,
+        marginMultiplier: resolveMarginMultiplier(marginMultiplier),
         costPrice
       });
 
@@ -82,9 +89,13 @@ export class ListingController {
       }
 
       // Check for volatile changes
+      const nextMargin = resolveMarginMultiplier(
+        typeof marginMultiplier === 'number' ? marginMultiplier : listing.marginMultiplier,
+      );
+
       const newPrice = await PriceService.calculateFinalPrice({
         referencePrice,
-        marginMultiplier: marginMultiplier || listing.marginMultiplier,
+        marginMultiplier: nextMargin,
       });
 
       const isVolatile = PriceService.isVolatileChange(
@@ -100,9 +111,9 @@ export class ListingController {
       await PriceService.updateListingPrice(
         id,
         referencePrice,
-        marginMultiplier || listing.marginMultiplier,
+        nextMargin,
         'MANUAL_UPDATE',
-        'admin', // TODO: get from auth context
+        getActorFromRequest(req),
         notes
       );
 

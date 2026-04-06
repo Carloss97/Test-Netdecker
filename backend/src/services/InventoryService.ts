@@ -3,6 +3,8 @@ import { CardCondition, TCGType } from '@prisma/client';
 import { PriceService } from './PriceService.js';
 import { createHash } from 'node:crypto';
 import ExcelJS from 'exceljs';
+import { z } from 'zod';
+import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
 
 interface CsvRow {
   [key: string]: string;
@@ -68,6 +70,7 @@ interface ImportResult {
 const VALID_CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG'];
 const LISTING_HEADERS = ['listingId', 'quantity'];
 const UPSERT_REQUIRED_HEADERS = ['tcg', 'editionCode', 'cardCode', 'cardName', 'quantity', 'referencePrice'];
+const SUPPORTED_TCGS: TCGType[] = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
 
 function normalizeHeader(header: string): string {
   return header.replace(/^\uFEFF/, '').trim();
@@ -161,7 +164,7 @@ function parseTcg(raw: string): TCGType {
     return 'WEISS_SCHWARZ';
   }
 
-  if (!['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(normalized)) {
+  if (!SUPPORTED_TCGS.includes(normalized as TCGType)) {
     throw new Error(`Invalid TCG value: ${raw}`);
   }
 
@@ -170,6 +173,103 @@ function parseTcg(raw: string): TCGType {
 
 function normalizeRarity(raw?: string): string {
   return (raw || 'Unknown').trim() || 'Unknown';
+}
+
+const listingUpdateRowSchema = z.object({
+  listingId: z.string().trim().min(1, 'Missing listingId'),
+  quantity: z.coerce.number().int('Invalid quantity for listing update').min(0, 'Invalid quantity for listing update'),
+});
+
+const fullUpsertRowSchema = z.object({
+  tcgType: z.string().transform((value, ctx): TCGType => {
+    try {
+      return parseTcg(value);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: (error as Error).message,
+      });
+      return z.NEVER;
+    }
+  }),
+  editionCode: z.string().trim().min(1, 'Missing required fields: editionCode, cardCode, cardName'),
+  editionName: z.string().trim().optional(),
+  cardCode: z.string().trim().min(1, 'Missing required fields: editionCode, cardCode, cardName'),
+  cardName: z.string().trim().min(1, 'Missing required fields: editionCode, cardCode, cardName'),
+  quantity: z.coerce.number().int('Invalid quantity').min(0, 'Invalid quantity'),
+  referencePrice: z.coerce.number().refine((value) => Number.isFinite(value) && value > 0, {
+    message: 'Invalid referencePrice',
+  }),
+  marginMultiplier: z.coerce.number().refine((value) => Number.isFinite(value) && value > 0, {
+    message: 'Invalid marginMultiplier',
+  }).default(DEFAULT_MARGIN_MULTIPLIER),
+  condition: z.string().optional(),
+  rarity: z.string().optional(),
+  cardNumber: z.string().optional(),
+  tags: z.string().optional(),
+  imageUrl: z.string().optional(),
+});
+
+function formatZodError(error: z.ZodError): string {
+  if (!error.issues.length) {
+    return 'Invalid CSV row';
+  }
+  return error.issues[0].message;
+}
+
+export function validateListingUpdateRow(row: CsvRow, duplicateListingIds: Set<string>) {
+  const parsed = listingUpdateRowSchema.safeParse({
+    listingId: row.listingId,
+    quantity: row.quantity || 0,
+  });
+
+  if (!parsed.success) {
+    throw new Error(formatZodError(parsed.error));
+  }
+
+  if (duplicateListingIds.has(parsed.data.listingId)) {
+    throw new Error(`Duplicate listingId in CSV: ${parsed.data.listingId}`);
+  }
+
+  return parsed.data;
+}
+
+export function validateFullUpsertRow(row: CsvRow) {
+  const parsed = fullUpsertRowSchema.safeParse({
+    tcgType: row.tcg,
+    editionCode: row.editionCode,
+    editionName: row.editionName || undefined,
+    cardCode: row.cardCode,
+    cardName: row.cardName,
+    quantity: row.quantity || 0,
+    referencePrice: row.referencePrice || 0,
+    marginMultiplier: row.marginMultiplier || DEFAULT_MARGIN_MULTIPLIER,
+    condition: row.condition || undefined,
+    rarity: row.rarity || undefined,
+    cardNumber: row.cardNumber || undefined,
+    tags: row.tags || undefined,
+    imageUrl: row.imageUrl || undefined,
+  });
+
+  if (!parsed.success) {
+    throw new Error(formatZodError(parsed.error));
+  }
+
+  return {
+    tcgType: parsed.data.tcgType,
+    editionCode: parsed.data.editionCode,
+    editionName: parsed.data.editionName || parsed.data.editionCode,
+    cardCode: parsed.data.cardCode,
+    cardName: parsed.data.cardName,
+    quantity: parsed.data.quantity,
+    referencePrice: parsed.data.referencePrice,
+    marginMultiplier: parsed.data.marginMultiplier,
+    condition: parseCondition(parsed.data.condition || 'NM'),
+    rarity: normalizeRarity(parsed.data.rarity),
+    cardNumber: parsed.data.cardNumber || null,
+    tags: parsed.data.tags || '',
+    imageUrl: parsed.data.imageUrl || null,
+  };
 }
 
 export function detectImportMode(rows: CsvRow[]): ImportMode {
@@ -371,6 +471,7 @@ export class InventoryService {
     };
 
     const duplicateListingIds = mode === 'listing-update' ? findDuplicateListingIds(rows) : [];
+    const duplicateListingIdsSet = new Set(duplicateListingIds);
 
     for (let i = 0; i < rows.length; i += 1) {
       const rowNumber = i + 2;
@@ -378,35 +479,24 @@ export class InventoryService {
 
       try {
         if (mode === 'listing-update') {
-          const quantity = Number(row.quantity || 0);
-          if (!row.listingId) {
-            throw new Error('Missing listingId');
-          }
-
-          if (duplicateListingIds.includes(row.listingId)) {
-            throw new Error(`Duplicate listingId in CSV: ${row.listingId}`);
-          }
-
-          if (!Number.isInteger(quantity) || quantity < 0) {
-            throw new Error('Invalid quantity for listing update');
-          }
+          const parsedRow = validateListingUpdateRow(row, duplicateListingIdsSet);
 
           const existingListing = await prisma.listing.findUnique({
-            where: { id: row.listingId },
+            where: { id: parsedRow.listingId },
             select: { id: true }
           });
 
           if (!existingListing) {
-            throw new Error(`Listing not found: ${row.listingId}`);
+            throw new Error(`Listing not found: ${parsedRow.listingId}`);
           }
 
           if (!dryRun) {
             await prisma.listing.update({
-              where: { id: row.listingId },
+              where: { id: parsedRow.listingId },
               data: {
-                quantity,
+                quantity: parsedRow.quantity,
                 // Mark as ever having had stock if quantity > 0
-                ...(quantity > 0 ? { everHadStock: true } : {}),
+                ...(parsedRow.quantity > 0 ? { everHadStock: true } : {}),
               }
             });
           }
@@ -415,28 +505,17 @@ export class InventoryService {
           continue;
         }
 
-        const tcgType = parseTcg(row.tcg);
-        const editionCode = row.editionCode;
-        const editionName = row.editionName || editionCode;
-        const cardCode = row.cardCode;
-        const cardName = row.cardName;
-        const quantity = Number(row.quantity || 0);
-        const referencePrice = Number(row.referencePrice || 0);
-        const marginMultiplier = Number(row.marginMultiplier || 1.0);
-        const condition = parseCondition(row.condition);
-        const rarity = normalizeRarity(row.rarity);
-
-        if (!editionCode || !cardCode || !cardName) {
-          throw new Error('Missing required fields: editionCode, cardCode, cardName');
-        }
-
-        if (!Number.isInteger(quantity) || quantity < 0) {
-          throw new Error('Invalid quantity');
-        }
-
-        if (!Number.isFinite(referencePrice) || referencePrice <= 0) {
-          throw new Error('Invalid referencePrice');
-        }
+        const parsedRow = validateFullUpsertRow(row);
+        const tcgType = parsedRow.tcgType;
+        const editionCode = parsedRow.editionCode;
+        const editionName = parsedRow.editionName;
+        const cardCode = parsedRow.cardCode;
+        const cardName = parsedRow.cardName;
+        const quantity = parsedRow.quantity;
+        const referencePrice = parsedRow.referencePrice;
+        const marginMultiplier = parsedRow.marginMultiplier;
+        const condition = parsedRow.condition;
+        const rarity = parsedRow.rarity;
 
         const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
         if (!tcg) {
@@ -476,20 +555,20 @@ export class InventoryService {
           },
           update: {
             cardName,
-            cardNumber: row.cardNumber || null,
+            cardNumber: parsedRow.cardNumber,
             rarity,
-            tags: row.tags || '',
-            imageUrl: row.imageUrl || null
+            tags: parsedRow.tags,
+            imageUrl: parsedRow.imageUrl
           },
           create: {
             tcgId: tcg.id,
             editionId: edition.id,
             cardCode,
             cardName,
-            cardNumber: row.cardNumber || null,
+            cardNumber: parsedRow.cardNumber,
             rarity,
-            tags: row.tags || '',
-            imageUrl: row.imageUrl || null
+            tags: parsedRow.tags,
+            imageUrl: parsedRow.imageUrl
           }
         } as any);
 

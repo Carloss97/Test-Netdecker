@@ -12,6 +12,10 @@ import {
   updateAdminPricingConfig,
 } from '../services/catalog';
 import type { AdminDashboard, CatalogBootstrapResponse, CatalogSyncResponse, TcgplayerCoverage } from '../types';
+import { DEFAULT_MARGIN_INPUT, parsePositiveNumberInput } from '../constants/pricing';
+
+const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
+type SupportedTcg = (typeof SUPPORTED_TCGS)[number];
 
 function KpiCard({
   label,
@@ -62,11 +66,11 @@ export function AdminDashboardPage() {
   const [volatilityWindow, setVolatilityWindow] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
   const [volatileLoading, setVolatileLoading] = useState(false);
   const [volatileEvents, setVolatileEvents] = useState<Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }>>([]);
-  const [catalogTcg, setCatalogTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ' | ''>('');
+  const [catalogTcg, setCatalogTcg] = useState<SupportedTcg | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
   const [initialQuantity, setInitialQuantity] = useState('0');
-  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
+  const [marginMultiplier, setMarginMultiplier] = useState(DEFAULT_MARGIN_INPUT);
   const [concurrency, setConcurrency] = useState('4');
   const [dryRun, setDryRun] = useState(false);
   const [createListings, setCreateListings] = useState(true);
@@ -76,7 +80,7 @@ export function AdminDashboardPage() {
     payload: CatalogBootstrapResponse | CatalogSyncResponse;
   } | null>(null);
   const [catalogActionError, setCatalogActionError] = useState<string | null>(null);
-  const [configMargin, setConfigMargin] = useState('1.0');
+  const [configMargin, setConfigMargin] = useState(DEFAULT_MARGIN_INPUT);
   const [applyMarginToExisting, setApplyMarginToExisting] = useState(true);
   const [exchangeRateMode, setExchangeRateMode] = useState<'api' | 'manual'>('api');
   const [manualUsdToClp, setManualUsdToClp] = useState('950');
@@ -119,14 +123,24 @@ export function AdminDashboardPage() {
     setPricingConfigErr(null);
     setPricingConfigMsg(null);
     try {
-      const margin = Number.parseFloat(configMargin);
-      const manualRate = Number.parseFloat(manualUsdToClp);
+      const margin = parsePositiveNumberInput(configMargin);
+      const manualRate = parsePositiveNumberInput(manualUsdToClp);
+
+      if (!margin) {
+        setPricingConfigErr('El margen por defecto debe ser un numero mayor a 0 (ej: 1.00).');
+        return;
+      }
+
+      if (exchangeRateMode === 'manual' && !manualRate) {
+        setPricingConfigErr('El tipo de cambio manual debe ser un numero mayor a 0.');
+        return;
+      }
 
       const result = await updateAdminPricingConfig({
-        defaultMarginMultiplier: Number.isFinite(margin) && margin > 0 ? margin : undefined,
+        defaultMarginMultiplier: margin,
         applyMarginToExisting,
         exchangeRateMode,
-        manualUsdToClp: exchangeRateMode === 'manual' ? manualRate : undefined,
+        manualUsdToClp: exchangeRateMode === 'manual' ? manualRate || undefined : undefined,
       });
 
       setPricingConfigMsg(`Configuración guardada. Margen actualizado en ${(result as { updatedMargins?: number }).updatedMargins ?? 0} listing(s).`);
@@ -151,8 +165,8 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('bootstrap');
     setCatalogActionError(null);
     try {
-      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(catalogTcg)
-        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')
+      const tcg = catalogTcg && SUPPORTED_TCGS.includes(catalogTcg)
+        ? catalogTcg
         : undefined;
       const payload = await bootstrapCatalog({
         tcg,
@@ -161,7 +175,7 @@ export function AdminDashboardPage() {
         dryRun,
         createListings,
         initialQuantity: Number.parseInt(initialQuantity || '0', 10),
-        marginMultiplier: Number.parseFloat(marginMultiplier || '1.0'),
+        marginMultiplier: Number.parseFloat(marginMultiplier || DEFAULT_MARGIN_INPUT),
       });
       setCatalogActionResult({ kind: 'bootstrap', payload });
     } catch (err: unknown) {
@@ -175,15 +189,15 @@ export function AdminDashboardPage() {
     setCatalogActionLoading('sync');
     setCatalogActionError(null);
     try {
-      const tcg = catalogTcg && ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'].includes(catalogTcg)
-        ? (catalogTcg as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')
+      const tcg = catalogTcg && SUPPORTED_TCGS.includes(catalogTcg)
+        ? catalogTcg
         : undefined;
       const payload = await syncCatalog({
         tcg,
         dryRun,
         createListings,
         initialQuantity: Number.parseInt(initialQuantity || '0', 10),
-        marginMultiplier: Number.parseFloat(marginMultiplier || '1.0'),
+        marginMultiplier: Number.parseFloat(marginMultiplier || DEFAULT_MARGIN_INPUT),
         concurrency: Number.parseInt(concurrency || '4', 10),
       });
       setCatalogActionResult({ kind: 'sync', payload });
@@ -308,7 +322,7 @@ export function AdminDashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>TCG</label>
-              <select value={catalogTcg} onChange={(e) => setCatalogTcg(e.target.value as any)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}>
+              <select value={catalogTcg} onChange={(e) => setCatalogTcg(e.target.value as SupportedTcg | '')} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}>
                 <option value="">Todos los TCG</option>
                 <option value="MAGIC">Magic</option>
                 <option value="POKEMON">Pokémon</option>
@@ -318,7 +332,7 @@ export function AdminDashboardPage() {
                 <option value="WEISS_SCHWARZ">Weiss Schwarz</option>
               </select>
               <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
-                Limita la operación a un juego. Si dejas "Todos", afecta todo el catálogo.
+                Limita la operación a un juego. Si dejas "Todos", afecta todo el catálogo. En sincronización por ediciones, este selector define qué sets se consideran.
               </div>
             </div>
             <div>
@@ -344,7 +358,7 @@ export function AdminDashboardPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margen</label>
-              <input placeholder="1.0" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" />
+              <input placeholder={DEFAULT_MARGIN_INPUT} value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" min="0.1" />
               <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
                 Multiplicador sobre precio USD de referencia. 1.00 = sin recargo, 1.20 = +20%.
               </div>

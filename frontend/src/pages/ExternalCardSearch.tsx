@@ -7,6 +7,7 @@ import {
   listExternalSets,
 } from '../services/catalog';
 import type { ExternalCard, ExternalEdition } from '../types';
+import { DEFAULT_MARGIN_INPUT } from '../constants/pricing';
 
 
 type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
@@ -57,7 +58,7 @@ function ImportCardModal({ card, onClose, onImported }: ImportCardModalProps) {
   const [referencePrice, setReferencePrice] = useState(
     String(card.priceMarket ?? card.priceMid ?? card.priceLow ?? ''),
   );
-  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
+  const [marginMultiplier, setMarginMultiplier] = useState(DEFAULT_MARGIN_INPUT);
   const [quantity, setQuantity] = useState('0');
   const [condition, setCondition] = useState('NM');
   const [loading, setLoading] = useState(false);

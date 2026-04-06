@@ -8,6 +8,12 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 
+function getActorFromRequest(req: Request): string {
+  const fromHeader = req.header('x-admin-user') || req.header('x-user-id');
+  const fromBody = typeof req.body?.updatedBy === 'string' ? req.body.updatedBy : undefined;
+  return (fromHeader || fromBody || 'system:admin').trim();
+}
+
 /**
  * GET /api/listings/available
  * Get available listings with stock
@@ -337,7 +343,7 @@ router.patch('/:id/pricing-mode', async (req: Request, res: Response) => {
     const updated = await ListingService.setManualPrice(
       req.params.id,
       manualPrice,
-      'admin',
+      getActorFromRequest(req),
       'Manual price set from UI',
     );
 
@@ -351,7 +357,7 @@ router.patch('/:id/pricing-mode', async (req: Request, res: Response) => {
 
   const updated = await ListingService.setApiPricingMode(
     req.params.id,
-    'admin',
+    getActorFromRequest(req),
     'API pricing restored from UI',
   );
 

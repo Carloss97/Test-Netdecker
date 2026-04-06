@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Dashboard' },
   { to: '/inventario', icon: '📦', label: 'Inventario' },
   { to: '/precios', icon: '💰', label: 'Precios' },
+  { to: '/stock-bajo', icon: '🚨', label: 'Stock Bajo' },
   { to: '/importar', icon: '📥', label: 'Importar' },
   { to: '/buscar', icon: '🔍', label: 'Buscar Carta' },
   { to: '/admin', icon: '⚙️', label: 'Admin' },
@@ -21,6 +22,7 @@ export function Layout({ children }: LayoutProps) {
     if (path === '/') return { title: 'Dashboard', sub: 'Vista general del sistema' };
     if (path === '/inventario') return { title: 'Inventario', sub: 'Gestión de stock por set' };
     if (path === '/precios') return { title: 'Precios', sub: 'Monitoreo y sincronización de precios' };
+    if (path === '/stock-bajo') return { title: 'Stock Bajo', sub: 'Alertas de listings activos con stock crítico' };
     if (path === '/importar') return { title: 'Importar', sub: 'Catálogos y stock por CSV' };
     if (path === '/buscar') return { title: 'Buscar Carta', sub: 'Busca por nombre o código · Ve todas las rarezas' };
     if (path === '/admin') return { title: 'Admin', sub: 'Parámetros avanzados de catálogo y precios' };

@@ -6,8 +6,10 @@ import {
   batchUpdateStock,
   downloadEditionCsvTemplate,
   importInventoryCsv,
+  updateListingPricingMode,
 } from '../services/catalog';
 import type { TCG, EditionWithCounts, CardWithStock } from '../types';
+import { parsePositiveNumberInput } from '../constants/pricing';
 const TCG_META: Record<string, { emoji: string; label: string }> = {
   MAGIC: { emoji: '🧙', label: 'Magic: The Gathering' },
   POKEMON: { emoji: '🎮', label: 'Pokémon' },
@@ -114,6 +116,8 @@ export function InventoryPage() {
   const [dirtyRows, setDirtyRows] = useState<Map<string, number>>(new Map());
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
+  const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
 
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -308,6 +312,48 @@ export function InventoryPage() {
   const getDisplayQty = (listing: CardWithStock['listings'][number]) => {
     return dirtyRows.has(listing.id) ? dirtyRows.get(listing.id)! : listing.quantity;
   };
+
+  const setInventoryPricingMode = useCallback(async (listing: CardWithStock['listings'][number], mode: 'manual' | 'api') => {
+    setUpdatingPricingId(listing.id);
+    setError(null);
+    try {
+      if (mode === 'manual') {
+        const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
+        const manualPrice = parsePositiveNumberInput(draft);
+        if (!manualPrice) {
+          setError('Ingresa un precio final en CLP valido (> 0).');
+          return;
+        }
+        await updateListingPricingMode(listing.id, 'manual', manualPrice);
+      } else {
+        await updateListingPricingMode(listing.id, 'api');
+      }
+
+      setCards((prev) =>
+        prev.map((card) => ({
+          ...card,
+          listings: card.listings.map((row) =>
+            row.id === listing.id
+              ? {
+                  ...row,
+                  status: mode === 'manual' ? 'manual' : 'active',
+                  finalPrice:
+                    mode === 'manual'
+                      ? Number(manualPriceDrafts[listing.id] ?? Math.round(row.finalPrice || 0))
+                      : row.finalPrice,
+                }
+              : row,
+          ),
+        })),
+      );
+      setSuccessMsg(mode === 'manual' ? 'Modo manual activado para la carta con stock activo.' : 'Modo API restaurado para la carta.');
+      setTimeout(() => setSuccessMsg(null), 2500);
+    } catch {
+      setError('No se pudo actualizar el modo de precio para esta carta');
+    } finally {
+      setUpdatingPricingId(null);
+    }
+  }, [manualPriceDrafts]);
 
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -590,6 +636,7 @@ export function InventoryPage() {
                       Precio USD {sortColumn === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
                     </th>
                     <th>Precio CLP</th>
+                    <th style={{ width: 130 }}>Modo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -677,9 +724,72 @@ export function InventoryPage() {
                             : '—'}
                         </td>
                         <td style={{ fontSize: '0.8rem', fontWeight: 500 }}>
-                          {mainListing?.finalPrice
-                            ? fmtCLP(mainListing.finalPrice)
-                            : '—'}
+                          {mainListing ? (() => {
+                            const hasActiveStock = getDisplayQty(mainListing) > 0;
+                            const isManual = mainListing.status === 'manual';
+                            const draft = manualPriceDrafts[mainListing.id] ?? String(Math.round(mainListing.finalPrice || 0));
+
+                            if (isManual && hasActiveStock) {
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '0.75rem' }}>CLP</span>
+                                  <input
+                                    type="number"
+                                    className="input input-sm"
+                                    value={draft}
+                                    onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [mainListing.id]: e.target.value }))}
+                                    style={{ width: 95, fontSize: '0.85rem', padding: '4px 8px' }}
+                                    disabled={updatingPricingId === mainListing.id}
+                                    title="Precio final manual en CLP"
+                                    onBlur={() => { void setInventoryPricingMode(mainListing, 'manual'); }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        void setInventoryPricingMode(mainListing, 'manual');
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              );
+                            }
+
+                            return mainListing.finalPrice ? fmtCLP(mainListing.finalPrice) : '—';
+                          })() : '—'}
+                        </td>
+                        <td>
+                          {mainListing ? (() => {
+                            const hasActiveStock = getDisplayQty(mainListing) > 0;
+                            const isManual = mainListing.status === 'manual';
+
+                            return (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                disabled={!hasActiveStock || updatingPricingId === mainListing.id}
+                                title={
+                                  !hasActiveStock
+                                    ? 'El modo manual solo se habilita para cartas con stock activo (> 0)'
+                                    : isManual
+                                      ? 'Cambiar a modo API'
+                                      : 'Cambiar a modo manual'
+                                }
+                                onClick={() => {
+                                  if (!hasActiveStock) return;
+                                  if (!isManual) {
+                                    setManualPriceDrafts((prev) => ({
+                                      ...prev,
+                                      [mainListing.id]: prev[mainListing.id] ?? String(Math.round(mainListing.finalPrice || 0)),
+                                    }));
+                                    void setInventoryPricingMode(mainListing, 'manual');
+                                    return;
+                                  }
+                                  void setInventoryPricingMode(mainListing, 'api');
+                                }}
+                              >
+                                {isManual ? 'Manual' : 'API'}
+                              </button>
+                            );
+                          })() : '—'}
                         </td>
                       </tr>
                     );

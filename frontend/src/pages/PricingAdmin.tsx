@@ -1,20 +1,40 @@
 import { useEffect, useState } from 'react';
-import { getListingPriceDebug, getPriceSyncRunById, getPriceSyncRuns, previewListingPrice, syncListingPrices } from '../services/catalog';
+import { getListingPriceDebug, getPriceSyncRunById, getPriceSyncRuns, previewAdminPricing, syncListingPrices } from '../services/catalog';
+import { DEFAULT_MARGIN_INPUT } from '../constants/pricing';
 
-type PricePreviewResponse = {
-  referencePrice: number;
-  marginMultiplier: number;
-  exchangeRate: number;
-  exchangeRateRetrievalSource: string;
-  exchangeRateProvider: string | null;
-  exchangeRateFetchedAt: string | null;
-  exchangeRateExpiresAt: string | null;
-  finalPrice: number;
-  formula: string;
-  roundedFinalPrice: number;
-  rawFinalPrice: number;
-  roundingMultiple: number;
-  currency: string;
+type AdminPricePreviewResponse = {
+  success: boolean;
+  listing: {
+    id: string;
+    cardId: string;
+    cardName: string;
+    cardCode: string;
+    editionCode: string;
+    editionName: string;
+    currentReferencePrice: number;
+    currentMarginMultiplier: number;
+    currentFinalPrice: number;
+  } | null;
+  preview: {
+    referencePrice: number;
+    marginMultiplier: number;
+    exchangeRate: number;
+    exchangeRateRetrievalSource: string;
+    exchangeRateProvider: string | null;
+    exchangeRateFetchedAt: string | null;
+    exchangeRateExpiresAt: string | null;
+    finalPrice: number;
+    formula: string;
+    roundedFinalPrice: number;
+    rawFinalPrice: number;
+    roundingMultiple: number;
+    currency: string;
+  };
+  diff: {
+    delta: number | null;
+    deltaPercent: number | null;
+    isVolatile: boolean | null;
+  };
 };
 
 type ListingPriceDebugResponse = {
@@ -68,10 +88,10 @@ interface PricingAdminProps {
 
 export function PricingAdmin({ initialListingId }: PricingAdminProps) {
   const [referencePrice, setReferencePrice] = useState('5.5');
-  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
+  const [marginMultiplier, setMarginMultiplier] = useState(DEFAULT_MARGIN_INPUT);
   const [roundingMultiple, setRoundingMultiple] = useState('1');
   const [listingId, setListingId] = useState('');
-  const [previewResult, setPreviewResult] = useState<PricePreviewResponse | null>(null);
+  const [previewResult, setPreviewResult] = useState<AdminPricePreviewResponse | null>(null);
   const [debugResult, setDebugResult] = useState<ListingPriceDebugResponse | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingDebug, setLoadingDebug] = useState(false);
@@ -131,7 +151,12 @@ export function PricingAdmin({ initialListingId }: PricingAdminProps) {
 
     setLoadingPreview(true);
     try {
-      const data = await previewListingPrice(ref, margin, rounding);
+      const data = await previewAdminPricing({
+        listingId: listingId.trim() || undefined,
+        referencePrice: ref,
+        marginMultiplier: margin,
+        roundingMultiple: rounding,
+      });
       setPreviewResult(data);
     } catch (error) {
       setErrorMessage((error as Error).message);
@@ -231,18 +256,31 @@ export function PricingAdmin({ initialListingId }: PricingAdminProps) {
 
         {previewResult && (
           <div style={{ marginTop: 12 }}>
+            {previewResult.listing && (
+              <p>
+                Listing: <strong>{previewResult.listing.cardName}</strong> ({previewResult.listing.cardCode}) [{previewResult.listing.editionCode}]
+              </p>
+            )}
             <p>
-              Formula: <strong>{previewResult.formula}</strong>
+              Formula: <strong>{previewResult.preview.formula}</strong>
             </p>
             <p>
-              Tipo de cambio: <strong>{previewResult.exchangeRate}</strong> ({previewResult.exchangeRateRetrievalSource})
+              Tipo de cambio: <strong>{previewResult.preview.exchangeRate}</strong> ({previewResult.preview.exchangeRateRetrievalSource})
             </p>
             <p>
-              Precio base (sin redondeo): <strong>{previewResult.rawFinalPrice.toFixed(2)} CLP</strong>
+              Precio base (sin redondeo): <strong>{previewResult.preview.rawFinalPrice.toFixed(2)} CLP</strong>
             </p>
             <p>
-              Precio final: <strong>{previewResult.finalPrice.toFixed(2)} CLP</strong> (multiplo: {previewResult.roundingMultiple})
+              Precio final: <strong>{previewResult.preview.finalPrice.toFixed(2)} CLP</strong> (multiplo: {previewResult.preview.roundingMultiple})
             </p>
+            {previewResult.diff.delta !== null && previewResult.diff.deltaPercent !== null && (
+              <p>
+                Delta vs actual: <strong>{previewResult.diff.delta.toFixed(2)} CLP</strong> ({previewResult.diff.deltaPercent.toFixed(2)}%)
+                {previewResult.diff.isVolatile !== null && (
+                  <> | Volatil: <strong>{previewResult.diff.isVolatile ? 'SI' : 'NO'}</strong></>
+                )}
+              </p>
+            )}
           </div>
         )}
       </div>

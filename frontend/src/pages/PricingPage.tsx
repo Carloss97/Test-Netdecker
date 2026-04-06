@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { getAvailableListings, syncListingPrices, getPriceVolatility, updateListingPricingMode } from '../services/catalog';
 import type { Listing } from '../types';
+import { parsePositiveNumberInput } from '../constants/pricing';
 
 interface VolatileEvent {
   priceHistoryId?: string;
@@ -124,10 +125,11 @@ export function PricingPage() {
   }, [volatilityWindow]);
 
   const activeListings = (listings ?? []).filter((l) => l.quantity > 0);
-  const filteredListings = activeListings.filter((l) => {
+  const tcgListings = activeListings.filter((l) => {
     const tcgName = (l.card as Listing['card'] & { tcg?: { name?: string } })?.tcg?.name;
     return tcgName === selectedTcg;
-  }).filter((l) => {
+  });
+  const filteredListings = tcgListings.filter((l) => {
     const q = listingSearch.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -163,7 +165,7 @@ export function PricingPage() {
         return 0;
     }
   });
-  const availableEditions = filteredListings
+  const availableEditions = tcgListings
     .map((l) => ({
       id: l.editionId,
       name: (l.card as Listing['card'] & { edition?: { editionName?: string; editionCode?: string } })?.edition?.editionName || 'Edición',
@@ -195,9 +197,9 @@ export function PricingPage() {
     try {
       if (mode === 'manual') {
         const rawDraft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
-        const manualPrice = Number(rawDraft);
-        if (!Number.isFinite(manualPrice) || manualPrice <= 0) {
-          setSyncError('Ingresa un precio manual CLP válido (> 0)');
+        const manualPrice = parsePositiveNumberInput(rawDraft);
+        if (!manualPrice) {
+          setSyncError('Ingresa un precio final en CLP valido (> 0). El precio de referencia USD se sincroniza por separado.');
           return false;
         }
         await updateListingPricingMode(listing.id, 'manual', manualPrice);
@@ -218,9 +220,13 @@ export function PricingPage() {
   };
 
   const saveManualPrice = async (listing: Listing) => {
-    if (listing.status !== 'manual') return;
+    if (listing.status !== 'manual' || updatingPricingId === listing.id) return;
     return setPricingMode(listing, 'manual');
   };
+
+  useEffect(() => {
+    setSelectedEditionId('');
+  }, [selectedTcg]);
 
   const toggleSort = (column: 'name' | 'code' | 'rarity' | 'stock' | 'mode' | 'reference' | 'final' | 'lastSync') => {
     if (sortColumn === column) {
@@ -343,13 +349,7 @@ export function PricingPage() {
               </select>
               <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)} title="Edición específica a sincronizar">
                 <option value="">Selecciona edición</option>
-                {availableEditions
-                  .filter((ed) => {
-                    // Filter editions by selected TCG
-                    const tcgName = ed.name?.toUpperCase() || '';
-                    return tcgName.includes(selectedTcg);
-                  })
-                  .map((ed) => (
+                {availableEditions.map((ed) => (
                     <option key={ed.id} value={ed.id}>{ed.code} · {ed.name}</option>
                   ))}
               </select>
@@ -531,7 +531,7 @@ export function PricingPage() {
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('stock')}>Stock {sortColumn === 'stock' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('reference')}>Precio Ref (USD) {sortColumn === 'reference' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('final')}>Precio Final (CLP) {sortColumn === 'final' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('mode')}>Precio manual {sortColumn === 'mode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('mode')}>Modo {sortColumn === 'mode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('lastSync')}>Última sync {sortColumn === 'lastSync' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                 </tr>
               </thead>
@@ -566,7 +566,7 @@ export function PricingPage() {
                     <td style={{ fontWeight: 600, overflow: 'hidden' }}>
                       {isManual ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '1.1em' }}>$</span>
+                          <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '0.8em' }}>CLP</span>
                           <input
                             type="number"
                             className="input input-sm"
@@ -575,6 +575,7 @@ export function PricingPage() {
                             style={{ width: 90, fontSize: '1em', padding: '4px 8px' }}
                             disabled={updatingPricingId === listing.id}
                             title="Precio final manual en CLP"
+                            placeholder="Final CLP"
                             onBlur={() => { void saveManualPrice(listing); }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -604,8 +605,8 @@ export function PricingPage() {
                               void setPricingMode(listing, 'api');
                             }
                           }}
-                          onLabel="Manual"
-                          offLabel=""
+                          onLabel="modo manual"
+                          offLabel="modo api"
                         />
                       </div>
                     </td>

@@ -3,6 +3,7 @@
 import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { CardCondition, PriceUpdateReason } from '@prisma/client';
+import { resolveMarginMultiplier } from '../config/pricing.js';
 
 interface CreateListingInput {
   cardId: string;
@@ -27,9 +28,10 @@ export class ListingService {
       throw new Error(`Card not found: ${input.cardId}`);
     }
 
+    const marginMultiplier = resolveMarginMultiplier(input.marginMultiplier);
     const calculation = await PriceService.calculateFinalPrice({
       referencePrice: input.referencePrice,
-      marginMultiplier: input.marginMultiplier || 1.0,
+      marginMultiplier,
     });
 
     return prisma.listing.create({
@@ -39,7 +41,7 @@ export class ListingService {
         rarity: card.rarity,
         quantity: input.quantity,
         referencePrice: input.referencePrice,
-        marginMultiplier: input.marginMultiplier || 1.0,
+        marginMultiplier,
         finalPrice: calculation.finalPrice,
         exchangeRate: calculation.exchangeRate,
         costPrice: input.costPrice,

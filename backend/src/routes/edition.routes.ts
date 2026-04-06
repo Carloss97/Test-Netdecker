@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/db.js';
 import { NotFoundError } from '../utils/errors.js';
+import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
 
 const router = express.Router();
 
@@ -125,7 +126,7 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
           rarity: card.rarity,
           quantity: 0,
           referencePrice: 0,
-          marginMultiplier: 1.0,
+          marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,
           exchangeRate: 1.0,
           finalPrice: 0,
           currency: 'CLP',

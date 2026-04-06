@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import prisma from '../utils/db.js';
+import { parseOptionalPositiveNumber, SUPPORTED_TCGS } from '../config/pricing.js';
 
 function getArg(name: string): string | undefined {
   const prefix = `--${name}=`;
@@ -10,8 +11,8 @@ function getArg(name: string): string | undefined {
 
 async function main() {
   const tcgRaw = getArg('tcg')?.toUpperCase();
-  const tcg = tcgRaw && ['MAGIC', 'POKEMON', 'YUGIOH'].includes(tcgRaw)
-    ? (tcgRaw as 'MAGIC' | 'POKEMON' | 'YUGIOH')
+  const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
+    ? (tcgRaw as typeof SUPPORTED_TCGS[number])
     : undefined;
 
   const result = await CatalogSyncService.syncNewSets({
@@ -19,7 +20,7 @@ async function main() {
     dryRun: process.argv.includes('--dry-run'),
     createListings: !process.argv.includes('--no-listings'),
     initialQuantity: getArg('quantity') ? Number.parseInt(getArg('quantity') || '0', 10) : 0,
-    marginMultiplier: getArg('margin') ? Number.parseFloat(getArg('margin') || '1.0') : undefined,
+    marginMultiplier: parseOptionalPositiveNumber(getArg('margin')),
     concurrency: getArg('concurrency') ? Number.parseInt(getArg('concurrency') || '4', 10) : 4,
   });
 

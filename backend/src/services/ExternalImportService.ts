@@ -7,6 +7,7 @@ import { TCGType, CardCondition } from '@prisma/client';
 import type { ExternalCard } from './CardDatabaseService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExchangeRateService } from './ExchangeRateService.js';
+import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
 
 export interface ImportExternalCardOptions {
   createListing?: boolean;
@@ -186,7 +187,7 @@ export class ExternalImportService {
         where: { cardId_condition_rarity: { cardId: card.id, condition, rarity } },
       });
 
-      const marginMultiplier = options.marginMultiplier ?? 1.0;
+      const marginMultiplier = options.marginMultiplier ?? DEFAULT_MARGIN_MULTIPLIER;
       const quantity = options.quantity ?? 0;
 
       // Fetch the real exchange rate for accurate CLP price calculation

@@ -1,5 +1,6 @@
 import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExternalImportService } from './ExternalImportService.js';
+import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
 
 export interface CatalogBootstrapOptions {
   tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
@@ -33,10 +34,6 @@ export interface CatalogBootstrapResult {
   bySet: CatalogBootstrapSetResult[];
 }
 
-const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = [
-  'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ',
-];
-
 function normalizeSetCode(raw: string): string {
   return raw.trim().toUpperCase();
 }
@@ -46,7 +43,7 @@ export class CatalogBootstrapService {
     const dryRun = options.dryRun === true;
     const createListings = options.createListings !== false;
     const initialQuantity = options.initialQuantity ?? 0;
-    const marginMultiplier = options.marginMultiplier ?? 1.0;
+    const marginMultiplier = options.marginMultiplier ?? DEFAULT_MARGIN_MULTIPLIER;
     const selectedTcgs = options.tcg ? [options.tcg] : SUPPORTED_TCGS;
 
     const bySet: CatalogBootstrapSetResult[] = [];

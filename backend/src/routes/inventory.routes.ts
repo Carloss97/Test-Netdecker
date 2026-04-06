@@ -4,10 +4,38 @@ import { ListingService } from '../services/ListingService.js';
 // @ts-ignore - .js extension is required for Node ESM runtime after build.
 import { InventoryService } from '../services/InventoryService.js';
 import multer from 'multer';
+import { z } from 'zod';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+const updateQuantitySchema = z.object({
+  listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
+  quantity: z.coerce.number().int('quantity must be an integer').min(0, 'quantity must be >= 0'),
+});
+
+const bulkUpdateSchema = z.object({
+  updates: z.array(
+    z.object({
+      listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
+      quantity: z.coerce.number().int('quantity must be an integer').min(0, 'quantity must be >= 0'),
+    })
+  ).min(1, 'updates must be a non-empty array of { listingId, quantity }'),
+});
+
+const decreaseQuantitySchema = z.object({
+  listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
+  amount: z.coerce.number().int('amount must be an integer').positive('amount must be > 0'),
+});
+
+function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues[0]?.message || 'Invalid request payload');
+  }
+  return parsed.data;
+}
 
 function parseImportQuery(req: Request) {
   const page = Number(req.query.page || 1);
@@ -176,11 +204,7 @@ router.get('/imports/:importId', async (req: Request, res: Response) => {
  * Update a single listing quantity
  */
 router.post('/update-quantity', async (req: Request, res: Response) => {
-  const { listingId, quantity } = req.body;
-
-  if (!listingId || quantity === undefined) {
-    throw new ValidationError('listingId and quantity are required');
-  }
+  const { listingId, quantity } = parseBodyOrThrow(updateQuantitySchema, req.body);
 
   const updated = await ListingService.updateQuantity(listingId, quantity);
   res.json({
@@ -195,11 +219,7 @@ router.post('/update-quantity', async (req: Request, res: Response) => {
  * Bulk update quantities (e.g., from CSV)
  */
 router.post('/bulk-update', async (req: Request, res: Response) => {
-  const { updates } = req.body;
-
-  if (!Array.isArray(updates)) {
-    throw new ValidationError('updates must be an array of { listingId, quantity }');
-  }
+  const { updates } = parseBodyOrThrow(bulkUpdateSchema, req.body);
 
   const results = await ListingService.bulkUpdateQuantities(updates);
   res.json({
@@ -213,11 +233,7 @@ router.post('/bulk-update', async (req: Request, res: Response) => {
  * Decrease quantity (for purchases)
  */
 router.post('/decrease', async (req: Request, res: Response) => {
-  const { listingId, amount } = req.body;
-
-  if (!listingId || !amount) {
-    throw new ValidationError('listingId and amount are required');
-  }
+  const { listingId, amount } = parseBodyOrThrow(decreaseQuantitySchema, req.body);
 
   const updated = await ListingService.decreaseQuantity(listingId, amount);
   res.json({

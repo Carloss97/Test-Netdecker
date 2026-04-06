@@ -266,6 +266,35 @@ La app estará disponible en `http://localhost:3000`
 
 En desarrollo, el frontend redirige automáticamente las peticiones `/api/*` a `http://localhost:3333/api/*` mediante el proxy de Vite.
 
+### Cron Troubleshooting In Development
+
+Si parece que la sincronización automática de precios no corre en local, revisa lo siguiente:
+
+1. **Verifica que el backend arrancó una sola vez**
+  - Si ves `EADDRINUSE` (puerto ocupado), el proceso falla antes de iniciar los cron jobs.
+  - Asegúrate de no tener dos backends escuchando en el mismo puerto.
+
+2. **Confirma que el scheduler quedó activo en logs**
+  - Debes ver: `[PriceSyncJob] Scheduled with cron expression: ...`
+
+3. **Recuerda la frecuencia configurada**
+  - `PRICE_SYNC_CRON="0 */6 * * *"` ejecuta cada 6 horas, por lo que en desarrollo puede parecer que "no corre".
+
+4. **Modo seguro para desarrollo (recomendado)**
+  - `PRICE_SYNC_DEV_SAFE_MODE="true"` (por defecto en `development`) hace cron más observable:
+    - `inventoryOnly=true`
+    - `fetchExternalPrices=false`
+  - Esto evita corridas largas por APIs externas y reduce `Previous run still in progress`.
+
+5. **Cómo desactivar el modo seguro**
+  - Si quieres comportamiento completo también en local:
+    - `PRICE_SYNC_DEV_SAFE_MODE="false"`
+
+6. **Inspección rápida de corridas**
+  - Endpoint útil para diagnóstico:
+    - `GET /api/listings/sync-prices/runs?limit=5`
+  - Revisa `status` (`running`, `completed`, `failed`) y tiempos `startedAt/completedAt`.
+
 ## Endpoints API Base (MVP)
 
 ### TCGs

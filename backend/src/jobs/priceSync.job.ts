@@ -10,6 +10,9 @@ export function startPriceSyncCron() {
     return;
   }
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const devSafeModeEnabled = isDevelopment && process.env.PRICE_SYNC_DEV_SAFE_MODE !== 'false';
+
   const schedule = process.env.PRICE_SYNC_CRON || '0 */6 * * *';
 
   if (!cron.validate(schedule)) {
@@ -26,10 +29,21 @@ export function startPriceSyncCron() {
     isRunning = true;
 
     try {
+      const runOptions = devSafeModeEnabled
+        ? {
+            source: 'cron' as const,
+            notes: `Cron execution (${schedule}) [dev-safe mode]`,
+            inventoryOnly: true,
+            fetchExternalPrices: false,
+          }
+        : {
+            source: 'cron' as const,
+            notes: `Cron execution (${schedule})`,
+            inventoryOnly: false,
+          };
+
       const result = await PriceSyncService.runPriceSync({
-        source: 'cron',
-        notes: `Cron execution (${schedule})`,
-        inventoryOnly: false,
+        ...runOptions,
       });
 
       console.log(
@@ -43,4 +57,7 @@ export function startPriceSyncCron() {
   });
 
   console.log(`[PriceSyncJob] Scheduled with cron expression: ${schedule}`);
+  if (devSafeModeEnabled) {
+    console.log('[PriceSyncJob] Development safe mode enabled: inventoryOnly=true, fetchExternalPrices=false');
+  }
 }

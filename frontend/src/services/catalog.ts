@@ -78,6 +78,16 @@ export async function previewListingPrice(referencePrice: number, marginMultipli
   return data;
 }
 
+export async function previewAdminPricing(params: {
+  listingId?: string;
+  referencePrice?: number;
+  marginMultiplier?: number;
+  roundingMultiple?: number;
+}) {
+  const { data } = await apiClient.post('/admin/pricing/preview', params);
+  return data;
+}
+
 export async function getListingPriceDebug(id: string) {
   const { data } = await apiClient.get(`/listings/${id}/price-debug`);
   return data;

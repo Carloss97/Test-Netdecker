@@ -1,6 +1,7 @@
 import prisma from '../utils/db.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExternalImportService } from './ExternalImportService.js';
+import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
 
 export interface CatalogSyncOptions {
   tcg?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
@@ -33,10 +34,6 @@ export interface CatalogSyncResult {
   skippedCards: number;
   bySet: CatalogSyncSetResult[];
 }
-
-const SUPPORTED_TCGS: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = [
-  'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ',
-];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -99,7 +96,7 @@ export class CatalogSyncService {
             const importResult = await ExternalImportService.bulkImportCards(cards, {
               createListing: options.createListings !== false,
               quantity: options.initialQuantity ?? 0,
-              marginMultiplier: options.marginMultiplier ?? 1.0,
+              marginMultiplier: options.marginMultiplier ?? DEFAULT_MARGIN_MULTIPLIER,
               concurrency: options.concurrency ?? 4,
             });
 

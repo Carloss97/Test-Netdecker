@@ -1,58 +1,55 @@
-# .github/copilot-instructions.md
+# Project Guidelines
 
-## TCG Singles Platform - Development Guide
+## Architecture
 
-### Project Structure
+- Monorepo with backend (`backend/`) and frontend (`frontend/`).
+- Backend pattern: routes delegate to services; keep business logic in services, not route handlers.
+- Prisma is the source of truth for data access and schema (`backend/prisma/schema.prisma`).
+- Redis is used for exchange-rate and external API caching; code must tolerate cache misses/timeouts.
+- Scheduled automation starts from backend startup (`startPriceSyncCron`, `startCatalogSyncCron`).
 
-This is a fullstack monorepo with:
-- **Backend**: Node.js/Express/TypeScript with Prisma ORM
-- **Frontend**: React + Vite + TypeScript
-- **Database**: PostgreSQL
-- **Cache**: Redis
+## Build And Test
 
-### Key Architecture
+- Install dependencies:
+	- Root: `npm install`
+	- Backend: `npm --prefix backend install`
+	- Frontend: `npm --prefix frontend install`
+- Local dev:
+	- Full stack: `npm run dev`
+	- Backend only: `npm run dev:backend`
+	- Frontend only: `npm run dev:frontend`
+- Quality checks:
+	- Type-check all: `npm run type-check`
+	- Backend tests: `npm --prefix backend run test`
+	- Frontend tests: `npm --prefix frontend run test:run`
+- DB lifecycle:
+	- `npm --prefix backend run prisma:push`
+	- `npm --prefix backend run prisma:seed`
 
-1. **Services Layer**: All business logic (PriceService, CardService, ListingService, TCGService, ExchangeRateService, EditionService)
-2. **Routes Layer**: Express routes that delegate to services
-3. **Database**: Prisma ORM with PostgreSQL
-4. **Cache**: Redis for exchange rates and frequently accessed data
+## Conventions
 
-### Development Rules
+- Always add explicit TypeScript types for service inputs/outputs and route payloads.
+- Prefer service methods for domain operations (`PriceService`, `InventoryService`, `CatalogSyncService`, etc.).
+- Validate request input with Zod or equivalent guards before mutating data.
+- Keep API responses consistent (`success` + structured error payload from global handler).
+- Use custom application errors from `backend/src/utils/errors.ts` instead of ad-hoc throw strings.
+- For pricing changes, use `PriceService.updateListingPrice()` to ensure history tracking is preserved.
 
-- Always add TypeScript types
-- Use Prisma services for database operations
-- Cache external API calls (exchange rates, TCGplayer data)
-- Validate input with Zod or manual checks
-- Return JSON responses with consistent format
-- Handle errors gracefully with try-catch
+## Environment And Pitfalls
 
-### Common Tasks
+- Create `backend/.env` from `backend/.env.example` before running backend commands.
+- `DATABASE_URL` is required for Prisma operations.
+- `REDIS_URL` should be reachable; when unavailable, caching behavior can degrade sync performance.
+- Backend default port in code is `3333`, but `.env.example` includes `PORT=3001`; keep frontend proxy and backend env aligned.
+- Validate cron expressions (`PRICE_SYNC_CRON`, `CATALOG_SYNC_CRON`) when changing schedules.
+- After schema changes, run `prisma:push` and `prisma:generate` before testing related flows.
 
-**Add a new API endpoint:**
-1. Create service method in `backend/src/services/`
-2. Add route in `backend/src/routes/`
-3. Update Frontend `catalog.ts` if needed
+## Reference Docs
 
-**Update database schema:**
-1. Modify `backend/prisma/schema.prisma`
-2. Run `npm run prisma:push`
-
-**Add inventory (CSV):**
-1. Create parser in `backend/src/services/InventoryService.ts`
-2. Add POST endpoint in `backend/src/routes/inventory.routes.ts`
-
-### Price Update Logic
-
-- Call `PriceService.updateListingPrice()` to update prices
-- It automatically creates history records
-- Use `PriceService.isVolatileChange()` to check for suspicious jumps
-- Sync job queries TCGplayer and updates every 4-6 hours
-
-### Default Data
-
-TCGs initialize automatically:
-- MAGIC: Magic: The Gathering
-- POKEMON: Pokémon Trading Card Game
-- YUGIOH: Yu-Gi-Oh!
-- ONE_PIECE: One Piece Trading Card Game
+- Onboarding and architecture overview: `README.md`
+- API/services quick reference: `FUNCIONES_IMPORTANTES.md`
+- Open work and priorities: `BACKLOG.md`
+- Known issues and pending fixes: `PENDIENTES_MEJORAS_Y_ARREGLOS.md`
+- Integration plan: `INTEGRATION_ROADMAP_FUTURE.md`
+- External TCG API research: `TCG_DATA_APIS_LATAM_RESEARCH.md`
 
