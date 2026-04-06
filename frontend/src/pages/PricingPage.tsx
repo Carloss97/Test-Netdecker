@@ -1,4 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+// Redondea al múltiplo de 100 más cercano, mínimo 100
+function roundToNearestHundred(price: number): number {
+  if (price <= 100) return 100;
+  const remainder = price % 100;
+  if (remainder === 0) return price;
+  if (remainder < 50) return price - remainder;
+  return price + (100 - remainder);
+}
 import { useAsync } from '../hooks/useAsync';
 import { getAvailableListings, syncListingPrices, getPriceVolatility, updateListingPricingMode } from '../services/catalog';
 import type { Listing } from '../types';
@@ -206,7 +214,7 @@ export function PricingPage() {
   const nextRoundRobinTcg = roundRobinOrder[roundRobinIndexRef.current % roundRobinOrder.length];
 
   const fmtCLP = (n: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(roundToNearestHundred(n));
 
   const setPricingMode = async (listing: Listing, mode: 'manual' | 'api') => {
     setUpdatingPricingId(listing.id);
@@ -221,7 +229,8 @@ export function PricingPage() {
           setSyncError('Ingresa un precio final en CLP valido (> 0). El precio de referencia USD se sincroniza por separado.');
           return false;
         }
-        await updateListingPricingMode(listing.id, 'manual', manualPrice);
+        const roundedManualPrice = roundToNearestHundred(manualPrice);
+        await updateListingPricingMode(listing.id, 'manual', roundedManualPrice);
         setSyncMsg('Modo manual activado y precio guardado.');
       } else {
         await updateListingPricingMode(listing.id, 'api');
