@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { searchCards, searchCardsByCode, getListingsByCard, updateListingPricingMode } from '../services/catalog';
+import { useEffect, useState } from 'react';
+import { searchCards, searchCardsByCode, getListingsByCard, updateListingPricingMode, updateListingStock } from '../services/catalog';
 import type { Card, Listing } from '../types';
 import { parsePositiveNumberInput } from '../constants/pricing';
+import { formatInventoryIdentifier } from '../utils/cardIdentifier';
 
 const RARITY_BADGE: Record<string, string> = {
   common: 'badge-gray',
@@ -94,6 +95,14 @@ interface CardWithListings extends Card {
   _listingsLoaded?: boolean;
 }
 
+interface PreviewCard {
+  name: string;
+  imageUrl?: string;
+  cardCode?: string;
+  editionName?: string;
+  rarity?: string;
+}
+
 export function CardSearchPage() {
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState<'name' | 'code'>('name');
@@ -103,7 +112,7 @@ export function CardSearchPage() {
   const [searched, setSearched] = useState(false);
 
   // Image preview
-  const [previewCard, setPreviewCard] = useState<{ name: string; imageUrl?: string } | null>(null);
+  const [previewCard, setPreviewCard] = useState<PreviewCard | null>(null);
 
   // Expanded listings per card id
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
@@ -114,6 +123,8 @@ export function CardSearchPage() {
   const [listingFilter, setListingFilter] = useState('');
   const [listingSort, setListingSort] = useState<'rarity' | 'condition' | 'stock' | 'usd' | 'clp' | 'mode'>('stock');
   const [listingSortDir, setListingSortDir] = useState<'asc' | 'desc'>('desc');
+  const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
+  const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +150,23 @@ export function CardSearchPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const nextPreview = results.find((card) => card.imageUrl) ?? results[0] ?? null;
+
+    if (!nextPreview) {
+      setPreviewCard(null);
+      return;
+    }
+
+    setPreviewCard({
+      name: nextPreview.cardName,
+      imageUrl: nextPreview.imageUrl,
+      cardCode: nextPreview.cardCode,
+      editionName: nextPreview.edition?.editionName,
+      rarity: nextPreview.rarity,
+    });
+  }, [results]);
 
   const toggleListings = async (card: CardWithListings) => {
     if (expandedCard === card.id) {
@@ -201,6 +229,51 @@ export function CardSearchPage() {
     }
   };
 
+  const setListingStock = async (cardId: string, listing: Listing, nextQuantity: number) => {
+    setUpdatingStockId(listing.id);
+    setError(null);
+
+    try {
+      const response = await updateListingStock(listing.id, 'set', nextQuantity);
+      setCardListings((prev) => ({
+        ...prev,
+        [cardId]: (prev[cardId] ?? []).map((row) =>
+          row.id === listing.id ? { ...row, quantity: response.quantity } : row,
+        ),
+      }));
+
+      setStockDrafts((prev) => {
+        const next = { ...prev };
+        delete next[listing.id];
+        return next;
+      });
+
+      return true;
+    } catch {
+      setError('No se pudo actualizar el stock del listing');
+      return false;
+    } finally {
+      setUpdatingStockId(null);
+    }
+  };
+
+  const commitStockDraft = async (cardId: string, listing: Listing) => {
+    const rawDraft = stockDrafts[listing.id] ?? String(listing.quantity);
+    const parsed = Number.parseInt(rawDraft, 10);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setError('Ingresa un stock valido (0 o mayor).');
+      return;
+    }
+
+    await setListingStock(cardId, listing, parsed);
+  };
+
+  const bumpStock = async (cardId: string, listing: Listing, delta: number) => {
+    const nextQuantity = Math.max(0, listing.quantity + delta);
+    await setListingStock(cardId, listing, nextQuantity);
+  };
+
   const saveManualPrice = async (cardId: string, listing: Listing) => {
     if (listing.status !== 'manual' || updatingPricingId === listing.id) return;
     return setPricingMode(cardId, listing, 'manual');
@@ -232,49 +305,6 @@ export function CardSearchPage() {
 
   return (
     <div>
-      {/* Image preview modal */}
-      {previewCard && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.75)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          onClick={() => setPreviewCard(null)}
-        >
-          <div
-            style={{
-              background: 'var(--surface)', borderRadius: 12, padding: 24,
-              maxWidth: 480, width: '95%', textAlign: 'center',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 600, marginBottom: 14, fontSize: '1.05rem' }}>
-              {previewCard.name}
-            </div>
-            {previewCard.imageUrl ? (
-              <img
-                src={previewCard.imageUrl}
-                alt={previewCard.name}
-                style={{ maxWidth: '100%', borderRadius: 10, maxHeight: 520, objectFit: 'contain' }}
-              />
-            ) : (
-              <div style={{ color: 'var(--text-muted)', padding: '60px 0', fontSize: '0.875rem' }}>
-                Sin imagen disponible
-              </div>
-            )}
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ marginTop: 18 }}
-              onClick={() => setPreviewCard(null)}
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Search form */}
       <div className="card" style={{ marginBottom: 20 }}>
         <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -324,6 +354,55 @@ export function CardSearchPage() {
         </form>
       </div>
 
+      {previewCard && (
+        <div className="card" style={{ marginBottom: 20, display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              width: 220,
+              maxWidth: '100%',
+              aspectRatio: '5 / 7',
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {previewCard.imageUrl ? (
+              <img
+                src={previewCard.imageUrl}
+                alt={previewCard.name}
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: 16, textAlign: 'center' }}>
+                Sin imagen disponible
+              </div>
+            )}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 6 }}>
+              Vista previa
+            </div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 6 }}>
+              {previewCard.name}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {previewCard.cardCode && <span className="badge badge-blue">{previewCard.cardCode}</span>}
+              {previewCard.editionName && <span className="badge badge-gray">{previewCard.editionName}</span>}
+              {previewCard.rarity && <span className={`badge ${getRarityBadge(previewCard.rarity)}`}>{previewCard.rarity}</span>}
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.5 }}>
+              Pasa el mouse por una carta para actualizar la vista. También puedes fijar una carta concreta haciendo clic en su miniatura.
+            </p>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="error-message" style={{ marginBottom: 16 }}>
           ⚠️ {error}
@@ -343,7 +422,15 @@ export function CardSearchPage() {
         return (
           <div key={first.id} className="card" style={{ marginBottom: 16 }}>
             {/* Card header */}
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }} onMouseEnter={() => {
+              setPreviewCard({
+                name: first.cardName,
+                imageUrl: first.imageUrl,
+                cardCode: first.cardCode,
+                editionName: first.edition?.editionName,
+                rarity: first.rarity,
+              });
+            }}>
               {/* Thumbnail */}
               {first.imageUrl && (
                 <img
@@ -427,15 +514,19 @@ export function CardSearchPage() {
                     </div>
                     <table className="data-table" style={{ fontSize: '0.82rem', tableLayout: 'fixed' }}>
                       <colgroup>
+                        <col style={{ width: '16%' }} />
                         <col style={{ width: '24%' }} />
                         <col style={{ width: '14%' }} />
                         <col style={{ width: '20%' }} />
-                        <col style={{ width: '28%' }} />
+                        <col style={{ width: '20%' }} />
                         <col style={{ width: '14%' }} />
+                        <col style={{ width: '8%' }} />
                       </colgroup>
                     <thead>
                       <tr>
+                        <th>#</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('rarity')}>Rareza {listingSort === 'rarity' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th>Código</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('stock')}>Stock {listingSort === 'stock' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('usd')}>Precio USD {listingSort === 'usd' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('clp')}>Precio CLP {listingSort === 'clp' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -475,15 +566,65 @@ export function CardSearchPage() {
                         .map((listing) => {
                           const isManual = listing.status === 'manual';
                           const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
+                          const stockDraft = stockDrafts[listing.id] ?? String(listing.quantity);
                           return (
                             <tr key={listing.id}>
+                              <td>
+                                <span style={{ fontWeight: 600 }}>{formatInventoryIdentifier({
+                                  editionCode: (listing.card as Listing['card'] & { edition?: { editionCode?: string } })?.edition?.editionCode ?? first.edition?.editionCode,
+                                  cardCode: listing.card?.cardCode,
+                                  cardNumber: listing.card?.cardNumber,
+                                  cardName: listing.card?.cardName,
+                                })}</span>
+                              </td>
                               <td>
                                 <span className={`badge ${getRarityBadge(listing.card?.rarity)}`}>
                                   {listing.card?.rarity ?? '—'}
                                 </span>
                               </td>
                               <td>
-                                <span style={{ fontWeight: 600 }}>{listing.quantity}</span>
+                                <span style={{ fontWeight: 600 }}>{listing.card?.cardCode ?? '—'}</span>
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                    title="Reducir stock"
+                                    disabled={updatingStockId === listing.id}
+                                    onClick={() => { void bumpStock(first.id, listing, -1); }}
+                                  >
+                                    −
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    className="input input-sm"
+                                    value={stockDraft}
+                                    disabled={updatingStockId === listing.id}
+                                    title="Editar stock"
+                                    onChange={(e) => setStockDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                                    onBlur={() => { void commitStockDraft(first.id, listing); }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        void commitStockDraft(first.id, listing);
+                                      }
+                                    }}
+                                    style={{ width: 74, textAlign: 'center' }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                    title="Aumentar stock"
+                                    disabled={updatingStockId === listing.id}
+                                    onClick={() => { void bumpStock(first.id, listing, +1); }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
                               </td>
                               <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
                               <td style={{ fontWeight: 500 }}>

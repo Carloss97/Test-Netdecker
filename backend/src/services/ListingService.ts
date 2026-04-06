@@ -166,7 +166,15 @@ export class ListingService {
         ]
       },
       include: {
-        card: true
+        card: {
+          include: {
+            edition: {
+              select: {
+                editionCode: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { quantity: 'asc' }
     });

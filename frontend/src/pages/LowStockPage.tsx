@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getLowStockListings } from '../services/catalog';
 import type { Listing } from '../types';
+import { formatInventoryIdentifier } from '../utils/cardIdentifier';
 
 export function LowStockPage() {
   const [thresholdInput, setThresholdInput] = useState('5');
@@ -100,9 +101,9 @@ export function LowStockPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Carta</th>
-                  <th>Codigo</th>
-                  <th>Condicion</th>
+                  <th>Código</th>
                   <th>Stock</th>
                   <th>Precio CLP</th>
                   <th>Estado</th>
@@ -111,9 +112,22 @@ export function LowStockPage() {
               <tbody>
                 {listings.map((listing) => (
                   <tr key={listing.id}>
+                    <td>
+                      <span className="badge badge-gray">
+                        {formatInventoryIdentifier({
+                          editionCode: (listing.card as Listing['card'] & { edition?: { editionCode?: string } })?.edition?.editionCode,
+                          cardCode: listing.card?.cardCode,
+                          cardNumber: listing.card?.cardNumber,
+                          cardName: listing.card?.cardName,
+                        })}
+                      </span>
+                    </td>
                     <td>{listing.card?.cardName || 'Sin nombre'}</td>
-                    <td>{listing.card?.cardCode || '—'}</td>
-                    <td>{listing.condition}</td>
+                    <td>
+                      <span className="badge badge-gray">
+                        {listing.card?.cardCode || '—'}
+                      </span>
+                    </td>
                     <td>
                       <span className={`badge ${listing.quantity <= 2 ? 'badge-red' : 'badge-yellow'}`}>
                         {listing.quantity}

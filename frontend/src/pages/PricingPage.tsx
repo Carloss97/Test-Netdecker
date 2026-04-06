@@ -3,6 +3,7 @@ import { useAsync } from '../hooks/useAsync';
 import { getAvailableListings, syncListingPrices, getPriceVolatility, updateListingPricingMode } from '../services/catalog';
 import type { Listing } from '../types';
 import { parsePositiveNumberInput } from '../constants/pricing';
+import { formatInventoryIdentifier } from '../utils/cardIdentifier';
 
 interface VolatileEvent {
   priceHistoryId?: string;
@@ -516,17 +517,21 @@ export function PricingPage() {
           <div className="table-wrapper">
             <table className="data-table" style={{ tableLayout: 'fixed' }}>
               <colgroup>
-                <col style={{ width: '30%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '12%' }} />
                 <col style={{ width: '12%' }} />
                 <col style={{ width: '8%' }} />
                 <col style={{ width: '12%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '13%' }} />
-                <col style={{ width: '14%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '12%' }} />
               </colgroup>
               <thead>
                 <tr>
+                  <th>#</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('name')}>Carta {sortColumn === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('code')}>Código {sortColumn === 'code' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('rarity')}>Rareza {sortColumn === 'rarity' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('stock')}>Stock {sortColumn === 'stock' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('reference')}>Precio Ref (USD) {sortColumn === 'reference' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
@@ -542,13 +547,23 @@ export function PricingPage() {
                   return (
                   <tr key={listing.id}>
                     <td>
+                      <span style={{ fontWeight: 600 }}>{formatInventoryIdentifier({
+                        editionCode: (listing.card as Listing['card'] & { edition?: { editionCode?: string } })?.edition?.editionCode,
+                        cardCode: listing.card?.cardCode,
+                        cardNumber: listing.card?.cardNumber,
+                        cardName: listing.card?.cardName,
+                      })}</span>
+                    </td>
+                    <td>
                       <div style={{ fontWeight: 500 }}>{listing.card?.cardName ?? '—'}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        Código: {listing.card?.cardCode ?? '—'}
                         <span className={`badge ${isListingStale(listing) ? 'badge-yellow' : 'badge-green'}`}>
                           {isListingStale(listing) ? 'Desactualizado' : 'Actualizado'}
                         </span>
                       </div>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600 }}>{listing.card?.cardCode ?? '—'}</span>
                     </td>
                     <td>
                       {listing.card?.rarity ? (
