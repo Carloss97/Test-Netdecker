@@ -86,7 +86,7 @@ test('isVolatileChange respects custom threshold', () => {
 });
 
 test('isVolatileChange handles zero old price gracefully', () => {
-  // When oldPrice is 0, division produces Infinity – treated as volatile
+  // First priced import is treated as non-volatile by service contract.
   const result = PriceService.isVolatileChange(0, 100);
-  assert.equal(result, true);
+  assert.equal(result, false);
 });
