@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingPage } from './PricingPage';
@@ -47,6 +47,30 @@ describe('PricingPage', () => {
           edition: { editionName: 'Set 1', editionCode: 'S1' },
         },
       },
+      {
+        id: 'listing-2',
+        cardId: 'card-2',
+        editionId: 'ed-1',
+        condition: 'NM',
+        quantity: 3,
+        referencePrice: 6,
+        marginMultiplier: 1,
+        exchangeRate: 950,
+        finalPrice: 5700,
+        currency: 'CLP',
+        status: 'active',
+        card: {
+          id: 'card-2',
+          tcgId: 'tcg-1',
+          editionId: 'ed-1',
+          cardCode: 'CARD-002',
+          cardName: 'Second Card',
+          rarity: 'Uncommon',
+          imageUrl: 'https://example.com/second-card.jpg',
+          tcg: { name: 'MAGIC' },
+          edition: { editionName: 'Set 1', editionCode: 'S1' },
+        },
+      },
     ]);
   });
 
@@ -58,6 +82,29 @@ describe('PricingPage', () => {
 
     await waitFor(() => {
       expect(mockUpdateListingPricingMode).toHaveBeenCalledWith('listing-1', 'api');
+    });
+  });
+
+  it('keeps preview fixed after pinning a pricing row', async () => {
+    render(<PricingPage />);
+
+    const previewPanel = await screen.findByText('Vista previa');
+    const previewAside = previewPanel.closest('aside');
+    expect(previewAside).not.toBeNull();
+
+    await userEvent.click(screen.getAllByTitle('Fijar vista previa')[0]);
+    expect(within(previewAside as HTMLElement).getByText('Sample Card')).toBeInTheDocument();
+    expect(within(previewAside as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Second Card'));
+    expect(within(previewAside as HTMLElement).getByText('Sample Card')).toBeInTheDocument();
+    expect(within(previewAside as HTMLElement).queryByText('Second Card')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fijada' }));
+    await userEvent.hover(screen.getByText('Second Card'));
+
+    await waitFor(() => {
+      expect(within(previewAside as HTMLElement).getByText('Second Card')).toBeInTheDocument();
     });
   });
 });

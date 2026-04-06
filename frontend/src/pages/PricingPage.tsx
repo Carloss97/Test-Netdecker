@@ -103,6 +103,8 @@ export function PricingPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
   const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
+  const [previewListingId, setPreviewListingId] = useState<string | null>(null);
+  const [pinnedPreviewListingId, setPinnedPreviewListingId] = useState<string | null>(null);
   const [volatileData, setVolatileData] = useState<VolatileResponse | null>(null);
   const [volatileStatus, setVolatileStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const syncingRef = useRef(false);
@@ -166,6 +168,22 @@ export function PricingPage() {
         return 0;
     }
   });
+  const previewListing = sortedListings.find((listing) => listing.id === previewListingId) ?? sortedListings[0] ?? null;
+  const isPreviewPinned = pinnedPreviewListingId !== null;
+
+  const setHoveredPreviewListing = (listingId: string) => {
+    if (isPreviewPinned) return;
+    setPreviewListingId(listingId);
+  };
+
+  const togglePinnedPreviewListing = (listingId: string) => {
+    setPreviewListingId(listingId);
+    setPinnedPreviewListingId((currentId) => (currentId === listingId ? null : listingId));
+  };
+
+  const clearPinnedPreviewListing = () => {
+    setPinnedPreviewListingId(null);
+  };
   const availableEditions = tcgListings
     .map((l) => ({
       id: l.editionId,
@@ -317,6 +335,26 @@ export function PricingPage() {
     }, intervalMs);
     return () => window.clearInterval(id);
   }, [autoSyncEnabled, autoSyncMinutes, autoSyncStrategy, syncScope, selectedTcg, selectedEditionId]);
+
+  useEffect(() => {
+    if (!sortedListings.length) {
+      setPreviewListingId(null);
+      setPinnedPreviewListingId(null);
+      return;
+    }
+
+    setPreviewListingId((currentId) => {
+      if (currentId && sortedListings.some((listing) => listing.id === currentId)) {
+        return currentId;
+      }
+      return sortedListings[0].id;
+    });
+
+    setPinnedPreviewListingId((currentId) => {
+      if (!currentId) return null;
+      return sortedListings.some((listing) => listing.id === currentId) ? currentId : null;
+    });
+  }, [sortedListings]);
 
   return (
     <div>
@@ -476,11 +514,11 @@ export function PricingPage() {
       </div>
 
       <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div className="pricing-listings-toolbar">
           <div className="section-title" style={{ margin: 0 }}>
             Listings con stock ({sortedListings.length})
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="pricing-listings-controls">
             <input
               className="input input-sm"
               style={{ minWidth: 220 }}
@@ -514,8 +552,9 @@ export function PricingPage() {
             <p>No hay cartas con stock disponible para este TCG</p>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table className="data-table" style={{ tableLayout: 'fixed' }}>
+          <div className="listings-preview-pane">
+            <div className="table-wrapper listings-preview-table">
+              <table className="data-table" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '14%' }} />
                 <col style={{ width: '22%' }} />
@@ -544,8 +583,13 @@ export function PricingPage() {
                 {sortedListings.map((listing) => {
                   const isManual = listing.status === 'manual';
                   const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
+                  const isActivePreview = previewListing?.id === listing.id;
                   return (
-                  <tr key={listing.id}>
+                  <tr
+                    key={listing.id}
+                    className={isActivePreview ? 'row-preview-active' : ''}
+                    onMouseEnter={() => setHoveredPreviewListing(listing.id)}
+                  >
                     <td>
                       <span style={{ fontWeight: 600 }}>{formatInventoryIdentifier({
                         editionCode: (listing.card as Listing['card'] & { edition?: { editionCode?: string } })?.edition?.editionCode,
@@ -555,7 +599,14 @@ export function PricingPage() {
                       })}</span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{listing.card?.cardName ?? '—'}</div>
+                      <div
+                        style={{ fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => togglePinnedPreviewListing(listing.id)}
+                        title={pinnedPreviewListingId === listing.id ? 'Desfijar vista previa' : 'Fijar vista previa'}
+                      >
+                        {listing.card?.cardName ?? '—'}
+                        {listing.card?.imageUrl && <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>🖼</span>}
+                      </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         <span className={`badge ${isListingStale(listing) ? 'badge-yellow' : 'badge-green'}`}>
                           {isListingStale(listing) ? 'Desactualizado' : 'Actualizado'}
@@ -633,7 +684,72 @@ export function PricingPage() {
                   </tr>
                 );})}
               </tbody>
-            </table>
+              </table>
+            </div>
+
+            <aside className="inventory-preview-panel">
+              <div className="flex items-center justify-between gap-2" style={{ marginBottom: 10 }}>
+                <div className="section-title">Vista previa</div>
+                {previewListing && isPreviewPinned && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={clearPinnedPreviewListing}
+                    title="Liberar vista previa fija"
+                  >
+                    Fijada
+                  </button>
+                )}
+              </div>
+
+              {previewListing ? (
+                <>
+                  {isPreviewPinned && (
+                    <div className="badge badge-gray" style={{ marginBottom: 10 }}>
+                      Vista fija: el hover no cambia la carta
+                    </div>
+                  )}
+                  <div className="inventory-preview-frame">
+                    {previewListing.card?.imageUrl ? (
+                      <img
+                        src={previewListing.card.imageUrl}
+                        alt={previewListing.card?.cardName || 'Carta'}
+                        className="inventory-preview-image"
+                      />
+                    ) : (
+                      <div className="inventory-preview-empty">Sin imagen disponible</div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>
+                      {previewListing.card?.cardName || 'Sin nombre'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+                      {previewListing.card?.cardCode || '—'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {previewListing.card?.rarity ? (
+                        <span className="badge badge-gray">{previewListing.card.rarity}</span>
+                      ) : null}
+                      <span className="badge badge-gray">
+                        {formatInventoryIdentifier({
+                          editionCode: (previewListing.card as Listing['card'] & { edition?: { editionCode?: string } })?.edition?.editionCode,
+                          cardCode: previewListing.card?.cardCode,
+                          cardNumber: previewListing.card?.cardNumber,
+                          cardName: previewListing.card?.cardName,
+                        })}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Stock: {previewListing.quantity} · Precio: {previewListing.finalPrice != null ? fmtCLP(previewListing.finalPrice) : '—'}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="inventory-preview-empty">Selecciona una carta para verla ampliada</div>
+              )}
+            </aside>
           </div>
         )}
       </div>

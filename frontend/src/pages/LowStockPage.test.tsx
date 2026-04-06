@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LowStockPage } from './LowStockPage';
 
@@ -79,6 +80,7 @@ describe('LowStockPage', () => {
           editionId: 'edition-1',
           cardCode: 'CARD-001',
           cardName: 'Lightning Bolt',
+          rarity: 'Rare',
         },
       },
     ]);
@@ -87,8 +89,80 @@ describe('LowStockPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('1 listing(s) en alerta (umbral: 5)')).toBeInTheDocument();
-      expect(screen.getByText('Lightning Bolt')).toBeInTheDocument();
+      expect(screen.getAllByText('Lightning Bolt').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('CARD-001').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Rareza')).toBeInTheDocument();
+      expect(screen.getAllByText('Rare').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('keeps preview fixed after pinning a low-stock card', async () => {
+    mockGetLowStockListings.mockResolvedValueOnce([
+      {
+        id: 'listing-1',
+        cardId: 'card-1',
+        editionId: 'edition-1',
+        condition: 'NM',
+        quantity: 2,
+        referencePrice: 4,
+        marginMultiplier: 1,
+        exchangeRate: 950,
+        finalPrice: 3800,
+        currency: 'CLP',
+        status: 'active',
+        card: {
+          id: 'card-1',
+          tcgId: 'tcg-1',
+          editionId: 'edition-1',
+          cardCode: 'CARD-001',
+          cardName: 'Lightning Bolt',
+          rarity: 'Rare',
+          imageUrl: 'https://example.com/bolt.jpg',
+        },
+      },
+      {
+        id: 'listing-2',
+        cardId: 'card-2',
+        editionId: 'edition-1',
+        condition: 'NM',
+        quantity: 1,
+        referencePrice: 6,
+        marginMultiplier: 1,
+        exchangeRate: 950,
+        finalPrice: 5700,
+        currency: 'CLP',
+        status: 'active',
+        card: {
+          id: 'card-2',
+          tcgId: 'tcg-1',
+          editionId: 'edition-1',
+          cardCode: 'CARD-002',
+          cardName: 'Counterspell',
+          rarity: 'Uncommon',
+          imageUrl: 'https://example.com/counterspell.jpg',
+        },
+      },
+    ]);
+
+    render(<LowStockPage />);
+
+    const previewPanel = await screen.findByText('Vista previa');
+    const previewAside = previewPanel.closest('aside');
+    expect(previewAside).not.toBeNull();
+
+    await userEvent.click(screen.getAllByTitle('Fijar vista previa')[0]);
+    expect(within(previewAside as HTMLElement).getByText('Lightning Bolt')).toBeInTheDocument();
+    expect(within(previewAside as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Counterspell'));
+    expect(within(previewAside as HTMLElement).getByText('Lightning Bolt')).toBeInTheDocument();
+    expect(within(previewAside as HTMLElement).queryByText('Counterspell')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fijada' }));
+    await userEvent.hover(screen.getByText('Counterspell'));
+
+    await waitFor(() => {
+      expect(within(previewAside as HTMLElement).getByText('Counterspell')).toBeInTheDocument();
     });
   });
 });

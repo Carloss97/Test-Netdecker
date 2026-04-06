@@ -508,6 +508,19 @@ table.data-table {
   min-height: 0;
 }
 
+.listings-preview-pane {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.listings-preview-table {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
 .inventory-preview-panel {
   width: 320px;
   flex-shrink: 0;
@@ -617,8 +630,40 @@ table.data-table {
   margin-top: 3px;
 }
 
+.pricing-listings-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.pricing-listings-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (min-width: 1400px) {
+  .pricing-listings-toolbar {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pricing-listings-controls {
+    justify-content: center;
+    max-width: 980px;
+  }
+}
+
 @media (max-width: 1200px) {
   .inventory-cards-pane {
+    flex-direction: column;
+  }
+
+  .listings-preview-pane {
     flex-direction: column;
   }
 
