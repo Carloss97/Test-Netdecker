@@ -6,6 +6,10 @@
 
 import { test, describe } from 'node:test';
 import { strict as assert } from 'node:assert';
+import prisma from '../utils/db.js';
+import { PriceSyncService } from '../services/PriceSyncService.js';
+import { CardDatabaseService } from '../services/CardDatabaseService.js';
+import { ListingService } from '../services/ListingService.js';
 import {
   ScryfallService,
   YGOProDeckService,
@@ -299,5 +303,69 @@ describe('Price Sync Configuration', () => {
         `${tcg} service should have getCardById`
       );
     });
+  });
+});
+
+describe('Price Sync Imported Cards Coverage', () => {
+  test('runPriceSync creates a listing for imported cards that do not have one yet', async () => {
+    const originalCardFindMany = prisma.card.findMany;
+    const originalListingFindMany = prisma.listing.findMany;
+    const originalListingUpdate = prisma.listing.update;
+    const originalGetSetCards = CardDatabaseService.getSetCards;
+    const originalCreateListing = ListingService.createListing;
+
+    const createdListingCalls: Array<Record<string, unknown>> = [];
+
+    try {
+      prisma.card.findMany = (async () => [{
+        id: 'card-1',
+        cardCode: 'external-1',
+        cardName: 'Test Card',
+        rarity: 'Rare',
+        tcg: { name: 'MAGIC' },
+        edition: { id: 'edition-1', editionCode: 'M25' },
+        listings: [],
+      }]) as unknown as typeof prisma.card.findMany;
+
+      prisma.listing.findMany = (async () => []) as unknown as typeof prisma.listing.findMany;
+      prisma.listing.update = (async () => ({ id: 'listing-created' })) as unknown as typeof prisma.listing.update;
+
+      CardDatabaseService.getSetCards = (async () => [{
+        externalId: 'external-1',
+        source: 'scryfall',
+        tcg: 'MAGIC',
+        cardName: 'Test Card',
+        editionCode: 'M25',
+        editionName: 'Magic 2025',
+        rarity: 'Rare',
+        priceMarket: 12,
+      }]) as typeof CardDatabaseService.getSetCards;
+
+      ListingService.createListing = (async (input) => {
+        createdListingCalls.push(input as unknown as Record<string, unknown>);
+        return { id: 'listing-created' } as Awaited<ReturnType<typeof ListingService.createListing>>;
+      }) as typeof ListingService.createListing;
+
+      const result = await PriceSyncService.runPriceSync({
+        source: 'manual',
+        notes: 'test',
+        fetchExternalPrices: true,
+      });
+
+      assert.equal(result.total, 1);
+      assert.equal(result.updated, 1);
+      assert.equal(result.failed, 0);
+      assert.equal(createdListingCalls.length, 1);
+      assert.equal(createdListingCalls[0]?.cardId, 'card-1');
+      assert.equal(createdListingCalls[0]?.condition, 'NM');
+      assert.equal(createdListingCalls[0]?.quantity, 0);
+      assert.equal(createdListingCalls[0]?.referencePrice, 12);
+    } finally {
+      prisma.card.findMany = originalCardFindMany;
+      prisma.listing.findMany = originalListingFindMany;
+      prisma.listing.update = originalListingUpdate;
+      CardDatabaseService.getSetCards = originalGetSetCards;
+      ListingService.createListing = originalCreateListing;
+    }
   });
 });

@@ -80,8 +80,9 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
     fetchExternalPrices: typeof fetchExternalPrices === 'boolean'
       ? fetchExternalPrices
       : updates === undefined,
-    // Default behavior for global sync: complete imported sets (all active listings),
-    // regardless of current stock in individual cards.
+    // Default behavior for global sync: complete imported sets.
+    // If a set was imported but has not been opened in inventory yet, the service
+    // materializes the missing listing from the imported card before syncing price.
     inventoryOnly: typeof inventoryOnly === 'boolean'
       ? inventoryOnly
       : false,

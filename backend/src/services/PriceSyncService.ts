@@ -1,10 +1,13 @@
 import prisma from '../utils/db.js';
+import { CardCondition, PriceUpdateReason } from '@prisma/client';
+import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
+import { ListingService } from './ListingService.js';
 import { PriceService } from './PriceService.js';
-import { PriceUpdateReason } from '@prisma/client';
 import { CardDatabaseService } from './CardDatabaseService.js';
 
 export interface PriceSyncUpdateInput {
-  listingId: string;
+  listingId?: string;
+  cardId?: string;
   referencePrice: number;
   marginMultiplier?: number;
   source?: 'api' | 'stored' | 'fallback' | 'manual_input';
@@ -44,6 +47,21 @@ export interface PriceSyncResult {
 }
 
 type SyncTcgName = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
+
+type SyncCardTarget = {
+  id: string;
+  cardCode: string;
+  cardName: string;
+  rarity: string;
+  tcg: { name: SyncTcgName };
+  edition: { id: string; editionCode: string };
+  listings: Array<{
+    id: string;
+    status: string;
+    referencePrice: number;
+    marginMultiplier: number;
+  }>;
+};
 
 type PriceSyncRunDelegate = {
   create: (args: unknown) => Promise<{ id: string }>;
@@ -250,7 +268,141 @@ export class PriceSyncService {
 
           const useSetSnapshotOptimization = true;
 
-          if (useSetSnapshotOptimization) {
+          if (!inventoryOnly) {
+            const cards = await prisma.card.findMany({
+              where: {
+                ...(input.editionId ? { editionId: input.editionId } : {}),
+                ...(input.tcgName ? { tcg: { name: input.tcgName } } : {}),
+                edition: { isActive: true },
+              },
+              select: {
+                id: true,
+                cardCode: true,
+                cardName: true,
+                rarity: true,
+                tcg: { select: { name: true } },
+                edition: { select: { id: true, editionCode: true } },
+                listings: {
+                  select: {
+                    id: true,
+                    status: true,
+                    referencePrice: true,
+                    marginMultiplier: true,
+                  },
+                },
+              },
+            }) as SyncCardTarget[];
+
+            if (cards.length > 0) {
+              const grouped = new Map<string, SyncCardTarget[]>();
+
+              for (const card of cards) {
+                const tcgName = card.tcg.name as SyncTcgName;
+                const editionCode = card.edition.editionCode;
+                const key = `${tcgName}|${editionCode}`;
+                if (!grouped.has(key)) {
+                  grouped.set(key, []);
+                }
+                grouped.get(key)!.push(card);
+              }
+
+              const builtUpdates: PriceSyncUpdateInput[] = [];
+
+              for (const [key, groupedCards] of grouped.entries()) {
+                const [tcgNameRaw, editionCode] = key.split('|');
+                const tcgName = tcgNameRaw as SyncTcgName;
+
+                await sleep(SET_SYNC_DELAY_MS[tcgName] ?? 100);
+
+                const setCards = await CardDatabaseService.getSetCards(
+                  tcgName,
+                  normalizeSetCodeForTcg(tcgName, editionCode),
+                ).catch(() => []);
+
+                const setPriceLookup = new Map<string, number>();
+                const setPriceByName = new Map<string, number>();
+
+                for (const card of setCards) {
+                  const price = card.priceMarket ?? card.priceMid ?? card.priceLow;
+                  if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
+                    continue;
+                  }
+
+                  setPriceLookup.set(card.externalId, price);
+
+                  const nameKey = card.cardName.trim().toLowerCase();
+                  const existingByName = setPriceByName.get(nameKey);
+                  if (!existingByName || price > existingByName) {
+                    setPriceByName.set(nameKey, price);
+                  }
+                }
+
+                for (const card of groupedCards) {
+                  const externalPrice =
+                    setPriceLookup.get(card.cardCode) ??
+                    setPriceByName.get(card.cardName.trim().toLowerCase()) ??
+                    null;
+                  const fallbackRef = estimateFallbackReferencePrice(
+                    card.tcg.name,
+                    card.rarity ?? undefined,
+                  );
+                  const activeListings = card.listings.filter((listing) => listing.status === 'active');
+
+                  if (activeListings.length > 0) {
+                    for (const listing of activeListings) {
+                      const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
+
+                      let chosenReference = fallbackRef;
+                      if (externalPrice && externalPrice > 0) {
+                        chosenReference = externalPrice;
+                        fromApi += 1;
+                      } else if (safeStoredRef) {
+                        chosenReference = safeStoredRef;
+                        fromStored += 1;
+                      } else {
+                        fromFallback += 1;
+                      }
+
+                      builtUpdates.push({
+                        listingId: listing.id,
+                        referencePrice: chosenReference,
+                        marginMultiplier: listing.marginMultiplier,
+                        source: externalPrice && externalPrice > 0
+                          ? 'api'
+                          : safeStoredRef
+                            ? 'stored'
+                            : 'fallback',
+                      });
+                    }
+                    continue;
+                  }
+
+                  if (card.listings.length > 0) {
+                    continue;
+                  }
+
+                  const chosenReference = externalPrice && externalPrice > 0 ? externalPrice : fallbackRef;
+                  if (externalPrice && externalPrice > 0) {
+                    fromApi += 1;
+                  } else {
+                    fromFallback += 1;
+                  }
+
+                  builtUpdates.push({
+                    cardId: card.id,
+                    referencePrice: chosenReference,
+                    marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,
+                    source: externalPrice && externalPrice > 0 ? 'api' : 'fallback',
+                  });
+                }
+
+                updates = builtUpdates;
+                console.info(`[PriceSyncService] Set-snapshot optimization used: ${grouped.size} set calls for ${cards.length} imported cards`);
+              }
+            }
+          }
+
+          if ((!updates || updates.length === 0) && useSetSnapshotOptimization) {
             const grouped = new Map<string, typeof listings>();
             for (const listing of listings) {
               const tcgName = listing.card.tcg.name as SyncTcgName;
@@ -361,56 +513,80 @@ export class PriceSyncService {
 
       for (const update of effectiveUpdates) {
         try {
-          const listing = await prisma.listing.findUnique({
-            where: { id: update.listingId },
-            select: {
-              id: true,
-              finalPrice: true,
-              marginMultiplier: true,
+          if (update.listingId) {
+            const listing = await prisma.listing.findUnique({
+              where: { id: update.listingId },
+              select: {
+                id: true,
+                finalPrice: true,
+                marginMultiplier: true,
+              }
+            });
+
+            if (!listing) {
+              throw new Error('Listing not found');
             }
-          });
 
-          if (!listing) {
-            throw new Error('Listing not found');
+            const resolvedMargin = update.marginMultiplier || listing.marginMultiplier;
+
+            const calculated = await PriceService.calculateFinalPrice({
+              referencePrice: update.referencePrice,
+              marginMultiplier: resolvedMargin,
+              roundingMultiple: resolvedRounding,
+            });
+
+            const isApiSourced = update.source === 'api';
+            const isVolatile = isApiSourced && listing.finalPrice > 0
+              ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice)
+              : false;
+            if (isVolatile) {
+              result.volatile += 1;
+            }
+
+            const reason = isVolatile
+              ? PriceUpdateReason.VOLATILE_ALERT
+              : isApiSourced
+                ? PriceUpdateReason.EXTERNAL_API_SYNC
+                : PriceUpdateReason.TCGPLAYER_SYNC;
+
+            await PriceService.updateListingPrice(
+              update.listingId,
+              update.referencePrice,
+              resolvedMargin,
+              reason,
+              input.changedBy || input.source,
+              input.notes || (input.source === 'cron' ? 'Scheduled price sync' : 'Manual price sync'),
+              resolvedRounding,
+            );
+
+            result.updated += 1;
+            continue;
           }
 
-          const resolvedMargin = update.marginMultiplier || listing.marginMultiplier;
+          if (update.cardId) {
+            const resolvedMargin = update.marginMultiplier || DEFAULT_MARGIN_MULTIPLIER;
+            const createdListing = await ListingService.createListing({
+              cardId: update.cardId,
+              condition: CardCondition.NM,
+              quantity: 0,
+              referencePrice: update.referencePrice,
+              marginMultiplier: resolvedMargin,
+            });
 
-          const calculated = await PriceService.calculateFinalPrice({
-            referencePrice: update.referencePrice,
-            marginMultiplier: resolvedMargin,
-            roundingMultiple: resolvedRounding,
-          });
+            await prisma.listing.update({
+              where: { id: createdListing.id },
+              data: { lastSyncedAt: new Date() },
+            });
 
-          const isApiSourced = update.source === 'api';
-          const isVolatile = isApiSourced && listing.finalPrice > 0
-            ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice)
-            : false;
-          if (isVolatile) {
-            result.volatile += 1;
+            result.updated += 1;
+            continue;
           }
 
-          const reason = isVolatile
-            ? PriceUpdateReason.VOLATILE_ALERT
-            : isApiSourced
-              ? PriceUpdateReason.EXTERNAL_API_SYNC
-              : PriceUpdateReason.TCGPLAYER_SYNC;
-
-          await PriceService.updateListingPrice(
-            update.listingId,
-            update.referencePrice,
-            resolvedMargin,
-            reason,
-            input.changedBy || input.source,
-            input.notes || (input.source === 'cron' ? 'Scheduled price sync' : 'Manual price sync'),
-            resolvedRounding,
-          );
-
-          result.updated += 1;
+          throw new Error('Sync target missing listingId or cardId');
         } catch (error) {
           result.failed += 1;
           result.errors.push({
-            listingId: update.listingId,
+            listingId: update.listingId || update.cardId || 'N/A',
             message: (error as Error).message,
           });
         }
