@@ -57,7 +57,7 @@ function ImportCardModal({ card, onClose, onImported }: ImportCardModalProps) {
   const [referencePrice, setReferencePrice] = useState(
     String(card.priceMarket ?? card.priceMid ?? card.priceLow ?? ''),
   );
-  const [marginMultiplier, setMarginMultiplier] = useState('1.2');
+  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
   const [quantity, setQuantity] = useState('0');
   const [condition, setCondition] = useState('NM');
   const [loading, setLoading] = useState(false);

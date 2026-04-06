@@ -66,7 +66,7 @@ export function AdminDashboardPage() {
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
   const [initialQuantity, setInitialQuantity] = useState('0');
-  const [marginMultiplier, setMarginMultiplier] = useState('1.2');
+  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
   const [concurrency, setConcurrency] = useState('4');
   const [dryRun, setDryRun] = useState(false);
   const [createListings, setCreateListings] = useState(true);
@@ -76,7 +76,7 @@ export function AdminDashboardPage() {
     payload: CatalogBootstrapResponse | CatalogSyncResponse;
   } | null>(null);
   const [catalogActionError, setCatalogActionError] = useState<string | null>(null);
-  const [configMargin, setConfigMargin] = useState('1.2');
+  const [configMargin, setConfigMargin] = useState('1.0');
   const [applyMarginToExisting, setApplyMarginToExisting] = useState(true);
   const [exchangeRateMode, setExchangeRateMode] = useState<'api' | 'manual'>('api');
   const [manualUsdToClp, setManualUsdToClp] = useState('950');
@@ -161,7 +161,7 @@ export function AdminDashboardPage() {
         dryRun,
         createListings,
         initialQuantity: Number.parseInt(initialQuantity || '0', 10),
-        marginMultiplier: Number.parseFloat(marginMultiplier || '1.2'),
+        marginMultiplier: Number.parseFloat(marginMultiplier || '1.0'),
       });
       setCatalogActionResult({ kind: 'bootstrap', payload });
     } catch (err: unknown) {
@@ -183,7 +183,7 @@ export function AdminDashboardPage() {
         dryRun,
         createListings,
         initialQuantity: Number.parseInt(initialQuantity || '0', 10),
-        marginMultiplier: Number.parseFloat(marginMultiplier || '1.2'),
+        marginMultiplier: Number.parseFloat(marginMultiplier || '1.0'),
         concurrency: Number.parseInt(concurrency || '4', 10),
       });
       setCatalogActionResult({ kind: 'sync', payload });
@@ -344,9 +344,9 @@ export function AdminDashboardPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>Margen</label>
-              <input placeholder="1.2" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" />
+              <input placeholder="1.0" value={marginMultiplier} onChange={(e) => setMarginMultiplier(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd' }} type="number" step="0.1" />
               <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
-                Multiplicador sobre precio USD de referencia. 1.20 = +20%.
+                Multiplicador sobre precio USD de referencia. 1.00 = sin recargo, 1.20 = +20%.
               </div>
             </div>
             <div>

@@ -29,7 +29,7 @@ export class ListingService {
 
     const calculation = await PriceService.calculateFinalPrice({
       referencePrice: input.referencePrice,
-      marginMultiplier: input.marginMultiplier || 1.2,
+      marginMultiplier: input.marginMultiplier || 1.0,
     });
 
     return prisma.listing.create({
@@ -39,7 +39,7 @@ export class ListingService {
         rarity: card.rarity,
         quantity: input.quantity,
         referencePrice: input.referencePrice,
-        marginMultiplier: input.marginMultiplier || 1.2,
+        marginMultiplier: input.marginMultiplier || 1.0,
         finalPrice: calculation.finalPrice,
         exchangeRate: calculation.exchangeRate,
         costPrice: input.costPrice,

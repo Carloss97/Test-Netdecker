@@ -125,7 +125,7 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
           rarity: card.rarity,
           quantity: 0,
           referencePrice: 0,
-          marginMultiplier: 1.2,
+          marginMultiplier: 1.0,
           exchangeRate: 1.0,
           finalPrice: 0,
           currency: 'CLP',

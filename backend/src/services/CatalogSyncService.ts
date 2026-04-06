@@ -99,7 +99,7 @@ export class CatalogSyncService {
             const importResult = await ExternalImportService.bulkImportCards(cards, {
               createListing: options.createListings !== false,
               quantity: options.initialQuantity ?? 0,
-              marginMultiplier: options.marginMultiplier ?? 1.2,
+              marginMultiplier: options.marginMultiplier ?? 1.0,
               concurrency: options.concurrency ?? 4,
             });
 

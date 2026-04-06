@@ -46,7 +46,7 @@ export class CatalogBootstrapService {
     const dryRun = options.dryRun === true;
     const createListings = options.createListings !== false;
     const initialQuantity = options.initialQuantity ?? 0;
-    const marginMultiplier = options.marginMultiplier ?? 1.2;
+    const marginMultiplier = options.marginMultiplier ?? 1.0;
     const selectedTcgs = options.tcg ? [options.tcg] : SUPPORTED_TCGS;
 
     const bySet: CatalogBootstrapSetResult[] = [];

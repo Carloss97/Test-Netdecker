@@ -186,7 +186,7 @@ export class ExternalImportService {
         where: { cardId_condition_rarity: { cardId: card.id, condition, rarity } },
       });
 
-      const marginMultiplier = options.marginMultiplier ?? 1.2;
+      const marginMultiplier = options.marginMultiplier ?? 1.0;
       const quantity = options.quantity ?? 0;
 
       // Fetch the real exchange rate for accurate CLP price calculation

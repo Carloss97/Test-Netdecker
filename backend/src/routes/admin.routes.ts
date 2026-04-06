@@ -280,7 +280,7 @@ router.get('/pricing-config', async (_req: Request, res: Response) => {
   res.json({
     success: true,
     config: {
-      defaultMarginMultiplier: listingStats._avg.marginMultiplier ?? Number(process.env.DEFAULT_MARGIN_MULTIPLIER || 1.2),
+      defaultMarginMultiplier: listingStats._avg.marginMultiplier ?? Number(process.env.DEFAULT_MARGIN_MULTIPLIER || 1.0),
       listingCount: listingStats._count._all,
       exchangeRate: {
         mode: isManual ? 'manual' : 'api',

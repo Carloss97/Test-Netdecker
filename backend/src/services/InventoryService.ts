@@ -422,7 +422,7 @@ export class InventoryService {
         const cardName = row.cardName;
         const quantity = Number(row.quantity || 0);
         const referencePrice = Number(row.referencePrice || 0);
-        const marginMultiplier = Number(row.marginMultiplier || 1.2);
+        const marginMultiplier = Number(row.marginMultiplier || 1.0);
         const condition = parseCondition(row.condition);
         const rarity = normalizeRarity(row.rarity);
 

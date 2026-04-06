@@ -44,7 +44,7 @@ export class ListingController {
         condition,
         quantity,
         referencePrice,
-        marginMultiplier: marginMultiplier || 1.2,
+        marginMultiplier: marginMultiplier || 1.0,
         costPrice
       });
 

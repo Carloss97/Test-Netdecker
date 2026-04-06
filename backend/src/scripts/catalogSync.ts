@@ -19,7 +19,7 @@ async function main() {
     dryRun: process.argv.includes('--dry-run'),
     createListings: !process.argv.includes('--no-listings'),
     initialQuantity: getArg('quantity') ? Number.parseInt(getArg('quantity') || '0', 10) : 0,
-    marginMultiplier: getArg('margin') ? Number.parseFloat(getArg('margin') || '1.2') : undefined,
+    marginMultiplier: getArg('margin') ? Number.parseFloat(getArg('margin') || '1.0') : undefined,
     concurrency: getArg('concurrency') ? Number.parseInt(getArg('concurrency') || '4', 10) : 4,
   });
 

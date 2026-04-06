@@ -68,7 +68,7 @@ interface PricingAdminProps {
 
 export function PricingAdmin({ initialListingId }: PricingAdminProps) {
   const [referencePrice, setReferencePrice] = useState('5.5');
-  const [marginMultiplier, setMarginMultiplier] = useState('1.2');
+  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
   const [roundingMultiple, setRoundingMultiple] = useState('1');
   const [listingId, setListingId] = useState('');
   const [previewResult, setPreviewResult] = useState<PricePreviewResponse | null>(null);

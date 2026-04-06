@@ -21,7 +21,7 @@ async function main() {
     dryRun: process.argv.includes('--dry-run'),
     createListings: !process.argv.includes('--no-listings'),
     initialQuantity: getArg('quantity') ? Number.parseInt(getArg('quantity') || '0', 10) : 0,
-    marginMultiplier: getArg('margin') ? Number.parseFloat(getArg('margin') || '1.2') : undefined,
+    marginMultiplier: getArg('margin') ? Number.parseFloat(getArg('margin') || '1.0') : undefined,
   });
 
   console.log(JSON.stringify(result, null, 2));
