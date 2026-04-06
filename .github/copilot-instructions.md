@@ -34,6 +34,8 @@
 - Keep API responses consistent (`success` + structured error payload from global handler).
 - Use custom application errors from `backend/src/utils/errors.ts` instead of ad-hoc throw strings.
 - For pricing changes, use `PriceService.updateListingPrice()` to ensure history tracking is preserved.
+- For backend-focused edits, follow scoped instruction files: `.github/instructions/backend-routes.instructions.md` and `.github/instructions/backend-services.instructions.md`.
+- For frontend API/client and API-consuming page edits, follow: `.github/instructions/frontend-api.instructions.md`.
 
 ## Environment And Pitfalls
 
