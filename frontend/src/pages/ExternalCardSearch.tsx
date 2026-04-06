@@ -213,11 +213,16 @@ export function ExternalCardSearch() {
   const handleLoadSets = async () => {
     setLoadingSets(true);
     setSets([]);
+    setError(null);
     try {
       const res = await listExternalSets(tcg);
       setSets(res.sets ?? []);
-    } catch {
+      if (!res.sets || res.sets.length === 0) {
+        setError(`No se encontraron sets para ${TCG_LABELS[tcg]}. Intenta nuevamente en unos segundos.`);
+      }
+    } catch (err: unknown) {
       setSets([]);
+      setError(err instanceof Error ? err.message : `No se pudieron cargar sets para ${TCG_LABELS[tcg]}`);
     } finally {
       setLoadingSets(false);
     }

@@ -15,9 +15,9 @@ import {
 } from '../services/CardDatabaseService.js';
 
 describe('CardDatabaseService - Unified Facade', () => {
-  test('should support all four TCG types', async () => {
+  test('should support all six TCG types', async () => {
     // Test that all TCG types are accepted
-    const tcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE'] as const;
+    const tcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
     for (const tcg of tcgs) {
       try {
         const result = await CardDatabaseService.listSets(tcg);

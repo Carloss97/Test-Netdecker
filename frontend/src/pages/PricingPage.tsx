@@ -77,9 +77,8 @@ function ModeToggle({
           }}
         />
       </span>
-      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: checked ? '#166534' : 'var(--text-muted)' }}>
-        {checked ? onLabel : offLabel}
-      </span>
+      {/* Remove label text for toggle */}
+      <span style={{ display: 'none' }} />
     </button>
   );
 }
@@ -333,12 +332,28 @@ export function PricingPage() {
             </select>
           )}
           {syncScope === 'edition' && (
-            <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)} title="Edición específica a sincronizar">
-              <option value="">Selecciona edición</option>
-              {availableEditions.map((ed) => (
-                <option key={ed.id} value={ed.id}>{ed.code} · {ed.name}</option>
-              ))}
-            </select>
+            <>
+              <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as any)} title="TCG para filtrar ediciones">
+                <option value="MAGIC">MAGIC</option>
+                <option value="POKEMON">POKEMON</option>
+                <option value="YUGIOH">YUGIOH</option>
+                <option value="ONE_PIECE">ONE PIECE</option>
+                <option value="DIGIMON">DIGIMON</option>
+                <option value="WEISS_SCHWARZ">WEISS SCHWARZ</option>
+              </select>
+              <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)} title="Edición específica a sincronizar">
+                <option value="">Selecciona edición</option>
+                {availableEditions
+                  .filter((ed) => {
+                    // Filter editions by selected TCG
+                    const tcgName = ed.name?.toUpperCase() || '';
+                    return tcgName.includes(selectedTcg);
+                  })
+                  .map((ed) => (
+                    <option key={ed.id} value={ed.id}>{ed.code} · {ed.name}</option>
+                  ))}
+              </select>
+            </>
           )}
           {syncMsg && (
             <span style={{ color: 'var(--success)', fontSize: '0.875rem' }}>✓ {syncMsg}</span>
@@ -550,22 +565,25 @@ export function PricingPage() {
                     </td>
                     <td style={{ fontWeight: 600, overflow: 'hidden' }}>
                       {isManual ? (
-                        <input
-                          type="number"
-                          className="input input-sm"
-                          value={draft}
-                          onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
-                          style={{ width: '100%', maxWidth: 110 }}
-                          disabled={updatingPricingId === listing.id}
-                          title="Precio final manual en CLP"
-                          onBlur={() => { void saveManualPrice(listing); }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              void saveManualPrice(listing);
-                            }
-                          }}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '1.1em' }}>$</span>
+                          <input
+                            type="number"
+                            className="input input-sm"
+                            value={draft}
+                            onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                            style={{ width: 90, fontSize: '1em', padding: '4px 8px' }}
+                            disabled={updatingPricingId === listing.id}
+                            title="Precio final manual en CLP"
+                            onBlur={() => { void saveManualPrice(listing); }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                void saveManualPrice(listing);
+                              }
+                            }}
+                          />
+                        </div>
                       ) : (
                         listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
                       )}

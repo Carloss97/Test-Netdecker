@@ -30,9 +30,9 @@ describe('TCGCsvService - Category ID map', () => {
     assert.equal(TCGCSV_CATEGORY_IDS.MAGIC, 1);
     assert.equal(TCGCSV_CATEGORY_IDS.YUGIOH, 2);
     assert.equal(TCGCSV_CATEGORY_IDS.POKEMON, 3);
-    assert.equal(TCGCSV_CATEGORY_IDS.WEISS_SCHWARZ, 6);
-    assert.equal(TCGCSV_CATEGORY_IDS.DIGIMON, 65);
-    assert.equal(TCGCSV_CATEGORY_IDS.ONE_PIECE, 87);
+    assert.equal(TCGCSV_CATEGORY_IDS.WEISS_SCHWARZ, 20);
+    assert.equal(TCGCSV_CATEGORY_IDS.DIGIMON, 63);
+    assert.equal(TCGCSV_CATEGORY_IDS.ONE_PIECE, 68);
   });
 });
 
@@ -113,6 +113,15 @@ describe('TCGCsvService - API methods return arrays', () => {
     try {
       const price = await TCGCsvService.getBestPriceForProduct('DIGIMON', 999999);
       assert.ok(price === null || typeof price === 'number', 'getBestPriceForProduct should return null or number');
+    } catch {
+      // Network unavailable — acceptable
+    }
+  });
+
+  test('getCardById returns null or a card object', async () => {
+    try {
+      const card = await TCGCsvService.getCardById('WEISS_SCHWARZ', '999999');
+      assert.ok(card === null || typeof card === 'object', 'getCardById should return null or object');
     } catch {
       // Network unavailable — acceptable
     }

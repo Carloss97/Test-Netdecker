@@ -1,8 +1,7 @@
 import prisma from '../utils/db.js';
 import { PriceService } from './PriceService.js';
 import { PriceUpdateReason } from '@prisma/client';
-import { CardDatabaseService, ScryfallService, YGOProDeckService, PokemonTCGService, OptcgapiService } from './CardDatabaseService.js';
-import { TCGCsvService } from './TCGCsvService.js';
+import { CardDatabaseService } from './CardDatabaseService.js';
 
 export interface PriceSyncUpdateInput {
   listingId: string;
@@ -19,6 +18,8 @@ export interface RunPriceSyncInput {
   roundingMultiple?: number;
   /** When true (default for cron), tries to fetch latest market price from external APIs */
   fetchExternalPrices?: boolean;
+  /** When true, only include listings with stock in inventory. */
+  inventoryOnly?: boolean;
   /** Optional manual sync filters */
   tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   editionId?: string;
@@ -68,52 +69,6 @@ const parseRunErrors = (errors: string | null) => {
     return [];
   }
 };
-
-/**
- * Attempt to fetch the latest market price for a card from external APIs.
- * Returns null if the card is not found or an error occurs.
- */
-async function fetchExternalMarketPrice(
-  cardCode: string,
-  tcgName: string,
-  rarity?: string,
-): Promise<number | null> {
-  try {
-    // Each TCG uses its native API for pricing
-
-    if (tcgName === 'MAGIC') {
-      const card = await ScryfallService.getCardById(cardCode);
-      return card?.priceMarket ?? card?.priceMid ?? null;
-    }
-
-    if (tcgName === 'POKEMON') {
-      const card = await PokemonTCGService.getCardById(cardCode);
-      return card?.priceMarket ?? card?.priceMid ?? null;
-    }
-
-    if (tcgName === 'YUGIOH') {
-      const card = await YGOProDeckService.getCardById(cardCode);
-      return card?.priceMarket ?? null;
-    }
-
-    if (tcgName === 'ONE_PIECE') {
-      const card = await OptcgapiService.getCardById(cardCode);
-      return card?.priceMarket ?? null;
-    }
-
-    if (tcgName === 'DIGIMON' || tcgName === 'WEISS_SCHWARZ') {
-      const productId = Number(cardCode);
-      if (!Number.isFinite(productId)) return null;
-      return TCGCsvService.getBestPriceForProduct(
-        tcgName as 'DIGIMON' | 'WEISS_SCHWARZ',
-        productId,
-      );
-    }
-  } catch {
-    // Fall through to return null
-  }
-  return null;
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -215,16 +170,22 @@ export class PriceSyncService {
     try {
       let updates = input.updates;
       const shouldFetchExternal = input.fetchExternalPrices !== false;
+      const inventoryOnly = input.inventoryOnly === true;
       let pricingSourceStats: { fromApi: number; fromStored: number; fromFallback: number } | undefined;
 
       if (!updates || updates.length === 0) {
         const where: {
           status: string;
+          quantity?: { gt: number };
           editionId?: string;
           card?: { tcg: { name: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ' } };
         } = {
           status: 'active',
         };
+
+        if (inventoryOnly) {
+          where.quantity = { gt: 0 };
+        }
 
         if (input.editionId) {
           where.editionId = input.editionId;
@@ -234,7 +195,7 @@ export class PriceSyncService {
           where.card = { tcg: { name: input.tcgName } };
         }
 
-        const listings = await prisma.listing.findMany({
+        let listings = await prisma.listing.findMany({
           where,
           select: {
             id: true,
@@ -243,6 +204,7 @@ export class PriceSyncService {
             card: {
               select: {
                 cardCode: true,
+                cardName: true,
                 rarity: true,
                 tcg: { select: { name: true } },
                 edition: { select: { editionCode: true } },
@@ -251,12 +213,42 @@ export class PriceSyncService {
           }
         });
 
+        if (inventoryOnly && listings.length === 0) {
+          const relaxedWhere: typeof where = {
+            status: 'active',
+            ...(input.editionId ? { editionId: input.editionId } : {}),
+            ...(input.tcgName ? { card: { tcg: { name: input.tcgName } } } : {}),
+          };
+
+          listings = await prisma.listing.findMany({
+            where: relaxedWhere,
+            select: {
+              id: true,
+              referencePrice: true,
+              marginMultiplier: true,
+              card: {
+                select: {
+                  cardCode: true,
+                  cardName: true,
+                  rarity: true,
+                  tcg: { select: { name: true } },
+                  edition: { select: { editionCode: true } },
+                },
+              },
+            }
+          });
+
+          console.warn(
+            '[PriceSyncService] inventoryOnly=true returned 0 listings. Falling back to all active listings for this sync run.',
+          );
+        }
+
         if (shouldFetchExternal) {
           let fromApi = 0;
           let fromStored = 0;
           let fromFallback = 0;
 
-          const useSetSnapshotOptimization = Boolean(input.editionId || input.tcgName);
+          const useSetSnapshotOptimization = true;
 
           if (useSetSnapshotOptimization) {
             const grouped = new Map<string, typeof listings>();
@@ -279,10 +271,34 @@ export class PriceSyncService {
               // Respect provider-specific limits by spacing set-level calls.
               await sleep(SET_SYNC_DELAY_MS[tcgName] ?? 100);
 
-              const setPriceLookup = await fetchSetPriceLookup(tcgName, editionCode).catch(() => new Map<string, number>());
+              const setCards = await CardDatabaseService.getSetCards(
+                tcgName,
+                normalizeSetCodeForTcg(tcgName, editionCode),
+              ).catch(() => []);
+
+              const setPriceLookup = new Map<string, number>();
+              const setPriceByName = new Map<string, number>();
+
+              for (const card of setCards) {
+                const price = card.priceMarket ?? card.priceMid ?? card.priceLow;
+                if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
+                  continue;
+                }
+
+                setPriceLookup.set(card.externalId, price);
+
+                const nameKey = card.cardName.trim().toLowerCase();
+                const existingByName = setPriceByName.get(nameKey);
+                if (!existingByName || price > existingByName) {
+                  setPriceByName.set(nameKey, price);
+                }
+              }
 
               for (const listing of groupedListings) {
-                const externalPrice = setPriceLookup.get(listing.card.cardCode) ?? null;
+                const externalPrice =
+                  setPriceLookup.get(listing.card.cardCode) ??
+                  setPriceByName.get(listing.card.cardName.trim().toLowerCase()) ??
+                  null;
                 const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
                 const fallbackRef = estimateFallbackReferencePrice(
                   listing.card.tcg.name,
@@ -315,50 +331,12 @@ export class PriceSyncService {
 
             updates = builtUpdates;
             console.info(`[PriceSyncService] Set-snapshot optimization used: ${grouped.size} set calls for ${listings.length} listings`);
-          } else {
-            // Build updates with per-card external prices for full/global sync.
-            updates = await Promise.all(
-              listings.map(async (listing) => {
-                const externalPrice = await fetchExternalMarketPrice(
-                  listing.card.cardCode,
-                  listing.card.tcg.name,
-                  listing.card.rarity ?? undefined,
-                ).catch(() => null);
-
-                const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
-                const fallbackRef = estimateFallbackReferencePrice(
-                  listing.card.tcg.name,
-                  listing.card.rarity ?? undefined,
-                );
-
-                let chosenReference = fallbackRef;
-                if (externalPrice && externalPrice > 0) {
-                  chosenReference = externalPrice;
-                  fromApi += 1;
-                } else if (safeStoredRef) {
-                  chosenReference = safeStoredRef;
-                  fromStored += 1;
-                } else {
-                  fromFallback += 1;
-                }
-
-                return {
-                  listingId: listing.id,
-                  referencePrice: chosenReference,
-                  marginMultiplier: listing.marginMultiplier,
-                  source: externalPrice && externalPrice > 0
-                    ? 'api'
-                    : safeStoredRef
-                      ? 'stored'
-                      : 'fallback',
-                };
-              }),
-            );
           }
 
           pricingSourceStats = { fromApi, fromStored, fromFallback };
-          const resolvedFromApi = updates.filter((u) => u.referencePrice > 0).length;
-          console.info(`[PriceSyncService] External pricing resolved for ${resolvedFromApi}/${updates.length} listings`);
+          const effectiveUpdates = updates ?? [];
+          const resolvedFromApi = effectiveUpdates.filter((u) => u.referencePrice > 0).length;
+          console.info(`[PriceSyncService] External pricing resolved for ${resolvedFromApi}/${effectiveUpdates.length} listings`);
           console.info(`[PriceSyncService] Price source stats: API=${fromApi}, stored=${fromStored}, fallback=${fromFallback}`);
         } else {
           updates = listings.map((listing) => ({
@@ -377,9 +355,11 @@ export class PriceSyncService {
         }));
       }
 
-      result.total = updates.length;
+      const effectiveUpdates = updates ?? [];
 
-      for (const update of updates) {
+      result.total = effectiveUpdates.length;
+
+      for (const update of effectiveUpdates) {
         try {
           const listing = await prisma.listing.findUnique({
             where: { id: update.listingId },

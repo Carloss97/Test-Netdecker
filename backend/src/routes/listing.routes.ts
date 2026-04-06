@@ -48,11 +48,12 @@ router.get('/inventory-value', async (_req: Request, res: Response) => {
  * Body: { updates: [{ listingId: string, referencePrice: number, marginMultiplier?: number }] }
  */
 router.post('/sync-prices', async (req: Request, res: Response) => {
-  const { updates, roundingMultiple, notes, fetchExternalPrices, tcgName, editionId } = req.body as {
+  const { updates, roundingMultiple, notes, fetchExternalPrices, inventoryOnly, tcgName, editionId } = req.body as {
     updates?: Array<{ listingId: string; referencePrice: number; marginMultiplier?: number }>;
     roundingMultiple?: number;
     notes?: string;
     fetchExternalPrices?: boolean;
+    inventoryOnly?: boolean;
     tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
     editionId?: string;
   };
@@ -73,6 +74,11 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
     fetchExternalPrices: typeof fetchExternalPrices === 'boolean'
       ? fetchExternalPrices
       : updates === undefined,
+    // Default behavior for global sync: complete imported sets (all active listings),
+    // regardless of current stock in individual cards.
+    inventoryOnly: typeof inventoryOnly === 'boolean'
+      ? inventoryOnly
+      : false,
   });
 
   res.json(result);

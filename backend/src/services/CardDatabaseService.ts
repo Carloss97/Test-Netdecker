@@ -891,97 +891,30 @@ export class CardDatabaseService {
     query: string,
     options: { setCode?: string; page?: number } = {},
   ): Promise<ExternalCard[]> {
-    switch (tcg) {
-      case 'MAGIC':
-        return ScryfallService.searchCards(query, options.page);
-      case 'POKEMON':
-        return PokemonTCGService.searchCards(query, options.setCode, options.page);
-      case 'YUGIOH':
-        return YGOProDeckService.searchCards(query, options.setCode);
-      case 'ONE_PIECE':
-        return OptcgapiService.searchCards(query);
-      case 'DIGIMON':
-      case 'WEISS_SCHWARZ':
-        return TCGCsvService.searchCards(tcg, query);
-      default:
-        return [];
+    if (options.setCode) {
+      const cards = await TCGCsvService.getSetCards(tcg, options.setCode);
+      const lowerQuery = query.toLowerCase();
+      return cards.filter((card) => card.cardName.toLowerCase().includes(lowerQuery));
     }
+
+    return TCGCsvService.searchCards(tcg, query);
   }
 
   static async getCardById(
     tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     cardId: string,
   ): Promise<ExternalCard | null> {
-    switch (tcg) {
-      case 'MAGIC':
-        return ScryfallService.getCardById(cardId);
-      case 'POKEMON':
-        return PokemonTCGService.getCardById(cardId);
-      case 'YUGIOH':
-        return YGOProDeckService.getCardById(cardId);
-      case 'ONE_PIECE':
-        return OptcgapiService.getCardById(cardId);
-      case 'DIGIMON':
-      case 'WEISS_SCHWARZ': {
-        // TCGCsv uses numeric productIds
-        const numericId = Number(cardId);
-        if (!Number.isFinite(numericId)) return null;
-        const prices = await TCGCsvService.getProductPrices(tcg, numericId);
-        if (!prices.length) return null;
-        // Return a minimal card record with pricing info
-        return {
-          externalId: cardId,
-          source: 'tcgcsv',
-          tcg,
-          cardName: cardId,
-          editionCode: 'UNKNOWN',
-          editionName: 'Unknown',
-          priceMarket: prices[0]?.marketPrice ?? undefined,
-          priceMid: prices[0]?.midPrice ?? undefined,
-          priceLow: prices[0]?.lowPrice ?? undefined,
-        } as ExternalCard;
-      }
-      default:
-        return null;
-    }
+    return TCGCsvService.getCardById(tcg, cardId);
   }
 
   static async getSetCards(
     tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
     setCode: string,
   ): Promise<ExternalCard[]> {
-    switch (tcg) {
-      case 'MAGIC':
-        return ScryfallService.getSetCards(setCode);
-      case 'POKEMON':
-        return PokemonTCGService.getSetCards(setCode);
-      case 'YUGIOH':
-        return YGOProDeckService.getSetCards(setCode);
-      case 'ONE_PIECE':
-        return OptcgapiService.getSetCards(setCode);
-      case 'DIGIMON':
-      case 'WEISS_SCHWARZ':
-        return TCGCsvService.getSetCards(tcg, setCode);
-      default:
-        return [];
-    }
+    return TCGCsvService.getSetCards(tcg, setCode);
   }
 
   static async listSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'): Promise<ExternalEdition[]> {
-    switch (tcg) {
-      case 'MAGIC':
-        return ScryfallService.listSets();
-      case 'POKEMON':
-        return PokemonTCGService.listSets();
-      case 'YUGIOH':
-        return YGOProDeckService.listSets();
-      case 'ONE_PIECE':
-        return OptcgapiService.listSets();
-      case 'DIGIMON':
-      case 'WEISS_SCHWARZ':
-        return TCGCsvService.listSets(tcg);
-      default:
-        return [];
-    }
+    return TCGCsvService.listSets(tcg);
   }
 }

@@ -185,12 +185,12 @@ router.post('/import/set', async (req: Request, res: Response) => {
 
 /**
  * GET /api/external/ygoprodeck/card-sets
- * Browse all Yu-Gi-Oh card sets with pricing from YGOPRODeck.
+ * Browse all Yu-Gi-Oh card sets sourced from TCGCSV.
  */
 router.get('/ygoprodeck/card-sets', async (req: Request, res: Response) => {
   try {
     const sets = await CardDatabaseService.listSets('YUGIOH');
-    res.json({ success: true, source: 'ygoprodeck', total: sets.length, sets });
+    res.json({ success: true, source: 'tcgcsv', total: sets.length, sets });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
@@ -198,7 +198,7 @@ router.get('/ygoprodeck/card-sets', async (req: Request, res: Response) => {
 
 /**
  * GET /api/external/optcgapi/cards
- * Browse all One Piece cards with pricing from OPTCGAPI.
+ * Browse all One Piece cards sourced from TCGCSV.
  * Optional query params: limit (default: 100), offset (default: 0)
  */
 router.get('/optcgapi/cards', async (req: Request, res: Response) => {
@@ -232,7 +232,7 @@ router.get('/optcgapi/cards', async (req: Request, res: Response) => {
     const paginated = allCards.slice(offset, offset + limit);
     res.json({
       success: true,
-      source: 'optcgapi',
+      source: 'tcgcsv',
       total: allCards.length,
       limit,
       offset,
@@ -246,7 +246,7 @@ router.get('/optcgapi/cards', async (req: Request, res: Response) => {
 
 /**
  * POST /api/external/optcgapi/import/bulk
- * Import ALL One Piece cards in bulk from OPTCGAPI.
+ * Import ALL One Piece cards in bulk from TCGCSV.
  * Body: { createListing?, marginMultiplier?, quantity?, condition? }
  */
 router.post('/optcgapi/import/bulk', async (req: Request, res: Response) => {
@@ -274,7 +274,7 @@ router.post('/optcgapi/import/bulk', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      source: 'optcgapi',
+      source: 'tcgcsv',
       tcg: 'ONE_PIECE',
       totalCards: allCards.length,
       ...result,

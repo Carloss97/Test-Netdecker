@@ -29,6 +29,7 @@ export function startPriceSyncCron() {
       const result = await PriceSyncService.runPriceSync({
         source: 'cron',
         notes: `Cron execution (${schedule})`,
+        inventoryOnly: false,
       });
 
       console.log(

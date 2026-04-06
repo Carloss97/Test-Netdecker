@@ -28,9 +28,9 @@ export const TCGCSV_CATEGORY_IDS: Record<TCGCsvTcg, number> = {
   MAGIC: 1,
   YUGIOH: 2,
   POKEMON: 3,
-  WEISS_SCHWARZ: 6,
-  DIGIMON: 65,
-  ONE_PIECE: 87,
+  WEISS_SCHWARZ: 20,
+  DIGIMON: 63,
+  ONE_PIECE: 68,
 };
 
 const TCG_DISPLAY_NAMES: Record<TCGCsvTcg, string> = {
@@ -96,9 +96,14 @@ interface TcgCsvListResponse<T> {
 const TCGCSV_BASE = 'https://tcgcsv.com/tcgplayer';
 const CACHE_TTL = 3600 * 3; // 3 hours — matches existing service TTL
 const REQUEST_TIMEOUT = 20000;
+const MAX_RETRIES = 4;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeSetIdentifier(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 /**
@@ -120,6 +125,35 @@ function getExtendedValue(extendedData: TcgCsvExtendedData[] | undefined, fieldN
 function bestPrice(p: TcgCsvPrice): number | undefined {
   const v = p.marketPrice ?? p.midPrice ?? p.lowPrice;
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined;
+}
+
+function priceSubtypeRank(subTypeName?: string): number {
+  const normalized = (subTypeName || '').trim().toLowerCase();
+  if (normalized === 'normal') return 0;
+  if (normalized === 'holofoil') return 1;
+  if (normalized === 'reverse holofoil') return 2;
+  return 3;
+}
+
+function pickBestPrice(prices: TcgCsvPrice[]): TcgCsvPrice | undefined {
+  return [...prices].sort((left, right) => {
+    const leftMarket = left.marketPrice ?? left.midPrice ?? left.lowPrice ?? -1;
+    const rightMarket = right.marketPrice ?? right.midPrice ?? right.lowPrice ?? -1;
+
+    if (rightMarket !== leftMarket) {
+      return rightMarket - leftMarket;
+    }
+
+    return priceSubtypeRank(left.subTypeName) - priceSubtypeRank(right.subTypeName);
+  })[0];
+}
+
+function isCardLikeProduct(product: TcgCsvProduct): boolean {
+  const ext = product.extendedData ?? [];
+  return ext.some((entry) => {
+    const key = (entry.name || entry.displayName || '').toLowerCase();
+    return key === 'rarity' || key === 'number' || key === 'cardnumber' || key === 'collectornumber';
+  });
 }
 
 /**
@@ -168,7 +202,7 @@ function tcgCsvToExternal(
  * Supports: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ
  */
 export class TCGCsvService {
-  private static readonly MIN_REQUEST_DELAY_MS = 200; // Polite delay between requests
+  private static readonly MIN_REQUEST_DELAY_MS = 450; // Polite delay between requests
   private static lastRequestAt = 0;
 
   private static async throttle(): Promise<void> {
@@ -180,9 +214,33 @@ export class TCGCsvService {
   }
 
   private static async get<T>(url: string): Promise<T> {
-    await this.throttle();
-    const { data } = await axios.get<T>(url, { timeout: REQUEST_TIMEOUT });
-    return data;
+    let attempt = 0;
+
+    while (true) {
+      try {
+        await this.throttle();
+        const { data } = await axios.get<T>(url, { timeout: REQUEST_TIMEOUT });
+        return data;
+      } catch (err) {
+        const status = (err as { response?: { status?: number; headers?: Record<string, string> } }).response?.status;
+        const headers = (err as { response?: { headers?: Record<string, string> } }).response?.headers;
+        const retryAfterHeader = headers?.['retry-after'];
+        const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+
+        const shouldRetry = status === 429 || status === 503 || status === 504;
+        if (!shouldRetry || attempt >= MAX_RETRIES) {
+          throw err;
+        }
+
+        const exponentialDelay = 600 * Math.pow(2, attempt);
+        const serverDelay = Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 0;
+        const jitter = Math.floor(Math.random() * 250);
+        const delayMs = Math.max(exponentialDelay, serverDelay) + jitter;
+
+        await sleep(delayMs);
+        attempt += 1;
+      }
+    }
   }
 
   // ── Groups (sets) ────────────────────────────────────────────────────────
@@ -207,6 +265,7 @@ export class TCGCsvService {
       return groups;
     } catch (err) {
       console.error(`[TCGCsvService] getGroups(${tcg}) error:`, (err as Error).message);
+      await cacheSet(cacheKey, [], 60);
       return [];
     }
   }
@@ -233,6 +292,7 @@ export class TCGCsvService {
       return products;
     } catch (err) {
       console.error(`[TCGCsvService] getGroupProducts(${tcg}, ${groupId}) error:`, (err as Error).message);
+      await cacheSet(cacheKey, [], 60);
       return [];
     }
   }
@@ -259,6 +319,7 @@ export class TCGCsvService {
       return prices;
     } catch (err) {
       console.error(`[TCGCsvService] getGroupPrices(${tcg}, ${groupId}) error:`, (err as Error).message);
+      await cacheSet(cacheKey, [], 60);
       return [];
     }
   }
@@ -290,12 +351,15 @@ export class TCGCsvService {
 
     const groups = await this.getGroups(tcg);
     const normalizedCode = setCode.trim().toUpperCase();
+    const normalizedCompactCode = normalizeSetIdentifier(setCode);
 
     // Match by abbreviation first, then by groupId string
     const group = groups.find(
       (g) =>
         (g.abbreviation || '').toUpperCase() === normalizedCode ||
-        String(g.groupId) === normalizedCode,
+        String(g.groupId) === normalizedCode ||
+        normalizeSetIdentifier(g.abbreviation || '') === normalizedCompactCode ||
+        normalizeSetIdentifier(g.name || '') === normalizedCompactCode,
     );
 
     if (!group) {
@@ -311,37 +375,23 @@ export class TCGCsvService {
     // Build a price lookup keyed by productId + subTypeName so we can prefer "Normal" foils etc.
     // We consolidate by choosing the best price per productId (Normal > first available).
     const priceByProductId = new Map<number, TcgCsvPrice>();
-    for (const p of prices) {
-      const existing = priceByProductId.get(p.productId);
+    for (const price of prices) {
+      const existing = priceByProductId.get(price.productId);
       if (!existing) {
-        priceByProductId.set(p.productId, p);
-      } else {
-        // Prefer the "Normal" or "Holofoil" sub-type for consistency, otherwise keep higher market price
-        const existingBest = bestPrice(existing) ?? 0;
-        const newBest = bestPrice(p) ?? 0;
-        if (
-          (!existing.subTypeName || existing.subTypeName === 'Normal') ||
-          (p.subTypeName === 'Normal' && existing.subTypeName !== 'Normal') ||
-          newBest > existingBest
-        ) {
-          priceByProductId.set(p.productId, p);
-        }
+        priceByProductId.set(price.productId, price);
+        continue;
+      }
+
+      const currentBest = pickBestPrice([existing, price]);
+      if (currentBest) {
+        priceByProductId.set(price.productId, currentBest);
       }
     }
 
     // Filter to card-like products only (exclude sealed boxes, packs, etc.)
     // In TCGplayer data, cards typically have extendedData with rarity info
     const cards = products
-      .filter((p) => {
-        // Products with extendedData that includes a Rarity or Number field are cards
-        const ext = p.extendedData ?? [];
-        const hasRarity = ext.some((e) => (e.name || e.displayName || '').toLowerCase().includes('rarity'));
-        const hasNumber = ext.some((e) => {
-          const n = (e.name || e.displayName || '').toLowerCase();
-          return n === 'number' || n === 'cardnumber' || n === 'collectornumber';
-        });
-        return hasRarity || hasNumber || ext.length > 0;
-      })
+      .filter(isCardLikeProduct)
       .map((p) => tcgCsvToExternal(p, group, tcg, priceByProductId.get(p.productId)));
 
     if (cards.length > 0) {
@@ -358,33 +408,90 @@ export class TCGCsvService {
     const cached = await cacheGet(cacheKey);
     if (cached) return cached as ExternalCard[];
 
-    // For search, we need to scan across groups. To avoid excessive API calls,
-    // we load groups and search per group until we find results (max 5 groups).
+    // TCGCSV does not expose a category-wide product search endpoint.
+    // We scan groups and build the result set from cached group products.
     const groups = await this.getGroups(tcg);
     const lowerQuery = query.toLowerCase();
     const found: ExternalCard[] = [];
+    const seen = new Set<string>();
 
-    for (const group of groups.slice(0, 5)) {
+    for (const group of groups) {
       const [products, prices] = await Promise.all([
         this.getGroupProducts(tcg, group.groupId),
         this.getGroupPrices(tcg, group.groupId),
       ]);
 
-      const priceByProductId = new Map<number, TcgCsvPrice>(
-        prices.map((p) => [p.productId, p]),
-      );
+      const priceByProductId = new Map<number, TcgCsvPrice>();
+      for (const price of prices) {
+        const existing = priceByProductId.get(price.productId);
+        if (!existing) {
+          priceByProductId.set(price.productId, price);
+          continue;
+        }
+
+        const currentBest = pickBestPrice([existing, price]);
+        if (currentBest) {
+          priceByProductId.set(price.productId, currentBest);
+        }
+      }
 
       const matches = products
         .filter((p) => p.name.toLowerCase().includes(lowerQuery))
-        .map((p) => tcgCsvToExternal(p, group, tcg, priceByProductId.get(p.productId)));
+        .map((p) => tcgCsvToExternal(p, group, tcg, priceByProductId.get(p.productId)))
+        .filter((card) => {
+          if (seen.has(card.externalId)) {
+            return false;
+          }
+          seen.add(card.externalId);
+          return true;
+        });
 
       found.push(...matches);
+      if (found.length >= 50) {
+        break;
+      }
     }
 
     if (found.length > 0) {
       await cacheSet(cacheKey, found, CACHE_TTL);
     }
     return found;
+  }
+
+  /**
+   * Fetch a single card by product ID.
+   */
+  static async getCardById(tcg: TCGCsvTcg, productId: string): Promise<ExternalCard | null> {
+    const normalizedId = String(productId || '').trim();
+    if (!normalizedId) {
+      return null;
+    }
+
+    const cacheKey = `tcgcsv:card:${TCGCSV_CATEGORY_IDS[tcg]}:${normalizedId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached as ExternalCard;
+
+    const numericId = Number(normalizedId);
+    if (!Number.isFinite(numericId)) {
+      return null;
+    }
+
+    const groups = await this.getGroups(tcg);
+    for (const group of groups) {
+      const products = await this.getGroupProducts(tcg, group.groupId);
+      const product = products.find((entry) => entry.productId === numericId);
+      if (!product) {
+        continue;
+      }
+
+      const prices = await this.getGroupPrices(tcg, group.groupId);
+      const price = pickBestPrice(prices.filter((entry) => entry.productId === numericId));
+      const card = tcgCsvToExternal(product, group, tcg, price);
+      await cacheSet(cacheKey, card, CACHE_TTL);
+      return card;
+    }
+
+    return null;
   }
 
   /**
@@ -419,10 +526,7 @@ export class TCGCsvService {
     const prices = await this.getProductPrices(tcg, productId);
     if (!prices.length) return null;
 
-    const best = prices
-      .map((p) => bestPrice(p))
-      .filter((v): v is number => v !== undefined)
-      .sort((a, b) => b - a)[0];
+    const best = bestPrice(pickBestPrice(prices) || prices[0]);
 
     return best ?? null;
   }

@@ -83,7 +83,7 @@ export interface ExternalEdition {
   name: string;
   releaseDate?: string;
   totalCards?: number;
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck';
+  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg' | 'tcgcsv';
 }
 
 export interface AdminDashboard {

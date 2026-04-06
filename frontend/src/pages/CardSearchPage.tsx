@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchCards, searchCardsByCode, getListingsByCard, updateListingStock, updateListingPricingMode } from '../services/catalog';
+import { searchCards, searchCardsByCode, getListingsByCard, updateListingPricingMode } from '../services/catalog';
 import type { Card, Listing } from '../types';
 
 const RARITY_BADGE: Record<string, string> = {
@@ -14,13 +14,6 @@ const RARITY_BADGE: Record<string, string> = {
   holo: 'badge-blue',
 };
 
-const CONDITION_BADGE: Record<string, string> = {
-  NM: '#16a34a',
-  LP: '#65a30d',
-  MP: '#ca8a04',
-  HP: '#ea580c',
-  DMG: '#dc2626',
-};
 
 function getRarityBadge(rarity?: string): string {
   if (!rarity) return 'badge-gray';
@@ -88,9 +81,8 @@ function ModeToggle({
           }}
         />
       </span>
-      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: checked ? '#166534' : 'var(--text-muted)' }}>
-        {checked ? onLabel : offLabel}
-      </span>
+      {/* Remove label text for toggle */}
+      <span style={{ display: 'none' }} />
     </button>
   );
 }
@@ -116,7 +108,6 @@ export function CardSearchPage() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [loadingListings, setLoadingListings] = useState<string | null>(null);
   const [cardListings, setCardListings] = useState<Record<string, Listing[]>>({});
-  const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
   const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
   const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
   const [listingFilter, setListingFilter] = useState('');
@@ -167,31 +158,6 @@ export function CardSearchPage() {
     }
   };
 
-  const adjustListingStock = async (cardId: string, listingId: string, delta: number) => {
-    const currentListings = cardListings[cardId] ?? [];
-    const current = currentListings.find((l) => l.id === listingId);
-    if (!current) return;
-
-    if (delta < 0 && current.quantity <= 0) return;
-
-    setUpdatingStockId(listingId);
-    try {
-      const op = delta > 0 ? 'inc' : 'dec';
-      const response = await updateListingStock(listingId, op, Math.abs(delta));
-      setCardListings((prev) => ({
-        ...prev,
-        [cardId]: (prev[cardId] ?? []).map((listing) =>
-          listing.id === listingId
-            ? { ...listing, quantity: response.quantity }
-            : listing,
-        ),
-      }));
-    } catch {
-      setError('No se pudo actualizar el stock del listing');
-    } finally {
-      setUpdatingStockId(null);
-    }
-  };
 
   const setPricingMode = async (cardId: string, listing: Listing, mode: 'manual' | 'api') => {
     setUpdatingPricingId(listing.id);
@@ -455,7 +421,7 @@ export function CardSearchPage() {
                         style={{ maxWidth: 280 }}
                         value={listingFilter}
                         onChange={(e) => setListingFilter(e.target.value)}
-                        placeholder="Filtrar listings por rareza/condición/código"
+                        placeholder="Filtrar listings por rareza/código"
                       />
                     </div>
                     <table className="data-table" style={{ fontSize: '0.82rem', tableLayout: 'fixed' }}>
@@ -471,11 +437,10 @@ export function CardSearchPage() {
                     <thead>
                       <tr>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('rarity')}>Rareza {listingSort === 'rarity' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('condition')}>Condición {listingSort === 'condition' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('stock')}>Stock {listingSort === 'stock' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('usd')}>Precio USD {listingSort === 'usd' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                         <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('clp')}>Precio CLP {listingSort === 'clp' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('mode')}>Modo {listingSort === 'mode' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                        <th style={{ cursor: 'pointer' }} onClick={() => toggleListingSort('mode')}>Modo manual {listingSort === 'mode' ? (listingSortDir === 'asc' ? '↑' : '↓') : ''}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -485,7 +450,6 @@ export function CardSearchPage() {
                           if (!q) return true;
                           return (
                             (listing.card?.rarity ?? '').toLowerCase().includes(q)
-                            || (listing.condition ?? '').toLowerCase().includes(q)
                             || (listing.card?.cardCode ?? '').toLowerCase().includes(q)
                           );
                         })
@@ -494,8 +458,6 @@ export function CardSearchPage() {
                           switch (listingSort) {
                             case 'rarity':
                               return mult * (a.card?.rarity ?? '').localeCompare(b.card?.rarity ?? '');
-                            case 'condition':
-                              return mult * a.condition.localeCompare(b.condition);
                             case 'stock':
                               return mult * (a.quantity - b.quantity);
                             case 'usd':
@@ -515,91 +477,61 @@ export function CardSearchPage() {
                           const isManual = listing.status === 'manual';
                           const draft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
                           return (
-                        <tr key={listing.id}>
-                          <td>
-                            <span className={`badge ${getRarityBadge(listing.card?.rarity)}`}>
-                              {listing.card?.rarity ?? '—'}
-                            </span>
-                          </td>
-                          <td>
-                            <span
-                              style={{
-                                fontWeight: 600,
-                                color: CONDITION_BADGE[listing.condition] ?? 'var(--text)',
-                                fontSize: '0.8rem',
-                              }}
-                            >
-                              {listing.condition}
-                            </span>
-                          </td>
-                          <td style={{ fontWeight: listing.quantity === 0 ? 400 : 600 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
-                                disabled={updatingStockId === listing.id || listing.quantity <= 0}
-                                title="Reducir stock"
-                                onClick={() => adjustListingStock(first.id, listing.id, -1)}
-                              >
-                                −
-                              </button>
-                              <span style={{ color: listing.quantity === 0 ? 'var(--text-muted)' : listing.quantity <= 2 ? '#dc2626' : 'var(--text)' }}>
-                                {listing.quantity}
-                              </span>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
-                                disabled={updatingStockId === listing.id}
-                                title="Aumentar stock"
-                                onClick={() => adjustListingStock(first.id, listing.id, +1)}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
-                          <td style={{ fontWeight: 500 }}>
-                            {isManual ? (
-                              <input
-                                type="number"
-                                className="input input-sm"
-                                value={draft}
-                                onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
-                                style={{ width: '100%', maxWidth: 110 }}
-                                disabled={updatingPricingId === listing.id}
-                                title="Precio final manual en CLP"
-                                onBlur={() => { void saveManualPrice(first.id, listing); }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    void saveManualPrice(first.id, listing);
-                                  }
-                                }}
-                              />
-                            ) : (
-                              listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
-                            )}
-                          </td>
-                          <td>
-                            <ModeToggle
-                              checked={isManual}
-                              disabled={updatingPricingId === listing.id}
-                              onToggle={() => {
-                                if (!isManual) {
-                                  setManualPriceDrafts((prev) => ({
-                                    ...prev,
-                                    [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
-                                  }));
-                                  void setPricingMode(first.id, listing, 'manual');
-                                } else {
-                                  void setPricingMode(first.id, listing, 'api');
-                                }
-                              }}
-                              onLabel="Manual"
-                              offLabel=""
-                            />
-                          </td>
-                        </tr>
+                            <tr key={listing.id}>
+                              <td>
+                                <span className={`badge ${getRarityBadge(listing.card?.rarity)}`}>
+                                  {listing.card?.rarity ?? '—'}
+                                </span>
+                              </td>
+                              <td>
+                                <span style={{ fontWeight: 600 }}>{listing.quantity}</span>
+                              </td>
+                              <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
+                              <td style={{ fontWeight: 500 }}>
+                                {isManual ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '1.1em' }}>$</span>
+                                    <input
+                                      type="number"
+                                      className="input input-sm"
+                                      value={draft}
+                                      onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [listing.id]: e.target.value }))}
+                                      style={{ width: 90, fontSize: '1em', padding: '4px 8px' }}
+                                      disabled={updatingPricingId === listing.id}
+                                      title="Precio final manual en CLP"
+                                      onBlur={() => { void saveManualPrice(first.id, listing); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          void saveManualPrice(first.id, listing);
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  listing.finalPrice != null ? fmtCLP(listing.finalPrice) : '—'
+                                )}
+                              </td>
+                              <td>
+                                <ModeToggle
+                                  checked={isManual}
+                                  disabled={updatingPricingId === listing.id}
+                                  onToggle={() => {
+                                    if (!isManual) {
+                                      setManualPriceDrafts((prev) => ({
+                                        ...prev,
+                                        [listing.id]: prev[listing.id] ?? String(Math.round(listing.finalPrice || 0)),
+                                      }));
+                                      void setPricingMode(first.id, listing, 'manual');
+                                    } else {
+                                      void setPricingMode(first.id, listing, 'api');
+                                    }
+                                  }}
+                                  onLabel="Manual"
+                                  offLabel=""
+                                />
+                              </td>
+                            </tr>
                           );
                         })}
                     </tbody>
