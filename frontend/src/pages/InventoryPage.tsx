@@ -122,8 +122,8 @@ export function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Card image preview modal
-  const [previewCard, setPreviewCard] = useState<{ name: string; imageUrl?: string } | null>(null);
+  const [previewCardId, setPreviewCardId] = useState<string | null>(null);
+  const [pinnedPreviewCardId, setPinnedPreviewCardId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -153,11 +153,28 @@ export function InventoryPage() {
     setLoadingCards(true);
     setCards([]);
     setDirtyRows(new Map());
+    setPreviewCardId(null);
+    setPinnedPreviewCardId(null);
     getEditionCardsWithStock(selectedEdition)
       .then((inv) => setCards(inv.cards))
       .catch(() => setError('Error al cargar cartas'))
       .finally(() => setLoadingCards(false));
   }, [selectedEdition]);
+
+  useEffect(() => {
+    if (!cards.length) {
+      setPreviewCardId(null);
+      setPinnedPreviewCardId(null);
+      return;
+    }
+
+    setPreviewCardId((currentId) => {
+      if (currentId && cards.some((card) => card.id === currentId)) {
+        return currentId;
+      }
+      return cards[0].id;
+    });
+  }, [cards]);
 
   const filteredEditions = editions.filter((e) =>
     e.editionName.toLowerCase().includes(setSearch.toLowerCase()) ||
@@ -213,6 +230,23 @@ export function InventoryPage() {
         return 0;
     }
   });
+
+  const previewCard = sortedCards.find((card) => card.id === previewCardId) ?? sortedCards[0] ?? null;
+  const isPreviewPinned = pinnedPreviewCardId !== null;
+
+  const setHoveredPreviewCard = useCallback((cardId: string) => {
+    if (pinnedPreviewCardId) return;
+    setPreviewCardId(cardId);
+  }, [pinnedPreviewCardId]);
+
+  const togglePinnedPreviewCard = useCallback((cardId: string) => {
+    setPreviewCardId(cardId);
+    setPinnedPreviewCardId((currentId) => (currentId === cardId ? null : cardId));
+  }, []);
+
+  const clearPinnedPreviewCard = useCallback(() => {
+    setPinnedPreviewCardId(null);
+  }, []);
 
   const startEdit = useCallback((listingId: string, currentQty: number) => {
     setEditingCell(listingId);
@@ -370,49 +404,6 @@ export function InventoryPage() {
 
   return (
     <div>
-      {/* Card image preview modal */}
-      {previewCard && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          onClick={() => setPreviewCard(null)}
-        >
-          <div
-            style={{
-              background: 'var(--surface)', borderRadius: 12, padding: 24,
-              maxWidth: 480, width: '95%', textAlign: 'center',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 600, marginBottom: 14, fontSize: '1.05rem' }}>
-              {previewCard.name}
-            </div>
-            {previewCard.imageUrl ? (
-              <img
-                src={previewCard.imageUrl}
-                alt={previewCard.name}
-                style={{ maxWidth: '100%', borderRadius: 10, maxHeight: 520, objectFit: 'contain' }}
-              />
-            ) : (
-              <div style={{ color: 'var(--text-muted)', padding: '60px 0', fontSize: '0.875rem' }}>
-                Sin imagen disponible
-              </div>
-            )}
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ marginTop: 16 }}
-              onClick={() => setPreviewCard(null)}
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-
       {error && (
         <div className="error-message" style={{ marginBottom: 16 }}>
           ⚠️ {error}
@@ -575,228 +566,292 @@ export function InventoryPage() {
             </div>
           )}
 
-          <div className="table-wrapper">
-            {!selectedEdition ? (
-              <div className="empty-state">
-                <div className="empty-state-icon">📦</div>
-                <h3>Selecciona un set</h3>
-                <p>Elige un juego y una edición para ver las cartas</p>
-              </div>
-            ) : loadingCards ? (
-              <div className="loading-spinner">⏳ Cargando cartas…</div>
-            ) : cards.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon">🔍</div>
-                <h3>Sin cartas</h3>
-                <p>Este set no tiene cartas en el catálogo aún</p>
-              </div>
-            ) : filteredCards.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon">🔍</div>
-                <h3>Sin resultados</h3>
-                <p>No se encontraron cartas con ese término</p>
-              </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th
-                      style={{ width: 40, cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSortColumn('number')}
-                      title="Clic para ordenar"
-                    >
-                      # {sortColumn === 'number' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSortColumn('name')}
-                      title="Clic para ordenar"
-                    >
-                      Nombre {sortColumn === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSortColumn('rarity')}
-                      title="Clic para ordenar"
-                    >
-                      Rareza {sortColumn === 'rarity' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th
-                      style={{ width: 120, cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSortColumn('stock')}
-                      title="Clic para ordenar"
-                    >
-                      Stock {sortColumn === 'stock' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSortColumn('price')}
-                      title="Clic para ordenar"
-                    >
-                      Precio USD {sortColumn === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th>Precio CLP</th>
-                    <th style={{ width: 130 }}>Modo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedCards.map((card, idx) => {
-                    const mainListing = card.listings[0];
-                    const isDirty = mainListing ? dirtyRows.has(mainListing.id) : false;
-                    return (
-                      <tr key={card.id} className={isDirty ? 'row-dirty' : ''}>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                          {card.cardNumber ?? idx + 1}
-                        </td>
-                        <td>
-                          <div
-                            style={{ fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                            onClick={() => setPreviewCard({ name: card.cardName, imageUrl: card.imageUrl })}
-                            title="Ver imagen de la carta"
-                          >
-                            {card.cardName}
-                            {card.imageUrl && (
-                              <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>🖼</span>
+          <div className="inventory-cards-pane">
+            <div className="table-wrapper inventory-cards-table">
+              {!selectedEdition ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">📦</div>
+                  <h3>Selecciona un set</h3>
+                  <p>Elige un juego y una edición para ver las cartas</p>
+                </div>
+              ) : loadingCards ? (
+                <div className="loading-spinner">⏳ Cargando cartas…</div>
+              ) : cards.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🔍</div>
+                  <h3>Sin cartas</h3>
+                  <p>Este set no tiene cartas en el catálogo aún</p>
+                </div>
+              ) : filteredCards.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🔍</div>
+                  <h3>Sin resultados</h3>
+                  <p>No se encontraron cartas con ese término</p>
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th
+                        style={{ width: 40, cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSortColumn('number')}
+                        title="Clic para ordenar"
+                      >
+                        # {sortColumn === 'number' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSortColumn('name')}
+                        title="Clic para ordenar"
+                      >
+                        Nombre {sortColumn === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSortColumn('rarity')}
+                        title="Clic para ordenar"
+                      >
+                        Rareza {sortColumn === 'rarity' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        style={{ width: 120, cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSortColumn('stock')}
+                        title="Clic para ordenar"
+                      >
+                        Stock {sortColumn === 'stock' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleSortColumn('price')}
+                        title="Clic para ordenar"
+                      >
+                        Precio USD {sortColumn === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th>Precio CLP</th>
+                      <th style={{ width: 130 }}>Modo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedCards.map((card, idx) => {
+                      const mainListing = card.listings[0];
+                      const isDirty = mainListing ? dirtyRows.has(mainListing.id) : false;
+                      const isActivePreview = previewCard?.id === card.id;
+                      return (
+                        <tr
+                          key={card.id}
+                          className={`${isDirty ? 'row-dirty' : ''}${isActivePreview ? ' row-preview-active' : ''}`}
+                          onMouseEnter={() => setHoveredPreviewCard(card.id)}
+                        >
+                          <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            {card.cardNumber ?? idx + 1}
+                          </td>
+                          <td>
+                            <div
+                              style={{ fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                              onClick={() => togglePinnedPreviewCard(card.id)}
+                              title={pinnedPreviewCardId === card.id ? 'Desfijar vista previa' : 'Fijar vista previa'}
+                            >
+                              {card.cardName}
+                              {card.imageUrl && (
+                                <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>🖼</span>
+                              )}
+                            </div>
+                            {card.cardCode && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{card.cardCode}</div>
                             )}
-                          </div>
-                          {card.cardCode && (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{card.cardCode}</div>
-                          )}
-                        </td>
-                        <td>
-                          {card.rarity ? (
-                            <span className={`badge ${getRarityBadge(card.rarity)}`}>
-                              {card.rarity}
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td>
-                          {mainListing ? (
-                            editingCell === mainListing.id ? (
-                              <input
-                                type="number"
-                                className="qty-input"
-                                value={editValue}
-                                autoFocus
-                                min={0}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => commitEdit(mainListing.id, editValue)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') commitEdit(mainListing.id, editValue);
-                                  if (e.key === 'Escape') cancelEdit();
-                                }}
-                              />
-                            ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <button
-                                  className="btn btn-ghost btn-sm"
-                                  style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
-                                  title="Reducir stock"
-                                  onClick={() => adjustQty(mainListing.id, getDisplayQty(mainListing), -1)}
-                                >
-                                  −
-                                </button>
-                                <span
-                                  className="qty-display"
-                                  onClick={() => startEdit(mainListing.id, getDisplayQty(mainListing))}
-                                  title="Clic para editar"
-                                >
-                                  {getDisplayQty(mainListing)}
-                                  <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>✏</span>
-                                </span>
-                                <button
-                                  className="btn btn-ghost btn-sm"
-                                  style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
-                                  title="Aumentar stock"
-                                  onClick={() => adjustQty(mainListing.id, getDisplayQty(mainListing), +1)}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            )
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ fontSize: '0.8rem' }}>
-                          {mainListing?.referencePrice
-                            ? `$${mainListing.referencePrice.toFixed(2)}`
-                            : '—'}
-                        </td>
-                        <td style={{ fontSize: '0.8rem', fontWeight: 500 }}>
-                          {mainListing ? (() => {
-                            const hasActiveStock = getDisplayQty(mainListing) > 0;
-                            const isManual = mainListing.status === 'manual';
-                            const draft = manualPriceDrafts[mainListing.id] ?? String(Math.round(mainListing.finalPrice || 0));
-
-                            if (isManual && hasActiveStock) {
-                              return (
+                          </td>
+                          <td>
+                            {card.rarity ? (
+                              <span className={`badge ${getRarityBadge(card.rarity)}`}>
+                                {card.rarity}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td>
+                            {mainListing ? (
+                              editingCell === mainListing.id ? (
+                                <input
+                                  type="number"
+                                  className="qty-input"
+                                  value={editValue}
+                                  autoFocus
+                                  min={0}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => commitEdit(mainListing.id, editValue)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') commitEdit(mainListing.id, editValue);
+                                    if (e.key === 'Escape') cancelEdit();
+                                  }}
+                                />
+                              ) : (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '0.75rem' }}>CLP</span>
-                                  <input
-                                    type="number"
-                                    className="input input-sm"
-                                    value={draft}
-                                    onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [mainListing.id]: e.target.value }))}
-                                    style={{ width: 95, fontSize: '0.85rem', padding: '4px 8px' }}
-                                    disabled={updatingPricingId === mainListing.id}
-                                    title="Precio final manual en CLP"
-                                    onBlur={() => { void setInventoryPricingMode(mainListing, 'manual'); }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        void setInventoryPricingMode(mainListing, 'manual');
-                                      }
-                                    }}
-                                  />
+                                  <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                    title="Reducir stock"
+                                    onClick={() => adjustQty(mainListing.id, getDisplayQty(mainListing), -1)}
+                                  >
+                                    −
+                                  </button>
+                                  <span
+                                    className="qty-display"
+                                    onClick={() => startEdit(mainListing.id, getDisplayQty(mainListing))}
+                                    title="Clic para editar"
+                                  >
+                                    {getDisplayQty(mainListing)}
+                                    <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>✏</span>
+                                  </span>
+                                  <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: '1px 6px', minWidth: 24, fontWeight: 700 }}
+                                    title="Aumentar stock"
+                                    onClick={() => adjustQty(mainListing.id, getDisplayQty(mainListing), +1)}
+                                  >
+                                    +
+                                  </button>
                                 </div>
-                              );
-                            }
+                              )
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ fontSize: '0.8rem' }}>
+                            {mainListing?.referencePrice
+                              ? `$${mainListing.referencePrice.toFixed(2)}`
+                              : '—'}
+                          </td>
+                          <td style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                            {mainListing ? (() => {
+                              const hasActiveStock = getDisplayQty(mainListing) > 0;
+                              const isManual = mainListing.status === 'manual';
+                              const draft = manualPriceDrafts[mainListing.id] ?? String(Math.round(mainListing.finalPrice || 0));
 
-                            return mainListing.finalPrice ? fmtCLP(mainListing.finalPrice) : '—';
-                          })() : '—'}
-                        </td>
-                        <td>
-                          {mainListing ? (() => {
-                            const hasActiveStock = getDisplayQty(mainListing) > 0;
-                            const isManual = mainListing.status === 'manual';
+                              if (isManual && hasActiveStock) {
+                                return (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ fontWeight: 600, color: '#16a34a', fontSize: '0.75rem' }}>CLP</span>
+                                    <input
+                                      type="number"
+                                      className="input input-sm"
+                                      value={draft}
+                                      onChange={(e) => setManualPriceDrafts((prev) => ({ ...prev, [mainListing.id]: e.target.value }))}
+                                      style={{ width: 95, fontSize: '0.85rem', padding: '4px 8px' }}
+                                      disabled={updatingPricingId === mainListing.id}
+                                      title="Precio final manual en CLP"
+                                      onBlur={() => { void setInventoryPricingMode(mainListing, 'manual'); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          void setInventoryPricingMode(mainListing, 'manual');
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              }
 
-                            return (
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-sm"
-                                disabled={!hasActiveStock || updatingPricingId === mainListing.id}
-                                title={
-                                  !hasActiveStock
-                                    ? 'El modo manual solo se habilita para cartas con stock activo (> 0)'
-                                    : isManual
-                                      ? 'Cambiar a modo API'
-                                      : 'Cambiar a modo manual'
-                                }
-                                onClick={() => {
-                                  if (!hasActiveStock) return;
-                                  if (!isManual) {
-                                    setManualPriceDrafts((prev) => ({
-                                      ...prev,
-                                      [mainListing.id]: prev[mainListing.id] ?? String(Math.round(mainListing.finalPrice || 0)),
-                                    }));
-                                    void setInventoryPricingMode(mainListing, 'manual');
-                                    return;
+                              return mainListing.finalPrice ? fmtCLP(mainListing.finalPrice) : '—';
+                            })() : '—'}
+                          </td>
+                          <td>
+                            {mainListing ? (() => {
+                              const hasActiveStock = getDisplayQty(mainListing) > 0;
+                              const isManual = mainListing.status === 'manual';
+
+                              return (
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm"
+                                  disabled={!hasActiveStock || updatingPricingId === mainListing.id}
+                                  title={
+                                    !hasActiveStock
+                                      ? 'El modo manual solo se habilita para cartas con stock activo (> 0)'
+                                      : isManual
+                                        ? 'Cambiar a modo API'
+                                        : 'Cambiar a modo manual'
                                   }
-                                  void setInventoryPricingMode(mainListing, 'api');
-                                }}
-                              >
-                                {isManual ? 'Manual' : 'API'}
-                              </button>
-                            );
-                          })() : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+                                  onClick={() => {
+                                    if (!hasActiveStock) return;
+                                    if (!isManual) {
+                                      setManualPriceDrafts((prev) => ({
+                                        ...prev,
+                                        [mainListing.id]: prev[mainListing.id] ?? String(Math.round(mainListing.finalPrice || 0)),
+                                      }));
+                                      void setInventoryPricingMode(mainListing, 'manual');
+                                      return;
+                                    }
+                                    void setInventoryPricingMode(mainListing, 'api');
+                                  }}
+                                >
+                                  {isManual ? 'Manual' : 'API'}
+                                </button>
+                              );
+                            })() : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <aside className="inventory-preview-panel">
+              <div className="flex items-center justify-between gap-2" style={{ marginBottom: 10 }}>
+                <div className="section-title">Vista previa</div>
+                {previewCard && isPreviewPinned && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={clearPinnedPreviewCard}
+                    title="Liberar vista previa fija"
+                  >
+                    Fijada
+                  </button>
+                )}
+              </div>
+              {previewCard ? (
+                <>
+                  {isPreviewPinned && (
+                    <div className="badge badge-gray" style={{ marginBottom: 10 }}>
+                      Vista fija: el hover no cambia la carta
+                    </div>
+                  )}
+                  <div className="inventory-preview-frame">
+                    {previewCard.imageUrl ? (
+                      <img
+                        src={previewCard.imageUrl}
+                        alt={previewCard.cardName}
+                        className="inventory-preview-image"
+                      />
+                    ) : (
+                      <div className="inventory-preview-empty">Sin imagen disponible</div>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>
+                      {previewCard.cardName}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+                      {previewCard.cardCode || '—'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {previewCard.rarity ? (
+                        <span className={`badge ${getRarityBadge(previewCard.rarity)}`}>{previewCard.rarity}</span>
+                      ) : null}
+                      <span className="badge badge-gray">{previewCard.cardNumber ?? '—'}</span>
+                    </div>
+                    {previewCard.listings[0] && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        Stock: {getDisplayQty(previewCard.listings[0])} · Precio: {previewCard.listings[0].finalPrice ? fmtCLP(previewCard.listings[0].finalPrice) : '—'}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="inventory-preview-empty">Selecciona una carta para verla ampliada</div>
+              )}
+            </aside>
           </div>
         </div>
       </div>

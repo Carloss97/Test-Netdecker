@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InventoryPage } from './InventoryPage';
@@ -72,6 +72,14 @@ describe('InventoryPage manual mode guard', () => {
             },
           ],
         },
+        {
+          id: 'card-2',
+          cardCode: 'C002',
+          cardName: 'Other Card',
+          rarity: 'Common',
+          imageUrl: 'https://example.com/card-2.jpg',
+          listings: [],
+        },
       ],
     });
   });
@@ -136,6 +144,33 @@ describe('InventoryPage manual mode guard', () => {
 
     await waitFor(() => {
       expect(mockUpdateListingPricingMode).toHaveBeenCalledWith('listing-1', 'manual', 4500);
+    });
+  });
+
+  it('keeps the preview fixed after clicking a card until it is released', async () => {
+    render(<InventoryPage />);
+
+    await userEvent.click(await screen.findByText('Magic: The Gathering'));
+    await userEvent.click(await screen.findByText('Set 1'));
+
+    const previewPanel = screen.getByText('Vista previa').closest('aside');
+    expect(previewPanel).not.toBeNull();
+
+    await userEvent.click(screen.getAllByTitle('Fijar vista previa')[0]);
+    expect(within(previewPanel as HTMLElement).getByText('Test Card')).toBeInTheDocument();
+    expect(within(previewPanel as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Other Card'));
+
+    expect(within(previewPanel as HTMLElement).getByText('Test Card')).toBeInTheDocument();
+    expect(within(previewPanel as HTMLElement).queryByText('Other Card')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fijada' }));
+    await userEvent.hover(screen.getByText('Other Card'));
+
+    await waitFor(() => {
+      expect(within(previewPanel as HTMLElement).getByText('Other Card')).toBeInTheDocument();
+      expect(within(previewPanel as HTMLElement).queryByText('Test Card')).toBeNull();
     });
   });
 });
