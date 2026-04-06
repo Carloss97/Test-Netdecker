@@ -1,26 +1,26 @@
 # TCG Singles Platform
 
-Plataforma completa para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, One Piece) con precios dinámicos actualizados según referencias de mercado, conversión a CLP, gestión de inventario y checkout integrado.
+Plataforma integral para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, One Piece) con precios dinámicos, inventario masivo, integración de APIs nativas y panel de administración completo.
 
 ## Estructura del Proyecto
 
 ```
 .
-├── backend/              # API REST Node.js/Express con TypeScript
+├── backend/              # API REST Node.js/Express + TypeScript
 │   ├── src/
 │   │   ├── index.ts      # Entry point
-│   │   ├── models/       # Tipos TypeScript
+│   │   ├── models/       # Tipos y modelos
 │   │   ├── services/     # Lógica de negocio (Pricing, TCG, Cards, etc.)
 │   │   ├── routes/       # Rutas API
-│   │   ├── controllers/  # Controladores (a desarrollar)
-│   │   ├── middleware/   # Middleware auth, validación, etc.
-│   │   └── utils/        # Utilidades (BD, Redis, helpers)
+│   │   ├── controllers/  # Controladores
+│   │   ├── middleware/   # Auth, validación, etc.
+│   │   └── utils/        # BD, Redis, helpers
 │   ├── prisma/
 │   │   └── schema.prisma # Modelo de datos
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── frontend/             # Aplicación React con Vite
+├── frontend/             # App React + Vite
 │   ├── src/
 │   │   ├── main.tsx
 │   │   ├── App.tsx
@@ -35,7 +35,6 @@ Plataforma completa para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, 
 │
 ├── .env.example          # Variables de entorno (ejemplo)
 └── README.md             # Este archivo
-
 ```
 
 ## Características Principales
@@ -45,23 +44,26 @@ Plataforma completa para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, 
 - Filtrado por TCG (Magic, Pokémon, Yu-Gi-Oh, One Piece)
 - Separación por edición y código de carta
 - Visualización de stock disponible
+- Importación masiva de sets/cartas desde APIs externas
 
 ### 💲 Precios Dinámicos
-- Sincronización con múltiples APIs nativas por TCG:
-  - **Magic**: Scryfall (datos + precios USD)
-  - **Pokémon**: Pokémon TCG API (datos + precios USD)
-  - **Yu-Gi-Oh**: YGOPRODeck (datos + precios multi-fuente: CardMarket, TCGPlayer, eBay, Amazon)
-  - **One Piece**: OPTCGAPI (datos + precios USD market/inventory)
-- Conversión automática a CLP usando tasa USD actual
-- Cálculo de margen dinámico por demanda/volatilidad
-- Actualización automática con límites de seguridad
-- Historial de cambios de precio para auditoría
+- Sincronización con APIs nativas por TCG:
+  - **Magic**: Scryfall (USD)
+  - **Pokémon**: Pokémon TCG API (USD)
+  - **Yu-Gi-Oh**: YGOPRODeck (CardMarket, TCGPlayer, eBay, Amazon)
+  - **One Piece**: OPTCGAPI (USD market/inventory)
+- Conversión automática a CLP (tipo de cambio actualizado)
+- Margen configurable y control de volatilidad
+- Historial de cambios de precio y auditoría
+- Actualización automática (cron configurable)
 
 ### 📦 Inventario
-- Carga masiva por CSV/XLSX
-- Edición rápida de cantidades (sin inventario manual card-by-card)
+
+- Importación masiva por CSV/XLSX
+- Edición rápida de cantidades
 - Alertas de stock bajo
 - Vista de inventario total y valor
+- Historial de importaciones y errores
 
 ### 🛒 Checkout
 - Carrito persistente por sesión
@@ -71,133 +73,43 @@ Plataforma completa para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, 
 
 ### 👨‍💼 Panel Admin
 - Dashboard con KPIs (valor total, margen, stock bajo)
-- Gestión de precios y márgenes
-- Gestión de TCGs y ediciones
+- Gestión de precios, márgenes, TCGs y ediciones
 - Carga de catálogo e inventario
-- Auditoría de cambios
+- Auditoría de cambios y reportes
 
 ## Guía Operativa (Dashboard + Catálogo + Stock)
 
-Esta sección explica en lenguaje operativo qué hace cada acción del panel y cómo usar el flujo completo en tienda.
+### Catálogo y sincronización
+- Usa el panel "Catalog Sync Console" para:
+  - Dry run: simula cambios antes de aplicar
+  - Crear listings: activa/desactiva creación de inventario
+  - Bootstrap catálogo: carga masiva inicial
+  - Sync sets nuevos: detecta e importa sets nuevos
 
-### 1) Qué significa cada botón en "Catalog Sync Console"
+### Flujos recomendados
+1. Alta de set nuevo: dry run → sync sets nuevos → revisar → ejecutar real
+2. Sincronización de precios: manual o cron, revisar volatilidad
+3. Restock: importar CSV/XLSX, validar y confirmar
+4. Checkout: ventas descuentan stock automáticamente
 
-- Dry run:
-  - Ejecuta el proceso en modo simulación para revisar métricas y validaciones antes de una corrida operativa.
-  - Recomendación: úsalo siempre primero en ambiente de prueba o en una corrida controlada.
+### One Piece: integración completa
+- Soporta search, import sets, sync automático, precios USD
+- Fuente: https://www.optcgapi.com/
 
-- Crear listings:
-  - Si está activado, además de crear/actualizar cartas en catálogo, también crea o actualiza listings de inventario.
-  - Si está desactivado, solo actualiza catálogo (TCG, edición, carta, metadata), sin tocar inventario/listings.
-
-- Bootstrap catálogo:
-  - Carga masiva inicial del catálogo histórico.
-  - Se usa cuando partes desde cero o cuando quieres poblar una gran porción del catálogo de una vez.
-  - Puede correrse por TCG específico o con filtros de set/límite.
-
-- Sync sets nuevos:
-  - Busca sets nuevos (o cambios detectados) en fuentes externas y los incorpora al catálogo local.
-  - Está pensado para operación continua después del bootstrap inicial.
-  - También puede ejecutarse por TCG para mantener un juego puntual.
-
-### 2) Flujo recomendado de operación
-
-#### Fase A: Alta de set nuevo (catálogo)
-
-1. Ir a Dashboard > Catalog Sync Console.
-2. Elegir TCG (o dejar All TCGs).
-3. Activar Dry run y ejecutar Sync sets nuevos.
-4. Revisar resultado JSON (sets detectados, creados, actualizados, omitidos).
-5. Si todo está OK, desactivar Dry run y volver a ejecutar.
-6. Si necesitas carga histórica completa, ejecutar Bootstrap catálogo (idealmente por lotes).
-
-Resultado esperado:
-- El set queda disponible en catálogo local.
-- Las cartas nuevas del set quedan creadas/actualizadas.
-- Si Crear listings está activo, quedan listings operativos para ese set.
-
-#### Fase B: Ajustar/sincronizar precios
-
-1. Verificar cobertura en Dashboard (TCGplayer Coverage).
-2. Ejecutar sincronización de precios (manual o cron).
-3. Revisar volatilidad en Dashboard para detectar saltos sospechosos.
-4. Si hay cambios extremos, aplicar revisión manual antes de publicar.
-
-Regla general del motor:
-- Precio final CLP = precio referencia USD x margen x tipo de cambio.
-- Prioridad de precio: API nativa del TCG (Scryfall, Pokémon TCG API, YGOPRODeck, OPTCGAPI)
-
-#### Fase C: Actualizar stock (restock y ventas)
-
-1. Restock masivo:
-   - Ir a Admin Importaciones y subir CSV/XLSX.
-   - Prevalidar.
-   - Confirmar importación.
-2. Venta/checkout:
-   - El flujo de carrito/checkout descuenta stock del listing.
-3. Ajustes puntuales:
-   - Usar endpoints de inventory o edición operacional en panel para correcciones.
-
-Buenas prácticas:
-- Mantener "catálogo y precio" automatizado.
-- Mantener "stock" como proceso controlado por operación (importaciones y ventas).
-
-### 3) One Piece: estado actual e integración completa
-
-Estado actual:
-- ✅ One Piece está completamente integrado end-to-end
-- Soporta todos los flujos: search, import sets, sync automático, precios en USD
-
-Cómo funciona operativamente:
-- Igual que Magic, Pokémon y Yu-Gi-Oh:
-  1. Detectar set nuevo en Sync sets nuevos
-  2. Importar cartas del set desde OPTCGAPI
-  3. Crear listings (opcional) con margen inicial
-  4. Sincronizar precios automáticamente (cron job cada 6 horas)
-  5. Mantener stock por restock (CSV/XLSX) y ventas (checkout)
-
-Fuente de datos:
-- API: https://www.optcgapi.com/ (comunitaria, sin autenticación)
-- Proporciona: card names, set codes, rarities, market prices USD, inventory prices USD
-- Tasa de actualización: aproximadamente cada 2 semanas
-
-### 4) Runbook rápido para tienda (resumen)
-
-- Día 0 (arranque):
-  - Bootstrap catálogo por lotes.
-  - Revisar cobertura de productId/precios.
-
-- Operación semanal:
-  - Sync sets nuevos.
-  - Revisar volatilidad y low stock.
-
-- Operación diaria:
-  - Importar restock.
-  - Procesar ventas (checkout descuenta stock).
-  - Revisar errores de importación y corregir archivo fuente.
-
-- Antes de cambios grandes:
-  - Ejecutar Dry run.
-  - Validar resultados.
-  - Ejecutar corrida real.
+### Runbook rápido
+- Día 0: bootstrap catálogo, revisar cobertura
+- Semanal: sync sets nuevos, revisar precios/stock
+- Diario: importar restock, procesar ventas
 
 ## Stack Tecnológico
 
 ### Backend
-- **Runtime**: Node.js 18+
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **ORM**: Prisma
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Task Queue**: node-cron (jobs programados)
+- Node.js 18+, Express.js, TypeScript
+- Prisma (PostgreSQL), Redis (cache), node-cron (jobs)
 
 ### Frontend
-- **Framework**: React 18
-- **Build Tool**: Vite
-- **Language**: TypeScript
-- **HTTP Client**: Axios
-- **Styling**: CSS puro (extendible con Tailwind/styled-components)
+- React 18, Vite, TypeScript
+- Axios, CSS puro (opcional Tailwind/styled-components)
 
 ## Requisitos Previos
 
