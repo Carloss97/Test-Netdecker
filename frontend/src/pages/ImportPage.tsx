@@ -22,6 +22,21 @@ interface ExternalSetItem {
   releaseDate?: string;
 }
 
+interface RawExternalSetItem {
+  code?: string;
+  abbreviation?: string;
+  groupId?: number;
+  name?: string;
+  editionName?: string;
+  totalCards?: number;
+  cardCount?: number;
+  totalItems?: number;
+  productCount?: number;
+  numOfCards?: number;
+  releaseDate?: string;
+  publishedOn?: string;
+}
+
 interface ImportRecord {
   id: string;
   fileName: string;
@@ -114,8 +129,17 @@ export function ImportPage() {
     setImportError(null);
     listExternalSets(catalogTcg as TcgCode)
       .then((result) => {
-        const arr = Array.isArray(result) ? result : ((result as { sets?: ExternalSetItem[] }).sets ?? []);
-        setExternalSets(arr as ExternalSetItem[]);
+        const sets = (result as { sets?: RawExternalSetItem[] }).sets ?? [];
+        setExternalSets(
+          sets
+            .map((set) => ({
+              code: (set.code || set.abbreviation || (typeof set.groupId === 'number' ? String(set.groupId) : '')).trim(),
+              name: (set.name || set.editionName || '').trim(),
+              totalCards: typeof set.totalCards === 'number' && set.totalCards > 0 ? set.totalCards : undefined,
+              releaseDate: set.releaseDate || set.publishedOn || undefined,
+            }))
+            .filter((set) => set.code && set.name),
+        );
       })
       .catch(() => {
         setImportError('Error al cargar sets externos');
@@ -130,8 +154,17 @@ export function ImportPage() {
     setImportError(null);
     try {
       const result = await listExternalSets(catalogTcg as TcgCode);
-      const arr = Array.isArray(result) ? result : ((result as { sets?: ExternalSetItem[] }).sets ?? []);
-      setExternalSets(arr as ExternalSetItem[]);
+      const sets = (result as { sets?: RawExternalSetItem[] }).sets ?? [];
+      setExternalSets(
+        sets
+          .map((set) => ({
+            code: (set.code || set.abbreviation || (typeof set.groupId === 'number' ? String(set.groupId) : '')).trim(),
+            name: (set.name || set.editionName || '').trim(),
+            totalCards: typeof set.totalCards === 'number' && set.totalCards > 0 ? set.totalCards : undefined,
+            releaseDate: set.releaseDate || set.publishedOn || undefined,
+          }))
+          .filter((set) => set.code && set.name),
+      );
     } catch {
       setImportError('Error al cargar sets externos');
     } finally {

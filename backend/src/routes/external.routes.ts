@@ -54,7 +54,16 @@ router.get('/sets', async (req: Request, res: Response) => {
     }
 
     const sets = await CardDatabaseService.listSets(tcg);
-    res.json({ success: true, tcg, total: sets.length, sets });
+    const enrichedSets = await Promise.all(
+      sets.map(async (set) => ({
+        ...set,
+        totalCards: typeof set.totalCards === 'number' && set.totalCards > 0
+          ? set.totalCards
+          : await CardDatabaseService.getSetCardCount(tcg, set.code),
+      }))
+    );
+
+    res.json({ success: true, tcg, total: enrichedSets.length, sets: enrichedSets });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

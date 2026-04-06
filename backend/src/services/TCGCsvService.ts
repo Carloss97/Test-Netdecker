@@ -48,6 +48,11 @@ interface TcgCsvGroup {
   groupId: number;
   name: string;
   abbreviation?: string;
+  totalCards?: number;
+  cardCount?: number;
+  totalItems?: number;
+  productCount?: number;
+  numOfCards?: number;
   isSupplemental?: boolean;
   publishedOn?: string;
   modifiedOn?: string;
@@ -154,6 +159,37 @@ function isCardLikeProduct(product: TcgCsvProduct): boolean {
     const key = (entry.name || entry.displayName || '').toLowerCase();
     return key === 'rarity' || key === 'number' || key === 'cardnumber' || key === 'collectornumber';
   });
+}
+
+function getGroupCardCount(group: TcgCsvGroup): number | undefined {
+  const candidates: Array<number | undefined> = [
+    group.totalCards,
+    group.cardCount,
+    group.totalItems,
+    group.productCount,
+    group.numOfCards,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate > 0) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveGroupBySetCode(groups: TcgCsvGroup[], setCode: string): TcgCsvGroup | undefined {
+  const normalizedCode = setCode.trim().toUpperCase();
+  const normalizedCompactCode = normalizeSetIdentifier(setCode);
+
+  return groups.find(
+    (g) =>
+      (g.abbreviation || '').toUpperCase() === normalizedCode ||
+      String(g.groupId) === normalizedCode ||
+      normalizeSetIdentifier(g.abbreviation || '') === normalizedCompactCode ||
+      normalizeSetIdentifier(g.name || '') === normalizedCompactCode,
+  );
 }
 
 /**
@@ -336,6 +372,7 @@ export class TCGCsvService {
       code: (g.abbreviation || String(g.groupId)).toUpperCase(),
       name: g.name,
       releaseDate: g.publishedOn,
+      totalCards: getGroupCardCount(g),
       source: 'tcgcsv' as const,
     }));
   }
@@ -350,17 +387,7 @@ export class TCGCsvService {
     if (cached) return cached as ExternalCard[];
 
     const groups = await this.getGroups(tcg);
-    const normalizedCode = setCode.trim().toUpperCase();
-    const normalizedCompactCode = normalizeSetIdentifier(setCode);
-
-    // Match by abbreviation first, then by groupId string
-    const group = groups.find(
-      (g) =>
-        (g.abbreviation || '').toUpperCase() === normalizedCode ||
-        String(g.groupId) === normalizedCode ||
-        normalizeSetIdentifier(g.abbreviation || '') === normalizedCompactCode ||
-        normalizeSetIdentifier(g.name || '') === normalizedCompactCode,
-    );
+    const group = resolveGroupBySetCode(groups, setCode);
 
     if (!group) {
       console.warn(`[TCGCsvService] getSetCards: set "${setCode}" not found for ${tcg}`);
@@ -398,6 +425,29 @@ export class TCGCsvService {
       await cacheSet(cacheKey, cards, CACHE_TTL);
     }
     return cards;
+  }
+
+  /**
+   * Fetch only the card count for a set, avoiding the heavier prices call.
+   */
+  static async getSetCardCount(tcg: TCGCsvTcg, setCode: string): Promise<number | null> {
+    const cacheKey = `tcgcsv:set-card-count:${TCGCSV_CATEGORY_IDS[tcg]}:${setCode.toUpperCase()}`;
+    const cached = await cacheGet(cacheKey);
+    if (typeof cached === 'number') {
+      return cached;
+    }
+
+    const groups = await this.getGroups(tcg);
+    const group = resolveGroupBySetCode(groups, setCode);
+    if (!group) {
+      return null;
+    }
+
+    const products = await this.getGroupProducts(tcg, group.groupId);
+    const count = products.filter(isCardLikeProduct).length;
+
+    await cacheSet(cacheKey, count, CACHE_TTL);
+    return count;
   }
 
   /**

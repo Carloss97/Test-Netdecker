@@ -917,4 +917,11 @@ export class CardDatabaseService {
   static async listSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'): Promise<ExternalEdition[]> {
     return TCGCsvService.listSets(tcg);
   }
+
+  static async getSetCardCount(
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
+    setCode: string,
+  ): Promise<number | null> {
+    return TCGCsvService.getSetCardCount(tcg, setCode);
+  }
 }
