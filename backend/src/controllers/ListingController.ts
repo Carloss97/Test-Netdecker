@@ -73,7 +73,7 @@ export class ListingController {
   static async updatePrice(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { referencePrice, marginMultiplier, reason, notes } = req.body;
+      const { referencePrice, marginMultiplier, notes } = req.body;
 
       if (!referencePrice) {
         throw new ValidationError('referencePrice is required');

@@ -8,7 +8,7 @@
  * only assert on the shapes of the responses, not specific values.
  */
 
-import { test, describe, mock, beforeEach } from 'node:test';
+import { test, describe } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { TCGCSV_CATEGORY_IDS, TCGCsvService } from '../services/TCGCsvService.js';
 

@@ -108,23 +108,7 @@ function normalizeSetCodeForTcg(tcgName: SyncTcgName, editionCode: string): stri
   return editionCode;
 }
 
-async function fetchSetPriceLookup(
-  tcgName: SyncTcgName,
-  editionCode: string,
-): Promise<Map<string, number>> {
-  const normalizedEditionCode = normalizeSetCodeForTcg(tcgName, editionCode);
-  const cards = await CardDatabaseService.getSetCards(tcgName, normalizedEditionCode);
-  const lookup = new Map<string, number>();
-
-  for (const card of cards) {
-    const price = card.priceMarket ?? card.priceMid ?? card.priceLow;
-    if (typeof price === 'number' && Number.isFinite(price) && price > 0) {
-      lookup.set(card.externalId, price);
-    }
-  }
-
-  return lookup;
-}
+// NOTE: `fetchSetPriceLookup` removed — code now uses CardDatabaseService.getSetCards directly.
 
 function estimateFallbackReferencePrice(tcgName: string, rarity?: string): number {
   const baseByTcg: Record<string, number> = {

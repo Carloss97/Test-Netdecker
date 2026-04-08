@@ -61,7 +61,7 @@ app.use('/api/editions', editionRoutes);
 // ERROR HANDLING
 // ============================================
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const isAppError = err instanceof ApplicationError;
   const statusCode: number = err.statusCode || 500;
   const message: string = err.message || 'Internal Server Error';
