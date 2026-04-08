@@ -44,3 +44,4 @@ prisma/dev.db-journal
 # Logs
 logs/
 *.log
+nbackend/.envn
