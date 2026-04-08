@@ -1,4 +1,5 @@
 import prisma from '../utils/db.js';
+import { Prisma } from '@prisma/client';
 import { ListingService } from './ListingService.js';
 
 interface AddToCartInput {
@@ -202,20 +203,27 @@ export class CartService {
     if (!cart.items.length) {
       throw new Error('Cart is empty');
     }
+    type CartItemShape = {
+      id: string;
+      listingId: string;
+      quantity: number;
+      subtotal: number;
+      listing?: { finalPrice: number } | null;
+    };
 
-    for (const item of cart.items) {
+    for (const item of cart.items as CartItemShape[]) {
       const currentListing = await prisma.listing.findUnique({ where: { id: item.listingId } });
       if (!currentListing || currentListing.quantity < item.quantity) {
         throw new Error(`Insufficient stock for listing ${item.listingId}`);
       }
     }
 
-    const subtotal = cart.items.reduce((sum, item) => sum + item.subtotal, 0);
+    const subtotal = (cart.items as CartItemShape[]).reduce((sum: number, item: CartItemShape) => sum + item.subtotal, 0);
     const tax = 0;
     const total = subtotal + tax;
     const orderNumber = `ORD-${Date.now()}`;
 
-    const order = await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
@@ -229,7 +237,7 @@ export class CartService {
         }
       });
 
-      for (const item of cart.items) {
+      for (const item of cart.items as CartItemShape[]) {
         await tx.listing.update({
           where: { id: item.listingId },
           data: { quantity: { decrement: item.quantity } }

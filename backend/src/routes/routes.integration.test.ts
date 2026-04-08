@@ -11,6 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { request as httpRequest } from 'node:http';
+import type { AddressInfo } from 'net';
 import express, { Express, Request, Response, NextFunction } from 'express';
 import 'express-async-errors';
 import { ApplicationError, NotFoundError, ValidationError } from '../utils/errors.js';
@@ -20,11 +21,28 @@ import { ApplicationError, NotFoundError, ValidationError } from '../utils/error
 // ────────────────────────────────────────────────────────────────────────────
 
 function buildErrorHandler() {
-  return (err: any, _req: Request, res: Response, _next: NextFunction) => {
+  return (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const isAppError = err instanceof ApplicationError;
-    const statusCode: number = err.statusCode || 500;
-    const message: string = err.message || 'Internal Server Error';
-    const code: string = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+
+    function getStatusCodeFromUnknown(e: unknown): number | undefined {
+      if (typeof e === 'object' && e !== null) {
+        const maybe = e as Record<string, unknown>;
+        if (typeof maybe.statusCode === 'number') return maybe.statusCode;
+      }
+      return undefined;
+    }
+
+    function getCodeFromUnknown(e: unknown): string | undefined {
+      if (typeof e === 'object' && e !== null) {
+        const maybe = e as Record<string, unknown>;
+        if (typeof maybe.code === 'string') return maybe.code;
+      }
+      return undefined;
+    }
+
+    const statusCode = getStatusCodeFromUnknown(err) ?? 500;
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    const code = getCodeFromUnknown(err) ?? (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
 
     res.status(statusCode).json({
       success: false,
@@ -43,11 +61,12 @@ function makeRequest(
   method: string,
   path: string,
   body?: unknown,
-): Promise<{ status: number; body: any }> {
+): Promise<{ status: number; body: unknown }> {
   return new Promise((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
-      const port = (server.address() as any).port as number;
+      const addr = server.address() as AddressInfo;
+      const port = addr.port as number;
       const url = `http://127.0.0.1:${port}${path}`;
       const data = body !== undefined ? JSON.stringify(body) : undefined;
       const options = {
@@ -79,6 +98,24 @@ function makeRequest(
   });
 }
 
+// --- Small helpers to narrow response shapes in tests ---
+function asErrorEnvelope(b: unknown) {
+  return b as unknown as { success: boolean; error: { code: string; statusCode: number; message: string; timestamp?: string } };
+}
+
+function asHealthResponse(b: unknown) {
+  return b as unknown as { status: string; timestamp: string; uptime: number };
+}
+
+function asPreviewResponse(b: unknown) {
+  return b as unknown as {
+    success: boolean;
+    listing: null | unknown;
+    preview: { referencePrice: number; marginMultiplier: number; exchangeRate: number; finalPrice: number; currency: string };
+    diff: { delta: number | null; deltaPercent: number | null; isVolatile: boolean | null };
+  };
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Test: Error handler format
 // ────────────────────────────────────────────────────────────────────────────
@@ -90,13 +127,14 @@ test('global error handler returns standard envelope for NotFoundError', async (
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'GET', '/test');
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 404);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'NOT_FOUND');
-  assert.equal(body.error.statusCode, 404);
-  assert.equal(body.error.message, 'Resource missing');
-  assert.ok(body.error.timestamp);
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'NOT_FOUND');
+  assert.equal(resp.error.statusCode, 404);
+  assert.equal(resp.error.message, 'Resource missing');
+  assert.ok(resp.error.timestamp);
 });
 
 test('global error handler returns standard envelope for ValidationError', async () => {
@@ -108,12 +146,13 @@ test('global error handler returns standard envelope for ValidationError', async
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/test', {});
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.equal(body.error.statusCode, 400);
-  assert.equal(body.error.message, 'name is required');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.statusCode, 400);
+  assert.equal(resp.error.message, 'name is required');
 });
 
 test('global error handler hides internal error detail for unknown errors', async () => {
@@ -123,12 +162,13 @@ test('global error handler hides internal error detail for unknown errors', asyn
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'GET', '/test');
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 500);
-  assert.equal(body.success, false);
-  assert.equal(body.error.statusCode, 500);
-  assert.notEqual(body.error.message, 'db connection refused');
-  assert.equal(body.error.message, 'Internal Server Error');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.statusCode, 500);
+  assert.notEqual(resp.error.message, 'db connection refused');
+  assert.equal(resp.error.message, 'Internal Server Error');
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -142,10 +182,11 @@ test('GET /api/health returns status ok', async () => {
   });
 
   const { status, body } = await makeRequest(app, 'GET', '/api/health');
+  const resp = asHealthResponse(body);
 
   assert.equal(status, 200);
-  assert.equal(body.status, 'ok');
-  assert.ok(typeof body.timestamp === 'string');
+  assert.equal(resp.status, 'ok');
+  assert.ok(typeof resp.timestamp === 'string');
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -156,7 +197,10 @@ test('POST /api/listings/price-preview rejects missing referencePrice', async ()
   const app = express();
   app.use(express.json());
   app.post('/api/listings/price-preview', async (req: Request) => {
-    const { referencePrice, marginMultiplier } = req.body as any;
+    const body = req.body as Record<string, unknown>;
+    const referencePrice = body.referencePrice as number | undefined;
+    const marginMultiplier = body.marginMultiplier as number | undefined;
+
     if (typeof referencePrice !== 'number' || referencePrice <= 0) {
       throw new ValidationError('referencePrice must be a positive number');
     }
@@ -167,17 +211,19 @@ test('POST /api/listings/price-preview rejects missing referencePrice', async ()
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/listings/price-preview', { marginMultiplier: 1.2 });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.match(body.error.message, /referencePrice/);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.match(resp.error.message, /referencePrice/);
 });
 
 test('POST /api/listings/price-preview rejects negative referencePrice', async () => {
   const app = express();
   app.use(express.json());
   app.post('/api/listings/price-preview', async (req: Request) => {
-    const { referencePrice } = req.body as any;
+    const body = req.body as Record<string, unknown>;
+    const referencePrice = body.referencePrice as number | undefined;
     if (typeof referencePrice !== 'number' || referencePrice <= 0) {
       throw new ValidationError('referencePrice must be a positive number');
     }
@@ -185,16 +231,20 @@ test('POST /api/listings/price-preview rejects negative referencePrice', async (
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/listings/price-preview', { referencePrice: -1, marginMultiplier: 1.2 });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
 });
 
 test('POST /api/listings/price-preview rejects missing marginMultiplier', async () => {
   const app = express();
   app.use(express.json());
   app.post('/api/listings/price-preview', async (req: Request) => {
-    const { referencePrice, marginMultiplier } = req.body as any;
+    const body = req.body as Record<string, unknown>;
+    const referencePrice = body.referencePrice as number | undefined;
+    const marginMultiplier = body.marginMultiplier as number | undefined;
+
     if (typeof referencePrice !== 'number' || referencePrice <= 0) {
       throw new ValidationError('referencePrice must be a positive number');
     }
@@ -205,10 +255,11 @@ test('POST /api/listings/price-preview rejects missing marginMultiplier', async 
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/listings/price-preview', { referencePrice: 2.5 });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.match(body.error.message, /marginMultiplier/);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.match(resp.error.message, /marginMultiplier/);
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -219,7 +270,11 @@ test('POST /api/admin/pricing/preview rejects missing listingId and missing expl
   const app = express();
   app.use(express.json());
   app.post('/api/admin/pricing/preview', async (req: Request, res: Response) => {
-    const { listingId, referencePrice, marginMultiplier } = req.body as any;
+    const body = req.body as Record<string, unknown>;
+    const listingId = body.listingId as string | undefined;
+    const referencePrice = body.referencePrice as number | undefined;
+    const marginMultiplier = body.marginMultiplier as number | undefined;
+
     const hasListingId = typeof listingId === 'string' && listingId.trim().length > 0;
     const hasExplicitReferencePrice = typeof referencePrice === 'number';
     const hasExplicitMarginMultiplier = typeof marginMultiplier === 'number';
@@ -233,17 +288,21 @@ test('POST /api/admin/pricing/preview rejects missing listingId and missing expl
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/admin/pricing/preview', {});
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.match(body.error.message, /Provide listingId/);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.match(resp.error.message, /Provide listingId/);
 });
 
 test('POST /api/admin/pricing/preview rejects invalid roundingMultiple', async () => {
   const app = express();
   app.use(express.json());
   app.post('/api/admin/pricing/preview', async (req: Request, res: Response) => {
-    const { referencePrice, marginMultiplier, roundingMultiple } = req.body as any;
+    const body = req.body as Record<string, unknown>;
+    const referencePrice = body.referencePrice as number | undefined;
+    const marginMultiplier = body.marginMultiplier as number | undefined;
+    const roundingMultiple = body.roundingMultiple as number | undefined;
 
     if (typeof referencePrice !== 'number' || referencePrice <= 0) {
       throw new ValidationError('referencePrice must be a positive number');
@@ -265,17 +324,20 @@ test('POST /api/admin/pricing/preview rejects invalid roundingMultiple', async (
     '/api/admin/pricing/preview',
     { referencePrice: 2.5, marginMultiplier: 1.2, roundingMultiple: 0 },
   );
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.match(body.error.message, /roundingMultiple/);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.match(resp.error.message, /roundingMultiple/);
 });
 
 test('POST /api/admin/pricing/preview returns preview + diff for explicit inputs', async () => {
   const app = express();
   app.use(express.json());
   app.post('/api/admin/pricing/preview', async (req: Request, res: Response) => {
-    const { referencePrice, marginMultiplier } = req.body as any;
+    const body = req.body as Record<string, unknown>;
+    const referencePrice = body.referencePrice as number | undefined;
+    const marginMultiplier = body.marginMultiplier as number | undefined;
     if (typeof referencePrice !== 'number' || referencePrice <= 0) {
       throw new ValidationError('referencePrice must be a positive number');
     }
@@ -310,15 +372,16 @@ test('POST /api/admin/pricing/preview returns preview + diff for explicit inputs
     '/api/admin/pricing/preview',
     { referencePrice: 3, marginMultiplier: 1.5 },
   );
+  const resp = asPreviewResponse(body);
 
   assert.equal(status, 200);
-  assert.equal(body.success, true);
-  assert.equal(body.listing, null);
-  assert.equal(body.preview.referencePrice, 3);
-  assert.equal(body.preview.marginMultiplier, 1.5);
-  assert.equal(body.preview.finalPrice, 4050);
-  assert.equal(body.preview.currency, 'CLP');
-  assert.equal(body.diff.delta, null);
+  assert.equal(resp.success, true);
+  assert.equal(resp.listing, null);
+  assert.equal(resp.preview.referencePrice, 3);
+  assert.equal(resp.preview.marginMultiplier, 1.5);
+  assert.equal(resp.preview.finalPrice, 4050);
+  assert.equal(resp.preview.currency, 'CLP');
+  assert.equal(resp.diff.delta, null);
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -328,8 +391,8 @@ test('POST /api/admin/pricing/preview returns preview + diff for explicit inputs
 test('POST /api/listings/sync-prices rejects empty updates array', async () => {
   const app = express();
   app.use(express.json());
-  app.post('/api/listings/sync-prices', async (req: Request) => {
-    const { updates } = req.body as any;
+    app.post('/api/listings/sync-prices', async (req: Request) => {
+    const { updates } = req.body as { updates?: unknown };
     if (updates !== undefined && (!Array.isArray(updates) || !updates.length)) {
       throw new ValidationError('updates must be a non-empty array when provided');
     }
@@ -337,9 +400,10 @@ test('POST /api/listings/sync-prices rejects empty updates array', async () => {
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/listings/sync-prices', { updates: [] });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -353,11 +417,12 @@ test('GET /api/listings/:id returns 404 with standard error when not found', asy
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'GET', '/api/listings/nonexistent-id');
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 404);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'NOT_FOUND');
-  assert.equal(body.error.message, 'Listing not found');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'NOT_FOUND');
+  assert.equal(resp.error.message, 'Listing not found');
 });
 
 test('GET /api/cards/:id returns 404 with standard error when not found', async () => {
@@ -367,10 +432,11 @@ test('GET /api/cards/:id returns 404 with standard error when not found', async 
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'GET', '/api/cards/nonexistent-id');
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 404);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'NOT_FOUND');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'NOT_FOUND');
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -389,9 +455,10 @@ test('POST /api/inventory/update-quantity rejects missing fields', async () => {
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/inventory/update-quantity', { listingId: 'abc' });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
 });
 
 test('POST /api/inventory/bulk-update rejects non-array updates', async () => {
@@ -406,9 +473,10 @@ test('POST /api/inventory/bulk-update rejects non-array updates', async () => {
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/inventory/bulk-update', { updates: 'bad' });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
 });
 
 test('POST /api/inventory/decrease rejects missing fields', async () => {
@@ -423,9 +491,10 @@ test('POST /api/inventory/decrease rejects missing fields', async () => {
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'POST', '/api/inventory/decrease', { listingId: 'abc' });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -441,8 +510,9 @@ test('GET /api/cards/search rejects missing name parameter', async () => {
   app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'GET', '/api/cards/search');
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.match(body.error.message, /name/);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.match(resp.error.message, /name/);
 });

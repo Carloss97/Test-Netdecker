@@ -66,7 +66,7 @@ export class CatalogSyncService {
         }),
       ]);
 
-      const localByCode = new Map(localEditions.map((edition) => [edition.editionCode.toUpperCase(), edition] as const));
+      const localByCode = new Map(localEditions.map((edition: { editionCode: string }) => [edition.editionCode.toUpperCase(), edition] as const));
 
       for (const externalSet of externalSets) {
         scannedSets += 1;

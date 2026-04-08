@@ -9,6 +9,30 @@ const router = express.Router();
 
 const CSV_TEMPLATE_HEADER = ['listingId', 'cardCode', 'cardName', 'cardNumber', 'rarity', 'condition', 'quantity', 'referencePrice'];
 
+type ListingSummary = {
+  id: string;
+  condition: string;
+  quantity: number;
+  referencePrice: number;
+  marginMultiplier?: number;
+  finalPrice?: number;
+  currency?: string;
+  lastSyncedAt?: Date | null;
+  status?: string;
+};
+
+type CardWithListings = {
+  id: string;
+  cardCode: string;
+  cardName: string;
+  cardNumber?: string | null;
+  rarity?: string | null;
+  colorIdentity?: string[] | null;
+  imageUrl?: string | null;
+  tags?: string[] | null;
+  listings: ListingSummary[];
+};
+
 /**
  * GET /api/editions
  * List all editions with optional filters.
@@ -33,13 +57,23 @@ router.get('/', async (req: Request, res: Response) => {
     orderBy: { releaseDate: 'desc' },
   });
 
-  const result = editions.map((e) => ({
+  type EditionRow = {
+    id: string;
+    editionCode: string;
+    editionName: string;
+    releaseDate?: string | Date | null;
+    isActive: boolean;
+    tcg: { id: string; name: string; displayName?: string };
+    _count: { cards: number; listings: number };
+  };
+
+  const result = editions.map((e: EditionRow) => ({
     id: e.id,
     editionCode: e.editionCode,
     editionName: e.editionName,
     releaseDate: e.releaseDate,
     isActive: e.isActive,
-    tcgId: e.tcgId,
+    tcgId: e.tcg.id,
     tcg: e.tcg,
     cardCount: e._count.cards,
     listingCount: e._count.listings,
@@ -116,7 +150,7 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
   });
 
   // Ensure each card has at least one listing. If not, create one.
-  for (const card of cards) {
+  for (const card of cards as CardWithListings[]) {
     if (card.listings.length === 0) {
       const newListing = await prisma.listing.create({
         data: {
@@ -148,7 +182,7 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
     }
   }
 
-  const cardsWithStock = cards.filter((c) => c.listings.some((l) => l.quantity > 0)).length;
+  const cardsWithStock = cards.filter((c: CardWithListings) => c.listings.some((l: ListingSummary) => l.quantity > 0)).length;
 
   res.json({
     edition: {
@@ -161,7 +195,7 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
     },
     totalCards: cards.length,
     cardsWithStock,
-    cards: cards.map((c) => ({
+    cards: cards.map((c: CardWithListings) => ({
       id: c.id,
       cardCode: c.cardCode,
       cardName: c.cardName,
@@ -209,9 +243,9 @@ router.get('/:id/csv-template', async (req: Request, res: Response) => {
   const header = CSV_TEMPLATE_HEADER;
 
   const rows: string[][] = [];
-  for (const card of cards) {
+  for (const card of cards as CardWithListings[]) {
     if (card.listings.length > 0) {
-      for (const listing of card.listings) {
+      for (const listing of card.listings as ListingSummary[]) {
         rows.push([
           listing.id,
           card.cardCode,
@@ -238,7 +272,7 @@ router.get('/:id/csv-template', async (req: Request, res: Response) => {
   }
 
   const csv = [header, ...rows]
-    .map((cols) => cols.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .map((cols: string[]) => cols.map((v: string) => `"${String(v).replace(/"/g, '""')}"`).join(','))
     .join('\r\n');
 
   const filename = `${edition.editionCode}-inventory-template.csv`;

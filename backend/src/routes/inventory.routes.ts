@@ -140,7 +140,23 @@ router.get('/export-csv', async (req: Request, res: Response) => {
     'marginMultiplier',
   ];
 
-  const csvRows = rows.map((row) => [
+  type InventoryExportRow = {
+    tcg: string;
+    editionCode: string;
+    editionName: string;
+    cardCode: string;
+    cardName: string;
+    cardNumber?: string;
+    rarity?: string;
+    tags?: string;
+    imageUrl?: string;
+    condition?: string;
+    quantity: number;
+    referencePrice?: number;
+    marginMultiplier?: number;
+  };
+
+  const csvRows = rows.map((row: InventoryExportRow) => [
     row.tcg,
     row.editionCode,
     row.editionName,
@@ -157,7 +173,7 @@ router.get('/export-csv', async (req: Request, res: Response) => {
   ]);
 
   const csv = [header, ...csvRows]
-    .map((cols) => cols.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+    .map((cols) => cols.map((value: unknown) => `"${String(value).replace(/"/g, '""')}"`).join(','))
     .join('\r\n');
 
   const fileName =

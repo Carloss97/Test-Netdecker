@@ -2,6 +2,7 @@ import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { request as httpRequest } from 'node:http';
+import type { AddressInfo } from 'net';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import 'express-async-errors';
 import inventoryRoutes from './inventory.routes.js';
@@ -9,7 +10,7 @@ import { ListingService } from '../services/ListingService.js';
 import { InventoryService } from '../services/InventoryService.js';
 import { ApplicationError } from '../utils/errors.js';
 
-type JsonResponse = { status: number; body: any };
+type JsonResponse = { status: number; body: unknown };
 
 const originalUpdateQuantity = ListingService.updateQuantity;
 const originalBulkUpdateQuantities = ListingService.bulkUpdateQuantities;
@@ -22,11 +23,28 @@ const originalGetImportById = InventoryService.getImportById;
 const originalImportFromBuffer = InventoryService.importFromBuffer;
 
 function buildErrorHandler() {
-  return (err: any, _req: Request, res: Response, _next: NextFunction) => {
+  return (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const isAppError = err instanceof ApplicationError;
-    const statusCode: number = err.statusCode || 500;
-    const message: string = err.message || 'Internal Server Error';
-    const code: string = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+
+    function getStatusCodeFromUnknown(e: unknown): number | undefined {
+      if (typeof e === 'object' && e !== null) {
+        const maybe = e as Record<string, unknown>;
+        if (typeof maybe.statusCode === 'number') return maybe.statusCode;
+      }
+      return undefined;
+    }
+
+    function getCodeFromUnknown(e: unknown): string | undefined {
+      if (typeof e === 'object' && e !== null) {
+        const maybe = e as Record<string, unknown>;
+        if (typeof maybe.code === 'string') return maybe.code;
+      }
+      return undefined;
+    }
+
+    const statusCode = getStatusCodeFromUnknown(err) ?? 500;
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    const code = getCodeFromUnknown(err) ?? (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
 
     res.status(statusCode).json({
       success: false,
@@ -44,7 +62,8 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown)
   return new Promise((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
-      const port = (server.address() as any).port as number;
+      const addr = server.address() as AddressInfo;
+      const port = addr.port as number;
       const url = `http://127.0.0.1:${port}${path}`;
       const data = body !== undefined ? JSON.stringify(body) : undefined;
 
@@ -83,6 +102,14 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown)
   });
 }
 
+function asErrorEnvelope(b: unknown) {
+  return b as unknown as { success: boolean; error: { code: string; statusCode: number; message: string; timestamp?: string } };
+}
+
+function asUpdateSuccess(b: unknown) {
+  return b as unknown as { success: true; message: string; listing: { id: string; quantity: number } };
+}
+
 function buildApp(): Express {
   const app = express();
   app.use(express.json());
@@ -110,13 +137,14 @@ test('POST /api/inventory/update-quantity returns 400 envelope with exact Zod me
 
   const app = buildApp();
   const { status, body } = await makeRequest(app, 'POST', '/api/inventory/update-quantity', { quantity: 3 });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.equal(body.error.message, 'listingId is required');
-  assert.equal(body.error.statusCode, 400);
-  assert.ok(body.error.timestamp);
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.message, 'listingId is required');
+  assert.equal(resp.error.statusCode, 400);
+  assert.ok(resp.error.timestamp);
 });
 
 test('POST /api/inventory/update-quantity returns 400 envelope with exact Zod message for non-integer quantity', async () => {
@@ -129,11 +157,12 @@ test('POST /api/inventory/update-quantity returns 400 envelope with exact Zod me
     listingId: 'listing-1',
     quantity: 2.5,
   });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.equal(body.error.message, 'quantity must be an integer');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.message, 'quantity must be an integer');
 });
 
 test('POST /api/inventory/bulk-update returns 400 envelope with exact Zod message for empty updates', async () => {
@@ -143,11 +172,12 @@ test('POST /api/inventory/bulk-update returns 400 envelope with exact Zod messag
 
   const app = buildApp();
   const { status, body } = await makeRequest(app, 'POST', '/api/inventory/bulk-update', { updates: [] });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.equal(body.error.message, 'updates must be a non-empty array of { listingId, quantity }');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.message, 'updates must be a non-empty array of { listingId, quantity }');
 });
 
 test('POST /api/inventory/decrease returns 400 envelope with exact Zod message for amount <= 0', async () => {
@@ -160,32 +190,31 @@ test('POST /api/inventory/decrease returns 400 envelope with exact Zod message f
     listingId: 'listing-1',
     amount: 0,
   });
+  const resp = asErrorEnvelope(body);
 
   assert.equal(status, 400);
-  assert.equal(body.success, false);
-  assert.equal(body.error.code, 'VALIDATION_ERROR');
-  assert.equal(body.error.message, 'amount must be > 0');
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.message, 'amount must be > 0');
 });
 
 test('POST /api/inventory/update-quantity accepts coercible values and returns success envelope', async () => {
   ListingService.updateQuantity = (async (listingId: string, quantity: number) => {
     assert.equal(listingId, 'listing-123');
     assert.equal(quantity, 5);
-    return {
-      id: listingId,
-      quantity,
-    } as any;
-  }) as typeof ListingService.updateQuantity;
+    return { id: listingId, quantity } as unknown as Awaited<ReturnType<typeof ListingService.updateQuantity>>;
+  }) as unknown as typeof ListingService.updateQuantity;
 
   const app = buildApp();
   const { status, body } = await makeRequest(app, 'POST', '/api/inventory/update-quantity', {
     listingId: 'listing-123',
     quantity: '5',
   });
+  const resp = asUpdateSuccess(body);
 
   assert.equal(status, 200);
-  assert.equal(body.success, true);
-  assert.equal(body.message, 'Quantity updated to 5');
-  assert.equal(body.listing.id, 'listing-123');
-  assert.equal(body.listing.quantity, 5);
+  assert.equal(resp.success, true);
+  assert.equal(resp.message, 'Quantity updated to 5');
+  assert.equal(resp.listing.id, 'listing-123');
+  assert.equal(resp.listing.quantity, 5);
 });

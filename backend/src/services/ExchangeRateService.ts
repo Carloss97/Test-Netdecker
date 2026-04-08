@@ -37,8 +37,8 @@ export class ExchangeRateService {
     });
 
     // Try cache first
-    const cached = await cacheGet(CACHE_KEY);
-    if (cached) {
+    const cached = await cacheGet<number>(CACHE_KEY);
+    if (typeof cached === 'number') {
       return {
         rate: cached,
         retrievalSource: 'cache',

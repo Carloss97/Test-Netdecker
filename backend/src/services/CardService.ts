@@ -59,7 +59,7 @@ export class CardService {
           cardCode,
           rarity: normalizeRarity(rarity),
         }
-      } as any,
+      } as unknown,
       include: {
         listings: true
       }
@@ -70,7 +70,7 @@ export class CardService {
    * Search cards by name (case-insensitive, partial match)
    */
   static async searchByName(name: string, tcgId?: string, limit: number = 20) {
-    const where: any = {
+    const where: Record<string, unknown> = {
       cardName: {
         contains: name,
         mode: 'insensitive'
@@ -94,7 +94,7 @@ export class CardService {
    */
   static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
     const normalized = code.trim();
-    const where: any = {
+    const where: Record<string, unknown> = {
       OR: [
         {
           cardCode: {
@@ -151,9 +151,9 @@ export class CardService {
     const tcg = await prisma.tCG.findFirst({
       where: {
         OR: [
-          { id: tcgIdentifier },
-          { name: tcgIdentifier as any }
-        ]
+            { id: tcgIdentifier },
+            { name: tcgIdentifier as unknown }
+          ]
       }
     });
 
@@ -184,10 +184,10 @@ export class CardService {
    * Bulk upsert cards from CSV/import
    */
   static async bulkUpsertCards(cards: CreateCardInput[]) {
-    const results = {
+    const results: { created: number; updated: number; errors: Array<{ cardCode: string; error: string }> } = {
       created: 0,
       updated: 0,
-      errors: [] as any[]
+      errors: []
     };
 
     for (const cardData of cards) {

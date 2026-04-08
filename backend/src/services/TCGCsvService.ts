@@ -98,7 +98,9 @@ interface TcgCsvListResponse<T> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const TCGCSV_BASE = 'https://tcgcsv.com/tcgplayer';
+function getTcgCsvBase(): string {
+  return process.env.TCGCSV_BASE || 'https://tcgcsv.com/tcgplayer';
+}
 const CACHE_TTL = 3600 * 3; // 3 hours — matches existing service TTL
 const REQUEST_TIMEOUT = 20000;
 const MAX_RETRIES = 4;
@@ -292,7 +294,7 @@ export class TCGCsvService {
 
     try {
       const data = await this.get<TcgCsvListResponse<TcgCsvGroup>>(
-        `${TCGCSV_BASE}/${categoryId}/groups`,
+        `${getTcgCsvBase()}/${categoryId}/groups`,
       );
       const groups = Array.isArray(data?.results) ? data.results : [];
       if (groups.length > 0) {
@@ -319,7 +321,7 @@ export class TCGCsvService {
 
     try {
       const data = await this.get<TcgCsvListResponse<TcgCsvProduct>>(
-        `${TCGCSV_BASE}/${categoryId}/${groupId}/products`,
+        `${getTcgCsvBase()}/${categoryId}/${groupId}/products`,
       );
       const products = Array.isArray(data?.results) ? data.results : [];
       if (products.length > 0) {
@@ -346,7 +348,7 @@ export class TCGCsvService {
 
     try {
       const data = await this.get<TcgCsvListResponse<TcgCsvPrice>>(
-        `${TCGCSV_BASE}/${categoryId}/${groupId}/prices`,
+        `${getTcgCsvBase()}/${categoryId}/${groupId}/prices`,
       );
       const prices = Array.isArray(data?.results) ? data.results : [];
       if (prices.length > 0) {
@@ -368,13 +370,16 @@ export class TCGCsvService {
    */
   static async listSets(tcg: TCGCsvTcg): Promise<ExternalEdition[]> {
     const groups = await this.getGroups(tcg);
-    return groups.map((g) => ({
-      code: (g.abbreviation || String(g.groupId)).toUpperCase(),
-      name: g.name,
-      releaseDate: g.publishedOn,
-      totalCards: getGroupCardCount(g),
-      source: 'tcgcsv' as const,
-    }));
+    return groups.map((g) => {
+      const group = g as unknown as TcgCsvGroup;
+      return {
+        code: (group.abbreviation || String(group.groupId)).toUpperCase(),
+        name: group.name,
+        releaseDate: group.publishedOn,
+        totalCards: getGroupCardCount(group),
+        source: 'tcgcsv' as const,
+      };
+    });
   }
 
   /**
@@ -419,7 +424,7 @@ export class TCGCsvService {
     // In TCGplayer data, cards typically have extendedData with rarity info
     const cards = products
       .filter(isCardLikeProduct)
-      .map((p) => tcgCsvToExternal(p, group, tcg, priceByProductId.get(p.productId)));
+      .map((p) => tcgCsvToExternal(p as TcgCsvProduct, group, tcg, priceByProductId.get((p as TcgCsvProduct).productId)));
 
     if (cards.length > 0) {
       await cacheSet(cacheKey, cards, CACHE_TTL);
@@ -487,7 +492,7 @@ export class TCGCsvService {
 
       const matches = products
         .filter((p) => p.name.toLowerCase().includes(lowerQuery))
-        .map((p) => tcgCsvToExternal(p, group, tcg, priceByProductId.get(p.productId)))
+        .map((p) => tcgCsvToExternal(p as TcgCsvProduct, group, tcg, priceByProductId.get((p as TcgCsvProduct).productId)))
         .filter((card) => {
           if (seen.has(card.externalId)) {
             return false;
