@@ -32,6 +32,13 @@ Usage example (manual flow):
 1. Trigger `Build and Push Docker images to GHCR` from Actions or push to `main`.
 2. After the image is available, trigger `Deploy to Staging` and set `image_tag=staging-latest` (or the commit SHA tag).
 
+Automatic deploy after build:
+- A workflow `deploy-after-build.yml` is included which listens for successful completion of the `Build and Push Docker images to GHCR` job and will attempt to deploy the `staging-latest` image to the staging host using the SSH secrets described above. Ensure `STAGING_SSH_*` secrets are configured before enabling automatic deploys.
+
+Secrets setup helper:
+- See `GITHUB_SECRETS_SETUP.md` for a quick guide to add repository secrets.
+- An example interactive script to set secrets via the `gh` CLI is provided at `scripts/staging/set_github_secrets_example.sh`.
+
 Quick manual copy example (from your machine):
 
 ```sh
