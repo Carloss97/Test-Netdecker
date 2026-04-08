@@ -1,0 +1,77 @@
+name: Build & Publish Artifacts
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build artifacts
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (backend)
+        run: npm ci --prefix backend
+
+      - name: Install dependencies (frontend)
+        run: npm ci --prefix frontend
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Build frontend
+        run: npm --prefix frontend run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-artifacts
+          path: |
+            backend/dist
+            frontend/dist
+
+      - name: Check for Dockerfiles
+        id: check-dockerfiles
+        run: |
+          if [ -f backend/Dockerfile ]; then echo "backend_exists=true" >> $GITHUB_OUTPUT; else echo "backend_exists=false" >> $GITHUB_OUTPUT; fi
+          if [ -f frontend/Dockerfile ]; then echo "frontend_exists=true" >> $GITHUB_OUTPUT; else echo "frontend_exists=false" >> $GITHUB_OUTPUT; fi
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build backend Docker image and save
+        if: ${{ steps.check-dockerfiles.outputs.backend_exists == 'true' }}
+        run: |
+          docker build -f backend/Dockerfile -t tcg-singles-backend:${{ github.sha }} backend
+          docker save tcg-singles-backend:${{ github.sha }} -o backend-image.tar
+
+      - name: Upload backend image artifact
+        if: ${{ steps.check-dockerfiles.outputs.backend_exists == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image
+          path: backend-image.tar
+
+      - name: Build frontend Docker image and save
+        if: ${{ steps.check-dockerfiles.outputs.frontend_exists == 'true' }}
+        run: |
+          docker build -f frontend/Dockerfile -t tcg-singles-frontend:${{ github.sha }} frontend
+          docker save tcg-singles-frontend:${{ github.sha }} -o frontend-image.tar
+
+      - name: Upload frontend image artifact
+        if: ${{ steps.check-dockerfiles.outputs.frontend_exists == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image
+          path: frontend-image.tar
