@@ -1,0 +1,56 @@
+name: Fast SQLite Tests (fixtures)
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  fast-sqlite:
+    name: Fast backend tests (SQLite + fixtures)
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd redis-cli ping
+          --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+
+      - name: Generate Prisma client (SQLite)
+        working-directory: backend
+        run: npm run prisma:generate:sqlite
+
+      - name: Push SQLite schema
+        working-directory: backend
+        env:
+          DATABASE_URL: file:./dev.sqlite
+        run: npm run prisma:push:sqlite --silent
+
+      - name: Wait for Redis
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools
+          until redis-cli -h localhost ping | grep PONG; do sleep 1; done
+
+      - name: Run fast backend tests (SQLite + fixtures)
+        working-directory: backend
+        env:
+          DATABASE_URL: file:./dev.sqlite
+          REDIS_URL: redis://localhost:6379
+          FAST_TEST: 'true'
+          USE_FIXTURES: 'true'
+        run: npm run test:sqlite
