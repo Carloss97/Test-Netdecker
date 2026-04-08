@@ -5,6 +5,7 @@
   "description": "Monorepo runner scripts for backend and frontend",
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "start:dev": "bash scripts/start-dev.sh",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
