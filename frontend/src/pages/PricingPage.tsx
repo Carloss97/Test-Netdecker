@@ -387,7 +387,7 @@ export function PricingPage() {
           )}
           {syncScope === 'edition' && (
             <>
-              <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as any)} title="TCG para filtrar ediciones">
+              <select className="input input-sm" value={selectedTcg} onChange={(e) => setSelectedTcg(e.target.value as 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ')} title="TCG para filtrar ediciones">
                 <option value="MAGIC">MAGIC</option>
                 <option value="POKEMON">POKEMON</option>
                 <option value="YUGIOH">YUGIOH</option>
