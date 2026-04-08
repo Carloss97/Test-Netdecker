@@ -1,0 +1,64 @@
+name: Production Deploy (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (commit SHA or staging-latest)'
+        required: true
+        default: 'staging-latest'
+      run_migrations:
+        description: 'Run migrations after backup?'
+        required: false
+        default: 'true'
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure required secrets
+        run: |
+          if [ -z "${{ secrets.PROD_SSH_HOST }}" ]; then
+            echo "PROD_SSH_HOST is not set"; exit 1; fi
+          if [ -z "${{ secrets.PROD_SSH_USER }}" ]; then
+            echo "PROD_SSH_USER is not set"; exit 1; fi
+          if [ -z "${{ secrets.PROD_SSH_KEY }}" ]; then
+            echo "PROD_SSH_KEY is not set"; exit 1; fi
+
+      - name: Deploy to production via SSH
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            IMAGE=ghcr.io/${{ github.repository_owner }}/test-netdecker-backend:${{ github.event.inputs.image_tag }}
+            echo "[prod-deploy] Backing up Postgres on host"
+            # You can replace this with your host's backup script or use pg_dump
+            if command -v /usr/local/bin/backup_postgres.sh >/dev/null 2>&1; then
+              /usr/local/bin/backup_postgres.sh /tmp/prod-backup-$(date +%Y%m%d%H%M).dump
+            else
+              echo "[prod-deploy] backup_postgres.sh missing; skipping host backup."
+            fi
+
+            echo "[prod-deploy] Pulling image $IMAGE"
+            docker pull "$IMAGE"
+
+            if [ "${{ github.event.inputs.run_migrations }}" = "true" ]; then
+              echo "[prod-deploy] Running migrations inside image"
+              docker run --rm --env-file /home/${{ secrets.PROD_SSH_USER }}/prod.env "$IMAGE" npx prisma migrate deploy
+            fi
+
+            echo "[prod-deploy] Restarting app container"
+            docker stop tcg-backend || true
+            docker rm tcg-backend || true
+            docker run -d --name tcg-backend --env-file /home/${{ secrets.PROD_SSH_USER }}/prod.env -p 3333:3333 "$IMAGE"
+            sleep 3
+            # Smoke check
+            if docker run --rm --network host curlimages/curl:8.2.1 -sSf http://localhost:3333/api/health >/dev/null 2>&1; then
+              echo "[prod-deploy] Smoke check OK"
+            else
+              echo "[prod-deploy] Smoke check failed"; exit 1
+            fi

@@ -9,6 +9,15 @@ Required secrets
 - `STAGING_SSH_KEY` — the SSH private key content for `STAGING_SSH_USER` (paste as single-line here).
 - `STAGING_SSH_PORT` — optional SSH port (defaults to `22`).
 
+Production secrets (recommended)
+- `PROD_SSH_HOST` — production host (IP or domain)
+- `PROD_SSH_USER` — production SSH user (e.g. `ubuntu`)
+- `PROD_SSH_KEY` — production SSH private key (paste as secret)
+- `PROD_SSH_PORT` — optional SSH port (defaults to 22)
+- `PROD_ENV_PATH` — path to production env file on the host (e.g. `/home/ubuntu/prod.env`)
+
+Note: use least-privilege tokens and rotate keys regularly.
+
 Set secrets via GitHub UI
 1. Go to `Settings -> Secrets and variables -> Actions` in the repository.
 2. Click `New repository secret` and add each secret with the names above.
