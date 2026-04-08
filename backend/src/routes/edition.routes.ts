@@ -27,9 +27,9 @@ type CardWithListings = {
   cardName: string;
   cardNumber?: string | null;
   rarity?: string | null;
-  colorIdentity?: string[] | null;
+  colorIdentity?: string | null;
   imageUrl?: string | null;
-  tags?: string[] | null;
+  tags?: string | null;
   listings: ListingSummary[];
 };
 
@@ -157,7 +157,7 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
           cardId: card.id,
           editionId: edition.id,
           condition: 'NM',
-          rarity: card.rarity,
+          rarity: card.rarity ?? 'Unknown',
           quantity: 0,
           referencePrice: 0,
           marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,

@@ -1,6 +1,7 @@
 // src/services/CardService.ts
 import prisma from '../utils/db.js';
 import { NotFoundError } from '../utils/errors.js';
+import type { Prisma } from '@prisma/client';
 
 console.log('[CardService] Loaded, prisma available:', prisma ? 'YES' : 'NO');
 
@@ -59,7 +60,7 @@ export class CardService {
           cardCode,
           rarity: normalizeRarity(rarity),
         }
-      } as unknown,
+      } as Prisma.CardWhereUniqueInput,
       include: {
         listings: true
       }
@@ -147,15 +148,15 @@ export class CardService {
   static async getCardsByTCG(tcgIdentifier: string) {
     console.log('[CardService.getCardsByTCG] Called with:', tcgIdentifier);
 
-    // First, try to find the TCG by ID or by name (enum)
-    const tcg = await prisma.tCG.findFirst({
-      where: {
-        OR: [
-            { id: tcgIdentifier },
-            { name: tcgIdentifier as unknown }
-          ]
-      }
-    });
+    // First try lookup by ID
+    let tcg = await prisma.tCG.findUnique({ where: { id: tcgIdentifier } });
+    // Otherwise, try by name (enum). Use a focused findFirst to avoid complex type casts in the OR form.
+    if (!tcg) {
+      // Cast here is limited to this call because Prisma type for `name` is an enum-like union.
+      // This keeps the rest of the code strongly typed.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tcg = await (prisma as any).tCG.findFirst({ where: { name: tcgIdentifier } });
+    }
 
     if (!tcg) {
       throw new NotFoundError(`TCG "${tcgIdentifier}" not found`);

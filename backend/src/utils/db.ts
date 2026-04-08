@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+// Do not import generated client types here; use a minimal pragmatic surface instead
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,8 +35,7 @@ console.log(`[DB] USE_SQLITE=${process.env.USE_SQLITE ?? 'unset'}; using SQLite 
 type MinimalPrisma = {
 	$connect: () => Promise<void>;
 	$disconnect: () => Promise<void>;
-	// Pragmatic transaction signature: accept callback or an array of operations.
-	$transaction: (...args: any[]) => Promise<any>;
+	$transaction: (...args: unknown[]) => Promise<unknown>;
 	[key: string]: any;
 };
 
@@ -49,13 +49,13 @@ try {
 		console.log('[DB] Attempting to load @prisma/client_sqlite...');
 		const pkg = await import('@prisma/client_sqlite');
 		const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-		prisma = new PrismaClientClass();
+		prisma = new PrismaClientClass() as unknown as MinimalPrisma;
 		console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
 	} else {
 		console.log('[DB] Loading @prisma/client (Postgres)');
 		const pkg = await import('@prisma/client');
 		const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-		prisma = new PrismaClientClass();
+		prisma = new PrismaClientClass() as unknown as MinimalPrisma;
 		console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
 	}
 
