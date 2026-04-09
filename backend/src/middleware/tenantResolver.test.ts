@@ -9,6 +9,43 @@ import 'express-async-errors';
 import prisma from '../utils/db.js';
 import tenantResolver from './tenantResolver.js';
 import requireTenant from './requireTenant.js';
+import { ApplicationError } from '../utils/errors.js';
+
+function buildErrorHandler() {
+  return (err: unknown, _req: Request, res: Response, _next: () => void) => {
+    const isAppError = err instanceof ApplicationError;
+
+    function getStatusCodeFromUnknown(e: unknown): number | undefined {
+      if (typeof e === 'object' && e !== null) {
+        const maybe = e as Record<string, unknown>;
+        if (typeof maybe.statusCode === 'number') return maybe.statusCode;
+      }
+      return undefined;
+    }
+
+    function getCodeFromUnknown(e: unknown): string | undefined {
+      if (typeof e === 'object' && e !== null) {
+        const maybe = e as Record<string, unknown>;
+        if (typeof maybe.code === 'string') return maybe.code;
+      }
+      return undefined;
+    }
+
+    const statusCode = getStatusCodeFromUnknown(err) ?? 500;
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    const code = getCodeFromUnknown(err) ?? (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+
+    res.status(statusCode).json({
+      success: false,
+      error: {
+        code,
+        message: isAppError ? message : 'Internal Server Error',
+        statusCode,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  };
+}
 
 function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<{ status: number; body: unknown }> {
   return new Promise((resolve, reject) => {
@@ -67,6 +104,7 @@ test('tenantResolver resolves store by slug param', async () => {
   app.get('/:slug/ping', tenantResolver, (req: Request, res: Response) => {
     res.json({ store: (req as any).store ?? null });
   });
+  app.use(buildErrorHandler());
 
   try {
     const { status, body } = await makeRequest(app, 'GET', `/${slug}/ping`);
@@ -88,6 +126,7 @@ test('tenantResolver resolves store by x-api-key header', async () => {
   app.get('/ping', tenantResolver, (req: Request, res: Response) => {
     res.json({ store: (req as any).store ?? null });
   });
+  app.use(buildErrorHandler());
 
   try {
     const { status, body } = await makeRequest(app, 'GET', '/ping', undefined, { 'x-api-key': apiKey });
@@ -105,6 +144,7 @@ test('requireTenant blocks when no tenant resolved', async () => {
   app.get('/secure', tenantResolver, requireTenant, (req: Request, res: Response) => {
     res.json({ ok: true });
   });
+  app.use(buildErrorHandler());
 
   const { status, body } = await makeRequest(app, 'GET', '/secure');
   // Expect our standard error envelope (Unauthorized)
