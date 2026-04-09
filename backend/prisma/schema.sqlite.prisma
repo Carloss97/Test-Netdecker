@@ -16,6 +16,25 @@ datasource db {
 // CORE ENTITIES
 // ============================================
 
+// Multi-tenant store
+model Store {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  apiKeyHash  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  listings    Listing[]
+  imports     InventoryImport[]
+  carts       Cart[]
+  orders      Order[]
+  priceSyncs  PriceSyncRun[]
+}
+
+
 model TCG {
   id             String    @id @default(cuid())
   name           String   @unique
@@ -86,9 +105,13 @@ model Listing {
   everHadStock   Boolean  @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  // Optional tenant scoping
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@unique([cardId, condition, rarity])
   @@index([cardId])
   @@index([quantity])
+  @@index([storeId])
   priceHistory   PriceHistory[]
   orderItems     OrderItem[]
 }
@@ -124,15 +147,22 @@ model InventoryImport {
   importedBy     String?
   createdAt      DateTime  @default(now())
   completedAt    DateTime?
+  
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  @@index([storeId])
 }
 
 model Cart {
   id             String    @id @default(cuid())
   sessionId      String
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   items          OrderItem[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   @@index([sessionId])
+  @@index([storeId])
 }
 
 model OrderItem {
@@ -151,6 +181,8 @@ model OrderItem {
 
 model Order {
   id             String    @id @default(cuid())
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   orderNumber    String    @unique
   customerEmail  String
   status         String  @default("PENDING")
@@ -161,9 +193,10 @@ model Order {
   shippingAddress String?
   notes          String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  updatedAt      DateTime  @default(now())
   @@index([customerEmail])
   @@index([status])
+  @@index([storeId])
 }
 
 model ExchangeRate {
@@ -192,6 +225,9 @@ model PriceSyncRun {
   completedAt      DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now())
+  
+  storeId          String?
+  store            Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([startedAt])
   @@index([source])
   @@index([status])
