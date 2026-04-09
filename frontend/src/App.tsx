@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PricingPage } from './pages/PricingPage';
 import { ImportPage } from './pages/ImportPage';
+import { ImportMapper } from './pages/ImportMapper';
 import { CardSearchPage } from './pages/CardSearchPage';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import { LowStockPage } from './pages/LowStockPage';
@@ -18,6 +19,7 @@ function App() {
           <Route path="/inventario" element={<InventoryPage />} />
           <Route path="/precios" element={<PricingPage />} />
           <Route path="/importar" element={<ImportPage />} />
+          <Route path="/import-mapper" element={<ImportMapper />} />
           <Route path="/buscar" element={<CardSearchPage />} />
           <Route path="/stock-bajo" element={<LowStockPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />

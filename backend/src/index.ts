@@ -23,6 +23,7 @@ import healthRoutes from './routes/health.routes.js';
 import externalRoutes from './routes/external.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import editionRoutes from './routes/edition.routes.js';
+import publicRoutes from './routes/public.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 
@@ -56,6 +57,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/editions', editionRoutes);
+app.use('/tienda', publicRoutes);
 
 // ============================================
 // ERROR HANDLING

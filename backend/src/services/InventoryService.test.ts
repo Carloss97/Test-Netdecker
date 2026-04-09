@@ -9,6 +9,8 @@ import {
   validateFullUpsertRow,
 } from './InventoryService.js';
 
+import { InventoryService } from './InventoryService.js';
+
 test('parseCsvRecords handles quoted commas', () => {
   const content = 'cardName,notes\n"Lightning, Bolt","burn, instant"';
   const records = parseCsvRecords(content);
@@ -104,4 +106,14 @@ test('validateFullUpsertRow rejects invalid referencePrice', () => {
     }),
     /Invalid referencePrice/,
   );
+});
+
+test('importFromCsv supports server-side columnMapping (dryRun)', async () => {
+  const content = 'Juego,EdCode,CardID,Nombre,Stock,RefPrice\nMAGIC,MH3,123,Lightning Bolt,2,2.5';
+  const mapping = { tcg: 'Juego', editionCode: 'EdCode', cardCode: 'CardID', cardName: 'Nombre', quantity: 'Stock', referencePrice: 'RefPrice' };
+  const result = await InventoryService.importFromCsv(content, { dryRun: true, columnMapping: mapping });
+  if (!result) throw new Error('No result from importFromCsv');
+  assert.equal(result.total, 1);
+  assert.equal(result.success, 1);
+  assert.equal(result.mode, 'full-upsert');
 });

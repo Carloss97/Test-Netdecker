@@ -5,6 +5,7 @@ import { ListingService } from '../services/ListingService.js';
 import { InventoryService } from '../services/InventoryService.js';
 import multer from 'multer';
 import { z } from 'zod';
+import requireApiKey from '../middleware/requireApiKey.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
@@ -270,7 +271,7 @@ router.post('/decrease', async (req: Request, res: Response) => {
  * 2) Upsert full catalog + listing:
  *    headers: tcg,editionCode,editionName,cardCode,cardName,cardNumber,rarity,tags,imageUrl,condition,quantity,referencePrice,marginMultiplier
  */
-router.post('/import-csv', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-csv', requireApiKey, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
@@ -289,10 +290,41 @@ router.post('/import-csv', upload.single('file'), async (req: Request, res: Resp
 });
 
 /**
+ * POST /api/inventory/import-with-mapping
+ * Accepts multipart form-data: file + mapping (JSON string) in field `mapping`.
+ * mapping should be an object: { tcg: 'MiColumnaTCG', editionCode: 'ColEd', cardCode: 'ColCard', cardName: 'ColName', quantity: 'ColQty', referencePrice: 'ColPrice', ... }
+ */
+router.post('/import-with-mapping', requireApiKey, upload.single('file'), async (req: Request, res: Response) => {
+  if (!req.file) {
+    throw new ValidationError('File is required in form-data key "file"');
+  }
+
+  let mapping: { [k: string]: string } | undefined;
+  if (req.body?.mapping) {
+    try {
+      mapping = typeof req.body.mapping === 'string' ? JSON.parse(req.body.mapping) : req.body.mapping;
+    } catch (err) {
+      throw new ValidationError('Invalid mapping JSON');
+    }
+  }
+
+  const dryRun = String(req.body?.dryRun || '').toLowerCase() === 'true';
+
+  const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
+    dryRun,
+    fileName: req.file.originalname,
+    importedBy: req.body?.importedBy || 'admin',
+    columnMapping: mapping,
+  });
+
+  res.json({ success: true, result });
+});
+
+/**
  * POST /api/inventory/import-csv/validate
  * Validates CSV without writing to database.
  */
-router.post('/import-csv/validate', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-csv/validate', requireApiKey, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }

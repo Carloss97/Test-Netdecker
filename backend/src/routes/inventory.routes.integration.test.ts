@@ -58,7 +58,7 @@ function buildErrorHandler() {
   };
 }
 
-function makeRequest(app: Express, method: string, path: string, body?: unknown): Promise<JsonResponse> {
+function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<JsonResponse> {
   return new Promise((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
@@ -66,14 +66,18 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown)
       const port = addr.port as number;
       const url = `http://127.0.0.1:${port}${path}`;
       const data = body !== undefined ? JSON.stringify(body) : undefined;
+      const defaultHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(data ? { 'Content-Length': String(Buffer.byteLength(data)) } : {}),
+      };
 
       const req = httpRequest(
         url,
         {
           method,
           headers: {
-            'Content-Type': 'application/json',
-            ...(data ? { 'Content-Length': String(Buffer.byteLength(data)) } : {}),
+            ...defaultHeaders,
+            ...extraHeaders,
           },
         },
         (res) => {
@@ -217,4 +221,34 @@ test('POST /api/inventory/update-quantity accepts coercible values and returns s
   assert.equal(resp.message, 'Quantity updated to 5');
   assert.equal(resp.listing.id, 'listing-123');
   assert.equal(resp.listing.quantity, 5);
+});
+
+test('POST /api/inventory/import-csv/validate returns 401 when IMPORT_API_KEY set and header missing', async () => {
+  // enable API key requirement
+  process.env.IMPORT_API_KEY = 'test-secret';
+
+  const app = buildApp();
+  const { status, body } = await makeRequest(app, 'POST', '/api/inventory/import-csv/validate', {});
+  const resp = asErrorEnvelope(body);
+
+  assert.equal(status, 401);
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'UNAUTHORIZED');
+  assert.equal(resp.error.message, 'Missing or invalid API key');
+  assert.equal(resp.error.statusCode, 401);
+});
+
+test('POST /api/inventory/import-csv/validate proceeds when x-api-key provided and returns validation error for missing file', async () => {
+  process.env.IMPORT_API_KEY = 'test-secret';
+
+  const app = buildApp();
+  const { status, body } = await makeRequest(app, 'POST', '/api/inventory/import-csv/validate', {}, { 'x-api-key': 'test-secret' });
+  const resp = asErrorEnvelope(body);
+
+  // This will still be 400 because multer did not receive a multipart file in this test harness
+  // but the request passed the API key check, so we expect a VALIDATION_ERROR about missing file
+  assert.equal(status, 400);
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'VALIDATION_ERROR');
+  assert.equal(resp.error.message, 'File is required in form-data key "file"');
 });

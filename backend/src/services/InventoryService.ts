@@ -16,6 +16,7 @@ interface ImportOptions {
   dryRun?: boolean;
   fileName?: string;
   importedBy?: string;
+  columnMapping?: { [expectedField: string]: string };
 }
 
 interface ImportHistoryQuery {
@@ -148,6 +149,34 @@ export function parseCsv(content: string): CsvRow[] {
 
     return row;
   });
+}
+
+function applyColumnMappingToCsv(content: string, mapping: { [expectedField: string]: string }): string {
+  // Parse CSV rows to safely handle quoted headers
+  const records = parseCsvRecords(content);
+  if (!records.length) return content;
+
+  const rawHeaders = records[0].map((h) => normalizeHeader(h));
+
+  // build reverse map: csvHeaderNormalized -> expectedField
+  const reverseMap: Record<string, string> = {};
+  for (const expected of Object.keys(mapping || {})) {
+    const csvHeader = mapping[expected];
+    if (!csvHeader) continue;
+    reverseMap[normalizeHeader(csvHeader)] = expected;
+  }
+
+  const newHeaders = rawHeaders.map((h) => reverseMap[h] || h);
+
+  const rows = records.slice(1);
+
+  const headerLine = newHeaders
+    .map((v) => (v.includes(',') || v.includes('"') ? '"' + v.replace(/"/g, '""') + '"' : v))
+    .join(',');
+
+  const bodyLines = rows.map((cols) => cols.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+
+  return headerLine + (bodyLines ? '\n' + bodyLines : '');
 }
 
 function parseCondition(raw: string): CardCondition {
@@ -467,6 +496,11 @@ export class InventoryService {
   }
 
   static async importFromCsv(content: string, options: ImportOptions = {}): Promise<ImportResult> {
+    // Apply optional server-side column mapping before parsing
+    if (options.columnMapping && Object.keys(options.columnMapping).length) {
+      content = applyColumnMappingToCsv(content, options.columnMapping);
+    }
+
     const rows = parseCsv(content);
     const mode = detectImportMode(rows);
     const dryRun = Boolean(options.dryRun);

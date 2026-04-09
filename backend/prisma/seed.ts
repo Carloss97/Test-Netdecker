@@ -1,9 +1,28 @@
 /// <reference types="node" />
 
 // backend/prisma/seed.ts
-import { PrismaClient, TCGType } from '@prisma/client';
+import dotenv from 'dotenv';
+// Load .env for DATABASE_URL/USE_SQLITE when running the seed manually
+dotenv.config({ path: process.env.BACKEND_ENV_PATH || '.env' });
 
-const prisma = new PrismaClient();
+// Decide whether to use the SQLite-generated client or the default Postgres client
+const useSqlite = (process.env.USE_SQLITE === 'true') || (process.env.DATABASE_URL ?? '').startsWith('file:');
+
+let PrismaClientClass: any;
+if (useSqlite) {
+  // Use the generated SQLite client package
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pkg = await import('@prisma/client_sqlite');
+  PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+} else {
+  const pkg = await import('@prisma/client');
+  PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+}
+
+const prisma = new PrismaClientClass();
+
+// Minimal TCGType alias for the seed script
+type TCGType = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
 
 async function main() {
   console.log('Seeding database with default TCGs...');
