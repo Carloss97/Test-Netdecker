@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/db.js';
+import StoreService from '../services/StoreServiceImpl.js';
 
 /**
  * Tenant resolver middleware
@@ -28,10 +29,9 @@ export default async function tenantResolver(req: Request, _res: Response, next:
     }
 
     if (!store && apiKeyHeader) {
-      // For initial version, store.apiKeyHash may contain a plaintext API key
-      // We'll do a direct match; production should use hashed API keys.
       try {
-        store = await prisma.store.findFirst({ where: { apiKeyHash: apiKeyHeader } });
+        // Try to resolve by hashed/secure api key using StoreService helper
+        store = await StoreService.findByApiKey(apiKeyHeader);
       } catch (err) {
         // ignore
       }

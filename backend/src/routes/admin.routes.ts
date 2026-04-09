@@ -10,8 +10,10 @@ import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { PriceService } from '../services/PriceService.js';
 import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import storesRoutes from './admin.stores.routes.js';
 
 const router = express.Router();
+router.use('/stores', storesRoutes);
 
 type AdminListingAlert = {
   id: string;
