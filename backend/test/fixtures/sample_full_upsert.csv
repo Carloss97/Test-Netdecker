@@ -1,0 +1,2 @@
+tcg,editionCode,editionName,cardCode,cardName,cardNumber,rarity,tags,imageUrl,condition,quantity,referencePrice,marginMultiplier
+MAGIC,MH3,Modern Horizons 3,CARD123,Lightning Bolt,123,Common,,https://example.com/bolt.jpg,NM,5,2.5,1.2
