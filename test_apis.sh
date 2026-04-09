@@ -1,7 +1,7 @@
 #!/bin/bash
 # Test all external API endpoints to verify fixes
 
-BASE_URL="http://localhost:3001/api"
+BASE_URL="http://localhost:3333/api"
 
 echo "=== TCG SINGLES PLATFORM - API TEST SUITE ==="
 echo ""

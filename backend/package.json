@@ -6,8 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:sqlite": "USE_SQLITE=true DATABASE_URL=\"file:./dev.sqlite\" tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:sqlite": "USE_SQLITE=true DATABASE_URL=\"file:./dev.sqlite\" node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma",
     "prisma:migrate": "prisma migrate dev",
