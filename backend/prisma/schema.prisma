@@ -52,6 +52,26 @@ enum OrderStatus {
 // CORE ENTITIES
 // ============================================
 
+// Multi-tenant store
+model Store {
+  id          String   @id @default(cuid())
+  slug        String   @unique // e.g. "mi-tienda"
+  name        String
+  description String?
+  apiKeyHash  String?  // hashed API key for store-scoped API keys
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  listings    Listing[]
+  imports     InventoryImport[]
+  carts       Cart[]
+  orders      Order[]
+  priceSyncs  PriceSyncRun[]
+}
+
+
 model TCG {
   id             String    @id @default(cuid())
   name           TCGType   @unique
@@ -126,6 +146,10 @@ model Card {
 model Listing {
   id             String    @id @default(cuid())
   
+  // Optional store scoping for multitenancy. Nullable for backwards compatibility.
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
   cardId         String
   card           Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
   
@@ -161,6 +185,7 @@ model Listing {
   @@unique([cardId, condition, rarity])
   @@index([cardId])
   @@index([quantity])
+  @@index([storeId])
 
   // Relations
   priceHistory   PriceHistory[]
@@ -213,6 +238,11 @@ model InventoryImport {
   importedBy     String?   // User ID
   createdAt      DateTime  @default(now())
   completedAt    DateTime?
+  
+  // Which store performed this import (nullable for existing records)
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  @@index([storeId])
 }
 
 // ============================================
@@ -222,6 +252,10 @@ model InventoryImport {
 model Cart {
   id             String    @id @default(cuid())
   
+  // Which store this cart belongs to (nullable for existing sessions)
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
   sessionId      String    // Session or user ID
   
   items          OrderItem[]
@@ -230,6 +264,7 @@ model Cart {
   updatedAt      DateTime  @updatedAt
   
   @@index([sessionId])
+  @@index([storeId])
 }
 
 model OrderItem {
@@ -254,6 +289,10 @@ model OrderItem {
 model Order {
   id             String    @id @default(cuid())
   
+  // Tenant scoping
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
   orderNumber    String    @unique
   customerEmail  String
   status         OrderStatus  @default(PENDING)
@@ -272,6 +311,7 @@ model Order {
   
   @@index([customerEmail])
   @@index([status])
+  @@index([storeId])
 }
 
 // ============================================
@@ -294,6 +334,10 @@ model ExchangeRate {
 
 model PriceSyncRun {
   id               String   @id @default(cuid())
+  
+  // Optional per-store runs
+  storeId          String?
+  store            Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
   source           String   // "manual" | "cron"
   status           String   @default("running") // "running" | "completed" | "failed"
   notes            String?
