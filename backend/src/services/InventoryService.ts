@@ -137,9 +137,9 @@ export function parseCsv(content: string): CsvRow[] {
     return [];
   }
 
-  const headers = records[0].map((h) => normalizeHeader(h));
+  const headers = records[0].map((h: string) => normalizeHeader(h));
 
-  return records.slice(1).map((values) => {
+  return records.slice(1).map((values: string[]) => {
     const row: CsvRow = {};
 
     headers.forEach((header, idx) => {
@@ -413,21 +413,57 @@ export class InventoryService {
       ],
     });
 
-    return listings.map((l) => ({
-      tcg: l.card.tcg.name,
-      editionCode: l.card.edition.editionCode,
-      editionName: l.card.edition.editionName,
-      cardCode: l.card.cardCode,
-      cardName: l.card.cardName,
-      cardNumber: l.card.cardNumber || '',
-      rarity: l.rarity || l.card.rarity || 'Unknown',
-      tags: l.card.tags || '',
-      imageUrl: l.card.imageUrl || '',
-      condition: l.condition || 'NM',
-      quantity: l.quantity,
-      referencePrice: l.referencePrice,
-      marginMultiplier: l.marginMultiplier,
-    }));
+    type ListingForExport = {
+      tcg: string;
+      editionCode: string;
+      editionName: string;
+      cardCode: string;
+      cardName: string;
+      cardNumber: string;
+      rarity: string;
+      tags: string;
+      imageUrl: string;
+      condition: string;
+      quantity: number;
+      referencePrice: number;
+      marginMultiplier: number;
+    };
+
+    return listings.map((l: unknown) => {
+      const li = l as unknown as {
+        card: {
+          tcg: { name: string };
+          edition: { editionCode: string; editionName: string };
+          cardCode: string;
+          cardName: string;
+          cardNumber?: string | null;
+          tags?: string | null;
+          imageUrl?: string | null;
+          rarity?: string | null;
+        };
+        rarity?: string | null;
+        condition?: string | null;
+        quantity: number;
+        referencePrice: number;
+        marginMultiplier: number;
+      };
+
+      return {
+        tcg: li.card.tcg.name,
+        editionCode: li.card.edition.editionCode,
+        editionName: li.card.edition.editionName,
+        cardCode: li.card.cardCode,
+        cardName: li.card.cardName,
+        cardNumber: li.card.cardNumber || '',
+        rarity: li.rarity || li.card.rarity || 'Unknown',
+        tags: li.card.tags || '',
+        imageUrl: li.card.imageUrl || '',
+        condition: li.condition || 'NM',
+        quantity: li.quantity,
+        referencePrice: li.referencePrice,
+        marginMultiplier: li.marginMultiplier,
+      } as ListingForExport;
+    });
   }
 
   static async importFromCsv(content: string, options: ImportOptions = {}): Promise<ImportResult> {
@@ -570,7 +606,7 @@ export class InventoryService {
             tags: parsedRow.tags,
             imageUrl: parsedRow.imageUrl
           }
-        } as any);
+        });
 
         const pricing = await PriceService.calculateFinalPrice({
           referencePrice,
@@ -611,14 +647,14 @@ export class InventoryService {
             status: 'active',
             everHadStock: quantity > 0,
           }
-        } as any);
+        });
 
         result.success += 1;
-      } catch (error) {
+      } catch (error: unknown) {
         result.failed += 1;
         result.errors.push({
           row: rowNumber,
-          message: (error as Error).message
+          message: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -669,8 +705,8 @@ export class InventoryService {
         } else if (typeof raw === 'object' && 'richText' in raw) {
           values.push(
             ((raw as CellRichTextValue).richText || [])
-              .map((rt) => rt.text)
-              .join(''),
+                  .map((rt: { text: string }) => rt.text)
+                  .join(''),
           );
         } else {
           values.push(String(raw));
@@ -685,10 +721,10 @@ export class InventoryService {
 
     // Serialize to CSV so we can reuse all existing CSV logic
     const csvContent = rows
-      .map((cols) =>
+      .map((cols: string[]) =>
         cols
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(','),
+          .map((v: unknown) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(',')
       )
       .join('\n');
 

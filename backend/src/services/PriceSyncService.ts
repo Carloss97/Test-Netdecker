@@ -70,6 +70,19 @@ type PriceSyncRunDelegate = {
   findUnique: (args: unknown) => Promise<Record<string, unknown> | null>;
 };
 
+type ListingRow = {
+  id: string;
+  referencePrice: number;
+  marginMultiplier: number;
+  card: {
+    cardCode: string;
+    cardName: string;
+    rarity?: string | null;
+    tcg: { name: SyncTcgName };
+    edition: { editionCode: string };
+  };
+};
+
 const getPriceSyncRunDelegate = (): PriceSyncRunDelegate | null => {
   const candidate = (prisma as unknown as Record<string, unknown>)['priceSyncRun'];
   if (!candidate) {
@@ -475,7 +488,7 @@ export class PriceSyncService {
           console.info(`[PriceSyncService] External pricing resolved for ${resolvedFromApi}/${effectiveUpdates.length} listings`);
           console.info(`[PriceSyncService] Price source stats: API=${fromApi}, stored=${fromStored}, fallback=${fromFallback}`);
         } else {
-          updates = listings.map((listing) => ({
+          updates = listings.map((listing: ListingRow) => ({
             listingId: listing.id,
             referencePrice: listing.referencePrice,
             marginMultiplier: listing.marginMultiplier,
@@ -485,7 +498,7 @@ export class PriceSyncService {
       }
 
       if (updates && updates.length > 0) {
-        updates = updates.map((u) => ({
+        updates = updates.map((u: PriceSyncUpdateInput) => ({
           ...u,
           source: u.source ?? 'manual_input',
         }));
@@ -567,11 +580,11 @@ export class PriceSyncService {
           }
 
           throw new Error('Sync target missing listingId or cardId');
-        } catch (error) {
+        } catch (error: unknown) {
           result.failed += 1;
           result.errors.push({
             listingId: update.listingId || update.cardId || 'N/A',
-            message: (error as Error).message,
+            message: error instanceof Error ? error.message : String(error),
           });
         }
       }

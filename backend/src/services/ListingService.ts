@@ -1,6 +1,7 @@
 
 // src/services/ListingService.ts
 import prisma from '../utils/db.js';
+import { Prisma } from '@prisma/client';
 import { PriceService } from './PriceService.js';
 import { CardCondition, PriceUpdateReason } from '@prisma/client';
 import { resolveMarginMultiplier } from '../config/pricing.js';
@@ -79,7 +80,7 @@ export class ListingService {
    * Get available listings (with stock > 0)
    */
   static async getAvailableListings(tcgId?: string, editionId?: string) {
-    const where: any = {
+    const where: Prisma.ListingWhereInput = {
       AND: [
         { quantity: { gt: 0 } },
         { status: { in: ['active', 'manual'] } }
@@ -134,19 +135,19 @@ export class ListingService {
    * Bulk update quantities from CSV
    */
   static async bulkUpdateQuantities(updates: Array<{ listingId: string; quantity: number }>) {
-    const results = {
+    const results: { updated: number; errors: Array<{ listingId: string; error: string }> } = {
       updated: 0,
-      errors: [] as any[]
+      errors: []
     };
 
     for (const update of updates) {
       try {
         await this.updateQuantity(update.listingId, update.quantity);
         results.updated++;
-      } catch (error) {
+      } catch (error: unknown) {
         results.errors.push({
           listingId: update.listingId,
-          error: (error as Error).message
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -216,14 +217,16 @@ export class ListingService {
       }
     });
 
-    const totalCost = listings.reduce((sum, l) => sum + (l.costPrice || 0) * l.quantity, 0);
-    const totalValue = listings.reduce((sum, l) => sum + l.finalPrice * l.quantity, 0);
+    type InventoryListing = { quantity: number; costPrice?: number | null; finalPrice: number };
+
+    const totalCost = (listings as InventoryListing[]).reduce((sum: number, l: InventoryListing) => sum + (l.costPrice ?? 0) * l.quantity, 0);
+    const totalValue = (listings as InventoryListing[]).reduce((sum: number, l: InventoryListing) => sum + l.finalPrice * l.quantity, 0);
 
     return {
       totalCost,
       totalValue,
       totalProfit: totalValue - totalCost,
-      itemCount: listings.reduce((sum, l) => sum + l.quantity, 0)
+      itemCount: (listings as InventoryListing[]).reduce((sum: number, l: InventoryListing) => sum + l.quantity, 0)
     };
   }
 

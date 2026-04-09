@@ -1,0 +1,28 @@
+name: Deploy to Staging after Build
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker images to GHCR"]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to staging via SSH
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          script: |
+            set -e
+            IMAGE=ghcr.io/${{ github.repository_owner }}/test-netdecker-backend:staging-latest
+            echo "Deploying $IMAGE to staging host"
+            docker pull "$IMAGE"
+            docker stop tcg-backend || true
+            docker rm tcg-backend || true
+            docker run -d --name tcg-backend --env-file /home/${{ secrets.STAGING_SSH_USER }}/staging.env -p 3333:3333 "$IMAGE"
+            echo "Deployment finished."

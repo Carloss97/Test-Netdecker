@@ -178,9 +178,24 @@ router.get('/price-history/export', async (req: Request, res: Response) => {
     from: fromDate,
     to: toDate,
   });
-
   const header = ['id', 'listingId', 'oldPrice', 'newPrice', 'oldReferencePrice', 'newReferencePrice', 'oldExchangeRate', 'newExchangeRate', 'percentChange', 'reason', 'changedBy', 'notes', 'createdAt'];
-  const rows = history.map((h) => [
+  type PriceHistoryExportRow = {
+    id: string;
+    listingId: string;
+    oldPrice: number;
+    newPrice: number;
+    oldReferencePrice: number | null;
+    newReferencePrice: number | null;
+    oldExchangeRate: number | null;
+    newExchangeRate: number | null;
+    percentChange?: number | null;
+    reason?: string | null;
+    changedBy?: string | null;
+    notes?: string | null;
+    createdAt: Date;
+  };
+
+  const rows = history.map((h: PriceHistoryExportRow) => [
     h.id,
     h.listingId,
     String(h.oldPrice),
@@ -197,7 +212,7 @@ router.get('/price-history/export', async (req: Request, res: Response) => {
   ]);
 
   const csv = [header, ...rows]
-    .map((cols) => cols.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .map((cols) => cols.map((v: unknown) => `"${String(v).replace(/"/g, '""')}"`).join(','))
     .join('\r\n');
 
   res.setHeader('Content-Type', 'text/csv');

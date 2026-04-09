@@ -1,0 +1,198 @@
+// SQLite variant of the Prisma schema for local development without Postgres.
+// Generator outputs the client to `node_modules/@prisma/client_sqlite` inside the backend package.
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client_sqlite"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// NOTE: Enums are converted to `String` fields for SQLite (no native enum support).
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model TCG {
+  id             String    @id @default(cuid())
+  name           String   @unique
+  displayName    String
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  editions       Edition[]
+  cards          Card[]
+}
+
+model Edition {
+  id             String    @id @default(cuid())
+  tcgId          String
+  tcg            TCG       @relation(fields: [tcgId], references: [id], onDelete: Cascade)
+  editionCode    String
+  editionName    String
+  releaseDate    DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  @@unique([tcgId, editionCode])
+  cards          Card[]
+  listings       Listing[]
+}
+
+model Card {
+  id             String    @id @default(cuid())
+  tcgId          String
+  tcg            TCG       @relation(fields: [tcgId], references: [id], onDelete: Cascade)
+  editionId      String
+  edition        Edition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  cardCode       String
+  cardName       String
+  cardNumber     String?
+  rarity         String
+  colorIdentity  String?
+  tags           String    @default("")
+  imageUrl       String?
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  @@unique([tcgId, editionId, cardCode, rarity])
+  @@index([tcgId])
+  @@index([editionId])
+  @@index([cardCode])
+  listings       Listing[]
+}
+
+model Listing {
+  id             String    @id @default(cuid())
+  cardId         String
+  card           Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  editionId      String
+  edition        Edition   @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  condition      String  @default("NM")
+  rarity         String
+  quantity       Int       @default(0)
+  referencePrice Float
+  marginMultiplier Float  @default(1.2)
+  exchangeRate   Float    @default(1.0)
+  finalPrice     Float
+  currency       String   @default("CLP")
+  costPrice      Float?
+  status         String   @default("active")
+  lastSyncedAt   DateTime?
+  everHadStock   Boolean  @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  @@unique([cardId, condition, rarity])
+  @@index([cardId])
+  @@index([quantity])
+  priceHistory   PriceHistory[]
+  orderItems     OrderItem[]
+}
+
+model PriceHistory {
+  id             String    @id @default(cuid())
+  listingId      String
+  listing        Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  oldPrice       Float
+  newPrice       Float
+  oldReferencePrice Float?
+  newReferencePrice Float?
+  oldExchangeRate Float?
+  newExchangeRate Float?
+  reason         String
+  percentChange  Float
+  changedBy      String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  @@index([listingId])
+  @@index([createdAt])
+}
+
+model InventoryImport {
+  id             String    @id @default(cuid())
+  fileName       String
+  fileHash       String    @unique
+  totalRecords   Int
+  successCount   Int       @default(0)
+  failureCount   Int       @default(0)
+  status         String    @default("processing")
+  errors         String?
+  importedBy     String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+}
+
+model Cart {
+  id             String    @id @default(cuid())
+  sessionId      String
+  items          OrderItem[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  @@index([sessionId])
+}
+
+model OrderItem {
+  id             String    @id @default(cuid())
+  cartId         String?
+  cart           Cart?     @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  orderId        String?
+  order          Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listingId      String
+  listing        Listing   @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  quantity       Int
+  pricePerUnit   Float
+  subtotal       Float
+  createdAt      DateTime  @default(now())
+}
+
+model Order {
+  id             String    @id @default(cuid())
+  orderNumber    String    @unique
+  customerEmail  String
+  status         String  @default("PENDING")
+  items          OrderItem[]
+  subtotal       Float
+  tax            Float     @default(0.0)
+  total          Float
+  shippingAddress String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  @@index([customerEmail])
+  @@index([status])
+}
+
+model ExchangeRate {
+  id             String    @id @default(cuid())
+  fromCurrency   String   @default("USD")
+  toCurrency     String   @default("CLP")
+  rate           Float
+  source         String
+  fetchedAt      DateTime  @default(now())
+  expiresAt      DateTime?
+  @@unique([fromCurrency, toCurrency])
+}
+
+model PriceSyncRun {
+  id               String   @id @default(cuid())
+  source           String
+  status           String   @default("running")
+  notes            String?
+  total            Int      @default(0)
+  updated          Int      @default(0)
+  volatile         Int      @default(0)
+  failed           Int      @default(0)
+  roundingMultiple Int      @default(1)
+  errors           String?
+  startedAt        DateTime @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+  @@index([startedAt])
+  @@index([source])
+  @@index([status])
+}

@@ -14,46 +14,63 @@ import {
   OptcgapiService,
 } from '../services/CardDatabaseService.js';
 
-describe('CardDatabaseService - Unified Facade', () => {
-  test('should support all six TCG types', async () => {
-    // Test that all TCG types are accepted
-    const tcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
-    for (const tcg of tcgs) {
+// If requested, start a local fixture server and point service base URLs to it.
+let _fixtureServer: { url: string; close: () => Promise<void> } | null = null;
+if (process.env.USE_FIXTURES === 'true') {
+  const mod = await import('./fixture-server.js');
+  _fixtureServer = await mod.startFixtureServer();
+  process.env.SCRYFALL_BASE = _fixtureServer.url;
+  process.env.POKEMON_BASE = _fixtureServer.url;
+  process.env.TCGCSV_BASE = `${_fixtureServer.url}/tcgplayer`;
+  process.on('exit', () => { void _fixtureServer?.close(); });
+}
+
+if (process.env.FAST_TEST === 'true') {
+  describe('CardDatabaseService - Unified Facade (skipped under FAST_TEST)', () => {
+    test('skipped', () => {});
+  });
+} else {
+  describe('CardDatabaseService - Unified Facade', () => {
+    test('should support all six TCG types', async () => {
+      // Test that all TCG types are accepted
+      const tcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
+      for (const tcg of tcgs) {
+        try {
+          const result = await CardDatabaseService.listSets(tcg);
+          assert.ok(Array.isArray(result), `listSets should return array for ${tcg}`);
+        } catch (err) {
+          // Services may return empty arrays if upstream is offline
+          // That's OK for this test - we just verify the method exists
+        }
+      }
+    });
+
+    test('should return sets from listSets', async () => {
       try {
-        const result = await CardDatabaseService.listSets(tcg);
-        assert.ok(Array.isArray(result), `listSets should return array for ${tcg}`);
+        const magicSets = await CardDatabaseService.listSets('MAGIC');
+        assert.ok(Array.isArray(magicSets), 'Should return array of sets');
+        if (magicSets.length > 0) {
+          assert.ok(magicSets[0].code, 'Set should have code');
+          assert.ok(magicSets[0].name, 'Set should have name');
+        }
       } catch (err) {
-        // Services may return empty arrays if upstream is offline
-        // That's OK for this test - we just verify the method exists
+        // Scryfall may be offline in test environment
       }
-    }
-  });
+    });
 
-  test('should return sets from listSets', async () => {
-    try {
-      const magicSets = await CardDatabaseService.listSets('MAGIC');
-      assert.ok(Array.isArray(magicSets), 'Should return array of sets');
-      if (magicSets.length > 0) {
-        assert.ok(magicSets[0].code, 'Set should have code');
-        assert.ok(magicSets[0].name, 'Set should have name');
+    test('should handle empty search results', async () => {
+      try {
+        const results = await CardDatabaseService.searchCards(
+          'MAGIC',
+          'NONEXISTENTCARDFOOBARXTYZ999'
+        );
+        assert.ok(Array.isArray(results), 'Should return array even for no results');
+      } catch (err) {
+        // API may be offline
       }
-    } catch (err) {
-      // Scryfall may be offline in test environment
-    }
+    });
   });
-
-  test('should handle empty search results', async () => {
-    try {
-      const results = await CardDatabaseService.searchCards(
-        'MAGIC',
-        'NONEXISTENTCARDFOOBARXTYZ999'
-      );
-      assert.ok(Array.isArray(results), 'Should return array even for no results');
-    } catch (err) {
-      // API may be offline
-    }
-  });
-});
+}
 
 describe('YGOProDeckService', () => {
   test('should retrieve Yu-Gi-Oh sets', async () => {
@@ -78,58 +95,66 @@ describe('YGOProDeckService', () => {
   });
 });
 
-describe('OptcgapiService - One Piece Integration', () => {
-  test('should be available for One Piece searches', async () => {
-    try {
-      const results = await OptcgapiService.searchCards('Luffy');
-      assert.ok(Array.isArray(results), 'Should return array for One Piece search');
-    } catch (err) {
-      // API may be offline, but service should exist
-    }
+if (process.env.FAST_TEST === 'true') {
+  describe('OptcgapiService - One Piece Integration (skipped under FAST_TEST)', () => {
+    test('skipped', () => {
+      // Skipped: set FAST_TEST=false to run integration tests
+    });
   });
-
-  test('should support set listing for One Piece', async () => {
-    try {
-      const sets = await OptcgapiService.listSets();
-      assert.ok(Array.isArray(sets), 'Should return array of sets');
-      if (sets.length > 0) {
-        assert.equal(sets[0].source, 'onepiecetcg', 'Should mark source as onepiecetcg');
+} else {
+  describe('OptcgapiService - One Piece Integration', () => {
+    test('should be available for One Piece searches', async () => {
+      try {
+        const results = await OptcgapiService.searchCards('Luffy');
+        assert.ok(Array.isArray(results), 'Should return array for One Piece search');
+      } catch (err) {
+        // API may be offline, but service should exist
       }
-    } catch (err) {
-      // API may be offline
-    }
-  });
+    });
 
-  test('should handle getting all cards', async () => {
-    try {
-      const cards = await OptcgapiService.getAllCards();
-      assert.ok(Array.isArray(cards), 'Should return array of cards');
-      // If cards are returned, they should have prices
-      if (cards.length > 0) {
-        assert.ok(cards[0].externalId, 'Card should have externalId');
-        assert.equal(cards[0].tcg, 'ONE_PIECE', 'Card should be marked as ONE_PIECE');
-      }
-    } catch (err) {
-      // API may be offline
-    }
-  });
-
-  test('should support filtering cards by set', async () => {
-    try {
-      const allCards = await OptcgapiService.getAllCards();
-      if (allCards.length > 0) {
-        const setCode = allCards[0].editionCode;
-        const setCards = await OptcgapiService.getSetCards(setCode);
-        assert.ok(Array.isArray(setCards), 'Should return array of cards for set');
-        if (setCards.length > 0) {
-          assert.equal(setCards[0].editionCode, setCode, 'All cards should be from requested set');
+    test('should support set listing for One Piece', async () => {
+      try {
+        const sets = await OptcgapiService.listSets();
+        assert.ok(Array.isArray(sets), 'Should return array of sets');
+        if (sets.length > 0) {
+          assert.equal(sets[0].source, 'onepiecetcg', 'Should mark source as onepiecetcg');
         }
+      } catch (err) {
+        // API may be offline
       }
-    } catch (err) {
-      // API may be offline
-    }
+    });
+
+    test('should handle getting all cards', async () => {
+      try {
+        const cards = await OptcgapiService.getAllCards();
+        assert.ok(Array.isArray(cards), 'Should return array of cards');
+        // If cards are returned, they should have prices
+        if (cards.length > 0) {
+          assert.ok(cards[0].externalId, 'Card should have externalId');
+          assert.equal(cards[0].tcg, 'ONE_PIECE', 'Card should be marked as ONE_PIECE');
+        }
+      } catch (err) {
+        // API may be offline
+      }
+    });
+
+    test('should support filtering cards by set', async () => {
+      try {
+        const allCards = await OptcgapiService.getAllCards();
+        if (allCards.length > 0) {
+          const setCode = allCards[0].editionCode;
+          const setCards = await OptcgapiService.getSetCards(setCode);
+          assert.ok(Array.isArray(setCards), 'Should return array of cards for set');
+          if (setCards.length > 0) {
+            assert.equal(setCards[0].editionCode, setCode, 'All cards should be from requested set');
+          }
+        }
+      } catch (err) {
+        // API may be offline
+      }
+    });
   });
-});
+}
 
 describe('PokemonTCGService', () => {
   test('should retrieve Pokémon sets', async () => {

@@ -59,10 +59,23 @@ export class ListingController {
         success: true,
         data: listing
       });
-    } catch (error) {
-      res.status((error as any).statusCode || 500).json({
-        error: (error as Error).message
-      });
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+
+      function getStatusCodeFromUnknown(e: unknown): number | undefined {
+        if (typeof e === 'object' && e !== null) {
+          const maybe = e as Record<string, unknown>;
+          if (typeof maybe.statusCode === 'number') return maybe.statusCode;
+        }
+        return undefined;
+      }
+
+      const message = error instanceof Error ? error.message : 'Internal Server Error';
+      const statusCode = getStatusCodeFromUnknown(error) ?? 500;
+      res.status(statusCode).json({ error: message });
     }
   }
 
@@ -122,10 +135,23 @@ export class ListingController {
         message: 'Price updated',
         volatile: isVolatile
       });
-    } catch (error) {
-      res.status((error as any).statusCode || 500).json({
-        error: (error as Error).message
-      });
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+
+      function getStatusCodeFromUnknown(e: unknown): number | undefined {
+        if (typeof e === 'object' && e !== null) {
+          const maybe = e as Record<string, unknown>;
+          if (typeof maybe.statusCode === 'number') return maybe.statusCode;
+        }
+        return undefined;
+      }
+
+      const message = error instanceof Error ? error.message : 'Internal Server Error';
+      const statusCode = getStatusCodeFromUnknown(error) ?? 500;
+      res.status(statusCode).json({ error: message });
     }
   }
 }

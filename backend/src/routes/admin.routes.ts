@@ -13,6 +13,28 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 
+type AdminListingAlert = {
+  id: string;
+  condition: string;
+  quantity: number;
+  finalPrice: number;
+  card: { cardName: string; cardCode: string; imageUrl?: string | null };
+  edition: { editionCode: string; editionName: string };
+};
+
+type PriceHistoryWithListing = {
+  id: string;
+  listingId: string;
+  oldPrice: number;
+  newPrice: number;
+  percentChange?: number | null;
+  createdAt: Date;
+  listing: {
+    card: { cardName: string; cardCode: string };
+    edition: { editionCode: string; editionName: string };
+  };
+};
+
 /**
  * GET /api/admin/dashboard
  * Returns key business metrics for the admin overview.
@@ -119,7 +141,7 @@ router.get('/stock-alerts', async (req: Request, res: Response) => {
     success: true,
     threshold,
     total: alerts.length,
-    alerts: alerts.map((a) => ({
+    alerts: alerts.map((a: AdminListingAlert) => ({
       listingId: a.id,
       cardName: a.card.cardName,
       cardCode: a.card.cardCode,
@@ -174,7 +196,7 @@ router.get('/price-volatility', async (req: Request, res: Response) => {
     window: windowParam,
     from: fromDate,
     total: volatileChanges.length,
-    events: volatileChanges.map((h) => ({
+    events: volatileChanges.map((h: PriceHistoryWithListing) => ({
       priceHistoryId: h.id,
       listingId: h.listingId,
       cardName: h.listing.card.cardName,
@@ -203,7 +225,15 @@ router.get('/editions', async (_req: Request, res: Response) => {
   res.json({
     success: true,
     total: editions.length,
-    editions: editions.map((e) => ({
+    editions: editions.map((e: {
+      id: string;
+      tcg: { name: string; displayName?: string };
+      editionCode: string;
+      editionName: string;
+      releaseDate?: Date | string | null;
+      isActive: boolean;
+      _count: { cards: number; listings: number };
+    }) => ({
       id: e.id,
       tcg: e.tcg.name,
       tcgDisplayName: e.tcg.displayName,

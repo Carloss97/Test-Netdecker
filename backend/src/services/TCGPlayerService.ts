@@ -54,7 +54,7 @@ export class TCGPlayerService {
       return this.inMemoryToken.value;
     }
 
-    const cached = await cacheGet(TOKEN_CACHE_KEY);
+    const cached = await cacheGet<{ accessToken?: string; expiresAt?: number }>(TOKEN_CACHE_KEY);
     if (cached?.accessToken && cached?.expiresAt && cached.expiresAt > now + 60_000) {
       this.inMemoryToken = { value: cached.accessToken, expiresAt: cached.expiresAt };
       return cached.accessToken as string;

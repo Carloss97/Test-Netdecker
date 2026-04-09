@@ -1,6 +1,7 @@
 // src/services/CardService.ts
 import prisma from '../utils/db.js';
 import { NotFoundError } from '../utils/errors.js';
+import type { Prisma } from '@prisma/client';
 
 console.log('[CardService] Loaded, prisma available:', prisma ? 'YES' : 'NO');
 
@@ -59,7 +60,7 @@ export class CardService {
           cardCode,
           rarity: normalizeRarity(rarity),
         }
-      } as any,
+      } as Prisma.CardWhereUniqueInput,
       include: {
         listings: true
       }
@@ -70,7 +71,7 @@ export class CardService {
    * Search cards by name (case-insensitive, partial match)
    */
   static async searchByName(name: string, tcgId?: string, limit: number = 20) {
-    const where: any = {
+    const where: Record<string, unknown> = {
       cardName: {
         contains: name,
         mode: 'insensitive'
@@ -94,7 +95,7 @@ export class CardService {
    */
   static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
     const normalized = code.trim();
-    const where: any = {
+    const where: Record<string, unknown> = {
       OR: [
         {
           cardCode: {
@@ -147,15 +148,15 @@ export class CardService {
   static async getCardsByTCG(tcgIdentifier: string) {
     console.log('[CardService.getCardsByTCG] Called with:', tcgIdentifier);
 
-    // First, try to find the TCG by ID or by name (enum)
-    const tcg = await prisma.tCG.findFirst({
-      where: {
-        OR: [
-          { id: tcgIdentifier },
-          { name: tcgIdentifier as any }
-        ]
-      }
-    });
+    // First try lookup by ID
+    let tcg = await prisma.tCG.findUnique({ where: { id: tcgIdentifier } });
+    // Otherwise, try by name (enum). Use a focused findFirst to avoid complex type casts in the OR form.
+    if (!tcg) {
+      // Cast here is limited to this call because Prisma type for `name` is an enum-like union.
+      // This keeps the rest of the code strongly typed.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tcg = await (prisma as any).tCG.findFirst({ where: { name: tcgIdentifier } });
+    }
 
     if (!tcg) {
       throw new NotFoundError(`TCG "${tcgIdentifier}" not found`);
@@ -184,10 +185,10 @@ export class CardService {
    * Bulk upsert cards from CSV/import
    */
   static async bulkUpsertCards(cards: CreateCardInput[]) {
-    const results = {
+    const results: { created: number; updated: number; errors: Array<{ cardCode: string; error: string }> } = {
       created: 0,
       updated: 0,
-      errors: [] as any[]
+      errors: []
     };
 
     for (const cardData of cards) {

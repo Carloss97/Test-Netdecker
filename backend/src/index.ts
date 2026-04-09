@@ -61,11 +61,26 @@ app.use('/api/editions', editionRoutes);
 // ERROR HANDLING
 // ============================================
 
-app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  function isErrLike(e: unknown): e is { statusCode?: number; message?: string; code?: string } {
+    return typeof e === 'object' && e !== null;
+  }
+
   const isAppError = err instanceof ApplicationError;
-  const statusCode: number = err.statusCode || 500;
-  const message: string = err.message || 'Internal Server Error';
-  const code: string = err.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+
+  let statusCode = 500;
+  let message = 'Internal Server Error';
+  let code = 'INTERNAL_ERROR';
+
+  if (isAppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    code = err.code;
+  } else if (isErrLike(err)) {
+    if (typeof err.statusCode === 'number') statusCode = err.statusCode;
+    if (typeof err.message === 'string') message = err.message;
+    if (typeof err.code === 'string') code = err.code;
+  }
 
   if (statusCode >= 500) {
     console.error('Error:', err);

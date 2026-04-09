@@ -47,7 +47,9 @@ const CACHE_TTL = 3600 * 3; // 3 hours
 // Scryfall (Magic: The Gathering)
 // ─────────────────────────────────────────────
 
-const SCRYFALL_BASE = 'https://api.scryfall.com';
+function getScryfallBase(): string {
+  return process.env.SCRYFALL_BASE || 'https://api.scryfall.com';
+}
 const SCRYFALL_DELAY_MS = 500; // Increased from 100ms to 500ms for bulk operations; Scryfall recommends caution with bulk requests
 
 function sleep(ms: number): Promise<void> {
@@ -70,7 +72,7 @@ function scryfallCardToExternal(card: Record<string, unknown>): ExternalCard {
 
   const tags: string[] = [];
   if (Array.isArray(card.keywords)) tags.push(...(card.keywords as string[]));
-  if (card.type_line) tags.push(...String(card.type_line).split(' — ').map((t) => t.trim()));
+  if (card.type_line) tags.push(...String(card.type_line).split(' — ').map((t: string) => t.trim()));
 
   const usd = prices.usd ? parseFloat(prices.usd) : undefined;
   const usdFoil = prices.usd_foil ? parseFloat(prices.usd_foil) : undefined;
@@ -109,7 +111,7 @@ export class ScryfallService {
     while (retries < maxRetries) {
       try {
         await sleep(SCRYFALL_DELAY_MS);
-        const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
+        const { data } = await axios.get(`${getScryfallBase()}/cards/search`, {
           params: { q: query, page, order: 'name' },
           timeout: 30000,
         });
@@ -149,7 +151,7 @@ export class ScryfallService {
       await sleep(SCRYFALL_DELAY_MS);
       const params: Record<string, string> = { exact: name };
       if (setCode) params.set = setCode.toLowerCase();
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/named`, { params, timeout: 30000 });
+      const { data } = await axios.get(`${getScryfallBase()}/cards/named`, { params, timeout: 30000 });
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
@@ -171,7 +173,7 @@ export class ScryfallService {
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/cards/${safeId}`, { timeout: 30000 });
+      const { data } = await axios.get(`${getScryfallBase()}/cards/${safeId}`, { timeout: 30000 });
       const card = scryfallCardToExternal(data as Record<string, unknown>);
       await cacheSet(cacheKey, card, CACHE_TTL);
       return card;
@@ -194,7 +196,7 @@ export class ScryfallService {
     while (hasMore && page <= maxPages) {
       try {
         await sleep(SCRYFALL_DELAY_MS);
-        const { data } = await axios.get(`${SCRYFALL_BASE}/cards/search`, {
+        const { data } = await axios.get(`${getScryfallBase()}/cards/search`, {
           params: { q: `set:${setCode.toLowerCase()}`, page, order: 'collector_number' },
           timeout: 30000,
         });
@@ -238,12 +240,12 @@ export class ScryfallService {
 
     try {
       await sleep(SCRYFALL_DELAY_MS);
-      const { data } = await axios.get(`${SCRYFALL_BASE}/sets`, { timeout: 30000 });
+      const { data } = await axios.get(`${getScryfallBase()}/sets`, { timeout: 30000 });
       if (!data || !Array.isArray(data.data)) {
         console.warn('[Scryfall] listSets: Invalid response structure');
         return [];
       }
-      const sets: ExternalEdition[] = (data.data as Record<string, unknown>[]).map((s) => ({
+      const sets: ExternalEdition[] = (data.data as Record<string, unknown>[]).map((s: Record<string, unknown>) => ({
         code: String(s.code).toUpperCase(),
         name: s.name as string,
         releaseDate: s.released_at as string | undefined,
@@ -263,7 +265,9 @@ export class ScryfallService {
 // Pokémon TCG API  (https://pokemontcg.io/)
 // ─────────────────────────────────────────────
 
-const POKEMON_BASE = 'https://api.pokemontcg.io/v2';
+function getPokemonBase(): string {
+  return process.env.POKEMON_BASE || 'https://api.pokemontcg.io/v2';
+}
 
 function pokemonCardToExternal(card: Record<string, unknown>): ExternalCard {
   const set = (card.set as Record<string, unknown> | undefined) || {};
@@ -294,7 +298,7 @@ function pokemonCardToExternal(card: Record<string, unknown>): ExternalCard {
     colorIdentity: types.join('/'),
     imageUrl: images.large || images.small,
     description: Array.isArray(card.abilities)
-      ? (card.abilities as Array<{ text?: string }>).map((a) => a.text).join(' ')
+      ? (card.abilities as Array<{ text?: string }>).map((a: { text?: string }) => a.text).join(' ')
       : undefined,
     tags,
     priceLow,
@@ -316,7 +320,7 @@ export class PokemonTCGService {
 
     try {
       const query = setId ? `name:"${name}" set.id:${setId}` : `name:"${name}"`;
-      const { data } = await axios.get(`${POKEMON_BASE}/cards`, {
+      const { data } = await axios.get(`${getPokemonBase()}/cards`, {
         params: { q: query, page, pageSize },
         headers: this.headers(),
         timeout: 10000,
@@ -345,7 +349,7 @@ export class PokemonTCGService {
     if (cached) return cached as ExternalCard;
 
     try {
-      const { data } = await axios.get(`${POKEMON_BASE}/cards/${safeId}`, {
+      const { data } = await axios.get(`${getPokemonBase()}/cards/${safeId}`, {
         headers: this.headers(),
         timeout: 10000,
       });
@@ -375,7 +379,7 @@ export class PokemonTCGService {
 
       while (hasMore) {
         try {
-          const { data } = await axios.get(`${POKEMON_BASE}/cards`, {
+          const { data } = await axios.get(`${getPokemonBase()}/cards`, {
             params: { q: `set.id:${setId}`, page, pageSize: 250 },
             headers: this.headers(),
             timeout: 10000, // 10 second timeout
@@ -435,7 +439,7 @@ export class PokemonTCGService {
     if (cached) return cached as ExternalEdition[];
 
     try {
-      const { data } = await axios.get(`${POKEMON_BASE}/sets`, {
+      const { data } = await axios.get(`${getPokemonBase()}/sets`, {
         headers: this.headers(),
         timeout: 15000,
       });
@@ -443,7 +447,7 @@ export class PokemonTCGService {
         console.warn('[PokemonTCG] listSets: Invalid response structure');
         return [];
       }
-      const sets: ExternalEdition[] = (data.data as Record<string, unknown>[]).map((s) => ({
+      const sets: ExternalEdition[] = (data.data as Record<string, unknown>[]).map((s: Record<string, unknown>) => ({
         code: String(s.id || '').toUpperCase(),
         name: s.name as string,
         releaseDate: s.releaseDate as string | undefined,
@@ -609,7 +613,7 @@ export class YGOProDeckService {
         console.warn('[YGOPRODeck] searchCards: Invalid response structure');
         return [];
       }
-      const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setCode));
+      const cards = (data.data as Record<string, unknown>[]).map((c: Record<string, unknown>) => ygoCardToExternal(c, setCode));
       await cacheSet(cacheKey, cards, CACHE_TTL);
       return cards;
     } catch (err: unknown) {
@@ -664,7 +668,7 @@ export class YGOProDeckService {
         console.warn('[YGOPRODeck] getSetCards: Invalid response structure');
         return [];
       }
-      const cards = (data.data as Record<string, unknown>[]).map((c) => ygoCardToExternal(c, setNameOrCode));
+      const cards = (data.data as Record<string, unknown>[]).map((c: Record<string, unknown>) => ygoCardToExternal(c, setNameOrCode));
       if (cards.length > 0) {
         await cacheSet(cacheKey, cards, CACHE_TTL);
       }
@@ -688,7 +692,7 @@ export class YGOProDeckService {
         console.warn('[YGOPRODeck] listSets: Invalid response structure (not an array)');
         return [];
       }
-      const sets: ExternalEdition[] = (data as Record<string, unknown>[]).map((s) => ({
+      const sets: ExternalEdition[] = (data as Record<string, unknown>[]).map((s: Record<string, unknown>) => ({
         code: String(s.set_code || '').toUpperCase(),
         name: s.set_name as string,
         releaseDate: s.tcg_date as string | undefined,
@@ -865,7 +869,7 @@ export class OptcgapiService {
         }
       });
 
-      const sets: ExternalEdition[] = Array.from(setsMap.values()).map((set) => ({
+      const sets: ExternalEdition[] = Array.from(setsMap.values()).map((set: { name: string; code: string }) => ({
         code: set.code,
         name: set.name,
         source: 'onepiecetcg' as const,

@@ -47,17 +47,17 @@ export async function getRedisClient(): Promise<RedisClientType> {
   return redisClient;
 }
 
-export async function cacheGet(key: string): Promise<any | null> {
+export async function cacheGet<T = unknown>(key: string): Promise<T | null> {
   try {
     const client = await getRedisClient();
     const value = await client.get(key);
-    return value ? JSON.parse(value) : null;
+    return value ? (JSON.parse(value) as T) : null;
   } catch {
     return null;
   }
 }
 
-export async function cacheSet(key: string, value: any, expirationSeconds?: number): Promise<void> {
+export async function cacheSet<T = unknown>(key: string, value: T, expirationSeconds?: number): Promise<void> {
   try {
     const client = await getRedisClient();
     const options = expirationSeconds ? { EX: expirationSeconds } : undefined;
