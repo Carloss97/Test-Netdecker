@@ -37,5 +37,5 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/test-netdecker-backend:staging-latest
-            ghcr.io/${{ github.repository_owner }}/test-netdecker-backend:${{ github.sha }}
+            ghcr.io/carloss97/test-netdecker-backend:staging-latest
+            ghcr.io/carloss97/test-netdecker-backend:${{ github.sha }}
