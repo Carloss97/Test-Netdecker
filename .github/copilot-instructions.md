@@ -42,7 +42,7 @@
 - Create `backend/.env` from `backend/.env.example` before running backend commands.
 - `DATABASE_URL` is required for Prisma operations.
 - `REDIS_URL` should be reachable; when unavailable, caching behavior can degrade sync performance.
-- Backend default port in code is `3333`, but `.env.example` includes `PORT=3001`; keep frontend proxy and backend env aligned.
+- Backend default port in code is `3333`; ensure frontend proxy and backend env are aligned.
 - Validate cron expressions (`PRICE_SYNC_CRON`, `CATALOG_SYNC_CRON`) when changing schedules.
 - After schema changes, run `prisma:push` and `prisma:generate` before testing related flows.
 
