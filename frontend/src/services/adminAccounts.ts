@@ -12,4 +12,14 @@ export async function createAccount(params: { storeId?: string; code: string; na
   return data.account ?? data;
 }
 
+export async function updateAccount(id: string, params: { storeId?: string; code?: string; name?: string; type?: AccountType; description?: string }) {
+  const { data } = await apiClient.patch(`/admin/accounts/${id}`, params);
+  return data.account ?? data;
+}
+
+export async function deleteAccount(id: string) {
+  const { data } = await apiClient.delete(`/admin/accounts/${id}`);
+  return data;
+}
+
 export default { getAccounts, createAccount };

@@ -24,4 +24,45 @@ router.post('/', async (req: Request, res: Response) => {
   res.json({ success: true, account: created });
 });
 
+// PATCH /api/admin/accounts/:id
+router.patch('/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const { storeId, code, name, type, description } = req.body as { storeId?: string; code?: string; name?: string; type?: string; description?: string };
+
+  const existing = await prisma.account.findUnique({ where: { id } });
+  if (!existing) throw new NotFoundError('Account not found');
+
+  const allowed = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];
+  if (type && !allowed.includes(type)) throw new ValidationError('Invalid account type');
+
+  const data: any = {};
+  if (storeId !== undefined) data.storeId = storeId || null;
+  if (code !== undefined) data.code = String(code).trim();
+  if (name !== undefined) data.name = String(name).trim();
+  if (type !== undefined) data.type = String(type);
+  if (description !== undefined) data.description = description || null;
+
+  try {
+    const updated = await prisma.account.update({ where: { id }, data });
+    res.json({ success: true, account: updated });
+  } catch (err: unknown) {
+    throw new ValidationError((err as Error).message || 'Unable to update account');
+  }
+});
+
+// DELETE /api/admin/accounts/:id
+router.delete('/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+
+  const existing = await prisma.account.findUnique({ where: { id } });
+  if (!existing) throw new NotFoundError('Account not found');
+
+  // Prevent deleting accounts referenced by journal lines
+  const used = await prisma.journalLine.findFirst({ where: { accountId: id } });
+  if (used) throw new ValidationError('Account is used in journal entries and cannot be deleted');
+
+  await prisma.account.delete({ where: { id } });
+  res.json({ success: true });
+});
+
 export default router;

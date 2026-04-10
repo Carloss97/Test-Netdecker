@@ -21,6 +21,7 @@
       "prisma:generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma",
       "prisma:push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma",
       "test:sqlite": "USE_SQLITE=true DATABASE_URL=\"file:./dev.sqlite\" tsx --test src/**/*.test.ts",
+      "backfill:warehouse-stock": "tsx scripts/backfill-warehouse-stock.ts",
     "catalog:bootstrap:dry": "tsx src/scripts/bootstrapCatalog.ts --dry-run",
     "catalog:sync": "tsx src/scripts/catalogSync.ts",
     "catalog:sync:dry": "tsx src/scripts/catalogSync.ts --dry-run",
