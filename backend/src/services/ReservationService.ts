@@ -68,6 +68,63 @@ export class ReservationService {
       // Mark reservation as committed
       const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status: 'COMMITTED' } });
 
+      // --- Accounting integration (best-effort): create journal entries for revenue and COGS if accounts exist ---
+      try {
+        const storeId = listing.storeId || null;
+
+        // Find accounts by type for this store (best-effort)
+        const revenueAccount = await tx.account.findFirst({ where: { storeId, type: 'REVENUE' } });
+        const assetAccount = await tx.account.findFirst({ where: { storeId, type: 'ASSET' } });
+        const expenseAccount = await tx.account.findFirst({ where: { storeId, type: 'EXPENSE' } });
+
+        const qty = Number(reservation.quantity || 0);
+        const unitPrice = Number(listing.finalPrice || 0);
+        const saleAmount = unitPrice * qty;
+
+        if (saleAmount > 0 && revenueAccount && assetAccount) {
+          // Create revenue journal entry: Debit Asset (cash/AR), Credit Revenue
+          await tx.journalEntry.create({
+            data: {
+              storeId,
+              description: `Sale reservation:${reservation.id}`,
+              date: new Date(),
+              totalDebit: saleAmount,
+              totalCredit: saleAmount,
+              lines: {
+                create: [
+                  { accountId: assetAccount.id, debit: saleAmount, credit: 0, description: 'Sale proceeds' },
+                  { accountId: revenueAccount.id, debit: 0, credit: saleAmount, description: 'Sales revenue' },
+                ]
+              }
+            }
+          });
+        }
+
+        const costPerUnit = Number(listing.costPrice || 0);
+        const costAmount = costPerUnit * qty;
+
+        if (costAmount > 0 && expenseAccount && assetAccount) {
+          // Create COGS journal entry: Debit Expense (COGS), Credit Asset (Inventory)
+          await tx.journalEntry.create({
+            data: {
+              storeId,
+              description: `COGS reservation:${reservation.id}`,
+              date: new Date(),
+              totalDebit: costAmount,
+              totalCredit: costAmount,
+              lines: {
+                create: [
+                  { accountId: expenseAccount.id, debit: costAmount, credit: 0, description: 'Cost of goods sold' },
+                  { accountId: assetAccount.id, debit: 0, credit: costAmount, description: 'Inventory decrease' },
+                ]
+              }
+            }
+          });
+        }
+      } catch (err) {
+        // Best-effort: do not fail the whole transaction if accounting cannot be recorded
+      }
+
       return updated;
     });
   }

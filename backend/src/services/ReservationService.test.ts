@@ -57,6 +57,62 @@ test('commitReservation creates stock movement and updates listing', async () =>
   }
 });
 
+test('commitReservation creates journal entries when accounts exist', async () => {
+  const originalTx = prisma.$transaction;
+
+  try {
+    const created: any[] = [];
+
+    const tx = {
+      reservation: {
+        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L500', warehouseId: 'W5', quantity: 2, status: 'ACTIVE' }),
+        update: async ({ where, data }: any) => ({ id: where.id, ...data })
+      },
+      listing: {
+        findUnique: async ({ where }: any) => ({ id: where.id, quantity: 10, finalPrice: 2000, costPrice: 1200, storeId: 'S1' }),
+        update: async ({ where, data }: any) => ({ id: where.id, ...data })
+      },
+      stockMovement: { create: async ({ data }: any) => ({ id: 'mov-je', ...data }) },
+      account: {
+        findFirst: async ({ where }: any) => {
+          if (where.type === 'REVENUE') return { id: 'acc-rev' };
+          if (where.type === 'ASSET') return { id: 'acc-asset' };
+          if (where.type === 'EXPENSE') return { id: 'acc-cogs' };
+          return null;
+        }
+      },
+      journalEntry: {
+        create: async ({ data }: any) => { created.push(data); return { id: `je-${created.length}`, ...data }; }
+      }
+    } as any;
+
+    prisma.$transaction = (async (fn: any) => fn(tx)) as any;
+
+    const updated = await ReservationService.commitReservation('res-je');
+
+    // Expect two journal entries: sale and COGS
+    assert.equal(created.length, 2);
+
+    const sale = created[0];
+    const cogs = created[1];
+
+    // sale amount = finalPrice(2000) * qty(2) = 4000
+    assert.equal(sale.totalDebit, 4000);
+    assert.equal(sale.totalCredit, 4000);
+    assert.equal(sale.lines.create.length, 2);
+    assert.equal(sale.lines.create[0].accountId, 'acc-asset');
+    assert.equal(sale.lines.create[1].accountId, 'acc-rev');
+
+    // cogs amount = costPrice(1200) * qty(2) = 2400
+    assert.equal(cogs.totalDebit, 2400);
+    assert.equal(cogs.totalCredit, 2400);
+    assert.equal(cogs.lines.create[0].accountId, 'acc-cogs');
+    assert.equal(cogs.lines.create[1].accountId, 'acc-asset');
+  } finally {
+    prisma.$transaction = originalTx;
+  }
+});
+
 test('commitReservation fails on insufficient stock', async () => {
   const originalTx = prisma.$transaction;
 
