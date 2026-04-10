@@ -65,6 +65,7 @@ model Store {
 
   // Relations
   listings    Listing[]
+  warehouses  Warehouse[]
   imports     InventoryImport[]
   carts       Cart[]
   orders      Order[]
@@ -190,6 +191,8 @@ model Listing {
   // Relations
   priceHistory   PriceHistory[]
   orderItems     OrderItem[]
+  stockMovements StockMovement[]
+  stockSnapshots StockSnapshot[]
 }
 
 model PriceHistory {
@@ -243,6 +246,80 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
+}
+
+// ============================================
+// ERP: INVENTORY MODELS (MVP)
+// ============================================
+
+enum StockMovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUST
+}
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  storeId     String?
+  store       Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  address     String?
+  metadata    Json?
+  
+  // Relations
+  stockMovements     StockMovement[] @relation("StockMovement_warehouse")
+  stockMovementsFrom StockMovement[] @relation("StockMovement_from")
+  stockMovementsTo   StockMovement[] @relation("StockMovement_to")
+  stockSnapshots     StockSnapshot[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+model StockMovement {
+  id              String            @id @default(cuid())
+  listingId       String
+  listing         Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  // For IN/OUT movements use `warehouseId`. For TRANSFER use `fromWarehouseId` and `toWarehouseId`.
+  warehouseId     String?
+  warehouse       Warehouse?        @relation("StockMovement_warehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+
+  fromWarehouseId String?
+  fromWarehouse   Warehouse?        @relation("StockMovement_from", fields: [fromWarehouseId], references: [id], onDelete: SetNull)
+
+  toWarehouseId   String?
+  toWarehouse     Warehouse?        @relation("StockMovement_to", fields: [toWarehouseId], references: [id], onDelete: SetNull)
+
+  quantity        Int
+  type            StockMovementType
+  reference       String?
+  performedBy     String?
+  notes           String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([listingId])
+  @@index([warehouseId])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+}
+
+model StockSnapshot {
+  id           String    @id @default(cuid())
+  listingId    String
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  warehouseId  String?
+  warehouse    Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  quantity     Int
+  takenAt      DateTime  @default(now())
+
+  @@index([listingId])
+  @@index([warehouseId])
+  @@index([takenAt])
 }
 
 // ============================================
