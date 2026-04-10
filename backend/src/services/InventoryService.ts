@@ -432,6 +432,57 @@ export class InventoryService {
     });
   }
 
+  static async transferStock(input: {
+    listingId: string;
+    fromWarehouseId: string;
+    toWarehouseId: string;
+    quantity: number;
+    performedBy?: string | null;
+    reference?: string | null;
+    notes?: string | null;
+  }) {
+    if (input.fromWarehouseId === input.toWarehouseId) throw new Error('Source and destination warehouses must differ');
+
+    return prisma.$transaction(async (tx: any) => {
+      const listing = await tx.listing.findUnique({ where: { id: input.listingId } });
+      if (!listing) throw new Error('Listing not found');
+
+      const qty = Number(input.quantity || 0);
+      if (qty <= 0) throw new Error('Quantity must be > 0');
+
+      // Check source warehouse stock
+      const fromStock = await tx.warehouseStock.findFirst({ where: { listingId: input.listingId, warehouseId: input.fromWarehouseId } });
+      if (!fromStock || Number(fromStock.quantity || 0) < qty) throw new Error('Insufficient stock in source warehouse');
+
+      // Decrease source warehouse stock
+      await tx.warehouseStock.update({ where: { id: fromStock.id }, data: { quantity: Number(fromStock.quantity) - qty } });
+
+      // Increase or create destination warehouse stock
+      const toStock = await tx.warehouseStock.findFirst({ where: { listingId: input.listingId, warehouseId: input.toWarehouseId } });
+      if (toStock) {
+        await tx.warehouseStock.update({ where: { id: toStock.id }, data: { quantity: Number(toStock.quantity) + qty } });
+      } else {
+        await tx.warehouseStock.create({ data: { listingId: input.listingId, warehouseId: input.toWarehouseId, quantity: qty } });
+      }
+
+      // Record movement
+      const movement = await tx.stockMovement.create({
+        data: {
+          listingId: input.listingId,
+          fromWarehouseId: input.fromWarehouseId,
+          toWarehouseId: input.toWarehouseId,
+          quantity: qty,
+          type: StockMovementType.TRANSFER as any,
+          reference: input.reference || null,
+          performedBy: input.performedBy || null,
+          notes: input.notes || null,
+        }
+      });
+
+      return movement;
+    });
+  }
+
   static async takeStockSnapshot(listingId: string, warehouseId?: string | null) {
     return prisma.$transaction(async (tx: any) => {
       const listing = await tx.listing.findUnique({ where: { id: listingId } });
