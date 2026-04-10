@@ -157,6 +157,39 @@ function stripRarityFromName(rawName, rarityText) {
   return name;
 }
 
+function canonicalRarity(rarityText) {
+  const s = String(rarityText || '').toLowerCase();
+  if (!s) return '';
+  if (s.includes('platinum secret')) return 'Platinum Secret';
+  if (s.includes('prismatic secret')) return 'Prismatic Secret';
+  if (s.includes('prismatic collector')) return 'Prismatic Collector';
+  if (s.includes('prismatic ultimate')) return 'Prismatic Ultimate';
+  if (s.includes('ghost gold')) return 'Ghost Gold';
+  if (s.includes('ghost')) return 'Ghost';
+  if (s.includes('gold secret')) return 'Gold Secret';
+  if (s.includes('rare gold') || s.includes('gold rare')) return 'Rare Gold';
+  if (s.includes('starfoil') || s.includes('starfoil rare')) return 'Starfoil';
+  if (s.includes('starlight')) return 'Starlight';
+  if (s.includes('pharaoh')) return 'Pharaoh';
+  if (s.includes('collector')) return 'Collector';
+  if (s.includes('ultimate')) return 'Ultimate';
+  if (s.includes('ultra')) return 'Ultra';
+  if (s.includes('super')) return 'Super';
+  if (s.includes('secret')) return 'Secret';
+  if (s.includes('rare') || s.includes("collector's rare") ) return 'Rare';
+  if (s.includes('common') || s.includes('comun')) return 'Common';
+  return rarityText;
+}
+
+function rewriteUrlName(name) {
+  if (!name) return '';
+  // remove characters that could break URL, keep case, replace spaces with hyphens
+  return String(name)
+    .replace(/[()\[\]\.,;:'"“”‘’]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 async function mapRowToTemplate(csvRow) {
   const mapped = {};
 
@@ -230,8 +263,8 @@ async function mapRowToTemplate(csvRow) {
     }
 
     if (hLower === 'url rewritten') {
-      // only card name (plain, cleaned of rarity)
-      mapped[header] = cleanedName || '';
+      // card name with hyphens instead of spaces
+      mapped[header] = rewriteUrlName(cleanedName) || '';
       continue;
     }
 
@@ -243,12 +276,13 @@ async function mapRowToTemplate(csvRow) {
     }
 
     if (hLower === 'caracteristicas' || hLower === 'características') {
-      // use full rarity text (no siglas), type and language
+      // use canonical rarity (no 'Rare' suffixes), type and language
+      const rareCanon = canonicalRarity(rarity) || '';
       let tipo = detectType(tags, cleanedName);
       if (!tipo) {
         tipo = await fetchTypeFromYGO(cleanedName);
       }
-      mapped[header] = `Rareza:${rarity || ''},Tipo:${tipo},Idioma:${language}`;
+      mapped[header] = `Rareza:${rareCanon},Tipo:${tipo},Idioma:${language}`;
       continue;
     }
 
