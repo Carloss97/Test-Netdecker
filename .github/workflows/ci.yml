@@ -1,6 +1,52 @@
 name: CI
 
 on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            backend/node_modules
+            frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install root deps
+        run: npm install
+
+      - name: Type-check (root)
+        run: npm run type-check
+
+      - name: Backend: install & tests (SQLite)
+        run: |
+          npm --prefix backend install
+          USE_SQLITE=true DATABASE_URL="file:./dev.sqlite" npm --prefix backend run test
+
+      - name: Frontend: install, type-check & tests
+        run: |
+          npm --prefix frontend install
+          npm --prefix frontend run type-check
+          npm --prefix frontend run test:run
+name: CI
+
+on:
   push:
     branches: [ main ]
   pull_request:

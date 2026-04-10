@@ -28,10 +28,13 @@ model Store {
   updatedAt   DateTime @default(now())
 
   listings    Listing[]
+  warehouses  Warehouse[]
   imports     InventoryImport[]
   carts       Cart[]
   orders      Order[]
   priceSyncs  PriceSyncRun[]
+  accounts    Account[]
+  journalEntries JournalEntry[]
 }
 
 
@@ -112,8 +115,16 @@ model Listing {
   @@index([cardId])
   @@index([quantity])
   @@index([storeId])
-  priceHistory   PriceHistory[]
-  orderItems     OrderItem[]
+    priceHistory   PriceHistory[]
+    orderItems     OrderItem[]
+    stockMovements StockMovement[]
+    stockSnapshots StockSnapshot[]
+    warehouseStocks WarehouseStock[]
+    reservations    Reservation[]
+  stockMovements StockMovement[]
+  stockSnapshots StockSnapshot[]
+  warehouseStocks WarehouseStock[]
+  reservations    Reservation[]
 }
 
 model PriceHistory {
@@ -231,4 +242,165 @@ model PriceSyncRun {
   @@index([startedAt])
   @@index([source])
   @@index([status])
+}
+
+// ============================================
+// ERP: INVENTORY & ACCOUNTING MODELS (SQLite)
+// Note: enums are represented as Strings in this SQLite schema.
+// ============================================
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  storeId     String?
+  store       Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  address     String?
+  metadata    String?
+
+  // Relations
+  stockMovements     StockMovement[] @relation("StockMovement_warehouse")
+  stockMovementsFrom StockMovement[] @relation("StockMovement_from")
+  stockMovementsTo   StockMovement[] @relation("StockMovement_to")
+  stockSnapshots     StockSnapshot[]
+  warehouseStocks    WarehouseStock[]
+  reservations       Reservation[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@index([storeId])
+}
+
+model StockMovement {
+  id              String    @id @default(cuid())
+  listingId       String
+  listing         Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  warehouseId     String?
+  warehouse       Warehouse? @relation("StockMovement_warehouse", fields: [warehouseId], references: [id], onDelete: SetNull)
+
+  fromWarehouseId String?
+  fromWarehouse   Warehouse? @relation("StockMovement_from", fields: [fromWarehouseId], references: [id], onDelete: SetNull)
+
+  toWarehouseId   String?
+  toWarehouse     Warehouse? @relation("StockMovement_to", fields: [toWarehouseId], references: [id], onDelete: SetNull)
+
+  quantity        Int
+  type            String
+  reference       String?
+  performedBy     String?
+  notes           String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([listingId])
+  @@index([warehouseId])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+}
+
+model StockSnapshot {
+  id           String    @id @default(cuid())
+  listingId    String
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  warehouseId  String?
+  warehouse    Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  quantity     Int
+  takenAt      DateTime  @default(now())
+
+  @@index([listingId])
+  @@index([warehouseId])
+  @@index([takenAt])
+}
+
+model WarehouseStock {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  quantity    Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@unique([listingId, warehouseId])
+  @@index([warehouseId])
+  @@index([listingId])
+}
+
+model Reservation {
+  id           String   @id @default(cuid())
+  listingId    String
+  listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  warehouseId  String?
+  warehouse    Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+
+  quantity     Int
+  reservedBy   String?
+  status       String   @default("ACTIVE")
+  expiresAt    DateTime?
+
+  createdAt    DateTime @default(now())
+
+  @@index([listingId])
+  @@index([warehouseId])
+  @@index([status])
+}
+
+model Account {
+  id        String    @id @default(cuid())
+  storeId   String?
+  store     Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  code      String
+  name      String
+  type      String
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+
+  journalLines JournalLine[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+}
+
+model JournalEntry {
+  id          String    @id @default(cuid())
+  storeId     String?
+  store       Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  entryNumber Int?
+  description String?
+  date        DateTime  @default(now())
+  totalDebit  Float
+  totalCredit Float
+  createdAt   DateTime  @default(now())
+
+  lines       JournalLine[]
+
+  @@index([storeId])
+  @@index([date])
+}
+
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  accountId      String
+  account        Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  debit          Float        @default(0)
+  credit         Float        @default(0)
+  description    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([journalEntryId])
+  @@index([accountId])
 }

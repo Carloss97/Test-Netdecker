@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Dashboard' },
+  { to: '/pos', icon: '💳', label: 'POS' },
   { to: '/inventario', icon: '📦', label: 'Inventario' },
   { to: '/precios', icon: '💰', label: 'Precios' },
   { to: '/stock-bajo', icon: '🚨', label: 'Stock Bajo' },

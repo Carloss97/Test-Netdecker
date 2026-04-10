@@ -22,7 +22,7 @@ test('recordStockMovement IN increases listing quantity', async () => {
     prisma.$Transaction = prisma.$transaction; // keep reference if needed
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const mov = await InventoryService.recordStockMovement({ listingId: 'L1', warehouseId: 'W1', quantity: 3, type: 'IN', reference: 'r', performedBy: 'u1' } as any);
+    const mov: any = await InventoryService.recordStockMovement({ listingId: 'L1', warehouseId: 'W1', quantity: 3, type: 'IN', reference: 'r', performedBy: 'u1' } as any);
 
     assert.equal(updated.data.quantity, 8);
     assert.equal(mov.id, 'mov-1');
@@ -47,7 +47,7 @@ test('recordStockMovement OUT decreases listing quantity', async () => {
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const mov = await InventoryService.recordStockMovement({ listingId: 'L2', warehouseId: 'W1', quantity: 4, type: 'OUT' } as any);
+    const mov: any = await InventoryService.recordStockMovement({ listingId: 'L2', warehouseId: 'W1', quantity: 4, type: 'OUT' } as any);
 
     assert.equal(updated.data.quantity, 6);
     assert.equal(mov.id, 'mov-2');
@@ -88,7 +88,7 @@ test('recordStockMovement TRANSFER does not change listing quantity', async () =
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const mov = await InventoryService.recordStockMovement({ listingId: 'L4', fromWarehouseId: 'W1', toWarehouseId: 'W2', quantity: 7, type: 'TRANSFER' } as any);
+    const mov: any = await InventoryService.recordStockMovement({ listingId: 'L4', fromWarehouseId: 'W1', toWarehouseId: 'W2', quantity: 7, type: 'TRANSFER' } as any);
 
     assert.equal(updateCalled, false);
     assert.equal(mov.id, 'mov-3');
@@ -108,7 +108,7 @@ test('takeStockSnapshot creates a snapshot with current listing quantity', async
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const snap = await InventoryService.takeStockSnapshot('L5');
+    const snap: any = await InventoryService.takeStockSnapshot('L5');
     assert.equal(snap.id, 'snap-1');
   } finally {
     prisma.$transaction = originalTx5;

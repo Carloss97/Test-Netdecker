@@ -30,7 +30,7 @@ test('transferStock moves quantity between warehouses (both exist)', async () =>
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const mov = await InventoryService.transferStock({ listingId: 'L1', fromWarehouseId: 'W1', toWarehouseId: 'W2', quantity: 3, performedBy: 'u1' } as any);
+    const mov: any = await InventoryService.transferStock({ listingId: 'L1', fromWarehouseId: 'W1', toWarehouseId: 'W2', quantity: 3, performedBy: 'u1' } as any);
 
     assert.equal(mov.id, 'mov-t1');
     assert.equal(fromUpdated.data.quantity, 7);
@@ -62,7 +62,7 @@ test('transferStock creates destination warehouse stock when missing', async () 
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const mov = await InventoryService.transferStock({ listingId: 'L2', fromWarehouseId: 'W1', toWarehouseId: 'W3', quantity: 3 } as any);
+    const mov: any = await InventoryService.transferStock({ listingId: 'L2', fromWarehouseId: 'W1', toWarehouseId: 'W3', quantity: 3 } as any);
 
     assert.equal(mov.id, 'mov-t2');
     assert.equal(fromUpdated.data.quantity, 1);
