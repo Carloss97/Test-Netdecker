@@ -83,9 +83,9 @@ export function ImportMapper() {
     setLoading(true);
     setError(null);
     setResult(null);
-    try {
+      try {
       const res = useServerMapping
-        ? await importClient.validateWithMappingServer(file, mapping, apiKey || undefined)
+        ? await importClient.validateWithMapping(file, mapping, apiKey || undefined)
         : await importClient.validateWithMapping(file, mapping, apiKey || undefined);
       setResult(res);
     } catch (err: any) {
@@ -101,9 +101,9 @@ export function ImportMapper() {
     setLoading(true);
     setError(null);
     setResult(null);
-    try {
+      try {
       const res = useServerMapping
-        ? await importClient.importWithMappingServer(file, mapping, apiKey || undefined)
+        ? await importClient.importWithMapping(file, mapping, apiKey || undefined)
         : await importClient.importWithMapping(file, mapping, apiKey || undefined);
       setResult(res);
     } catch (err: any) {

@@ -28,7 +28,7 @@ export function AdminAccountsPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     try {
-      const acc = await createAccount({ code: code.trim(), name: name.trim(), type, description: desc.trim() })
+      await createAccount({ code: code.trim(), name: name.trim(), type, description: desc.trim() })
       setMessage('Cuenta creada')
       setCode('')
       setName('')

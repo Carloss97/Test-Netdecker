@@ -14,7 +14,7 @@ test('createReservation creates a reservation record', async () => {
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const r = await ReservationService.createReservation({ listingId: 'L100', warehouseId: 'W1', quantity: 2, reservedBy: 'order-1' } as any);
+    const r: any = await ReservationService.createReservation({ listingId: 'L100', warehouseId: 'W1', quantity: 2, reservedBy: 'order-1' } as any);
 
     assert.equal(r.id, 'r-1');
     assert.equal(r.quantity, 2);
@@ -47,7 +47,7 @@ test('commitReservation creates stock movement and updates listing', async () =>
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const updated = await ReservationService.commitReservation('res-1');
+    const updated: any = await ReservationService.commitReservation('res-1');
 
     assert.equal(movementCreated, true);
     assert.equal(listingUpdated.data.quantity, 2);
@@ -88,7 +88,7 @@ test('commitReservation creates journal entries when accounts exist', async () =
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const updated = await ReservationService.commitReservation('res-je');
+    const updated: any = await ReservationService.commitReservation('res-je');
 
     // Expect two journal entries: sale and COGS
     assert.equal(created.length, 2);

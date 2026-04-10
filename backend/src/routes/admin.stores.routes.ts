@@ -43,7 +43,7 @@ router.post('/:id/rotate-key', requireApiKey, async (req: Request, res: Response
  */
 router.get('/', requireApiKey, async (_req: Request, res: Response) => {
   const stores = await StoreService.listStores();
-  res.json({ success: true, total: stores.length, stores: stores.map(s => ({ id: s.id, slug: s.slug, name: s.name })) });
+  res.json({ success: true, total: stores.length, stores: stores.map((s: any) => ({ id: s.id, slug: s.slug, name: s.name })) });
 });
 
 export default router;

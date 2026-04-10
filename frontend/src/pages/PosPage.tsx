@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './PosPage.css'
 import apiClient from '../services/api'
 import * as erp from '../services/erp'

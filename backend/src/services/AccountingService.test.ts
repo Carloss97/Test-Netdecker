@@ -18,7 +18,7 @@ test('createJournalEntry succeeds when balanced', async () => {
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const je = await AccountingService.createJournalEntry({
+    const je: any = await AccountingService.createJournalEntry({
       storeId: 'S1',
       description: 'Test entry',
       lines: [
