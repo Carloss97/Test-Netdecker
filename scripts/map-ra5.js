@@ -75,7 +75,8 @@ function getSigla(rarityText) {
   if (norm.includes('starlight')) return 'ST';
   if (norm.includes('starfoil')) return 'STF';
   if (norm.includes('pharaoh')) return 'PHS';
-  if (norm.includes('collector')) return 'COL';
+  // Treat Collector's Rare as Prismatic Collector (PC)
+  if (norm.includes('collector')) return 'PC';
   if (norm.includes('ultimate')) return 'ULT';
   if (norm.includes('ultra')) return 'UL';
   if (norm.includes('super')) return 'SU';
@@ -86,10 +87,21 @@ function getSigla(rarityText) {
 }
 
 function detectType(tags, cardName) {
-  const s = String(tags || '').toLowerCase() + ' ' + String(cardName || '').toLowerCase();
-  if (/\b(spell|magia|magic|spell card|spellcard)\b/.test(s)) return 'Magia';
-  if (/\b(trap|trampa|trap card|trapcard)\b/.test(s)) return 'Trampa';
-  if (/\b(monster|monstruo|effect|normal|fusion|xyz|pendulum|link|synchro|ritual)\b/.test(s)) return 'Monstruo';
+  const s = (String(tags || '') + ' ' + String(cardName || '')).toLowerCase();
+  if (/\b(spell|spell card|spellcard|magia|magic)\b/.test(s)) return 'Spell';
+  if (/\b(trap|trampa|trap card|trapcard)\b/.test(s)) return 'Trap';
+  if (/\b(xyz)\b/.test(s)) return 'Xyz';
+  if (/\b(link)\b/.test(s)) return 'Link';
+  if (/\b(normal|normal monster)\b/.test(s)) return 'Normal Monster';
+  if (/\b(fusion)\b/.test(s)) return 'Fusion';
+  if (/\b(pendulum)\b/.test(s)) return 'Pendulum';
+  if (/\b(synchro|syncrho)\b/.test(s)) return 'Synchro';
+  if (/\b(ritual)\b/.test(s)) return 'Ritual';
+  if (/\b(token)\b/.test(s)) return 'Token';
+  if (/\b(skill)\b/.test(s)) return 'Skill Card';
+  if (/\b(field)\b/.test(s)) return 'Field Center';
+  if (/\b(effect)\b/.test(s)) return 'Effect Monster';
+  if (/\b(monster|monstruo)\b/.test(s)) return 'Effect Monster';
   return null;
 }
 
@@ -100,11 +112,21 @@ async function fetchTypeFromYGO(cardName) {
   try {
     const res = await axios.get('https://db.ygoprodeck.com/api/v7/cardinfo.php', { params: { name: cardName }, timeout: 10000 });
     if (res && res.data && res.data.data && res.data.data.length) {
-      const typeStr = res.data.data[0].type || '';
-      let mapped = 'Monstruo';
-      if (/spell/i.test(typeStr)) mapped = 'Magia';
-      else if (/trap/i.test(typeStr)) mapped = 'Trampa';
-      else mapped = 'Monstruo';
+      const typeStr = (res.data.data[0].type || '').toLowerCase();
+      let mapped = 'Effect Monster';
+      if (/spell/i.test(typeStr)) mapped = 'Spell';
+      else if (/trap/i.test(typeStr)) mapped = 'Trap';
+      else if (/xyz/i.test(typeStr)) mapped = 'Xyz';
+      else if (/link/i.test(typeStr)) mapped = 'Link';
+      else if (/normal/i.test(typeStr)) mapped = 'Normal Monster';
+      else if (/fusion/i.test(typeStr)) mapped = 'Fusion';
+      else if (/pendulum/i.test(typeStr)) mapped = 'Pendulum';
+      else if (/synchro|syncrho/i.test(typeStr)) mapped = 'Synchro';
+      else if (/ritual/i.test(typeStr)) mapped = 'Ritual';
+      else if (/token/i.test(typeStr)) mapped = 'Token';
+      else if (/skill/i.test(typeStr)) mapped = 'Skill Card';
+      else if (/field/i.test(typeStr)) mapped = 'Field Center';
+      else if (/effect/i.test(typeStr) || /monster/i.test(typeStr)) mapped = 'Effect Monster';
       _typeCache.set(cardName, mapped);
       return mapped;
     }
@@ -112,11 +134,21 @@ async function fetchTypeFromYGO(cardName) {
     try {
       const res2 = await axios.get('https://db.ygoprodeck.com/api/v7/cardinfo.php', { params: { fname: cardName }, timeout: 10000 });
       if (res2 && res2.data && res2.data.data && res2.data.data.length) {
-        const typeStr = res2.data.data[0].type || '';
-        let mapped = 'Monstruo';
-        if (/spell/i.test(typeStr)) mapped = 'Magia';
-        else if (/trap/i.test(typeStr)) mapped = 'Trampa';
-        else mapped = 'Monstruo';
+        const typeStr = (res2.data.data[0].type || '').toLowerCase();
+        let mapped = 'Effect Monster';
+        if (/spell/i.test(typeStr)) mapped = 'Spell';
+        else if (/trap/i.test(typeStr)) mapped = 'Trap';
+        else if (/xyz/i.test(typeStr)) mapped = 'Xyz';
+        else if (/link/i.test(typeStr)) mapped = 'Link';
+        else if (/normal/i.test(typeStr)) mapped = 'Normal Monster';
+        else if (/fusion/i.test(typeStr)) mapped = 'Fusion';
+        else if (/pendulum/i.test(typeStr)) mapped = 'Pendulum';
+        else if (/synchro|syncrho/i.test(typeStr)) mapped = 'Synchro';
+        else if (/ritual/i.test(typeStr)) mapped = 'Ritual';
+        else if (/token/i.test(typeStr)) mapped = 'Token';
+        else if (/skill/i.test(typeStr)) mapped = 'Skill Card';
+        else if (/field/i.test(typeStr)) mapped = 'Field Center';
+        else if (/effect/i.test(typeStr) || /monster/i.test(typeStr)) mapped = 'Effect Monster';
         _typeCache.set(cardName, mapped);
         return mapped;
       }
@@ -124,8 +156,8 @@ async function fetchTypeFromYGO(cardName) {
       // ignore
     }
   }
-  _typeCache.set(cardName, 'Monstruo');
-  return 'Monstruo';
+  _typeCache.set(cardName, 'Effect Monster');
+  return 'Effect Monster';
 }
 
 function stripRarityFromName(rawName, rarityText) {
@@ -171,7 +203,8 @@ function canonicalRarity(rarityText) {
   if (s.includes('starfoil') || s.includes('starfoil rare')) return 'Starfoil';
   if (s.includes('starlight')) return 'Starlight';
   if (s.includes('pharaoh')) return 'Pharaoh';
-  if (s.includes('collector')) return 'Collector';
+  // Treat Collector's Rare as Prismatic Collector (page error)
+  if (s.includes('collector')) return 'Prismatic Collector';
   if (s.includes('ultimate')) return 'Ultimate';
   if (s.includes('ultra')) return 'Ultra';
   if (s.includes('super')) return 'Super';
@@ -188,6 +221,15 @@ function rewriteUrlName(name) {
     .replace(/[()\[\]\.,;:'"“”‘’]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
+}
+
+function transformImageUrl(url) {
+  if (!url) return '';
+  try {
+    return String(url).replace(/_200w\.(jpg|png)(\?.*)?$/i, '_in_1000x1000.$1');
+  } catch (e) {
+    return url;
+  }
 }
 
 async function mapRowToTemplate(csvRow) {
@@ -253,7 +295,7 @@ async function mapRowToTemplate(csvRow) {
     }
 
     if (hLower === 'image urls' || hLower === 'image url' || hLower === 'images') {
-      mapped[header] = imageUrl || '';
+      mapped[header] = transformImageUrl(imageUrl) || '';
       continue;
     }
 
