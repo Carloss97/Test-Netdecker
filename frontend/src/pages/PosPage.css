@@ -1,0 +1,44 @@
+.pos-page {
+  padding: 16px;
+}
+
+.pos-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pos-cart table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pos-cart th,
+.pos-cart td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.pos-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.pos-total {
+  font-weight: 700;
+}
+
+.pos-action {
+  background: #2b6cb0;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+}
+
+.pos-message {
+  margin-top: 8px;
+  color: #b91c1c;
+}

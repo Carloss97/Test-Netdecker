@@ -9,6 +9,7 @@ import { ImportMapper } from './pages/ImportMapper';
 import { CardSearchPage } from './pages/CardSearchPage';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import { LowStockPage } from './pages/LowStockPage';
+import { PosPage } from './pages/PosPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/import-mapper" element={<ImportMapper />} />
           <Route path="/buscar" element={<CardSearchPage />} />
           <Route path="/stock-bajo" element={<LowStockPage />} />
+          <Route path="/pos" element={<PosPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
         </Routes>
       </Layout>

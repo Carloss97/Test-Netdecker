@@ -48,6 +48,22 @@ enum OrderStatus {
   REFUNDED
 }
 
+// Accounting / ERP enums
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum ReservationStatus {
+  ACTIVE
+  RELEASED
+  COMMITTED
+  EXPIRED
+}
+
 // ============================================
 // CORE ENTITIES
 // ============================================
@@ -70,6 +86,8 @@ model Store {
   carts       Cart[]
   orders      Order[]
   priceSyncs  PriceSyncRun[]
+  accounts    Account[]
+  journalEntries JournalEntry[]
 }
 
 
@@ -193,6 +211,8 @@ model Listing {
   orderItems     OrderItem[]
   stockMovements StockMovement[]
   stockSnapshots StockSnapshot[]
+  warehouseStocks WarehouseStock[]
+  reservations    Reservation[]
 }
 
 model PriceHistory {
@@ -272,6 +292,8 @@ model Warehouse {
   stockMovementsFrom StockMovement[] @relation("StockMovement_from")
   stockMovementsTo   StockMovement[] @relation("StockMovement_to")
   stockSnapshots     StockSnapshot[]
+  warehouseStocks     WarehouseStock[]
+  reservations        Reservation[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -320,6 +342,101 @@ model StockSnapshot {
   @@index([listingId])
   @@index([warehouseId])
   @@index([takenAt])
+}
+
+// Per-warehouse on-hand quantities
+model WarehouseStock {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  quantity    Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([listingId, warehouseId])
+  @@index([warehouseId])
+  @@index([listingId])
+}
+
+// Reservations for listings (holds) — e.g., order pending payment or temporary hold
+model Reservation {
+  id           String             @id @default(cuid())
+  listingId    String
+  listing      Listing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  warehouseId  String?
+  warehouse    Warehouse?         @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+
+  quantity     Int
+  reservedBy   String?            // orderId, cart session, or user id
+  status       ReservationStatus  @default(ACTIVE)
+  expiresAt    DateTime?
+
+  createdAt    DateTime           @default(now())
+
+  @@index([listingId])
+  @@index([warehouseId])
+  @@index([status])
+}
+
+// Accounting models: basic double-entry bookkeeping primitives
+model Account {
+  id        String    @id @default(cuid())
+  storeId   String?
+  store     Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  code      String
+  name      String
+  type      AccountType
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  journalLines JournalLine[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+}
+
+model JournalEntry {
+  id          String    @id @default(cuid())
+  storeId     String?
+  store       Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  entryNumber Int?
+  description String?
+  date        DateTime  @default(now())
+  totalDebit  Float
+  totalCredit Float
+  createdAt   DateTime  @default(now())
+
+  lines       JournalLine[]
+
+  @@index([storeId])
+  @@index([date])
+}
+
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  accountId      String
+  account        Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  debit          Float        @default(0)
+  credit         Float        @default(0)
+  description    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([journalEntryId])
+  @@index([accountId])
 }
 
 // ============================================
