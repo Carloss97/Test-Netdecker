@@ -65,5 +65,36 @@ Notas operacionales
 - Evitar cambios que borren columnas con datos importantes sin una estrategia de migración en dos pasos (crear nueva columna → backfill → cambiar lecturas → borrar antigua).
 - Para cambios destructivos: 1) añadir columna nueva, 2) deploy que escribe en ambas, 3) backfill, 4) cambiar a la nueva columna, 5) deploy que elimina la antigua.
 
+Backfill: warehouse stock (por-warehouse)
+----------------------------------------
+
+Este proyecto añade un modelo de `WarehouseStock` y movimientos de stock. El script de backfill `backend/scripts/backfill-warehouse-stock.ts` soporta modo `dry-run` (por defecto) y `--apply` para ejecutar cambios.
+
+Recomendación de pasos en `staging`:
+
+1. Hacer backup de la DB de staging (ver sección Backups arriba).
+
+2. Ejecutar dry-run para validar el número de listings afectados (no muta la DB):
+
+```bash
+# desde el root del repo (ajusta DATABASE_URL al staging)
+DATABASE_URL="$STAGING_DATABASE_URL" npx tsx backend/scripts/backfill-warehouse-stock.ts --limit 100
+```
+
+3. Revisar la salida y muestreos. Si todo luce correcto, ejecutar en apply (sin `--limit` para procesar todo):
+
+```bash
+DATABASE_URL="$STAGING_DATABASE_URL" npx tsx backend/scripts/backfill-warehouse-stock.ts --apply
+```
+
+4. Verificar en staging:
+
+- Revisar tablas `WarehouseStock`, `StockSnapshot` y `StockMovement` para muestras aleatorias.
+- Ejecutar smoke tests: `GET /api/health`, luego pruebas manuales de POS y reservas.
+
+5. Si algo falla, restaurar el backup y revisar logs antes de intentar nuevamente.
+
+Nota: el script es idempotente — detecta movimientos con `reference: migration:initial-stock` y evita crear duplicados. Aun así, siempre validar en staging antes de producción.
+
 ---
 Archivo creado automáticamente por el agente para facilitar despliegues seguros.

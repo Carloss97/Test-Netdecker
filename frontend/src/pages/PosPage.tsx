@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './PosPage.css'
 import apiClient from '../services/api'
 import * as erp from '../services/erp'
@@ -35,6 +35,8 @@ export function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [message, setMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [offlineQueueEntries, setOfflineQueueEntries] = useState<Array<{ createdAt: string; cart: CartItem[] }>>([])
+  const searchDebounce = useRef<any>(null)
 
   const total = cart.reduce((sum, it) => sum + it.subtotal, 0)
 
@@ -48,6 +50,15 @@ export function PosPage() {
       setMessage('Error buscando cartas')
     }
   }
+
+  useEffect(() => {
+    // Debounce search while typing
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    searchDebounce.current = setTimeout(() => {
+      if (query) searchCards()
+    }, 350)
+    return () => { if (searchDebounce.current) clearTimeout(searchDebounce.current) }
+  }, [query])
 
   async function loadListingsForCard(cardId: string) {
     try {
@@ -80,6 +91,7 @@ export function PosPage() {
       list.push({ createdAt: new Date().toISOString(), cart: sale })
       localStorage.setItem(OFFLINE_KEY, JSON.stringify(list))
       setMessage('Venta encolada para reintento offline')
+      loadOfflineQueue()
     } catch (err) {
       console.error('offline save failed', err)
       setMessage('No fue posible encolar la venta')
@@ -111,9 +123,47 @@ export function PosPage() {
         localStorage.removeItem(OFFLINE_KEY)
         setMessage('Cola offline procesada con éxito')
       }
+      loadOfflineQueue()
     } catch (err) {
       console.error('processOfflineQueue error', err)
     }
+  }
+
+  function loadOfflineQueue() {
+    try {
+      const raw = localStorage.getItem(OFFLINE_KEY)
+      const list = raw ? JSON.parse(raw) as Array<{ createdAt: string; cart: CartItem[] }> : []
+      setOfflineQueueEntries(list)
+    } catch (err) {
+      console.error('loadOfflineQueue failed', err)
+      setOfflineQueueEntries([])
+    }
+  }
+
+  async function processSingleEntry(index: number) {
+    try {
+      const entry = offlineQueueEntries[index]
+      if (!entry) return
+      for (const it of entry.cart) {
+        await erp.createAndCommitReservation(it.id, it.qty)
+      }
+      // remove processed entry
+      const copy = [...offlineQueueEntries]
+      copy.splice(index, 1)
+      localStorage.setItem(OFFLINE_KEY, JSON.stringify(copy))
+      setOfflineQueueEntries(copy)
+      setMessage('Entrada procesada')
+    } catch (err) {
+      console.error('processSingleEntry error', err)
+      setMessage('No fue posible procesar la entrada')
+    }
+  }
+
+  function removeOfflineEntry(index: number) {
+    const copy = [...offlineQueueEntries]
+    copy.splice(index, 1)
+    localStorage.setItem(OFFLINE_KEY, JSON.stringify(copy))
+    setOfflineQueueEntries(copy)
   }
 
   useEffect(() => {
@@ -155,6 +205,10 @@ export function PosPage() {
       <div className="pos-controls">
         <input aria-label="buscar" placeholder="Buscar por nombre de carta" value={query} onChange={(e) => setQuery(e.target.value)} />
         <button onClick={searchCards}>Buscar</button>
+        <div style={{ marginLeft: 12 }}>
+          <strong>Cola offline:</strong> {offlineQueueEntries.length}
+          <button style={{ marginLeft: 8 }} onClick={processOfflineQueue} disabled={!offlineQueueEntries.length}>Procesar cola</button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
@@ -229,6 +283,22 @@ export function PosPage() {
             </div>
             {message && <div style={{ marginTop: 8 }}>{message}</div>}
           </div>
+          {offlineQueueEntries.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <h4>Cola offline (entradas)</h4>
+              <ul>
+                {offlineQueueEntries.map((e, i) => (
+                  <li key={e.createdAt} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <div>{new Date(e.createdAt).toLocaleString()} — {e.cart.length} ítems</div>
+                    <div>
+                      <button onClick={() => processSingleEntry(i)}>Reintentar</button>
+                      <button onClick={() => removeOfflineEntry(i)} style={{ marginLeft: 8 }}>Eliminar</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

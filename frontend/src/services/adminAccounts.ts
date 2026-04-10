@@ -22,4 +22,4 @@ export async function deleteAccount(id: string) {
   return data;
 }
 
-export default { getAccounts, createAccount };
+export default { getAccounts, createAccount, updateAccount, deleteAccount };

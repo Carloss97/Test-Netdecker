@@ -121,10 +121,6 @@ model Listing {
     stockSnapshots StockSnapshot[]
     warehouseStocks WarehouseStock[]
     reservations    Reservation[]
-  stockMovements StockMovement[]
-  stockSnapshots StockSnapshot[]
-  warehouseStocks WarehouseStock[]
-  reservations    Reservation[]
 }
 
 model PriceHistory {
