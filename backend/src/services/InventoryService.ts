@@ -1,5 +1,5 @@
 import prisma from '../utils/db.js';
-import { CardCondition, TCGType } from '@prisma/client';
+import { CardCondition, TCGType, StockMovementType } from '@prisma/client';
 import { PriceService } from './PriceService.js';
 import { createHash } from 'node:crypto';
 import ExcelJS from 'exceljs';
@@ -375,6 +375,78 @@ export class InventoryService {
       pageSize,
       totalPages: Math.max(Math.ceil(total / pageSize), 1)
     };
+  }
+
+  // ----- ERP inventory helpers -----
+  static async recordStockMovement(input: {
+    listingId: string;
+    warehouseId?: string | null;
+    fromWarehouseId?: string | null;
+    toWarehouseId?: string | null;
+    quantity: number;
+    type: StockMovementType | string;
+    reference?: string | null;
+    performedBy?: string | null;
+    notes?: string | null;
+  }) {
+    // Use a transaction to create movement and update listing atomically
+    return prisma.$transaction(async (tx: any) => {
+      const listing = await tx.listing.findUnique({ where: { id: input.listingId } });
+      if (!listing) throw new Error('Listing not found');
+
+      const qty = Number(input.quantity || 0);
+
+      // Apply business rules depending on movement type
+      const type = String(input.type);
+
+      if (type === 'IN') {
+        const newQuantity = Number(listing.quantity || 0) + qty;
+        await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity, ...(newQuantity > 0 ? { everHadStock: true } : {}) } });
+      } else if (type === 'OUT') {
+        if (Number(listing.quantity || 0) < qty) throw new Error('Insufficient stock');
+        const newQuantity = Number(listing.quantity || 0) - qty;
+        await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity } });
+      } else if (type === 'TRANSFER') {
+        // Transfer does not change global listing.quantity in current model
+      } else if (type === 'ADJUST') {
+        const newQuantity = Number(listing.quantity || 0) + qty;
+        if (newQuantity < 0) throw new Error('Resulting quantity cannot be negative');
+        await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity } });
+      }
+
+      const movement = await tx.stockMovement.create({
+        data: {
+          listingId: input.listingId,
+          warehouseId: input.warehouseId || null,
+          fromWarehouseId: input.fromWarehouseId || null,
+          toWarehouseId: input.toWarehouseId || null,
+          quantity: qty,
+          type: String(input.type) as any,
+          reference: input.reference || null,
+          performedBy: input.performedBy || null,
+          notes: input.notes || null,
+        }
+      });
+
+      return movement;
+    });
+  }
+
+  static async takeStockSnapshot(listingId: string, warehouseId?: string | null) {
+    return prisma.$transaction(async (tx: any) => {
+      const listing = await tx.listing.findUnique({ where: { id: listingId } });
+      if (!listing) throw new Error('Listing not found');
+
+      const snapshot = await tx.stockSnapshot.create({
+        data: {
+          listingId,
+          warehouseId: warehouseId || null,
+          quantity: listing.quantity,
+        }
+      });
+
+      return snapshot;
+    });
   }
 
   static async getImportsSimple(limit: number = 50) {
