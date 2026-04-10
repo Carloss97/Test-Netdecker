@@ -198,6 +198,18 @@ export async function exportInventoryCsv(params?: {
   return response.data as Blob;
 }
 
+export async function exportInventoryXlsxDavid(params?: {
+  scope?: 'edition' | 'tcg' | 'all';
+  editionId?: string;
+  tcgId?: string;
+}) {
+  const response = await apiClient.get('/inventory/export-david-xlsx', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data as Blob;
+}
+
 export async function getInventoryImports(params?: {
   page?: number;
   pageSize?: number;

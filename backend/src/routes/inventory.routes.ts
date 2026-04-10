@@ -7,6 +7,8 @@ import multer from 'multer';
 import { z } from 'zod';
 import requireApiKey from '../middleware/requireApiKey.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import ExcelJS from 'exceljs';
+import axios from 'axios';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -187,6 +189,275 @@ router.get('/export-csv', async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
   res.send(csv);
+});
+
+/**
+ * GET /api/inventory/export-david-xlsx?scope=edition|tcg|all&editionId=...&tcgId=...
+ * Exports inventory in the custom "David" XLSX format used by the mapping scripts.
+ */
+router.get('/export-david-xlsx', async (req: Request, res: Response) => {
+  const scopeRaw = String(req.query.scope || 'all').toLowerCase();
+  const scope = ['edition', 'tcg', 'all'].includes(scopeRaw) ? (scopeRaw as 'edition' | 'tcg' | 'all') : 'all';
+
+  const editionId = req.query.editionId ? String(req.query.editionId) : undefined;
+  const tcgId = req.query.tcgId ? String(req.query.tcgId) : undefined;
+
+  const rows = await InventoryService.getInventoryForExport({ scope, editionId, tcgId });
+
+  // Helper functions (kept local to route to mirror the mapping script)
+  function computeCLP(referencePrice?: number, marginMultiplier?: number) {
+    const ref = Number(referencePrice || 0) || 0;
+    const margin = Number(marginMultiplier || 1) || 1;
+    return ref * 1000 * margin;
+  }
+
+  function getSigla(rarityText?: string) {
+    const s = String(rarityText || '').toLowerCase();
+    const norm = s.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!norm) return '';
+    if (norm.includes('platinum') && norm.includes('secret')) return 'PLS';
+    if (norm.includes('prismatic secret')) return 'PRSE';
+    if (norm.includes('prismatic collector')) return 'PC';
+    if (norm.includes('prismatic ultimate')) return 'PU';
+    if (norm.includes('ghost gold')) return 'GHG';
+    if (norm.includes('ghost')) return 'GH';
+    if (norm.includes('gold secret')) return 'GLS';
+    if (norm.includes('rare gold') || norm.includes('gold rare')) return 'RAG';
+    if (norm.includes('gold') && norm.includes('rare')) return 'GLR';
+    if (norm.includes('starlight')) return 'ST';
+    if (norm.includes('starfoil')) return 'STF';
+    if (norm.includes('pharaoh')) return 'PHS';
+    // General behaviour: Collector remains COL (do NOT auto-convert to PC)
+    if (norm.includes('collector')) return 'COL';
+    if (norm.includes('ultimate')) return 'ULT';
+    if (norm.includes('ultra')) return 'UL';
+    if (norm.includes('super')) return 'SU';
+    if (norm.includes('secret')) return 'SEC';
+    if (norm.includes('rare')) return 'RA';
+    if (norm.includes('common') || norm.includes('comun')) return 'CO';
+    return norm.split(' ').map(w => w[0] ? w[0].toUpperCase() : '').join('').slice(0,3).toUpperCase();
+  }
+
+  function stripRarityFromName(rawName?: string, rarityText?: string) {
+    if (!rawName) return '';
+    let name = String(rawName).trim();
+    const keywords = [
+      'rare', 'collector', "collector's", 'secret', 'ultra', 'ultimate', 'platinum', 'ghost', 'gold', 'starlight', 'prismatic', 'mosaic'
+    ];
+
+    const paren = name.match(/^(.*)\s*\(([^)]+)\)\s*$/);
+    if (paren) {
+      const inside = paren[2].toLowerCase();
+      if (keywords.some(k => inside.includes(k))) return paren[1].trim();
+    }
+
+    const dash = name.match(/^(.*)\s+-\s+(.+)$/);
+    if (dash) {
+      const suffix = dash[2].toLowerCase();
+      if (keywords.some(k => suffix.includes(k))) return dash[1].trim();
+    }
+
+    if (rarityText) {
+      const rnorm = String(rarityText).toLowerCase().trim();
+      if (rnorm && name.toLowerCase().endsWith(rnorm)) {
+        return name.slice(0, -rnorm.length).replace(/[-\s]+$/,'').trim();
+      }
+    }
+
+    return name;
+  }
+
+  function canonicalRarity(rarityText?: string) {
+    const s = String(rarityText || '').toLowerCase();
+    if (!s) return '';
+    if (s.includes('platinum secret')) return 'Platinum Secret';
+    if (s.includes('prismatic secret')) return 'Prismatic Secret';
+    if (s.includes('prismatic collector')) return 'Prismatic Collector';
+    if (s.includes('prismatic ultimate')) return 'Prismatic Ultimate';
+    if (s.includes('ghost gold')) return 'Ghost Gold';
+    if (s.includes('ghost')) return 'Ghost';
+    if (s.includes('gold secret')) return 'Gold Secret';
+    if (s.includes('rare gold') || s.includes('gold rare')) return 'Rare Gold';
+    if (s.includes('starfoil') || s.includes('starfoil rare')) return 'Starfoil';
+    if (s.includes('starlight')) return 'Starlight';
+    if (s.includes('pharaoh')) return 'Pharaoh';
+    // Collector stays Collector in the general script
+    if (s.includes('collector')) return 'Collector';
+    if (s.includes('ultimate')) return 'Ultimate';
+    if (s.includes('ultra')) return 'Ultra';
+    if (s.includes('super')) return 'Super';
+    if (s.includes('secret')) return 'Secret';
+    if (s.includes('rare') || s.includes("collector's rare") ) return 'Rare';
+    if (s.includes('common') || s.includes('comun')) return 'Common';
+    return rarityText || '';
+  }
+
+  function rewriteUrlName(name?: string) {
+    if (!name) return '';
+    return String(name)
+      .replace(/[()\[\]\.,;:'"“”‘’]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  function transformImageUrl(url?: string) {
+    if (!url) return '';
+    try {
+      return String(url).replace(/_200w\.(jpg|png)(\?.*)?$/i, '_in_1000x1000.$1');
+    } catch (e) {
+      return url || '';
+    }
+  }
+
+  function detectType(tags?: string, cardName?: string) {
+    const s = (String(tags || '') + ' ' + String(cardName || '')).toLowerCase();
+    if (/\b(spell|spell card|spellcard|magia|magic)\b/.test(s)) return 'Spell';
+    if (/\b(trap|trampa|trap card|trapcard)\b/.test(s)) return 'Trap';
+    if (/\b(xyz)\b/.test(s)) return 'Xyz';
+    if (/\b(link)\b/.test(s)) return 'Link';
+    if (/\b(normal|normal monster)\b/.test(s)) return 'Normal Monster';
+    if (/\b(fusion)\b/.test(s)) return 'Fusion';
+    if (/\b(pendulum)\b/.test(s)) return 'Pendulum';
+    if (/\b(synchro|syncrho)\b/.test(s)) return 'Synchro';
+    if (/\b(ritual)\b/.test(s)) return 'Ritual';
+    if (/\b(token)\b/.test(s)) return 'Token';
+    if (/\b(skill)\b/.test(s)) return 'Skill Card';
+    if (/\b(field)\b/.test(s)) return 'Field Center';
+    if (/\b(effect)\b/.test(s)) return 'Effect Monster';
+    if (/\b(monster|monstruo)\b/.test(s)) return 'Effect Monster';
+    return null;
+  }
+
+  const _typeCache = new Map<string, string>();
+  async function fetchTypeFromYGO(cardName?: string) {
+    if (!cardName) return 'Effect Monster';
+    if (_typeCache.has(cardName)) return _typeCache.get(cardName) as string;
+    try {
+      const res = await axios.get('https://db.ygoprodeck.com/api/v7/cardinfo.php', { params: { name: cardName }, timeout: 10000 });
+      if (res && res.data && res.data.data && res.data.data.length) {
+        const typeStr = (res.data.data[0].type || '').toLowerCase();
+        let mapped = 'Effect Monster';
+        if (/spell/i.test(typeStr)) mapped = 'Spell';
+        else if (/trap/i.test(typeStr)) mapped = 'Trap';
+        else if (/xyz/i.test(typeStr)) mapped = 'Xyz';
+        else if (/link/i.test(typeStr)) mapped = 'Link';
+        else if (/normal/i.test(typeStr)) mapped = 'Normal Monster';
+        else if (/fusion/i.test(typeStr)) mapped = 'Fusion';
+        else if (/pendulum/i.test(typeStr)) mapped = 'Pendulum';
+        else if (/synchro|syncrho/i.test(typeStr)) mapped = 'Synchro';
+        else if (/ritual/i.test(typeStr)) mapped = 'Ritual';
+        else if (/token/i.test(typeStr)) mapped = 'Token';
+        else if (/skill/i.test(typeStr)) mapped = 'Skill Card';
+        else if (/field/i.test(typeStr)) mapped = 'Field Center';
+        else if (/effect/i.test(typeStr) || /monster/i.test(typeStr)) mapped = 'Effect Monster';
+        _typeCache.set(cardName, mapped);
+        return mapped;
+      }
+    } catch (err) {
+      try {
+        const res2 = await axios.get('https://db.ygoprodeck.com/api/v7/cardinfo.php', { params: { fname: cardName }, timeout: 10000 });
+        if (res2 && res2.data && res2.data.data && res2.data.data.length) {
+          const typeStr = (res2.data.data[0].type || '').toLowerCase();
+          let mapped = 'Effect Monster';
+          if (/spell/i.test(typeStr)) mapped = 'Spell';
+          else if (/trap/i.test(typeStr)) mapped = 'Trap';
+          else if (/xyz/i.test(typeStr)) mapped = 'Xyz';
+          else if (/link/i.test(typeStr)) mapped = 'Link';
+          else if (/normal/i.test(typeStr)) mapped = 'Normal Monster';
+          else if (/fusion/i.test(typeStr)) mapped = 'Fusion';
+          else if (/pendulum/i.test(typeStr)) mapped = 'Pendulum';
+          else if (/synchro|syncrho/i.test(typeStr)) mapped = 'Synchro';
+          else if (/ritual/i.test(typeStr)) mapped = 'Ritual';
+          else if (/token/i.test(typeStr)) mapped = 'Token';
+          else if (/skill/i.test(typeStr)) mapped = 'Skill Card';
+          else if (/field/i.test(typeStr)) mapped = 'Field Center';
+          else if (/effect/i.test(typeStr) || /monster/i.test(typeStr)) mapped = 'Effect Monster';
+          _typeCache.set(cardName, mapped);
+          return mapped;
+        }
+      } catch (err2) {
+        // ignore
+      }
+    }
+    _typeCache.set(cardName, 'Effect Monster');
+    return 'Effect Monster';
+  }
+
+  const headers = [
+    'Reference',
+    'Categories',
+    'Name',
+    'Image URLs',
+    'Weight',
+    'Price',
+    'URL rewritten',
+    'Meta title',
+    'Meta keywords',
+    'Meta description',
+    'Resumen',
+    'Caracteristicas',
+  ];
+
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet('ECL');
+  ws.addRow(headers);
+
+  for (const r of rows) {
+    const editionCode = r.editionCode || '';
+    const editionName = r.editionName || '';
+    const rarity = r.rarity || '';
+    const tags = r.tags || '';
+    const cardName = r.cardName || '';
+    const cardNumber = r.cardNumber || '';
+    const imageUrl = r.imageUrl || '';
+
+    let language = 'EN';
+    const m = String(cardNumber).match(/-([A-Z]{2,3})/i);
+    if (m) language = m[1].toUpperCase();
+
+    const clp = computeCLP(r.referencePrice, r.marginMultiplier);
+    const cleanedName = stripRarityFromName(cardName, rarity);
+    const sigla = getSigla(rarity);
+
+    let tipo = detectType(tags, cleanedName);
+    if (!tipo) {
+      // fetch remote fallback
+      // eslint-disable-next-line no-await-in-loop
+      tipo = await fetchTypeFromYGO(cleanedName);
+    }
+
+    const rareCanon = canonicalRarity(rarity) || '';
+
+    const mappedRow = [
+      `${editionCode || editionName}/${sigla || ''}/${language}`,
+      `${editionName || editionCode},Singles Ygo`,
+      cleanedName,
+      transformImageUrl(imageUrl),
+      0.002,
+      clp,
+      rewriteUrlName(cleanedName),
+      `${editionName} - ${cleanedName}`,
+      `${editionName} - ${cleanedName}`,
+      `${editionName} - ${cleanedName}`,
+      `${editionName} - ${cleanedName}`,
+      `Rareza:${rareCanon},Tipo:${tipo},Idioma:${language}`,
+    ];
+
+    ws.addRow(mappedRow);
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  const fileName =
+    scope === 'edition'
+      ? `inventory-edition-${editionId || 'unknown'}-david.xlsx`
+      : scope === 'tcg'
+        ? `inventory-tcg-${tcgId || 'unknown'}-david.xlsx`
+        : 'inventory-all-david.xlsx';
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.send(Buffer.from(buffer));
 });
 
 /**
