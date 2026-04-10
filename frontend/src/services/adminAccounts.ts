@@ -1,0 +1,15 @@
+import apiClient from './api';
+
+export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+
+export async function getAccounts(storeId?: string) {
+  const { data } = await apiClient.get('/admin/accounts', { params: storeId ? { storeId } : undefined });
+  return data.accounts ?? data;
+}
+
+export async function createAccount(params: { storeId?: string; code: string; name: string; type: AccountType; description?: string }) {
+  const { data } = await apiClient.post('/admin/accounts', params);
+  return data.account ?? data;
+}
+
+export default { getAccounts, createAccount };

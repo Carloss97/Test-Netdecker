@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import './PosPage.css'
+import * as erp from '../services/erp'
+
 
 type CartItem = {
   id: string
@@ -44,6 +46,34 @@ export function PosPage() {
   }
 
   const total = cart.reduce((sum, it) => sum + it.subtotal, 0)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  async function handleCheckout() {
+    if (!cart.length) {
+      setMessage('Carrito vacío');
+      return;
+    }
+
+    setIsProcessing(true);
+    setMessage('Procesando venta...');
+
+    try {
+      // For simplicity, create & commit reservations sequentially
+      for (const it of cart) {
+        // assume `it.id` is listingId
+        const res = await erp.createReservation({ listingId: it.id, quantity: it.qty });
+        await erp.commitReservation(res.id);
+      }
+
+      setMessage('Venta registrada correctamente');
+      setCart([]);
+    } catch (err: any) {
+      console.error(err);
+      setMessage(err?.message || 'Error al procesar la venta');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
 
   return (
     <div className="pos-page">
@@ -103,7 +133,9 @@ export function PosPage() {
       <div className="pos-summary">
         <div className="pos-total">Total: {total}</div>
         <div>
-          <button className="pos-action">Cerrar venta</button>
+          <button className="pos-action" onClick={handleCheckout} disabled={isProcessing}>
+            {isProcessing ? 'Procesando...' : 'Cerrar venta'}
+          </button>
         </div>
       </div>
 

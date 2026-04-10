@@ -10,6 +10,7 @@ import { CardSearchPage } from './pages/CardSearchPage';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import { LowStockPage } from './pages/LowStockPage';
 import { PosPage } from './pages/PosPage';
+import { AdminAccountsPage } from './pages/AdminAccountsPage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/buscar" element={<CardSearchPage />} />
           <Route path="/stock-bajo" element={<LowStockPage />} />
           <Route path="/pos" element={<PosPage />} />
+          <Route path="/admin/accounts" element={<AdminAccountsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
         </Routes>
       </Layout>
