@@ -268,6 +268,56 @@ model InventoryImport {
   @@index([storeId])
 }
 
+// Tracks per-listing changes introduced by an inventory import so we can
+// perform a partial rollback if required. Each change records the previous
+// and new quantity for a listing at import time.
+model InventoryImportChange {
+  id           String    @id @default(cuid())
+
+  importId     String
+  inventoryImport InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  listingId    String?
+  listing      Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  oldQuantity  Int?
+  newQuantity  Int
+
+  note         String?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([importId])
+  @@index([listingId])
+}
+
+// Manual approval requests for large/volatile price changes. An approval
+// records the proposed reference price and computed final price so an admin
+// can approve or reject the change.
+model PriceChangeApproval {
+  id            String   @id @default(cuid())
+
+  listingId     String?
+  listing       Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  oldFinalPrice Float?   // CLP
+  newFinalPrice Float    // CLP
+  newReferencePrice Float // USD
+  marginMultiplier Float
+  percentChange Float
+
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  requestedBy   String?
+  processedBy   String?
+  processedAt   DateTime?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([listingId])
+  @@index([status])
+}
+
 // ============================================
 // ERP: INVENTORY MODELS (MVP)
 // ============================================

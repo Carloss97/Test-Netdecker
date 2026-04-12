@@ -26,6 +26,7 @@ import externalRoutes from './routes/external.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import editionRoutes from './routes/edition.routes.js';
 import publicRoutes from './routes/public.routes.js';
+import pricingRoutes from './routes/pricing.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
@@ -63,6 +64,7 @@ app.use('/api/external', externalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/editions', editionRoutes);
 app.use('/tienda', publicRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // ============================================
 // ERROR HANDLING

@@ -113,6 +113,25 @@ router.get('/imports/export', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/inventory/imports/:id/rollback
+ * Request body: { force?: boolean }
+ * Attempts a best-effort rollback of changes recorded for the given import.
+ */
+router.post('/imports/:id/rollback', requireApiKey, async (req: Request, res: Response) => {
+  try {
+    const importId = String(req.params.id);
+    const force = Boolean((req.body && req.body.force) || false);
+
+    const result = await InventoryService.rollbackImport(importId, { force });
+    res.json({ success: true, result });
+  } catch (err) {
+    if (err instanceof NotFoundError) return res.status(404).json({ success: false, error: err.message });
+    if (err instanceof ValidationError) return res.status(400).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+});
+
+/**
  * GET /api/inventory/export-csv?scope=edition|tcg|all&editionId=...&tcgId=...
  * Exports inventory in a re-importable full-upsert CSV format.
  */

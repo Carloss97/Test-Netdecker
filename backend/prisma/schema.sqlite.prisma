@@ -121,6 +121,8 @@ model Listing {
     stockSnapshots StockSnapshot[]
     warehouseStocks WarehouseStock[]
     reservations    Reservation[]
+    inventoryImportChanges InventoryImportChange[]
+    priceChangeApprovals PriceChangeApproval[]
 }
 
 model PriceHistory {
@@ -158,6 +160,7 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
+  changes        InventoryImportChange[]
 }
 
 model Cart {
@@ -399,4 +402,46 @@ model JournalLine {
 
   @@index([journalEntryId])
   @@index([accountId])
+}
+
+// Tracks atomic changes made during an inventory import, allowing rollback
+// of per-listing quantity changes.
+model InventoryImportChange {
+  id            String   @id @default(cuid())
+  importId      String
+  import        InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  listingId     String
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  oldQuantity   Int
+  newQuantity   Int
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([importId])
+  @@index([listingId])
+}
+
+// Approval requests for price changes marked volatile by automated sync.
+model PriceChangeApproval {
+  id            String   @id @default(cuid())
+
+  listingId     String?
+  listing       Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  oldFinalPrice Float?
+  newFinalPrice Float
+  newReferencePrice Float
+  marginMultiplier Float
+  percentChange Float
+
+  status        String   @default("PENDING")
+  requestedBy   String?
+  processedBy   String?
+  processedAt   DateTime?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([listingId])
+  @@index([status])
 }
