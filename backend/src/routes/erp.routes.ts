@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../utils/db.js';
-import { InventoryService } from '../services/InventoryService.jsimport { ReservationService } from '../services/ReservationService.js';
+import { InventoryService } from '../services/InventoryService.js';
+import { ReservationService } from '../services/ReservationService.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 
 const router = express.Router();

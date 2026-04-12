@@ -11,7 +11,7 @@ test('handleStripeWebhookEvent skips when order already exists', async () => {
   try {
     prisma.order.findFirst = async () => ({ id: 'ord-existing' }) as any;
     let called = false;
-    PaymentService.processPosSale = async () => { called = true; } as any;
+    PaymentService.processPosSale = (async () => { called = true; }) as any;
 
     const event = {
       type: 'payment_intent.succeeded',
@@ -34,7 +34,7 @@ test('handleStripeWebhookEvent processes sale when not existing', async () => {
   try {
     prisma.order.findFirst = async () => null as any;
     let calledWith: any = null;
-    PaymentService.processPosSale = async (input: any) => { calledWith = input; return {}; } as any;
+    PaymentService.processPosSale = (async (input: any) => { calledWith = input; return {}; }) as any;
 
     const event = {
       type: 'payment_intent.succeeded',

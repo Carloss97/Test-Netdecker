@@ -41,23 +41,46 @@ type MinimalPrisma = {
 
 let prisma: MinimalPrisma;
 
-// Dynamically import the correct Prisma client package at runtime.
-// - PostgreSQL: `@prisma/client`
-// - SQLite: `@prisma/client_sqlite` (generated via `prisma:generate:sqlite`)
-try {
-	if (useSqlite) {
-		console.log('[DB] Attempting to load @prisma/client_sqlite...');
-		const pkg = await import('@prisma/client_sqlite');
-		const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-		prisma = new PrismaClientClass() as unknown as MinimalPrisma;
-		console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
-	} else {
-		console.log('[DB] Loading @prisma/client (Postgres)');
-		const pkg = await import('@prisma/client');
-		const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-		prisma = new PrismaClientClass() as unknown as MinimalPrisma;
-		console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
-	}
+// Allow tests to opt-out of real Prisma initialization by setting
+// `SKIP_DB_INIT=true` in the environment. This keeps tests fast and
+// avoids needing the generated Prisma clients in CI/dev shells.
+if (process.env.SKIP_DB_INIT === 'true') {
+	console.log('[DB] SKIP_DB_INIT=true: using stub Prisma client for tests');
+	const base: any = {
+		$connect: async () => {},
+		$disconnect: async () => {},
+		$transaction: async (fn: any) => {
+			if (typeof fn === 'function') return fn(base);
+			return [];
+		}
+	};
+
+	// Proxy so tests can assign model methods like `prisma.cart.findMany = ...` without errors.
+	prisma = new Proxy(base, {
+		get(target, prop) {
+			if (prop === Symbol.toStringTag) return 'PrismaStub';
+			if (!(prop in target)) (target as any)[prop] = {};
+			return (target as any)[prop];
+		}
+	}) as MinimalPrisma;
+} else {
+	// Dynamically import the correct Prisma client package at runtime.
+	// - PostgreSQL: `@prisma/client`
+	// - SQLite: `@prisma/client_sqlite` (generated via `prisma:generate:sqlite`)
+	try {
+		if (useSqlite) {
+			console.log('[DB] Attempting to load @prisma/client_sqlite...');
+			const pkg = await import('@prisma/client_sqlite');
+			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+			prisma = new PrismaClientClass() as unknown as MinimalPrisma;
+			console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
+		} else {
+			console.log('[DB] Loading @prisma/client (Postgres)');
+			const pkg = await import('@prisma/client');
+			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+			prisma = new PrismaClientClass() as unknown as MinimalPrisma;
+			console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
+		}
 
 		// Connect and log status
 		prisma.$connect().then(() => {
@@ -65,9 +88,10 @@ try {
 		}).catch((err: unknown) => {
 			console.error('[DB] PrismaClient connection error:', err instanceof Error ? err.message : String(err));
 		});
-} catch (err) {
-	console.error('[DB] Failed to initialize Prisma client:', err);
-	throw err;
+	} catch (err) {
+		console.error('[DB] Failed to initialize Prisma client:', err);
+		throw err;
+	}
 }
 
 export default prisma;

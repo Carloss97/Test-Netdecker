@@ -28,6 +28,7 @@ import editionRoutes from './routes/edition.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
+import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3333;
@@ -123,6 +124,7 @@ app.use((req: Request, res: Response) => {
 app.listen(PORT, () => {
   startPriceSyncCron();
   startCatalogSyncCron();
+    startCartCleanupCron();
 
   console.log(`
 ╔═══════════════════════════════════════════╗

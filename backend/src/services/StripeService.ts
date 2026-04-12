@@ -13,11 +13,11 @@ export class StripeService {
     // Load listings and compute total
     const listingIds = params.items.map((it) => it.listingId);
     const listings = await prisma.listing.findMany({ where: { id: { in: listingIds } } });
-    const listingMap = new Map(listings.map((l: any) => [l.id, l]));
+    const listingMap = new Map<string, any>(listings.map((l: any) => [l.id, l]));
 
     let subtotal = 0;
     for (const it of params.items) {
-      const listing = listingMap.get(it.listingId);
+      const listing = listingMap.get(it.listingId) as any;
       if (!listing) throw new Error(`Listing not found: ${it.listingId}`);
       subtotal += Number(listing.finalPrice || 0) * Number(it.quantity || 0);
     }
