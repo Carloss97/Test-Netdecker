@@ -71,12 +71,13 @@ export class CardService {
    * Search cards by name (case-insensitive, partial match)
    */
   static async searchByName(name: string, tcgId?: string, limit: number = 20) {
-    const where: Record<string, unknown> = {
-      cardName: {
-        contains: name,
-        mode: 'insensitive'
-      }
-    };
+    const useSqlite = Boolean(process.env.USE_SQLITE && process.env.USE_SQLITE !== 'false');
+
+    const cardNameFilter: Record<string, unknown> = useSqlite
+      ? { contains: name }
+      : { contains: name, mode: 'insensitive' } as any;
+
+    const where: Record<string, unknown> = { cardName: cardNameFilter };
 
     if (tcgId) {
       where.tcgId = tcgId;
@@ -95,28 +96,14 @@ export class CardService {
    */
   static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
     const normalized = code.trim();
+    const useSqlite = Boolean(process.env.USE_SQLITE && process.env.USE_SQLITE !== 'false');
+    const containsFilter = (val: string) => (useSqlite ? { contains: val } : { contains: val, mode: 'insensitive' } as any);
+
     const where: Record<string, unknown> = {
       OR: [
-        {
-          cardCode: {
-            contains: normalized,
-            mode: 'insensitive'
-          }
-        },
-        {
-          cardNumber: {
-            contains: normalized,
-            mode: 'insensitive'
-          }
-        },
-        {
-          edition: {
-            editionCode: {
-              contains: normalized,
-              mode: 'insensitive'
-            }
-          }
-        }
+        { cardCode: containsFilter(normalized) },
+        { cardNumber: containsFilter(normalized) },
+        { edition: { editionCode: containsFilter(normalized) } }
       ]
     };
 

@@ -460,3 +460,46 @@ model PriceVolatilityThreshold {
   @@index([tcg])
   @@index([editionId])
 }
+
+// Admin authentication + audit models (SQLite uses strings for enums)
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  passwordSalt String
+  role         String   @default("ADMIN")
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  sessions     AdminSession[]
+  auditTrails  AuditTrail[]
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entity     String?
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  data       String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}

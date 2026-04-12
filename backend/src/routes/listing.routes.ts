@@ -49,6 +49,20 @@ router.get('/inventory-value', async (_req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/listings/
+ * Paginated listings endpoint used by smoke checks.
+ */
+router.get('/', async (req: Request, res: Response) => {
+  const take = parseInt(String(req.query.take || '20')) || 20;
+  const skip = parseInt(String(req.query.skip || '0')) || 0;
+  const tcgId = req.query.tcgId as string | undefined;
+  const editionId = req.query.editionId as string | undefined;
+
+  const listings = await ListingService.listListings({ take, skip, tcgId, editionId });
+  res.json(listings);
+});
+
+/**
  * POST /api/listings/sync-prices
  * Bulk sync listing prices from external reference updates.
  * Body: { updates: [{ listingId: string, referencePrice: number, marginMultiplier?: number }] }

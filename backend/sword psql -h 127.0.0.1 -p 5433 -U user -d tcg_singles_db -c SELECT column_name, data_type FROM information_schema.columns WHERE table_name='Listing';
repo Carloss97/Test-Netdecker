@@ -1,0 +1,33 @@
+                                                                 Table "public.Listing"
+      Column      |              Type              | Collation | Nullable |        Default        | Storage  | Compression | Stats target | Description 
+------------------+--------------------------------+-----------+----------+-----------------------+----------+-------------+--------------+-------------
+ id               | text                           |           | not null |                       | extended |             |              | 
+ cardId           | text                           |           | not null |                       | extended |             |              | 
+ editionId        | text                           |           | not null |                       | extended |             |              | 
+ condition        | "CardCondition"                |           | not null | 'NM'::"CardCondition" | plain    |             |              | 
+ rarity           | text                           |           | not null |                       | extended |             |              | 
+ quantity         | integer                        |           | not null | 0                     | plain    |             |              | 
+ referencePrice   | double precision               |           | not null |                       | plain    |             |              | 
+ marginMultiplier | double precision               |           | not null | 1.2                   | plain    |             |              | 
+ exchangeRate     | double precision               |           | not null | 1.0                   | plain    |             |              | 
+ finalPrice       | double precision               |           | not null |                       | plain    |             |              | 
+ currency         | text                           |           | not null | 'CLP'::text           | extended |             |              | 
+ costPrice        | double precision               |           |          |                       | plain    |             |              | 
+ status           | text                           |           | not null | 'active'::text        | extended |             |              | 
+ lastSyncedAt     | timestamp(3) without time zone |           |          |                       | plain    |             |              | 
+ everHadStock     | boolean                        |           | not null | false                 | plain    |             |              | 
+ createdAt        | timestamp(3) without time zone |           | not null | CURRENT_TIMESTAMP     | plain    |             |              | 
+ updatedAt        | timestamp(3) without time zone |           | not null |                       | plain    |             |              | 
+Indexes:
+    "Listing_pkey" PRIMARY KEY, btree (id)
+    "Listing_cardId_condition_rarity_key" UNIQUE, btree ("cardId", condition, rarity)
+    "Listing_cardId_idx" btree ("cardId")
+    "Listing_quantity_idx" btree (quantity)
+Foreign-key constraints:
+    "Listing_cardId_fkey" FOREIGN KEY ("cardId") REFERENCES "Card"(id) ON UPDATE CASCADE ON DELETE CASCADE
+    "Listing_editionId_fkey" FOREIGN KEY ("editionId") REFERENCES "Edition"(id) ON UPDATE CASCADE ON DELETE CASCADE
+Referenced by:
+    TABLE ""OrderItem"" CONSTRAINT "OrderItem_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "Listing"(id) ON UPDATE CASCADE ON DELETE RESTRICT
+    TABLE ""PriceHistory"" CONSTRAINT "PriceHistory_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "Listing"(id) ON UPDATE CASCADE ON DELETE CASCADE
+Access method: heap
+

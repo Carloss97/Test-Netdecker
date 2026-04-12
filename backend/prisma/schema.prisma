@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
@@ -214,6 +215,8 @@ model Listing {
   stockSnapshots StockSnapshot[]
   warehouseStocks WarehouseStock[]
   reservations    Reservation[]
+  inventoryImportChanges InventoryImportChange[]
+  priceChangeApprovals PriceChangeApproval[]
 }
 
 model PriceHistory {
@@ -267,6 +270,7 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
+  changes        InventoryImportChange[]
 }
 
 // Tracks per-listing changes introduced by an inventory import so we can
@@ -331,6 +335,54 @@ model PriceVolatilityThreshold {
 
   @@index([tcg])
   @@index([editionId])
+}
+
+// Admin authentication + audit models
+enum AdminRole {
+  ADMIN
+  STAFF
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  passwordSalt String
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     AdminSession[]
+  auditTrails  AuditTrail[]
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entity     String?
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
 }
 
 // ============================================

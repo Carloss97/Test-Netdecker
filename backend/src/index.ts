@@ -24,6 +24,7 @@ import cartRoutes from './routes/cart.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import externalRoutes from './routes/external.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import adminAuthRoutes from './routes/admin.auth.routes.js';
 import editionRoutes from './routes/edition.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import pricingRoutes from './routes/pricing.routes.js';
@@ -65,6 +66,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/editions', editionRoutes);
 app.use('/tienda', publicRoutes);
 app.use('/api/pricing', pricingRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
 
 // ============================================
 // ERROR HANDLING

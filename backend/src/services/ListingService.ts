@@ -105,6 +105,29 @@ export class ListingService {
   }
 
   /**
+   * List listings with pagination and optional filtering.
+   */
+  static async listListings(options?: { take?: number; skip?: number; tcgId?: string; editionId?: string }) {
+    const take = options?.take ?? 20;
+    const skip = options?.skip ?? 0;
+
+    const where: Prisma.ListingWhereInput = {};
+    if (options?.tcgId || options?.editionId) {
+      where.card = {} as any;
+      if (options?.tcgId) (where.card as any).tcgId = options.tcgId;
+      if (options?.editionId) (where.card as any).editionId = options.editionId;
+    }
+
+    return prisma.listing.findMany({
+      where,
+      include: { card: { include: { tcg: true, edition: true } } },
+      take,
+      skip,
+      orderBy: { finalPrice: 'asc' }
+    });
+  }
+
+  /**
    * Update listing quantity (e.g., after purchase)
    */
   static async updateQuantity(id: string, quantity: number) {
