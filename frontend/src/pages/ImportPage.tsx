@@ -179,8 +179,7 @@ export function ImportPage() {
     setImportMsg(null);
 
     try {
-      const selected = tcgList.find((t) => t.name === exportTcg);
-      if (!selectedExportEditionId) {
+        if (!selectedExportEditionId) {
         setImportError('Selecciona una edición para exportar en formato David');
         return;
       }

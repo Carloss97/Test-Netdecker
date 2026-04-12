@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import './PosPage.css'
 import apiClient from '../services/api'
 import * as erp from '../services/erp'
+import StripeCheckout from '../components/StripeCheckout'
 
 type CartItem = {
   id: string
@@ -35,6 +36,7 @@ export function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [message, setMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showCardPayment, setShowCardPayment] = useState(false)
   const [offlineQueueEntries, setOfflineQueueEntries] = useState<Array<{ createdAt: string; cart: CartItem[] }>>([])
   const searchDebounce = useRef<any>(null)
 
@@ -108,9 +110,9 @@ export function PosPage() {
 
       for (const entry of list) {
         try {
-          for (const it of entry.cart) {
-            await erp.createAndCommitReservation(it.id, it.qty)
-          }
+          // Replay the whole cart as a single POS checkout
+          const items = entry.cart.map((it) => ({ listingId: it.id, quantity: it.qty }))
+          await erp.posCheckout({ items, paymentMethod: 'CASH' })
         } catch (err) {
           console.error('offline replay failed for entry', entry, err)
           remaining.push(entry)
@@ -144,9 +146,8 @@ export function PosPage() {
     try {
       const entry = offlineQueueEntries[index]
       if (!entry) return
-      for (const it of entry.cart) {
-        await erp.createAndCommitReservation(it.id, it.qty)
-      }
+      const items = entry.cart.map((it) => ({ listingId: it.id, quantity: it.qty }))
+      await erp.posCheckout({ items, paymentMethod: 'CASH' })
       // remove processed entry
       const copy = [...offlineQueueEntries]
       copy.splice(index, 1)
@@ -180,9 +181,8 @@ export function PosPage() {
     setMessage('Procesando venta...')
 
     try {
-      for (const it of cart) {
-        await erp.createAndCommitReservation(it.id, it.qty)
-      }
+      const items = cart.map((it) => ({ listingId: it.id, quantity: it.qty }))
+      await erp.posCheckout({ items, paymentMethod: 'CASH' })
       setCart([])
       setMessage('Venta registrada correctamente')
     } catch (err: any) {
@@ -280,9 +280,16 @@ export function PosPage() {
             <div style={{ fontWeight: 'bold' }}>Total: {total}</div>
             <div style={{ marginTop: 8 }}>
               <button className="pos-action" onClick={handleCheckout} disabled={isProcessing}>{isProcessing ? 'Procesando...' : 'Cerrar venta'}</button>
+              <button style={{ marginLeft: 8 }} onClick={() => setShowCardPayment((s) => !s)} disabled={!cart.length}>{showCardPayment ? 'Ocultar pago con tarjeta' : 'Pagar con tarjeta'}</button>
             </div>
             {message && <div style={{ marginTop: 8 }}>{message}</div>}
           </div>
+          {showCardPayment && (
+            <div style={{ marginTop: 12 }}>
+              <h4>Pagar con tarjeta</h4>
+              <StripeCheckout items={cart.map((it) => ({ listingId: it.id, quantity: it.qty }))} onSuccess={() => { setCart([]); setMessage('Pago con tarjeta y orden creada'); setShowCardPayment(false); }} />
+            </div>
+          )}
           {offlineQueueEntries.length > 0 && (
             <div style={{ marginTop: 12 }}>
               <h4>Cola offline (entradas)</h4>

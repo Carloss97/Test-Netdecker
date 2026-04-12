@@ -11,6 +11,8 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.1.0",
+    "@stripe/stripe-js": "^9.1.0",
     "axios": "^1.6.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -23,8 +25,8 @@
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
-    "happy-dom": "^20.8.9",
     "esbuild": "^0.27.7",
+    "happy-dom": "^20.8.9",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
     "vitest": "^4.1.2"

@@ -40,10 +40,31 @@ export async function createAndCommitReservation(listingId: string, quantity: nu
   return committed;
 }
 
+export async function posCheckout(params: {
+  items: { listingId: string; quantity: number }[];
+  customerEmail?: string | null;
+  paymentMethod?: string | null;
+  externalReference?: string | null;
+}) {
+  const { data } = await apiClient.post('/payments/pos-sale', params);
+  return data.order ?? data;
+}
+
+export async function createStripePaymentIntent(params: {
+  items: { listingId: string; quantity: number }[];
+  storeId?: string | null;
+  customerEmail?: string | null;
+}) {
+  const { data } = await apiClient.post('/payments/stripe/create-intent', params);
+  return data;
+}
+
 export default {
   createReservation,
   commitReservation,
   releaseReservation,
   transferStock,
   createAndCommitReservation,
+  posCheckout,
+  createStripePaymentIntent,
 };
