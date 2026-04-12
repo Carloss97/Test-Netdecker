@@ -71,3 +71,22 @@ test('addToCart throws when insufficient stock', async () => {
     prisma.orderItem.findFirst = originalOrderItemFindFirst;
   }
 });
+
+test('getOrCreateCart exposes ttlSeconds and expiresAt', async () => {
+  const originalFindFirst = prisma.cart.findFirst;
+
+  try {
+    const updatedAt = new Date(Date.now() - 30 * 1000); // updated 30s ago
+    prisma.cart.findFirst = (async () => ({ id: 'c1', sessionId: 's1', items: [], updatedAt })) as any;
+
+    process.env.CART_EXPIRY_MINUTES = '1';
+    const cart: any = await CartService.getOrCreateCart('s1');
+
+    assert.equal(typeof cart.ttlSeconds, 'number');
+    assert.ok(cart.ttlSeconds <= 60 && cart.ttlSeconds >= 0);
+    assert.ok(cart.expiresAt);
+  } finally {
+    prisma.cart.findFirst = originalFindFirst;
+    delete process.env.CART_EXPIRY_MINUTES;
+  }
+});
