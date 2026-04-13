@@ -21,6 +21,7 @@ import inventoryRoutes from './routes/inventory.routes.js';
 import erpRoutes from './routes/erp.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
 import cartRoutes from './routes/cart.routes.js';
+import ordersRoutes from './routes/orders.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import externalRoutes from './routes/external.routes.js';
 import adminRoutes from './routes/admin.routes.js';
@@ -61,6 +62,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/erp', erpRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', ordersRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/editions', editionRoutes);
@@ -124,18 +126,34 @@ app.use((req: Request, res: Response) => {
 // ============================================
 // SERVER STARTUP
 // ============================================
+// Server startup is performed from `src/server.ts` to avoid starting the
+// HTTP listener when this module is imported by tests or other tools.
+export function startServer(portArg?: number | string) {
+  const portVal = portArg ?? process.env.PORT ?? 3333;
+  const port = typeof portVal === 'string' ? Number(portVal) : portVal;
 
-app.listen(PORT, () => {
-  startPriceSyncCron();
-  startCatalogSyncCron();
+  const server = app.listen(port, () => {
+    startPriceSyncCron();
+    startCatalogSyncCron();
     startCartCleanupCron();
 
-  console.log(`
+    console.log(`
 ╔═══════════════════════════════════════════╗
 ║   TCG Singles Platform - Backend Server   ║
-║              Running on port ${PORT}              ║
+║              Running on port ${port}              ║
 ╚═══════════════════════════════════════════╝
   `);
-});
+  });
+
+  server.on('error', (err: any) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error(`[FATAL] Port ${port} already in use. Stop other processes or set PORT to a different value.`);
+      process.exit(1);
+    }
+    throw err;
+  });
+
+  return server;
+}
 
 export default app;
