@@ -65,6 +65,28 @@ enum ReservationStatus {
   EXPIRED
 }
 
+// POS / Payments enums
+enum POSSessionStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  STRIPE
+  MERCADOPAGO
+  OTHER
+}
+
 // ============================================
 // CORE ENTITIES
 // ============================================
@@ -89,6 +111,7 @@ model Store {
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
+  posSessions POSSession[]
 }
 
 
@@ -623,6 +646,56 @@ model Order {
   @@index([customerEmail])
   @@index([status])
   @@index([storeId])
+}
+
+// ============================================
+// POS SESSIONS & PAYMENT TRANSACTIONS
+// ============================================
+
+model POSSession {
+  id         String   @id @default(cuid())
+  // Public session identifier consumable by clients
+  sessionId  String   @unique @default(cuid())
+
+  storeId    String?
+  store      Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  userId     String?  // operator or customer id
+
+  // Free-form list of items in the session (snapshot)
+  items      Json?
+
+  subtotal   Float    @default(0.0)
+  tax        Float    @default(0.0)
+  total      Float    @default(0.0)
+
+  status     POSSessionStatus @default(OPEN)
+
+  transactions PaymentTransaction[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([storeId])
+}
+
+model PaymentTransaction {
+  id                 String       @id @default(cuid())
+  sessionId          String
+  session            POSSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  method             PaymentMethod @default(OTHER)
+  amount             Float
+  status             PaymentStatus @default(PENDING)
+
+  processorResponse  Json?
+  processorReference String?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([sessionId])
 }
 
 // ============================================
