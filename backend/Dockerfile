@@ -12,7 +12,7 @@ RUN npm run prisma:generate
 RUN npm run prisma:generate:sqlite
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:20 AS runner
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 

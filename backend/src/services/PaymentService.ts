@@ -28,13 +28,13 @@ export class PaymentService {
       // Fetch listings referenced by the cart
       const listingIds = input.items.map((it) => it.listingId);
       const listings = await tx.listing.findMany({ where: { id: { in: listingIds } } });
-      const listingMap = new Map(listings.map((l: any) => [l.id, l]));
+      const listingMap: Map<string, any> = new Map(listings.map((l: any) => [String((l as any).id), l as any]));
 
       let subtotal = 0;
       let totalCOGS = 0;
 
       for (const it of input.items) {
-        const listing = listingMap.get(it.listingId);
+        const listing = listingMap.get(it.listingId) as any;
         if (!listing) throw new NotFoundError(`Listing not found: ${it.listingId}`);
         const qty = Number(it.quantity || 0);
         if (qty <= 0) throw new ValidationError('Quantity must be > 0');
@@ -66,7 +66,7 @@ export class PaymentService {
 
       // Create items, stock movements and update listings
       for (const it of input.items) {
-        const listing = listingMap.get(it.listingId);
+        const listing = listingMap.get(it.listingId) as any;
         const qty = Number(it.quantity || 0);
         const unitPrice = Number(listing.finalPrice || 0);
         const subtotalItem = unitPrice * qty;

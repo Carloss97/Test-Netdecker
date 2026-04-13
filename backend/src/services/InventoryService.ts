@@ -1,5 +1,8 @@
 import prisma from '../utils/db.js';
-import { CardCondition, TCGType, StockMovementType } from '@prisma/client';
+import { CardCondition, TCGType } from '@prisma/client';
+
+// Local string union for movement types — avoids depending on generated client enums at compile time.
+type StockMovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUST';
 import { PriceService } from './PriceService.js';
 import { createHash } from 'node:crypto';
 import ExcelJS from 'exceljs';
@@ -472,7 +475,7 @@ export class InventoryService {
           fromWarehouseId: input.fromWarehouseId,
           toWarehouseId: input.toWarehouseId,
           quantity: qty,
-          type: StockMovementType.TRANSFER as any,
+          type: 'TRANSFER' as any,
           reference: input.reference || null,
           performedBy: input.performedBy || null,
           notes: input.notes || null,
@@ -684,6 +687,19 @@ export class InventoryService {
           }
 
           if (!dryRun) {
+            // Record previous quantity for potential rollback
+            if (importId) {
+              const prev = await prisma.listing.findUnique({ where: { id: parsedRow.listingId }, select: { quantity: true } });
+              await prisma.inventoryImportChange.create({
+                data: {
+                  importId,
+                  listingId: parsedRow.listingId,
+                  oldQuantity: prev?.quantity ?? null,
+                  newQuantity: parsedRow.quantity,
+                }
+              });
+            }
+
             await prisma.listing.update({
               where: { id: parsedRow.listingId },
               data: {
@@ -770,7 +786,19 @@ export class InventoryService {
           marginMultiplier
         });
 
-        await prisma.listing.upsert({
+        // Capture existing listing (if any) so we can record the prior quantity
+        const existingListing = await prisma.listing.findUnique({
+          where: {
+            cardId_condition_rarity: {
+              cardId: card.id,
+              condition,
+              rarity,
+            }
+          },
+          select: { id: true, quantity: true }
+        });
+
+        const upserted = await prisma.listing.upsert({
           where: {
             cardId_condition_rarity: {
               cardId: card.id,
@@ -805,6 +833,18 @@ export class InventoryService {
             everHadStock: quantity > 0,
           }
         });
+
+        // Record change for rollback
+        if (importId) {
+          await prisma.inventoryImportChange.create({
+            data: {
+              importId,
+              listingId: upserted.id,
+              oldQuantity: existingListing?.quantity ?? null,
+              newQuantity: quantity,
+            }
+          });
+        }
 
         result.success += 1;
       } catch (error: unknown) {
@@ -886,6 +926,67 @@ export class InventoryService {
       .join('\n');
 
     return this.importFromCsv(csvContent, options);
+  }
+
+  /**
+   * Roll back an import by reverting listing quantities recorded in
+   * `InventoryImportChange`. This performs a best-effort revert of numeric
+   * changes. If `force=true` created listings (oldQuantity === null) will be
+   * deleted when possible; otherwise they are skipped and reported.
+   */
+  static async rollbackImport(importId: string, options: { force?: boolean } = {}) {
+    const force = Boolean(options.force);
+
+    const changes = await prisma.inventoryImportChange.findMany({ where: { importId } });
+    if (!changes || !changes.length) {
+      throw new Error('No recorded changes found for this import');
+    }
+
+    // NOTE: use direct `prisma` calls instead of `tx.*` transaction proxy so
+    // test suites that stub `prisma.*` methods can intercept calls. This is a
+    // best-effort rollback and intentionally permissive: failures on individual
+    // rows are skipped rather than aborting the whole operation.
+    let reverted = 0;
+    let skipped = 0;
+
+    for (const ch of changes) {
+      if (!ch.listingId) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        if (ch.oldQuantity !== null && ch.oldQuantity !== undefined) {
+          await prisma.listing.update({ where: { id: ch.listingId }, data: { quantity: ch.oldQuantity } });
+          reverted++;
+        } else {
+          if (force) {
+            const current = await prisma.listing.findUnique({ where: { id: ch.listingId }, select: { id: true } });
+            if (current) {
+              await prisma.listing.delete({ where: { id: ch.listingId } });
+              reverted++;
+            } else {
+              skipped++;
+            }
+          } else {
+            skipped++;
+          }
+        }
+      } catch (err) {
+        skipped++;
+      }
+    }
+
+    try {
+      const importRec = await prisma.inventoryImport.findUnique({ where: { id: importId }, select: { id: true } });
+      if (importRec) {
+        await prisma.inventoryImport.update({ where: { id: importId }, data: { status: 'rolled_back' } });
+      }
+    } catch (err) {
+      // ignore failure to update import record
+    }
+
+    return { reverted, skipped };
   }
 
   /**

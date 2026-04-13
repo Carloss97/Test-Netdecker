@@ -60,10 +60,13 @@ export class CartService {
     });
 
     if (existing) {
-      return existing;
+      const expiryMinutes = Number(process.env.CART_EXPIRY_MINUTES ?? '60');
+      const expiresAt = new Date(((existing.updatedAt as Date).getTime()) + expiryMinutes * 60 * 1000);
+      const ttlSeconds = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+      return { ...existing, expiresAt, ttlSeconds } as any;
     }
 
-    return prisma.cart.create({
+    const created = await prisma.cart.create({
       data: { sessionId },
       include: {
         items: {
@@ -75,6 +78,11 @@ export class CartService {
         }
       }
     });
+
+    const expiryMinutes = Number(process.env.CART_EXPIRY_MINUTES ?? '60');
+    const expiresAt = new Date((created.updatedAt as Date).getTime() + expiryMinutes * 60 * 1000);
+    const ttlSeconds = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+    return { ...created, expiresAt, ttlSeconds } as any;
   }
 
   static async getCart(sessionId: string) {

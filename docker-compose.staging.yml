@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   backend:
-    image: ghcr.io/<YOUR_GHCR_OWNER>/test-netdecker-backend:staging-latest
+    image: ghcr.io/carloss97/test-netdecker-backend:staging-latest
     ports:
       - '3333:3333'
     env_file:

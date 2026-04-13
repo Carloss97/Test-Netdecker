@@ -5,6 +5,7 @@ type Item = { listingId: string; quantity: number };
 export class StripeService {
   static async createPaymentIntent(params: { items: Item[]; storeId?: string | null; currency?: string }) {
     // Lazy import to avoid hard dependency during tests
+    // @ts-ignore - allow dynamic runtime import when `stripe` package/types are not installed in dev
     const StripeMod: any = await import('stripe').catch(() => null);
     if (!StripeMod) throw new Error('Stripe SDK not available. Install stripe package to use this connector.');
     const Stripe = StripeMod.default || StripeMod;
@@ -13,11 +14,11 @@ export class StripeService {
     // Load listings and compute total
     const listingIds = params.items.map((it) => it.listingId);
     const listings = await prisma.listing.findMany({ where: { id: { in: listingIds } } });
-    const listingMap = new Map(listings.map((l: any) => [l.id, l]));
+    const listingMap: Map<string, any> = new Map(listings.map((l: any) => [String((l as any).id), l as any]));
 
     let subtotal = 0;
     for (const it of params.items) {
-      const listing = listingMap.get(it.listingId);
+      const listing = listingMap.get(it.listingId) as any;
       if (!listing) throw new Error(`Listing not found: ${it.listingId}`);
       subtotal += Number(listing.finalPrice || 0) * Number(it.quantity || 0);
     }
@@ -43,6 +44,7 @@ export class StripeService {
   }
 
   static verifyWebhookSignature(rawBody: Buffer, sigHeader: string | undefined, endpointSecret?: string) {
+    // @ts-ignore - runtime import of stripe; allow when types/package not present
     return import('stripe').then((StripeMod: any) => {
       const Stripe = StripeMod.default || StripeMod;
       const stripe = new Stripe(process.env.STRIPE_SECRET || '', { apiVersion: '2022-11-15' });

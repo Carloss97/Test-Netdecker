@@ -63,6 +63,7 @@ model Edition {
   @@unique([tcgId, editionCode])
   cards          Card[]
   listings       Listing[]
+  priceVolatilityThresholds PriceVolatilityThreshold[]
 }
 
 model Card {
@@ -121,6 +122,8 @@ model Listing {
     stockSnapshots StockSnapshot[]
     warehouseStocks WarehouseStock[]
     reservations    Reservation[]
+    inventoryImportChanges InventoryImportChange[]
+    priceChangeApprovals PriceChangeApproval[]
 }
 
 model PriceHistory {
@@ -158,6 +161,7 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
+  changes        InventoryImportChange[]
 }
 
 model Cart {
@@ -399,4 +403,103 @@ model JournalLine {
 
   @@index([journalEntryId])
   @@index([accountId])
+}
+
+// Tracks atomic changes made during an inventory import, allowing rollback
+// of per-listing quantity changes.
+model InventoryImportChange {
+  id            String   @id @default(cuid())
+  importId      String
+  import        InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  listingId     String
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  oldQuantity   Int
+  newQuantity   Int
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([importId])
+  @@index([listingId])
+}
+
+// Approval requests for price changes marked volatile by automated sync.
+model PriceChangeApproval {
+  id            String   @id @default(cuid())
+
+  listingId     String?
+  listing       Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  oldFinalPrice Float?
+  newFinalPrice Float
+  newReferencePrice Float
+  marginMultiplier Float
+  percentChange Float
+
+  status        String   @default("PENDING")
+  requestedBy   String?
+  processedBy   String?
+  processedAt   DateTime?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([listingId])
+  @@index([status])
+}
+
+// Configurable volatility thresholds per TCG or per Edition (SQLite variant uses strings for enums).
+model PriceVolatilityThreshold {
+  id               String   @id @default(cuid())
+  tcg              String?
+  editionId        String?
+  edition          Edition? @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  thresholdPercent Float    @default(10.0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  @@index([tcg])
+  @@index([editionId])
+}
+
+// Admin authentication + audit models (SQLite uses strings for enums)
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  passwordSalt String
+  role         String   @default("ADMIN")
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  sessions     AdminSession[]
+  auditTrails  AuditTrail[]
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entity     String?
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  data       String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
 }

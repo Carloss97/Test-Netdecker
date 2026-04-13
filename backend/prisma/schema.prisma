@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
@@ -123,6 +124,7 @@ model Edition {
   // Relations
   cards          Card[]
   listings       Listing[]
+  priceVolatilityThresholds PriceVolatilityThreshold[]
 }
 
 model Card {
@@ -213,6 +215,8 @@ model Listing {
   stockSnapshots StockSnapshot[]
   warehouseStocks WarehouseStock[]
   reservations    Reservation[]
+  inventoryImportChanges InventoryImportChange[]
+  priceChangeApprovals PriceChangeApproval[]
 }
 
 model PriceHistory {
@@ -266,6 +270,119 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
+  changes        InventoryImportChange[]
+}
+
+// Tracks per-listing changes introduced by an inventory import so we can
+// perform a partial rollback if required. Each change records the previous
+// and new quantity for a listing at import time.
+model InventoryImportChange {
+  id           String    @id @default(cuid())
+
+  importId     String
+  inventoryImport InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  listingId    String?
+  listing      Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  oldQuantity  Int?
+  newQuantity  Int
+
+  note         String?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([importId])
+  @@index([listingId])
+}
+
+// Manual approval requests for large/volatile price changes. An approval
+// records the proposed reference price and computed final price so an admin
+// can approve or reject the change.
+model PriceChangeApproval {
+  id            String   @id @default(cuid())
+
+  listingId     String?
+  listing       Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  oldFinalPrice Float?   // CLP
+  newFinalPrice Float    // CLP
+  newReferencePrice Float // USD
+  marginMultiplier Float
+  percentChange Float
+
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  requestedBy   String?
+  processedBy   String?
+  processedAt   DateTime?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([listingId])
+  @@index([status])
+}
+
+// Configurable volatility thresholds per TCG or per Edition.
+model PriceVolatilityThreshold {
+  id               String   @id @default(cuid())
+  tcg              TCGType?
+  editionId        String?
+  edition          Edition? @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  thresholdPercent Float    @default(10.0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tcg])
+  @@index([editionId])
+}
+
+// Admin authentication + audit models
+enum AdminRole {
+  ADMIN
+  STAFF
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  passwordSalt String
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     AdminSession[]
+  auditTrails  AuditTrail[]
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entity     String?
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
 }
 
 // ============================================

@@ -3,6 +3,8 @@ import { CardCondition, PriceUpdateReason } from '@prisma/client';
 import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
 import { ListingService } from './ListingService.js';
 import { PriceService } from './PriceService.js';
+import PriceApprovalService from './PriceApprovalService.js';
+import PriceThresholdService from './PriceThresholdService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
 
 export interface PriceSyncUpdateInput {
@@ -517,6 +519,8 @@ export class PriceSyncService {
                 id: true,
                 finalPrice: true,
                 marginMultiplier: true,
+                editionId: true,
+                card: { select: { tcg: { select: { name: true } } } },
               }
             });
 
@@ -533,9 +537,38 @@ export class PriceSyncService {
             });
 
             const isApiSourced = update.source === 'api';
+            const threshold = await PriceThresholdService.getThreshold(
+              (listing.card as any)?.tcg?.name ?? null,
+              listing.editionId ?? null,
+            );
+
             const isVolatile = isApiSourced && listing.finalPrice > 0
-              ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice)
+              ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice, threshold)
               : false;
+
+            // If manual approval is required for volatile changes, create an approval
+            // record and skip applying the update automatically.
+            const approvalRequired = process.env.PRICE_APPROVAL_REQUIRED === 'true';
+            if (isVolatile && approvalRequired) {
+              const percentChange = listing.finalPrice === 0
+                ? (calculated.finalPrice > 0 ? 100 : 0)
+                : ((calculated.finalPrice - listing.finalPrice) / listing.finalPrice) * 100;
+
+              await PriceApprovalService.createApproval({
+                listingId: listing.id,
+                oldFinalPrice: listing.finalPrice,
+                newFinalPrice: calculated.finalPrice,
+                newReferencePrice: update.referencePrice,
+                marginMultiplier: resolvedMargin,
+                percentChange,
+                requestedBy: input.changedBy || input.source,
+                notes: input.notes ?? (input.source === 'cron' ? 'Scheduled price sync (pending approval)' : 'Manual price sync (pending approval)'),
+              });
+
+              result.volatile += 1;
+              continue;
+            }
+
             if (isVolatile) {
               result.volatile += 1;
             }
