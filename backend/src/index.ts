@@ -50,6 +50,7 @@ import invoicesRoutes from './routes/invoices.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
+import { startInvoiceCleanupJob } from './jobs/invoiceCleanup.job.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3333;
@@ -67,6 +68,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
+
+// Serve persisted invoice PDFs (if any)
+app.use('/invoices/files', express.static(path.resolve(__dirname, '../public/invoices')));
 
 // Optionally mount /metrics route dynamically if prom-client is available
 (async () => {
@@ -167,6 +171,7 @@ export function startServer(portArg?: number | string) {
     startPriceSyncCron();
     startCatalogSyncCron();
     startCartCleanupCron();
+    startInvoiceCleanupJob();
 
     console.log(`
 ╔═══════════════════════════════════════════╗

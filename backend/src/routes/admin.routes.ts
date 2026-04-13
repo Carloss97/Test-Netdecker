@@ -9,6 +9,7 @@ import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js'
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { PriceService } from '../services/PriceService.js';
 import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
+import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import storesRoutes from './admin.stores.routes.js';
 import accountsRoutes from './admin.accounts.routes.js';
@@ -463,6 +464,7 @@ router.get('/pricing-config', async (_req: Request, res: Response) => {
         provider: exchangeRateMeta.provider || null,
         fetchedAt: exchangeRateMeta.fetchedAt || null,
       },
+      importSetSyncPricesDefault: isImportSetSyncPricesDefault(),
     },
   });
 });
@@ -504,6 +506,13 @@ router.post('/pricing-config', async (req: Request, res: Response) => {
   }
 
   const refreshed = await ExchangeRateService.getUSDtoCLPRateMeta();
+
+  // Allow admin to change the runtime default for import-set price sync behaviour
+  if (req.body?.importSetSyncPricesDefault !== undefined) {
+    const raw = req.body.importSetSyncPricesDefault;
+    const enabled = raw === true || raw === 'true' || String(raw) === '1';
+    setImportSetSyncPricesDefault(enabled);
+  }
 
   res.json({
     success: true,

@@ -4,6 +4,7 @@
 import express, { Request, Response } from 'express';
 import { CardDatabaseService } from '../services/CardDatabaseService.js';
 import { ExternalImportService } from '../services/ExternalImportService.js';
+import { isImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { CardCondition } from '@prisma/client';
 
 const router = express.Router();
@@ -182,7 +183,7 @@ router.post('/import/set', async (req: Request, res: Response) => {
     }
 
     const syncPrices = req.body.syncPrices === undefined
-      ? true
+      ? isImportSetSyncPricesDefault()
       : (req.body.syncPrices === true || req.body.syncPrices === 'true');
 
     const result = await ExternalImportService.importSet(tcg, setCode, {

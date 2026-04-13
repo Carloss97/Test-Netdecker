@@ -55,7 +55,8 @@
     "uuid": "^9.0.1",
     "zod": "^3.22.4"
     ,"prom-client": "^14.0.0",
-    "@sentry/node": "^7.0.0"
+    "@sentry/node": "^7.0.0",
+    "pdfkit": "^0.13.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import prisma from '../utils/db.js';
 import InvoiceService from './InvoiceService.js';
 
+// Avoid writing PDFs during unit tests
+process.env.SKIP_INVOICE_PDF_SAVE = 'true';
+
 test('createInvoiceForOrder creates invoice record', async () => {
   const orig = prisma.$transaction;
   try {
