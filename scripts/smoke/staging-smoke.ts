@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import axios from 'axios';
 
-const BASE = process.env.API_URL || process.env.BASE_URL || 'http://localhost:3333';
+// Default to the frontend dev server (3000) which proxies to the backend.
+const BASE = process.env.API_URL || process.env.BASE_URL || 'http://localhost:3000';
 
 async function check(path: string) {
   const url = `${BASE.replace(/\/$/, '')}${path}`;

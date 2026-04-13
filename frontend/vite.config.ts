@@ -13,7 +13,8 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:3333',
+        // Use API_URL env when provided, otherwise target backend on 3334
+        target: process.env.API_URL || 'http://localhost:3334',
         changeOrigin: true,
       }
     }
