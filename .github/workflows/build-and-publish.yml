@@ -1,0 +1,59 @@
+name: CI and Publish
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install root dependencies
+        run: npm ci
+      - name: Build (root)
+        run: npm run build --if-present
+
+  publish:
+    name: Build & Push images to GHCR
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend image and push
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/backend:staging -f backend/Dockerfile backend
+          docker push ghcr.io/${{ github.repository }}/backend:staging
+
+      - name: Build frontend image (optional)
+        run: |
+          if [ -f frontend/Dockerfile ]; then
+            docker build -t ghcr.io/${{ github.repository }}/frontend:staging -f frontend/Dockerfile frontend
+            docker push ghcr.io/${{ github.repository }}/frontend:staging
+          else
+            echo "No frontend Dockerfile, skipping frontend image build"
+          fi
+
+  deploy-staging:
+    name: Deploy to Staging (manual)
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Notify (placeholder)
+        run: echo "Deploy to staging should be implemented per infra specifics"

@@ -12,4 +12,37 @@ router.get('/', (req: Request, res: Response) => {
   });
 });
 
+// Readiness probe: checks DB and Redis availability
+router.get('/ready', async (_req: Request, res: Response) => {
+  // Check DB (Prisma) connectivity
+  try {
+    const dbMod = await import('../utils/db.js');
+    const db = dbMod.default;
+    if (!db || typeof db.$connect !== 'function') {
+      throw new Error('DB client not available');
+    }
+    // Attempt a lightweight connect (no-op if already connected)
+    await db.$connect();
+  } catch (err) {
+    return res.status(503).json({ success: false, service: 'database', message: 'Database unavailable' });
+  }
+
+  // Check Redis (optional)
+  try {
+    const redisMod = await import('../utils/redis.js');
+    if (redisMod && typeof redisMod.getRedisClient === 'function') {
+      const client = await redisMod.getRedisClient();
+      // many redis clients expose ping
+      if (typeof (client as any).ping === 'function') {
+        await (client as any).ping();
+      }
+    }
+  } catch (err) {
+    // Redis is optional; respond degraded but allow ready if DB is ok
+    return res.status(200).json({ success: true, message: 'ready (redis unavailable)' });
+  }
+
+  return res.status(200).json({ success: true, message: 'ready' });
+});
+
 export default router;

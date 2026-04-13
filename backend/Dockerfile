@@ -22,3 +22,7 @@ COPY --from=builder /usr/src/app/dist ./dist
 
 EXPOSE 3333
 CMD ["node", "dist/index.js"]
+
+# Docker healthcheck using Node to avoid relying on curl/wget availability
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+	CMD node -e "const http=require('http');http.get('http://127.0.0.1:3333/api/health/ready',res=>{process.exit(res.statusCode===200?0:1)}).on('error',()=>process.exit(1))"

@@ -10,6 +10,22 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+// Optional: initialize Sentry if DSN present (dynamic import so dependency is optional)
+if (process.env.SENTRY_DSN) {
+  import('@sentry/node')
+    .then((Sentry) => {
+      try {
+        (Sentry as any).init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV || 'development' });
+        console.log('Sentry initialized');
+      } catch (e) {
+        console.error('Sentry init error', e);
+      }
+    })
+    .catch((err) => {
+      console.error('Sentry package not available:', err?.message || err);
+    });
+}
+
 // Import error utilities
 import { ApplicationError } from './utils/errors.js';
 
@@ -50,6 +66,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
+
+// Optionally mount /metrics route dynamically if prom-client is available
+(async () => {
+  try {
+    const metricsMod = await import('./routes/metrics.routes.js');
+    app.use('/metrics', metricsMod.default);
+    console.log('Mounted /metrics endpoint');
+  } catch (err) {
+    // prom-client or metrics route not available; continue without metrics
+  }
+})();
 
 // ============================================
 // ROUTES
