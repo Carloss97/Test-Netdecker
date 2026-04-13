@@ -28,7 +28,7 @@ export class PaymentService {
       // Fetch listings referenced by the cart
       const listingIds = input.items.map((it) => it.listingId);
       const listings = await tx.listing.findMany({ where: { id: { in: listingIds } } });
-      const listingMap = new Map<string, any>(listings.map((l: any) => [l.id, l]));
+      const listingMap: Map<string, any> = new Map(listings.map((l: any) => [String((l as any).id), l as any]));
 
       let subtotal = 0;
       let totalCOGS = 0;

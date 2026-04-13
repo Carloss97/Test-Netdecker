@@ -3,3 +3,5 @@ declare module '@prisma/client_sqlite' {
   const _default: any;
   export default _default;
 }
+
+export {};

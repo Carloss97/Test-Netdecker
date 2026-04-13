@@ -70,6 +70,7 @@ if (process.env.SKIP_DB_INIT === 'true') {
 	try {
 		if (useSqlite) {
 			console.log('[DB] Attempting to load @prisma/client_sqlite...');
+			// @ts-ignore - dynamic import of generated sqlite client; ambient types may not exist in all environments
 			const pkg = await import('@prisma/client_sqlite');
 			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
 			prisma = new PrismaClientClass() as unknown as MinimalPrisma;

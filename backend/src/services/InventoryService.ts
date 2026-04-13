@@ -1,5 +1,8 @@
 import prisma from '../utils/db.js';
-import { CardCondition, TCGType, StockMovementType } from '@prisma/client';
+import { CardCondition, TCGType } from '@prisma/client';
+
+// Local string union for movement types — avoids depending on generated client enums at compile time.
+type StockMovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUST';
 import { PriceService } from './PriceService.js';
 import { createHash } from 'node:crypto';
 import ExcelJS from 'exceljs';
@@ -472,7 +475,7 @@ export class InventoryService {
           fromWarehouseId: input.fromWarehouseId,
           toWarehouseId: input.toWarehouseId,
           quantity: qty,
-          type: StockMovementType.TRANSFER as any,
+          type: 'TRANSFER' as any,
           reference: input.reference || null,
           performedBy: input.performedBy || null,
           notes: input.notes || null,
