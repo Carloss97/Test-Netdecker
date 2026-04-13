@@ -58,6 +58,11 @@ enum AccountType {
   EXPENSE
 }
 
+enum FiscalPeriodStatus {
+  OPEN
+  CLOSED
+}
+
 enum ReservationStatus {
   ACTIVE
   RELEASED
@@ -112,6 +117,7 @@ model Store {
   accounts    Account[]
   journalEntries JournalEntry[]
   posSessions POSSession[]
+  fiscalPeriods FiscalPeriod[]
 }
 
 
@@ -577,6 +583,23 @@ model JournalLine {
 
   @@index([journalEntryId])
   @@index([accountId])
+}
+
+model FiscalPeriod {
+  id        String   @id @default(cuid())
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  startDate DateTime
+  endDate   DateTime
+  status    FiscalPeriodStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([startDate])
+  @@index([endDate])
 }
 
 // ============================================

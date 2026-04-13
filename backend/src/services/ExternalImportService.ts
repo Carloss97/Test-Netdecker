@@ -8,6 +8,7 @@ import type { ExternalCard } from './CardDatabaseService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExchangeRateService } from './ExchangeRateService.js';
 import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
+import { PriceSyncService } from './PriceSyncService.js';
 
 export interface ImportExternalCardOptions {
   createListing?: boolean;
@@ -16,6 +17,7 @@ export interface ImportExternalCardOptions {
   quantity?: number;
   condition?: CardCondition;
   concurrency?: number;
+  syncPrices?: boolean;
 }
 
 export interface ImportExternalCardResult {
@@ -309,6 +311,30 @@ export class ExternalImportService {
     options: ImportExternalCardOptions = {},
   ): Promise<BulkImportResult> {
     const cards = await CardDatabaseService.getSetCards(tcg, setCode);
-    return this.bulkImportCards(cards, options);
+    const result = await this.bulkImportCards(cards, options);
+
+    // Optionally trigger a price sync for the imported edition.
+    // Only run when explicitly requested (options.syncPrices === true) to avoid
+    // surprising slow/blocking behavior for callers that don't expect a sync.
+    if (options.syncPrices === true) {
+      // Run the sync in background so the import response isn't blocked by the sync.
+      (async () => {
+        try {
+          const tcgRecord = await prisma.tCG.findFirst({ where: { name: tcg }, select: { id: true } });
+          if (!tcgRecord) return;
+
+          const edition = await prisma.edition.findFirst({ where: { tcgId: tcgRecord.id, editionCode: setCode.toUpperCase() }, select: { id: true } });
+          if (!edition) return;
+
+          console.info(`[Import] triggering background price sync for edition ${edition.id}`);
+          await PriceSyncService.runPriceSync({ source: 'manual', editionId: edition.id, fetchExternalPrices: true });
+          console.info(`[Import] background price sync completed for edition ${edition.id}`);
+        } catch (err) {
+          console.error('[Import] background price sync failed:', err instanceof Error ? err.message : err);
+        }
+      })();
+    }
+
+    return result;
   }
 }
