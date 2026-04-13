@@ -46,6 +46,7 @@ import editionRoutes from './routes/edition.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import pricingRoutes from './routes/pricing.routes.js';
 import posRoutes from './routes/pos.routes.js';
+import invoicesRoutes from './routes/invoices.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
@@ -98,6 +99,7 @@ app.use('/tienda', publicRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/pos', posRoutes);
+app.use('/api/invoices', invoicesRoutes);
 
 // ============================================
 // ERROR HANDLING

@@ -116,6 +116,7 @@ model Store {
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
+  invoices    Invoice[]
   posSessions POSSession[]
   fiscalPeriods FiscalPeriod[]
 }
@@ -669,6 +670,31 @@ model Order {
   @@index([customerEmail])
   @@index([status])
   @@index([storeId])
+}
+
+// Invoices and receipts
+model Invoice {
+  id             String    @id @default(cuid())
+
+  storeId        String?
+  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  orderId        String?
+  order          Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  journalEntryId String?
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  invoiceNumber  String    @unique
+  date           DateTime  @default(now())
+  total          Float
+  currency       String    @default("CLP")
+  pdfUrl         String?
+
+  createdAt      DateTime  @default(now())
+
+  @@index([storeId])
+  @@index([orderId])
 }
 
 // ============================================

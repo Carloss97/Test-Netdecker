@@ -10,6 +10,8 @@ export interface CatalogSyncOptions {
   initialQuantity?: number;
   marginMultiplier?: number;
   concurrency?: number;
+  /** When true, trigger a price sync for the imported edition (opt-in). Defaults to false. */
+  syncPrices?: boolean;
 }
 
 export interface CatalogSyncSetResult {
@@ -92,12 +94,14 @@ export class CatalogSyncService {
         if (!localEdition) {
           newSets += 1;
           if (!dryRun) {
-            const cards = await CardDatabaseService.getSetCards(tcg, editionCode);
-            const importResult = await ExternalImportService.bulkImportCards(cards, {
+            // Use ExternalImportService.importSet so the import logic and the
+            // optional background price sync are centralized in one place.
+            const importResult = await ExternalImportService.importSet(tcg, editionCode, {
               createListing: options.createListings !== false,
               quantity: options.initialQuantity ?? 0,
               marginMultiplier: options.marginMultiplier ?? DEFAULT_MARGIN_MULTIPLIER,
               concurrency: options.concurrency ?? 4,
+              syncPrices: options.syncPrices === true,
             });
 
             createdCards += importResult.created;
@@ -109,7 +113,7 @@ export class CatalogSyncService {
               setName: externalSet.name,
               imported: true,
               reason,
-              totalCards: cards.length,
+              totalCards: importResult.total,
               created: importResult.created,
               updated: importResult.updated,
               skipped: importResult.skipped,

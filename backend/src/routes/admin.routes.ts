@@ -294,6 +294,7 @@ router.post('/catalog/sync', async (req: Request, res: Response) => {
     initialQuantity: req.body?.initialQuantity ? parseInt(req.body.initialQuantity, 10) : 0,
     marginMultiplier: req.body?.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
     concurrency: req.body?.concurrency ? parseInt(req.body.concurrency, 10) : undefined,
+    syncPrices: req.body?.syncPrices === true || req.body?.syncPrices === 'true',
   });
 
   res.json({ success: true, ...result });
