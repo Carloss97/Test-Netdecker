@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import OrderService from '../services/OrderService.js';
 import { ValidationError } from '../utils/errors.js';
+import OrderReceiptPdfService from '../services/OrderReceiptPdfService.js';
 
 const router = express.Router();
 
@@ -41,6 +42,22 @@ router.post('/:id/deliver', async (req: Request, res: Response) => {
   const id = String(req.params.id);
   const updated = await OrderService.deliverOrder(id, null);
   res.json({ success: true, order: updated });
+});
+
+router.get('/:id/receipt', async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  try {
+    const buf = await OrderReceiptPdfService.generatePdfForOrder(id);
+    const order = await (await import('../utils/db.js')).default.order.findUnique({ where: { id } });
+    const filename = order ? `receipt-${order.orderNumber || id}.pdf` : `receipt-${id}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buf);
+  } catch (err: any) {
+    console.error('Order receipt error', err?.message || err);
+    res.status(404).json({ success: false, message: 'Receipt not available' });
+  }
 });
 
 export default router;

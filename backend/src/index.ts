@@ -46,6 +46,8 @@ import editionRoutes from './routes/edition.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import pricingRoutes from './routes/pricing.routes.js';
 import posRoutes from './routes/pos.routes.js';
+import cashSessionsRoutes from './routes/cashSessions.routes.js';
+import posCashRoutes from './routes/pos.cash.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
@@ -71,6 +73,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Serve persisted invoice PDFs (if any)
 app.use('/invoices/files', express.static(path.resolve(__dirname, '../public/invoices')));
+app.use('/receipts/files', express.static(path.resolve(__dirname, '../public/receipts')));
+app.use('/receipts/files', express.static(path.resolve(__dirname, '../public/receipts')));
 
 // Optionally mount /metrics route dynamically if prom-client is available
 (async () => {
@@ -103,6 +107,7 @@ app.use('/tienda', publicRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/pos', posRoutes);
+app.use('/api/pos/cash-sessions', cashSessionsRoutes);
 app.use('/api/invoices', invoicesRoutes);
 
 // ============================================

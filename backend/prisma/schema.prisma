@@ -113,11 +113,12 @@ model Store {
   imports     InventoryImport[]
   carts       Cart[]
   orders      Order[]
+  posSessions POSSession[]
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
   invoices    Invoice[]
-  posSessions POSSession[]
+  cashSessions CashSession[]
   fiscalPeriods FiscalPeriod[]
 }
 
@@ -564,6 +565,7 @@ model JournalEntry {
   createdAt   DateTime  @default(now())
 
   lines       JournalLine[]
+  invoices    Invoice[]
 
   @@index([storeId])
   @@index([date])
@@ -656,6 +658,7 @@ model Order {
   status         OrderStatus  @default(PENDING)
   
   items          OrderItem[]
+  invoices       Invoice[]
   
   subtotal       Float
   tax            Float     @default(0.0)
@@ -663,6 +666,7 @@ model Order {
   
   shippingAddress String?
   notes          String?
+  receiptUrl     String?
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -729,6 +733,28 @@ model POSSession {
   @@index([storeId])
 }
 
+model CashSession {
+  id           String   @id @default(cuid())
+  sessionId    String   @unique @default(cuid())
+
+  storeId      String?
+  store        Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  openedBy     String?
+  closedBy     String?
+
+  startingCash Float    @default(0.0)
+  endingCash   Float?
+
+  status       POSSessionStatus @default(OPEN)
+
+  createdAt    DateTime @default(now())
+  closedAt     DateTime?
+
+  @@index([sessionId])
+  @@index([storeId])
+}
+
 model PaymentTransaction {
   id                 String       @id @default(cuid())
   sessionId          String
@@ -746,6 +772,10 @@ model PaymentTransaction {
 
   @@index([sessionId])
 }
+
+// Cash session for cashier shifts (open/close)
+// Cash session for cashier shifts (open/close)
+// NOTE: unified CashSession model exists above; duplicate block removed.
 
 // ============================================
 // EXCHANGE RATES (CACHE)

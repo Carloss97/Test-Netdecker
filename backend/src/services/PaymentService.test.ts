@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import prisma from '../utils/db.js';
 import PaymentService from './PaymentService.js';
 
+// Avoid generating receipts during unit tests
+process.env.SKIP_ORDER_RECEIPT_SAVE = 'true';
+
 test('processPosSale creates order and reduces stock', async () => {
   const originalTx = prisma.$transaction;
 

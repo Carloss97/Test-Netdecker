@@ -39,8 +39,39 @@ export async function cleanupOldInvoices() {
       }
     }
 
-    console.log(`[InvoiceCleanup] Deleted ${deleted} files older than ${retentionDays} days from ${storageDir}`);
-    return { deleted, storageDir, retentionDays };
+    // Also handle receipts directory
+    const receiptsDir = storageDir.replace('/invoices', '/receipts');
+    let receiptsDeleted = 0;
+    try {
+      const rfiles = await fs.readdir(receiptsDir);
+      for (const file of rfiles) {
+        if (!file.toLowerCase().endsWith('.pdf')) continue;
+        const fullPath = path.join(receiptsDir, file);
+        const stat = await fs.stat(fullPath);
+        const ageDays = (Date.now() - stat.mtimeMs) / (1000 * 60 * 60 * 24);
+        if (ageDays > retentionDays) {
+          await fs.unlink(fullPath);
+          receiptsDeleted++;
+
+          const base = file.slice(0, -4);
+          // Try to resolve order by orderNumber or id
+          let order = await prisma.order.findFirst({ where: { orderNumber: base } });
+          if (!order) order = await prisma.order.findUnique({ where: { id: base } });
+          if (order && order.receiptUrl) {
+            try {
+              await prisma.order.update({ where: { id: order.id }, data: { receiptUrl: null } });
+            } catch (e) {
+              console.error('Failed to clear receiptUrl for order', order.id, e);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // receipts dir may not exist
+    }
+
+    console.log(`[InvoiceCleanup] Deleted ${deleted} invoice files and ${receiptsDeleted} receipt files older than ${retentionDays} days from ${storageDir} / ${receiptsDir}`);
+    return { deleted, receiptsDeleted, storageDir, receiptsDir, retentionDays };
   } catch (err: any) {
     if (err && (err as any).code === 'ENOENT') {
       console.log(`[InvoiceCleanup] Storage dir not found: ${storageDir}`);

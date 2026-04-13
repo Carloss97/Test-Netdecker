@@ -1,5 +1,11 @@
 import prisma from '../utils/db.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
+import OrderReceiptPdfService from './OrderReceiptPdfService.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class PaymentService {
   static generateOrderNumber() {
@@ -24,7 +30,7 @@ export class PaymentService {
       throw new ValidationError('Cart items are required');
     }
 
-    return prisma.$transaction(async (tx: any) => {
+    const order = await prisma.$transaction(async (tx: any) => {
       // Fetch listings referenced by the cart
       const listingIds = input.items.map((it) => it.listingId);
       const listings = await tx.listing.findMany({ where: { id: { in: listingIds } } });
@@ -143,7 +149,36 @@ export class PaymentService {
 
       return order;
     });
+
+    // Persist receipt outside transaction (best-effort)
+    try {
+      await persistReceiptIfNeeded(order);
+    } catch (err) {
+      // Do not fail the sale if receipt persistence fails
+      console.error('persistReceiptIfNeeded error', err);
+    }
+
+    return order;
   }
 }
 
 export default PaymentService;
+// After creating order in transaction, optionally generate and persist a receipt
+// Note: This helper is executed outside the transaction to avoid locking issues.
+export async function persistReceiptIfNeeded(order: any) {
+  if (!order || !order.id) return;
+  if (process.env.SKIP_ORDER_RECEIPT_SAVE === 'true') return;
+
+  try {
+    const pdfBuffer = await OrderReceiptPdfService.generatePdfForOrder(order.id);
+    const storageDir = process.env.RECEIPT_STORAGE_DIR ? path.resolve(process.env.RECEIPT_STORAGE_DIR) : path.resolve(__dirname, '../../public/receipts');
+    await fs.mkdir(storageDir, { recursive: true });
+    const filename = `${order.orderNumber || order.id}.pdf`;
+    const filePath = path.join(storageDir, filename);
+    await fs.writeFile(filePath, pdfBuffer);
+    const receiptUrl = `/receipts/files/${filename}`;
+    try { await prisma.order.update({ where: { id: order.id }, data: { receiptUrl } }); } catch (e) { console.error('Failed to update order with receiptUrl', e); }
+  } catch (err: any) {
+    console.error('Failed to persist order receipt', err?.message || err);
+  }
+}
