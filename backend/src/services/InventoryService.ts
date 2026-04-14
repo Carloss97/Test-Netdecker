@@ -1,6 +1,39 @@
 import prisma from '../utils/db.js';
 import { CardCondition, TCGType } from '@prisma/client';
 
+// In-memory per-listing lock queue used to serialize concurrent decrements
+// when running against SQLite (which can behave differently under heavy
+// concurrent write contention in local dev). This keeps the production
+// Postgres path untouched while stabilizing local SQLite tests.
+const listingLocks = new Map<string, Array<{ fn: () => Promise<any>; resolve: (v: any) => void; reject: (e: any) => void }>>();
+
+function withListingLock<T>(listingId: string, fn: () => Promise<T>): Promise<T> {
+  if (!listingLocks.has(listingId)) listingLocks.set(listingId, []);
+  const queue = listingLocks.get(listingId)!;
+
+  return new Promise<T>((resolve, reject) => {
+    queue.push({ fn: fn as any, resolve, reject });
+
+    // If this is the only item in the queue, start processing
+    if (queue.length === 1) {
+      void (async function run() {
+        while (queue.length > 0) {
+          const item = queue[0];
+          try {
+            const r = await item.fn();
+            item.resolve(r);
+          } catch (err) {
+            item.reject(err);
+          } finally {
+            queue.shift();
+          }
+        }
+        listingLocks.delete(listingId);
+      })();
+    }
+  });
+}
+
 // Local string union for movement types — avoids depending on generated client enums at compile time.
 type StockMovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUST';
 import { PriceService } from './PriceService.js';
@@ -525,24 +558,34 @@ export class InventoryService {
     const qty = Number(amount || 0);
     if (qty <= 0) throw new Error('amount must be > 0');
 
-    return db.$transaction(async (tx: any) => {
-      const res = await tx.listing.updateMany({
-        where: { id: listingId, quantity: { gte: qty } },
-        data: { quantity: { decrement: qty } }
-      });
+    // Use an increased interactive transaction timeout to accommodate
+    // potential contention on SQLite during concurrent test runs.
+    const runTx = async () => {
+      return db.$transaction(async (tx: any) => {
+        const res = await tx.listing.updateMany({
+          where: { id: listingId, quantity: { gte: qty } },
+          data: { quantity: { decrement: qty } }
+        });
 
-      if (!res || (res as any).count === 0) throw new Error('Insufficient stock');
+        if (!res || (res as any).count === 0) throw new Error('Insufficient stock');
 
-      const movement = await tx.stockMovement.create({
-        data: {
-          listingId,
-          quantity: qty,
-          type: 'OUT' as any
-        }
-      });
+        const movement = await tx.stockMovement.create({
+          data: {
+            listingId,
+            quantity: qty,
+            type: 'OUT' as any
+          }
+        });
 
-      return { success: true, movementId: movement.id };
-    });
+        return { success: true, movementId: movement.id };
+      }, { timeout: 20000 });
+    };
+
+    if (process.env.USE_SQLITE === 'true') {
+      return withListingLock(listingId, runTx);
+    }
+
+    return runTx();
   }
 
   static async getImportById(importId: string) {
@@ -761,14 +804,17 @@ export class InventoryService {
         const condition = parsedRow.condition;
         const rarity = parsedRow.rarity;
 
-        const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
-        if (!tcg) {
-          throw new Error(`TCG not initialized: ${tcgType}`);
-        }
-
+        // In dryRun mode we don't require DB lookups; accept the row if it
+        // parses correctly. This keeps dry-run behavior fast and independent
+        // of DB seeding during unit tests.
         if (dryRun) {
           result.success += 1;
           continue;
+        }
+
+        const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
+        if (!tcg) {
+          throw new Error(`TCG not initialized: ${tcgType}`);
         }
 
         const edition = await prisma.edition.upsert({

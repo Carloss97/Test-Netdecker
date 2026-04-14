@@ -37,6 +37,7 @@ model Store {
   journalEntries JournalEntry[]
   posSessions POSSession[]
   cashSessions CashSession[]
+  fiscalPeriods FiscalPeriod[]
 }
 
 
@@ -244,6 +245,23 @@ model PriceSyncRun {
   @@index([startedAt])
   @@index([source])
   @@index([status])
+}
+
+model FiscalPeriod {
+  id        String   @id @default(cuid())
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("OPEN")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([startDate])
+  @@index([endDate])
 }
 
 // ============================================
