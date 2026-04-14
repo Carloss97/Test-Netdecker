@@ -8,7 +8,10 @@
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "e2e:install": "playwright install --with-deps"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.1.0",
@@ -29,6 +32,7 @@
     "happy-dom": "^20.8.9",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "playwright": "^1.40.0"
   }
 }
