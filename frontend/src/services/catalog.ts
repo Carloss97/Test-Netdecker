@@ -359,6 +359,7 @@ export async function updateAdminPricingConfig(params: {
   applyMarginToExisting?: boolean;
   exchangeRateMode?: 'api' | 'manual';
   manualUsdToClp?: number;
+  importSetSyncPricesDefault?: boolean;
 }) {
   const { data } = await apiClient.post('/admin/pricing-config', params);
   return data;
