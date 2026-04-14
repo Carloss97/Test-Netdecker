@@ -351,6 +351,21 @@ function buildFileHash(content: string): string {
 }
 
 export class InventoryService {
+  // Simple in-memory per-listing promise queue to serialize operations
+  // when running against SQLite locally to avoid transactional lock timeouts
+  // and to emulate row-level locking behaviour present in Postgres.
+  private static listingLocks: Map<string, Promise<any>> = new Map();
+
+  private static async withListingLock<T>(listingId: string, fn: () => Promise<T>) {
+    const prev = InventoryService.listingLocks.get(listingId) ?? Promise.resolve();
+    const next = prev.then(() => fn()).finally(() => {
+      if (InventoryService.listingLocks.get(listingId) === next) {
+        InventoryService.listingLocks.delete(listingId);
+      }
+    });
+    InventoryService.listingLocks.set(listingId, next);
+    return next as Promise<T>;
+  }
   static async getImports(query: ImportHistoryQuery = {}) {
     const sortBy = query.sortBy || 'createdAt';
     const sortDir = query.sortDir || 'desc';
@@ -524,25 +539,35 @@ export class InventoryService {
     if (!listingId) throw new Error('listingId required');
     const qty = Number(amount || 0);
     if (qty <= 0) throw new Error('amount must be > 0');
+    const run = async () => {
+      return db.$transaction(async (tx: any) => {
+        const res = await tx.listing.updateMany({
+          where: { id: listingId, quantity: { gte: qty } },
+          data: { quantity: { decrement: qty } }
+        });
 
-    return db.$transaction(async (tx: any) => {
-      const res = await tx.listing.updateMany({
-        where: { id: listingId, quantity: { gte: qty } },
-        data: { quantity: { decrement: qty } }
+        if (!res || (res as any).count === 0) throw new Error('Insufficient stock');
+
+        const movement = await tx.stockMovement.create({
+          data: {
+            listingId,
+            quantity: qty,
+            type: 'OUT' as any
+          }
+        });
+
+        return { success: true, movementId: movement.id };
       });
+    };
 
-      if (!res || (res as any).count === 0) throw new Error('Insufficient stock');
+    // SQLite does not have robust row-level locking for concurrent writes in
+    // the same process; serialize per-listing operations when running locally
+    // with SQLite to avoid transaction timeouts and flaky concurrency tests.
+    if (process.env.USE_SQLITE === 'true') {
+      return InventoryService.withListingLock(listingId, run);
+    }
 
-      const movement = await tx.stockMovement.create({
-        data: {
-          listingId,
-          quantity: qty,
-          type: 'OUT' as any
-        }
-      });
-
-      return { success: true, movementId: movement.id };
-    });
+    return run();
   }
 
   static async getImportById(importId: string) {
