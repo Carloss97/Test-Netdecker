@@ -12,6 +12,13 @@ export async function cleanupOldInvoices() {
     ? path.resolve(process.env.INVOICE_STORAGE_DIR)
     : path.resolve(__dirname, '../../public/invoices');
 
+  // Ensure storage and receipts directories exist so cleanup can run safely.
+  try {
+    await fs.mkdir(storageDir, { recursive: true });
+  } catch (e) {
+    console.error('[InvoiceCleanup] Failed creating storageDir', e);
+  }
+
   try {
     const files = await fs.readdir(storageDir);
     let deleted = 0;
@@ -39,8 +46,13 @@ export async function cleanupOldInvoices() {
       }
     }
 
-    // Also handle receipts directory
-    const receiptsDir = storageDir.replace('/invoices', '/receipts');
+    // Also handle receipts directory (compute robustly across platforms)
+    const receiptsDir = path.resolve(path.dirname(storageDir), 'receipts');
+    try {
+      await fs.mkdir(receiptsDir, { recursive: true });
+    } catch (e) {
+      // ignore
+    }
     let receiptsDeleted = 0;
     try {
       const rfiles = await fs.readdir(receiptsDir);
