@@ -519,12 +519,13 @@ export class InventoryService {
 
   // Atomically decrement listing quantity if sufficient stock exists.
   // Returns an object on success, throws on insufficient stock.
-  static async decreaseListingQuantity(listingId: string, amount: number) {
+  // Allow injecting a DB client for tests (defaults to real `prisma`).
+  static async decreaseListingQuantity(listingId: string, amount: number, db: any = prisma) {
     if (!listingId) throw new Error('listingId required');
     const qty = Number(amount || 0);
     if (qty <= 0) throw new Error('amount must be > 0');
 
-    return prisma.$transaction(async (tx: any) => {
+    return db.$transaction(async (tx: any) => {
       const res = await tx.listing.updateMany({
         where: { id: listingId, quantity: { gte: qty } },
         data: { quantity: { decrement: qty } }
