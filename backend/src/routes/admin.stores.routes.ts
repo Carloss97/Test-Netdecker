@@ -14,10 +14,13 @@ router.post('/', requireApiKey, async (req: Request, res: Response) => {
   const slug = req.body?.slug ? String(req.body.slug).trim().toLowerCase() : undefined;
   const name = req.body?.name ? String(req.body.name).trim() : undefined;
   const description = req.body?.description ? String(req.body.description) : undefined;
+  const currency = req.body?.currency ? String(req.body.currency).trim() : undefined;
+  const taxRate = req.body?.taxRate !== undefined ? Number(req.body.taxRate) : undefined;
+  const settings = req.body?.settings !== undefined ? req.body.settings : undefined;
 
   if (!slug || !name) throw new ValidationError('slug and name are required');
 
-  const { store, apiKey } = await StoreService.createStore({ slug, name, description });
+  const { store, apiKey } = await StoreService.createStore({ slug, name, description, currency, taxRate, settings } as any);
   res.json({
     success: true,
     store: { id: store.id, slug: store.slug, name: store.name },
@@ -44,6 +47,22 @@ router.post('/:id/rotate-key', requireApiKey, async (req: Request, res: Response
 router.get('/', requireApiKey, async (_req: Request, res: Response) => {
   const stores = await StoreService.listStores();
   res.json({ success: true, total: stores.length, stores: stores.map((s: any) => ({ id: s.id, slug: s.slug, name: s.name })) });
+});
+
+// PATCH /api/admin/stores/:id - update store configuration (currency, taxRate, settings, name, description)
+router.patch('/:id', requireApiKey, async (req: Request, res: Response) => {
+  const storeId = req.params.id;
+  if (!storeId) throw new ValidationError('store id required');
+
+  const payload: any = {};
+  if (req.body?.name !== undefined) payload.name = String(req.body.name);
+  if (req.body?.description !== undefined) payload.description = String(req.body.description);
+  if (req.body?.currency !== undefined) payload.currency = String(req.body.currency).trim();
+  if (req.body?.taxRate !== undefined) payload.taxRate = Number(req.body.taxRate);
+  if (req.body?.settings !== undefined) payload.settings = req.body.settings;
+
+  const updated = await StoreService.updateStore(storeId, payload);
+  res.json({ success: true, store: { id: updated.id, slug: updated.slug, name: updated.name, currency: updated.currency, taxRate: updated.taxRate } });
 });
 
 export default router;

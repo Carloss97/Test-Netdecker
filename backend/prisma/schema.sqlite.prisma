@@ -37,6 +37,9 @@ model Store {
   journalEntries JournalEntry[]
   posSessions POSSession[]
   cashSessions CashSession[]
+  currency    String   @default("CLP")
+  taxRate     Float    @default(0.0)
+  settings    String?
 }
 
 
