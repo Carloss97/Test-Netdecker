@@ -10,11 +10,14 @@ export class PosService {
     total?: number;
     status?: string;
   }) {
+    const useSqlite = process.env.USE_SQLITE === 'true' || false;
+    const itemsValue = input.items != null && useSqlite ? JSON.stringify(input.items) : input.items || null;
+
     const session = await (prisma as any).pOSSession.create({
       data: {
         storeId: input.storeId || null,
         userId: input.userId || null,
-        items: input.items || null,
+        items: itemsValue,
         subtotal: Number(input.subtotal || 0),
         tax: Number(input.tax || 0),
         total: Number(input.total || 0),
