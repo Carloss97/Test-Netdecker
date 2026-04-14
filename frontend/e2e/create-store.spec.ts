@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('create store flow (smoke)', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/admin/stores');
 
   // Click 'New Store' button
   await page.click('text=New Store');

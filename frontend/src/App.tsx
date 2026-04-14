@@ -11,6 +11,7 @@ import { AdminDashboardPage } from './pages/AdminDashboard';
 import { LowStockPage } from './pages/LowStockPage';
 import { PosPage } from './pages/PosPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
+import StoresList from './pages/admin/StoresList';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/stock-bajo" element={<LowStockPage />} />
           <Route path="/pos" element={<PosPage />} />
           <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+          <Route path="/admin/stores" element={<StoresList />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
         </Routes>
       </Layout>
