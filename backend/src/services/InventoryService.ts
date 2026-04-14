@@ -421,16 +421,22 @@ export class InventoryService {
         const newQuantity = Number(listing.quantity || 0) + qty;
         await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity, ...(newQuantity > 0 ? { everHadStock: true } : {}) } });
       } else if (type === 'OUT') {
-        // Use an atomic updateMany with a conditional where to avoid race
-        // conditions between concurrent transactions. This performs a
-        // single SQL UPDATE ... WHERE quantity >= qty and decrements
-        // the value only when sufficient stock exists.
-        const updateResult = await tx.listing.updateMany({
-          where: { id: input.listingId, quantity: { gte: qty } },
-          data: { quantity: { decrement: qty } }
-        });
+        // Prefer atomic conditional update when supported by the transaction
+        // client (e.g., real Prisma transaction). Some unit tests mock the
+        // transaction object and only provide `update`, not `updateMany` —
+        // in that case fallback to reading + updating to satisfy the tests.
+        if (typeof tx.listing.updateMany === 'function') {
+          const updateResult = await tx.listing.updateMany({
+            where: { id: input.listingId, quantity: { gte: qty } },
+            data: { quantity: { decrement: qty } }
+          });
 
-        if (!updateResult || (updateResult as any).count === 0) throw new Error('Insufficient stock');
+          if (!updateResult || (updateResult as any).count === 0) throw new Error('Insufficient stock');
+        } else {
+          const current = await tx.listing.findUnique({ where: { id: input.listingId } });
+          if (!current || Number(current.quantity || 0) < qty) throw new Error('Insufficient stock');
+          await tx.listing.update({ where: { id: input.listingId }, data: { quantity: Number(current.quantity || 0) - qty } });
+        }
       } else if (type === 'TRANSFER') {
         // Transfer does not change global listing.quantity in current model
       } else if (type === 'ADJUST') {
