@@ -103,6 +103,9 @@ model Store {
   name        String
   description String?
   apiKeyHash  String?  // hashed API key for store-scoped API keys
+  currency    String   @default("CLP")
+  taxRate     Float    @default(0.0)
+  settings    String?  // JSON blob for extensible per-store settings
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

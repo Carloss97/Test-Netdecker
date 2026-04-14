@@ -46,6 +46,19 @@ export interface Listing {
   lastSyncedAt?: string;
 }
 
+export interface Store {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  apiKeyHash?: string | null;
+  currency?: string;
+  taxRate?: number;
+  settings?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface CartItem {
   listingId: string;
   quantity: number;

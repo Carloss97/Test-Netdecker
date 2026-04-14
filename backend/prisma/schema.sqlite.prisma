@@ -35,8 +35,12 @@ model Store {
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
+  fiscalPeriods FiscalPeriod[]
   posSessions POSSession[]
   cashSessions CashSession[]
+  currency    String   @default("CLP")
+  taxRate     Float    @default(0.0)
+  settings    String?
 }
 
 
@@ -405,6 +409,23 @@ model JournalLine {
 
   @@index([journalEntryId])
   @@index([accountId])
+}
+
+model FiscalPeriod {
+  id        String   @id @default(cuid())
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("OPEN")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([startDate])
+  @@index([endDate])
 }
 
 // Tracks atomic changes made during an inventory import, allowing rollback
