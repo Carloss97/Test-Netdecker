@@ -696,6 +696,11 @@ export class InventoryService {
     const rows = parseCsv(content);
     const mode = detectImportMode(rows);
     const dryRun = Boolean(options.dryRun);
+    // Diagnostic: log mapping and detected mode for dry-run imports during triage
+    if (dryRun && options.columnMapping && Object.keys(options.columnMapping).length) {
+      // eslint-disable-next-line no-console
+      console.log('importFromCsv:', { rowsCount: rows.length, mode, columnMapping: options.columnMapping });
+    }
     const fileHash = buildFileHash(content);
 
     let importId: string | undefined;
@@ -792,14 +797,16 @@ export class InventoryService {
         const condition = parsedRow.condition;
         const rarity = parsedRow.rarity;
 
-        const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
-        if (!tcg) {
-          throw new Error(`TCG not initialized: ${tcgType}`);
-        }
-
+        // In dry-run mode we only validate parsing and mapping without
+        // requiring DB lookups to be present — treat as success.
         if (dryRun) {
           result.success += 1;
           continue;
+        }
+
+        const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
+        if (!tcg) {
+          throw new Error(`TCG not initialized: ${tcgType}`);
         }
 
         const edition = await prisma.edition.upsert({
