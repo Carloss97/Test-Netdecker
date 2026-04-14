@@ -82,6 +82,7 @@ export function AdminDashboardPage() {
   const [catalogActionError, setCatalogActionError] = useState<string | null>(null);
   const [configMargin, setConfigMargin] = useState(DEFAULT_MARGIN_INPUT);
   const [applyMarginToExisting, setApplyMarginToExisting] = useState(true);
+  const [importSetSyncPricesDefault, setImportSetSyncPricesDefault] = useState(false);
   const [exchangeRateMode, setExchangeRateMode] = useState<'api' | 'manual'>('api');
   const [manualUsdToClp, setManualUsdToClp] = useState('950');
   const [savingPricingConfig, setSavingPricingConfig] = useState(false);
@@ -141,6 +142,7 @@ export function AdminDashboardPage() {
         applyMarginToExisting,
         exchangeRateMode,
         manualUsdToClp: exchangeRateMode === 'manual' ? manualRate || undefined : undefined,
+        importSetSyncPricesDefault: importSetSyncPricesDefault,
       });
 
       setPricingConfigMsg(`Configuración guardada. Margen actualizado en ${(result as { updatedMargins?: number }).updatedMargins ?? 0} listing(s).`);
@@ -158,6 +160,11 @@ export function AdminDashboardPage() {
       setConfigMargin(String(pricingConfigData.config.defaultMarginMultiplier));
       setExchangeRateMode(pricingConfigData.config.exchangeRate.mode);
       setManualUsdToClp(String(pricingConfigData.config.exchangeRate.activeRate));
+      // initialize import-set sync default from backend if present
+      const cfgAny = pricingConfigData.config as any;
+      if (cfgAny.importSetSyncPricesDefault !== undefined) {
+        setImportSetSyncPricesDefault(Boolean(cfgAny.importSetSyncPricesDefault));
+      }
     }
   }, [pricingConfigData]);
 
@@ -457,6 +464,11 @@ export function AdminDashboardPage() {
           <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontSize: 13 }}>
             <input type="checkbox" checked={applyMarginToExisting} onChange={(e) => setApplyMarginToExisting(e.target.checked)} />
             Aplicar margen a listings existentes
+          </label>
+
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontSize: 13 }}>
+            <input type="checkbox" checked={importSetSyncPricesDefault} onChange={(e) => setImportSetSyncPricesDefault(e.target.checked)} />
+            Sincronizar precios al importar set (por defecto)
           </label>
 
           {pricingConfigData?.config && (
