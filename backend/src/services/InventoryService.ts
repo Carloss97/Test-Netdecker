@@ -406,9 +406,16 @@ export class InventoryService {
         const newQuantity = Number(listing.quantity || 0) + qty;
         await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity, ...(newQuantity > 0 ? { everHadStock: true } : {}) } });
       } else if (type === 'OUT') {
-        if (Number(listing.quantity || 0) < qty) throw new Error('Insufficient stock');
-        const newQuantity = Number(listing.quantity || 0) - qty;
-        await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity } });
+        // Use an atomic updateMany with a conditional where to avoid race
+        // conditions between concurrent transactions. This performs a
+        // single SQL UPDATE ... WHERE quantity >= qty and decrements
+        // the value only when sufficient stock exists.
+        const updateResult = await tx.listing.updateMany({
+          where: { id: input.listingId, quantity: { gte: qty } },
+          data: { quantity: { decrement: qty } }
+        });
+
+        if (!updateResult || (updateResult as any).count === 0) throw new Error('Insufficient stock');
       } else if (type === 'TRANSFER') {
         // Transfer does not change global listing.quantity in current model
       } else if (type === 'ADJUST') {
@@ -507,6 +514,34 @@ export class InventoryService {
     return prisma.inventoryImport.findMany({
       orderBy: { createdAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 200)
+    });
+  }
+
+  // Atomically decrement listing quantity if sufficient stock exists.
+  // Returns an object on success, throws on insufficient stock.
+  // Allow injecting a DB client for tests (defaults to real `prisma`).
+  static async decreaseListingQuantity(listingId: string, amount: number, db: any = prisma) {
+    if (!listingId) throw new Error('listingId required');
+    const qty = Number(amount || 0);
+    if (qty <= 0) throw new Error('amount must be > 0');
+
+    return db.$transaction(async (tx: any) => {
+      const res = await tx.listing.updateMany({
+        where: { id: listingId, quantity: { gte: qty } },
+        data: { quantity: { decrement: qty } }
+      });
+
+      if (!res || (res as any).count === 0) throw new Error('Insufficient stock');
+
+      const movement = await tx.stockMovement.create({
+        data: {
+          listingId,
+          quantity: qty,
+          type: 'OUT' as any
+        }
+      });
+
+      return { success: true, movementId: movement.id };
     });
   }
 

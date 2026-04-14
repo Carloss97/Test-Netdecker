@@ -18,6 +18,10 @@ const router = express.Router();
 router.use('/stores', storesRoutes);
 router.use('/accounts', accountsRoutes);
 
+// Simple in-memory cache for the admin dashboard to keep the UI responsive
+let _adminDashboardCache: { ts: number; data: unknown } | null = null;
+const ADMIN_DASHBOARD_CACHE_TTL_MS = Number(process.env.ADMIN_DASHBOARD_CACHE_TTL_MS || 15000);
+
 type AdminListingAlert = {
   id: string;
   condition: string;
@@ -45,6 +49,14 @@ type PriceHistoryWithListing = {
  * Returns key business metrics for the admin overview.
  */
 router.get('/dashboard', async (_req: Request, res: Response) => {
+  // Serve from short-lived cache when available to keep dashboard snappy
+  try {
+    if (_adminDashboardCache && Date.now() - _adminDashboardCache.ts < ADMIN_DASHBOARD_CACHE_TTL_MS) {
+      return res.json(_adminDashboardCache.data as Record<string, unknown>);
+    }
+  } catch (err) {
+    // ignore cache errors
+  }
   const [
     totalCards,
     totalListings,
@@ -91,7 +103,7 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
   // Recent price sync runs
   const recentSyncRuns = await PriceSyncService.getRecentRuns(5);
 
-  res.json({
+  const responsePayload = {
     success: true,
     kpis: {
       catalog: {
@@ -119,7 +131,15 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
     },
     recentImports,
     recentSyncRuns,
-  });
+  } as const;
+
+  // Cache the assembled response for a short time
+  try {
+    _adminDashboardCache = { ts: Date.now(), data: responsePayload };
+  } catch (err) {
+    // ignore cache store errors
+  }
+  res.json(responsePayload);
 });
 
 /**
@@ -444,14 +464,15 @@ router.post('/pricing/preview', async (req: Request, res: Response) => {
  */
 router.get('/pricing-config', async (_req: Request, res: Response) => {
   const [exchangeRateMeta, listingStats] = await Promise.all([
-    ExchangeRateService.getUSDtoCLPRateMeta(),
+    // Use the fast variant here to avoid calling external APIs while loading the admin page
+    ExchangeRateService.getUSDtoCLPRateMetaFast().catch(() => null),
     prisma.listing.aggregate({
       _avg: { marginMultiplier: true },
       _count: { _all: true },
     }),
   ]);
 
-  const isManual = exchangeRateMeta.provider === 'manual';
+  const isManual = !!exchangeRateMeta && exchangeRateMeta.provider === 'manual';
 
   res.json({
     success: true,
@@ -460,10 +481,10 @@ router.get('/pricing-config', async (_req: Request, res: Response) => {
       listingCount: listingStats._count._all,
       exchangeRate: {
         mode: isManual ? 'manual' : 'api',
-        activeRate: exchangeRateMeta.rate,
-        source: exchangeRateMeta.retrievalSource,
-        provider: exchangeRateMeta.provider || null,
-        fetchedAt: exchangeRateMeta.fetchedAt || null,
+        activeRate: exchangeRateMeta?.rate ?? 0,
+        source: exchangeRateMeta?.retrievalSource ?? null,
+        provider: exchangeRateMeta?.provider ?? null,
+        fetchedAt: exchangeRateMeta?.fetchedAt ?? null,
       },
       importSetSyncPricesDefault: isImportSetSyncPricesDefault(),
     },
