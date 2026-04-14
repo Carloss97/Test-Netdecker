@@ -54,7 +54,7 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
     totalOrders,
     pendingOrders,
     recentImports,
-    exchangeRateMeta,
+      exchangeRateMeta,
   ] = await Promise.all([
     prisma.card.count(),
     prisma.listing.count(),
@@ -76,7 +76,8 @@ router.get('/dashboard', async (_req: Request, res: Response) => {
         createdAt: true,
       },
     }),
-    ExchangeRateService.getUSDtoCLPRateMeta().catch(() => null),
+    // Use the fast variant to avoid external API calls on dashboard load.
+    ExchangeRateService.getUSDtoCLPRateMetaFast().catch(() => null),
   ]);
 
   // Inventory value (sum of finalPrice * quantity for active listings)

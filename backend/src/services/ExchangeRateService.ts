@@ -107,6 +107,54 @@ export class ExchangeRateService {
     };
   }
 
+  /**
+   * Fast variant that returns cached or DB value without attempting an external API call.
+   * Useful for dashboard endpoints that must remain responsive even when the API is slow.
+   */
+  static async getUSDtoCLPRateMetaFast(): Promise<ExchangeRateMeta | null> {
+    // Try cache
+    try {
+      const cached = await cacheGet<number>(CACHE_KEY);
+      if (typeof cached === 'number') {
+        const dbRate = await prisma.exchangeRate.findUnique({
+          where: {
+            fromCurrency_toCurrency: { fromCurrency: 'USD', toCurrency: 'CLP' }
+          }
+        });
+
+        return {
+          rate: cached,
+          retrievalSource: 'cache',
+          provider: dbRate?.source,
+          fetchedAt: dbRate?.fetchedAt,
+          expiresAt: dbRate?.expiresAt,
+        };
+      }
+    } catch (err) {
+      // swallow cache errors — we'll try DB next
+      console.warn('[ExchangeRateService] cache lookup failed:', err);
+    }
+
+    // Return DB value even if expired; avoid external API call to keep request fast
+    const dbRate = await prisma.exchangeRate.findUnique({
+      where: {
+        fromCurrency_toCurrency: { fromCurrency: 'USD', toCurrency: 'CLP' }
+      }
+    });
+
+    if (dbRate) {
+      return {
+        rate: dbRate.rate,
+        retrievalSource: 'database',
+        provider: dbRate.source,
+        fetchedAt: dbRate.fetchedAt,
+        expiresAt: dbRate.expiresAt,
+      };
+    }
+
+    return null;
+  }
+
   static async setManualUSDtoCLPRate(rate: number): Promise<void> {
     if (!Number.isFinite(rate) || rate <= 0) {
       throw new Error('Manual exchange rate must be a positive number');
