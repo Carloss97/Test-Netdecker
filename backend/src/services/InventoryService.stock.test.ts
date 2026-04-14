@@ -40,7 +40,11 @@ test('recordStockMovement OUT decreases listing quantity', async () => {
     const tx = {
       listing: {
         findUnique: async ({ where }: any) => ({ id: where.id, quantity: 10 }),
-        update: async ({ where, data }: any) => { updated = { where, data }; return { id: where.id, quantity: data.quantity }; },
+        updateMany: async ({ where, data }: any) => {
+          // emulate successful conditional decrement
+          updated = { where, data };
+          return { count: 1 };
+        },
       },
       stockMovement: { create: async ({ data }: any) => ({ id: 'mov-2', ...data }) }
     } as any;
@@ -49,7 +53,8 @@ test('recordStockMovement OUT decreases listing quantity', async () => {
 
     const mov: any = await InventoryService.recordStockMovement({ listingId: 'L2', warehouseId: 'W1', quantity: 4, type: 'OUT' } as any);
 
-    assert.equal(updated.data.quantity, 6);
+    // updateMany uses Prisma decrement operator
+    assert.equal(updated.data.quantity.decrement, 4);
     assert.equal(mov.id, 'mov-2');
   } finally {
     prisma.$transaction = originalTx2;
@@ -61,7 +66,10 @@ test('recordStockMovement OUT throws on insufficient stock', async () => {
 
   try {
     const tx = {
-      listing: { findUnique: async ({ where }: any) => ({ id: where.id, quantity: 2 }) },
+      listing: {
+        findUnique: async ({ where }: any) => ({ id: where.id, quantity: 2 }),
+        updateMany: async () => ({ count: 0 }),
+      },
       stockMovement: { create: async ({ data }: any) => ({ id: 'mov-err', ...data }) }
     } as any;
 

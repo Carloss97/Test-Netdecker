@@ -10,11 +10,21 @@ export class PosService {
     total?: number;
     status?: string;
   }) {
+    const useSqlite = (process.env.USE_SQLITE === 'true') || ((process.env.DATABASE_URL ?? '').startsWith('file:'));
+    let itemsValue: any = null;
+    if (input.items !== undefined) {
+      if (useSqlite && typeof input.items !== 'string') itemsValue = JSON.stringify(input.items);
+      else itemsValue = input.items as any;
+    }
+
+    console.log('[PosService] createSession useSqlite=', useSqlite, 'itemsValue type=', typeof itemsValue);
+    console.log('[PosService] itemsValue preview=', itemsValue);
+
     const session = await (prisma as any).pOSSession.create({
       data: {
         storeId: input.storeId || null,
         userId: input.userId || null,
-        items: input.items || null,
+        items: itemsValue,
         subtotal: Number(input.subtotal || 0),
         tax: Number(input.tax || 0),
         total: Number(input.total || 0),
@@ -26,7 +36,17 @@ export class PosService {
   }
 
   static async getSessionByPublicId(sessionId: string) {
-    return (prisma as any).pOSSession.findUnique({ where: { sessionId } as any, include: { transactions: true } as any } as any);
+    const sess = await (prisma as any).pOSSession.findUnique({ where: { sessionId } as any, include: { transactions: true } as any } as any);
+    if (!sess) return sess;
+    // If items were stored as a string (SQLite variant), parse them back to objects
+    if (typeof sess.items === 'string') {
+      try {
+        sess.items = JSON.parse(sess.items);
+      } catch (_e) {
+        // leave as string if parsing fails
+      }
+    }
+    return sess;
   }
 
   static async createTransaction(sessionPublicId: string, input: {
