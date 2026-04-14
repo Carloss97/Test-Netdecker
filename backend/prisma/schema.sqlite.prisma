@@ -35,6 +35,8 @@ model Store {
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
+  posSessions POSSession[]
+  cashSessions CashSession[]
 }
 
 
@@ -502,4 +504,76 @@ model AuditTrail {
 
   @@index([userId])
   @@index([action])
+}
+
+// ============================================
+// POS SESSIONS & PAYMENT TRANSACTIONS (SQLite)
+// ============================================
+
+model POSSession {
+  id         String   @id @default(cuid())
+  // Public session identifier consumable by clients
+  sessionId  String   @unique @default(cuid())
+
+  storeId    String?
+  store      Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  userId     String?  // operator or customer id
+
+  // Free-form list of items in the session (serialized JSON for SQLite)
+  items      String?
+
+  subtotal   Float    @default(0.0)
+  tax        Float    @default(0.0)
+  total      Float    @default(0.0)
+
+  status     String   @default("OPEN")
+
+  transactions PaymentTransaction[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([storeId])
+}
+
+model CashSession {
+  id           String   @id @default(cuid())
+  sessionId    String   @unique @default(cuid())
+
+  storeId      String?
+  store        Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  openedBy     String?
+  closedBy     String?
+
+  startingCash Float    @default(0.0)
+  endingCash   Float?
+
+  status       String   @default("OPEN")
+
+  createdAt    DateTime @default(now())
+  closedAt     DateTime?
+
+  @@index([sessionId])
+  @@index([storeId])
+}
+
+model PaymentTransaction {
+  id                 String   @id @default(cuid())
+  sessionId          String
+  session            POSSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  method             String @default("OTHER")
+  amount             Float
+  status             String @default("PENDING")
+
+  processorResponse  String?
+  processorReference String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now())
+
+  @@index([sessionId])
 }
