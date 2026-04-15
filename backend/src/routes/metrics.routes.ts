@@ -1,24 +1,28 @@
 import express, { Request, Response } from 'express';
 
-const router = express.Router();
+export function createMetricsRouter(promModule?: any) {
+  const router = express.Router();
 
-router.get('/', async (_req: Request, res: Response) => {
-  try {
-    const prom = await import('prom-client');
-
-    // Ensure default metrics are being collected (no-op if already set)
+  router.get('/', async (_req: Request, res: Response) => {
     try {
-      prom.collectDefaultMetrics?.();
-    } catch (e) {
-      // ignore errors from duplicate registration
+      const prom = promModule ?? (await import('prom-client'));
+
+      // Ensure default metrics are being collected (no-op if already set)
+      try {
+        prom.collectDefaultMetrics?.();
+      } catch (e) {
+        // ignore errors from duplicate registration
+      }
+
+      res.set('Content-Type', (prom.register as any).contentType || 'text/plain');
+      const metrics = await (prom.register as any).metrics();
+      res.send(metrics);
+    } catch (err) {
+      res.status(503).send('prom-client not available');
     }
+  });
 
-    res.set('Content-Type', (prom.register as any).contentType || 'text/plain');
-    const metrics = await (prom.register as any).metrics();
-    res.send(metrics);
-  } catch (err) {
-    res.status(503).send('prom-client not available');
-  }
-});
+  return router;
+}
 
-export default router;
+export default createMetricsRouter();

@@ -1,6 +1,11 @@
 # Backlog del Proyecto - TCG Singles Platform
 
-Última actualización: 2026-04-06
+Última actualización: 2026-04-15
+
+## Notas recientes
+- 2026-04-15: Issues #36 y #37 implementadas y cerradas (inventario concurrente y multi-tienda).\
+- 2026-04-15: Issue #35 (PoS: sesiones, cierre y recibos) revisada y cerrada en el backend; quedan tareas de UI/UX y soporte offline como seguimiento.\
+- 2026-04-15: Instrumentación de jobs (PriceSync / CatalogSync) añadida en la rama `feat/jobs-observability-38` — PR #54 abierto para revisión.
 
 ## Estado General
 - Objetivo actual: Operación diaria estable (inventario + precios) y preparación para expansión comercial.

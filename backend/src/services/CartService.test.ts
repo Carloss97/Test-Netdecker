@@ -23,7 +23,7 @@ test('addToCart creates order item when stock available', async () => {
     prisma.orderItem.findFirst = (async () => null) as any;
     prisma.orderItem.create = (async (args: any) => { createCalled = true; createdData = args.data; return { id: 'oi1', ...args.data }; }) as any;
 
-    const cart = await CartService.addToCart({ sessionId: 'sess1', listingId: 'L1', quantity: 2 });
+    await CartService.addToCart({ sessionId: 'sess1', listingId: 'L1', quantity: 2 });
 
     assert.equal(createCalled, true);
     assert.equal(createdData.listingId, 'L1');
