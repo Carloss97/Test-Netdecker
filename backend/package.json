@@ -19,7 +19,8 @@
     "backfill:tcgplayer:dry": "tsx src/scripts/backfillTcgplayerProductId.ts --dry-run",
     "catalog:bootstrap": "tsx src/scripts/bootstrapCatalog.ts",
     "prisma:push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma",
-    "test:sqlite": "USE_SQLITE=true DATABASE_URL=\"file:./dev.sqlite\" tsx --test src/**/*.test.ts",
+    "test:sqlite": "cross-env USE_SQLITE=true DATABASE_URL=file:./dev.sqlite tsx --test src/**/*.test.ts",
+    "ci:test:sqlite": "npm run prisma:generate:sqlite && npm run test:sqlite",
     "backfill:warehouse-stock": "tsx scripts/backfill-warehouse-stock.ts",
     "catalog:bootstrap:dry": "tsx src/scripts/bootstrapCatalog.ts --dry-run",
     "catalog:sync": "tsx src/scripts/catalogSync.ts",
@@ -71,6 +72,7 @@
     "eslint": "^8.56.0",
     "prisma": "^5.11.0",
     "tsx": "^4.7.0",
+    "cross-env": "^7.0.3",
     "typescript": "^5.3.3"
   }
 }
