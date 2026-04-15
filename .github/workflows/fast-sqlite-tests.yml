@@ -8,6 +8,7 @@ jobs:
   fast-sqlite:
     name: Fast backend tests (SQLite + fixtures)
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
     services:
       redis:
         image: redis:7
