@@ -170,6 +170,22 @@ model InventoryImport {
   changes        InventoryImportChange[]
 }
 
+// Rollback strategy stored as string in SQLite schema
+// Options: 'FULL' | 'PARTIAL' | 'NONE'
+model ImportBatch {
+  id          String   @id @default(cuid())
+  importId    String
+  import      InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  batchIndex  Int
+  startRow    Int?
+  endRow      Int?
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+  changes     InventoryImportChange[]
+  @@index([importId])
+  @@index([batchIndex])
+}
+
 model Cart {
   id             String    @id @default(cuid())
   sessionId      String
@@ -436,6 +452,8 @@ model InventoryImportChange {
   import        InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
   listingId     String
   listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  batchId       String?
+  batch         ImportBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
   oldQuantity   Int
   newQuantity   Int
   note          String?
@@ -443,6 +461,7 @@ model InventoryImportChange {
 
   @@index([importId])
   @@index([listingId])
+  @@index([batchId])
 }
 
 // Approval requests for price changes marked volatile by automated sync.

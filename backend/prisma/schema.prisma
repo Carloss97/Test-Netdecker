@@ -40,6 +40,12 @@ enum PriceUpdateReason {
   VOLATILE_ALERT
 }
 
+enum RollbackStrategy {
+  FULL
+  PARTIAL
+  NONE
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -292,9 +298,12 @@ model InventoryImport {
   totalRecords   Int
   successCount   Int       @default(0)
   failureCount   Int       @default(0)
-  
   status         String    @default("processing")  // "processing", "completed", "failed"
   errors         String?   // JSON array of errors
+
+  // Rollback strategy and optional batch size for partial rollbacks
+  rollbackStrategy RollbackStrategy @default(NONE)
+  batchSize       Int?
   
   importedBy     String?   // User ID
   createdAt      DateTime  @default(now())
@@ -319,6 +328,9 @@ model InventoryImportChange {
   listingId    String?
   listing      Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
 
+  batchId      String?
+  batch        ImportBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
   oldQuantity  Int?
   newQuantity  Int
 
@@ -328,6 +340,26 @@ model InventoryImportChange {
 
   @@index([importId])
   @@index([listingId])
+  @@index([batchId])
+}
+
+// Optional grouping of import rows so partial rollbacks can target batches
+model ImportBatch {
+  id          String   @id @default(cuid())
+  importId    String
+  import      InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  batchIndex  Int
+  startRow    Int?
+  endRow      Int?
+  status      String   @default("completed")
+
+  createdAt   DateTime @default(now())
+
+  changes     InventoryImportChange[]
+
+  @@index([importId])
+  @@index([batchIndex])
 }
 
 // Manual approval requests for large/volatile price changes. An approval
