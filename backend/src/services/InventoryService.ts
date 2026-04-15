@@ -1039,14 +1039,30 @@ export class InventoryService {
    */
   static async rollbackImport(
     importId: string,
-    options: { force?: boolean; dryRun?: boolean; onlyListingIds?: string[]; skipListingIds?: string[] } = {}
+    options: { force?: boolean; dryRun?: boolean; onlyListingIds?: string[]; skipListingIds?: string[]; batchId?: string; batchIndex?: number } = {}
   ) {
     const force = Boolean(options.force);
     const dryRun = Boolean(options.dryRun);
     const onlySet = Array.isArray(options.onlyListingIds) ? new Set(options.onlyListingIds) : null;
     const skipSet = Array.isArray(options.skipListingIds) ? new Set(options.skipListingIds) : null;
+    const providedBatchId = options.batchId;
+    const providedBatchIndex = typeof options.batchIndex === 'number' ? options.batchIndex : undefined;
 
-    const changes = await prisma.inventoryImportChange.findMany({ where: { importId } });
+    // Resolve batchId if batchIndex provided
+    let resolvedBatchId: string | undefined = undefined;
+    if (providedBatchId) {
+      resolvedBatchId = providedBatchId;
+    } else if (typeof providedBatchIndex === 'number') {
+      try {
+        const batchRec = await prisma.importBatch.findFirst({ where: { importId, batchIndex: providedBatchIndex }, select: { id: true } });
+        if (!batchRec) throw new Error('Batch not found');
+        resolvedBatchId = batchRec.id;
+      } catch (err) {
+        throw new Error('Batch not found');
+      }
+    }
+
+    const changes = await prisma.inventoryImportChange.findMany({ where: resolvedBatchId ? { importId, batchId: resolvedBatchId } : { importId } });
     if (!changes || !changes.length) {
       throw new Error('No recorded changes found for this import');
     }
