@@ -9,6 +9,7 @@ import { CardDatabaseService } from './CardDatabaseService.js';
 import { ExchangeRateService } from './ExchangeRateService.js';
 import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
 import { PriceSyncService } from './PriceSyncService.js';
+import { NotFoundError } from '../utils/errors.js';
 
 export interface ImportExternalCardOptions {
   createListing?: boolean;
@@ -117,7 +118,7 @@ export class ExternalImportService {
   ): Promise<ImportExternalCardResult> {
     const tcg = await this.resolveTCG(externalCard.tcg as TCGType);
     if (!tcg) {
-      throw new Error(`TCG ${externalCard.tcg} not found in database. Run prisma:seed first.`);
+      throw new NotFoundError(`TCG ${externalCard.tcg} not found in database. Run prisma:seed first.`);
     }
 
     const edition = await this.resolveEdition(tcg.id, externalCard);

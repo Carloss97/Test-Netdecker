@@ -1,5 +1,6 @@
 // src/utils/redis.ts
 import { createClient, RedisClientType } from 'redis';
+import { ApplicationError } from './errors.js';
 
 let redisClient: RedisClientType | null = null;
 let redisUnavailable = false;
@@ -19,7 +20,7 @@ function warnRedisUnavailable(err: unknown): void {
 
 export async function getRedisClient(): Promise<RedisClientType> {
   if (redisUnavailable) {
-    throw new Error('Redis unavailable');
+    throw new ApplicationError(503, 'Redis unavailable', 'SERVICE_UNAVAILABLE');
   }
 
   if (redisClient) {
@@ -41,7 +42,7 @@ export async function getRedisClient(): Promise<RedisClientType> {
     redisUnavailable = true;
     redisClient = null;
     warnRedisUnavailable(err);
-    throw new Error('Redis unavailable');
+    throw new ApplicationError(503, 'Redis unavailable', 'SERVICE_UNAVAILABLE');
   }
 
   return redisClient;

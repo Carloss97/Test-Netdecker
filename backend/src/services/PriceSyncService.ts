@@ -6,6 +6,7 @@ import { PriceService } from './PriceService.js';
 import PriceApprovalService from './PriceApprovalService.js';
 import PriceThresholdService from './PriceThresholdService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 export interface PriceSyncUpdateInput {
   listingId?: string;
@@ -525,7 +526,7 @@ export class PriceSyncService {
             });
 
             if (!listing) {
-              throw new Error('Listing not found');
+              throw new NotFoundError('Listing not found');
             }
 
             const resolvedMargin = update.marginMultiplier || listing.marginMultiplier;
@@ -612,7 +613,7 @@ export class PriceSyncService {
             continue;
           }
 
-          throw new Error('Sync target missing listingId or cardId');
+          throw new ValidationError('Sync target missing listingId or cardId');
         } catch (error: unknown) {
           result.failed += 1;
           result.errors.push({

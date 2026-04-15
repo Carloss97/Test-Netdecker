@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { PriceService } from './PriceService.js';
 import { CardCondition, PriceUpdateReason } from '@prisma/client';
 import { resolveMarginMultiplier } from '../config/pricing.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 interface CreateListingInput {
   cardId: string;
@@ -26,7 +27,7 @@ export class ListingService {
     });
 
     if (!card) {
-      throw new Error(`Card not found: ${input.cardId}`);
+      throw new NotFoundError(`Card not found: ${input.cardId}`);
     }
 
     const marginMultiplier = resolveMarginMultiplier(input.marginMultiplier);
@@ -148,7 +149,7 @@ export class ListingService {
    */
   static async decreaseQuantity(id: string, amount: number) {
     const listing = await this.getListing(id);
-    if (!listing) throw new Error(`Listing not found: ${id}`);
+    if (!listing) throw new NotFoundError(`Listing not found: ${id}`);
 
     const newQuantity = Math.max(0, listing.quantity - amount);
     return this.updateQuantity(id, newQuantity);
@@ -219,7 +220,7 @@ export class ListingService {
    */
   static async updateMargin(id: string, marginMultiplier: number) {
     const listing = await this.getListing(id);
-    if (!listing) throw new Error(`Listing not found: ${id}`);
+    if (!listing) throw new NotFoundError(`Listing not found: ${id}`);
 
     return prisma.listing.update({
       where: { id },
@@ -258,12 +259,12 @@ export class ListingService {
    */
   static async setManualPrice(id: string, manualFinalPrice: number, changedBy: string = 'system', notes?: string) {
     if (!Number.isFinite(manualFinalPrice) || manualFinalPrice <= 0) {
-      throw new Error('manualFinalPrice must be a positive number');
+      throw new ValidationError('manualFinalPrice must be a positive number');
     }
 
     const listing = await this.getListing(id);
     if (!listing) {
-      throw new Error(`Listing not found: ${id}`);
+      throw new NotFoundError(`Listing not found: ${id}`);
     }
 
     const oldPrice = listing.finalPrice;
@@ -306,7 +307,7 @@ export class ListingService {
   static async setApiPricingMode(id: string, changedBy: string = 'system', notes?: string) {
     const listing = await this.getListing(id);
     if (!listing) {
-      throw new Error(`Listing not found: ${id}`);
+      throw new NotFoundError(`Listing not found: ${id}`);
     }
 
     const calculation = await PriceService.calculateFinalPrice({
