@@ -19,7 +19,7 @@ const StoresList: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const onSaved = (store: Store) => {
+  const onSaved = (_store: Store) => {
     setShowForm(false);
     setEditing(null);
     getStores().then((data) => setStores(data));

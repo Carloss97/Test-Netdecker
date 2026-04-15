@@ -259,7 +259,7 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
 
   function stripRarityFromName(rawName?: string, rarityText?: string) {
     if (!rawName) return '';
-    let name = String(rawName).trim();
+    const name = String(rawName).trim();
     const keywords = [
       'rare', 'collector', "collector's", 'secret', 'ultra', 'ultimate', 'platinum', 'ghost', 'gold', 'starlight', 'prismatic', 'mosaic'
     ];

@@ -33,7 +33,7 @@ function verifyApiKeyAgainstHash(apiKey: string, stored: string) {
 }
 
 class StoreServiceImpl {
-  static async createStore(input: { slug: string; name: string; description?: string }) {
+  static async createStore(input: { slug: string; name: string; description?: string; currency?: string; taxRate?: number; settings?: any }) {
     const slug = String(input.slug || '').trim().toLowerCase();
     const name = String(input.name || '').trim();
     if (!slug) throw new ValidationError('slug is required');

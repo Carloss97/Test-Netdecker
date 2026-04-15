@@ -60,10 +60,11 @@ export class CashSessionService {
         // Attach non-persistent snapshot to returned object to be delivered by the route.
         (updated as any).closingSnapshot = closingSnapshot;
       }
-    } catch (err) {
+    } catch (err: unknown) {
       // Don't break close on snapshot errors; log for diagnostics.
       // eslint-disable-next-line no-console
-      console.error('CashSession close snapshot error', err?.message || err);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('CashSession close snapshot error', msg);
     }
 
     return updated;
