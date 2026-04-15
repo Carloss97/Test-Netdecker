@@ -5,7 +5,9 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5000 },
   webServer: {
-    command: 'npm --prefix frontend run dev',
+    // Start Vite dev server on port 3000 so Playwright baseURL matches.
+    // Passing the port via `--` ensures npm forwards the arg to the script on Windows.
+    command: 'npm --prefix frontend run dev -- --port 3000',
     port: 3000,
     reuseExistingServer: !process.env.CI,
   },
@@ -18,6 +20,14 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
     },
   ],
 });
