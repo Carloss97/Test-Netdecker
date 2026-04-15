@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { exportInventoryImportsCsv, getInventoryImportById, getInventoryImports } from '../services/catalog';
+import { exportInventoryImportsCsv, getInventoryImportById, getInventoryImports, rollbackInventoryImport } from '../services/catalog';
 
 type ImportErrorItem = {
   row: number;
@@ -39,6 +39,10 @@ export function InventoryImportHistory() {
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [selectedImportDetail, setSelectedImportDetail] = useState<ImportDetail | null>(null);
   const [loadingImportDetail, setLoadingImportDetail] = useState(false);
+  const [rollbackDryRun, setRollbackDryRun] = useState(true);
+  const [rollbackForce, setRollbackForce] = useState(false);
+  const [rollbackLoading, setRollbackLoading] = useState(false);
+  const [rollbackResult, setRollbackResult] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadImports = async () => {
@@ -78,6 +82,40 @@ export function InventoryImportHistory() {
       setErrorMessage((error as Error).message);
     } finally {
       setLoadingImportDetail(false);
+    }
+  };
+
+  const handleRollbackEntire = async () => {
+    if (!selectedImportId) return;
+    setRollbackLoading(true);
+    setRollbackResult(null);
+    try {
+      const res = await rollbackInventoryImport(selectedImportId, { dryRun: rollbackDryRun, force: rollbackForce });
+      setRollbackResult(res);
+      // refresh details
+      await loadImportDetail(selectedImportId);
+    } catch (err) {
+      setErrorMessage((err as Error).message);
+    } finally {
+      setRollbackLoading(false);
+    }
+  };
+
+  const handleRollbackBatch = async (batchId?: string, batchIndex?: number) => {
+    if (!selectedImportId) return;
+    setRollbackLoading(true);
+    setRollbackResult(null);
+    try {
+      const params: any = { dryRun: rollbackDryRun, force: rollbackForce };
+      if (batchId) params.batchId = batchId;
+      if (typeof batchIndex !== 'undefined') params.batchIndex = batchIndex;
+      const res = await rollbackInventoryImport(selectedImportId, params);
+      setRollbackResult(res);
+      await loadImportDetail(selectedImportId);
+    } catch (err) {
+      setErrorMessage((err as Error).message);
+    } finally {
+      setRollbackLoading(false);
     }
   };
 
@@ -314,6 +352,32 @@ export function InventoryImportHistory() {
             Registros: <strong>{selectedImportDetail.totalRecords}</strong> | OK: <strong>{selectedImportDetail.successCount}</strong> | Error:{' '}
             <strong>{selectedImportDetail.failureCount}</strong>
           </p>
+
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <label>
+              <input type="checkbox" checked={rollbackDryRun} onChange={(e) => setRollbackDryRun(e.target.checked)} /> Dry run
+            </label>
+            <label>
+              <input type="checkbox" checked={rollbackForce} onChange={(e) => setRollbackForce(e.target.checked)} /> Force
+            </label>
+            <button onClick={handleRollbackEntire} disabled={rollbackLoading}>{rollbackLoading ? 'Procesando...' : (rollbackDryRun ? 'Rollback (dry-run)' : 'Rollback')}</button>
+            {rollbackResult && <span style={{ marginLeft: 8 }}>{rollbackResult?.message || 'Resultado disponible'}</span>}
+          </div>
+
+          {selectedImportDetail.batches && selectedImportDetail.batches.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <h5>Batches</h5>
+              <ul>
+                {selectedImportDetail.batches.map((b: any) => (
+                  <li key={b.id} style={{ marginBottom: 6 }}>
+                    Batch {b.batchIndex} ({b.startRow ?? '-'} - {b.endRow ?? '-'}){' '}
+                    <button onClick={() => handleRollbackBatch(b.id, undefined)} disabled={rollbackLoading} style={{ marginLeft: 8 }}>{rollbackLoading ? '...' : (rollbackDryRun ? 'Rollback batch (dry-run)' : 'Rollback batch')}</button>
+                    <button onClick={() => handleRollbackBatch(undefined, b.batchIndex)} disabled={rollbackLoading} style={{ marginLeft: 8 }}>{rollbackLoading ? '...' : (rollbackDryRun ? 'Rollback batchIndex (dry-run)' : 'Rollback batchIndex')}</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {selectedImportDetail.parsedErrors?.length > 0 ? (
             <div>

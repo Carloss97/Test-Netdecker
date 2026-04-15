@@ -21,6 +21,7 @@ const originalGetImportsForExport = InventoryService.getImportsForExport;
 const originalGetInventoryForExport = InventoryService.getInventoryForExport;
 const originalGetImportById = InventoryService.getImportById;
 const originalImportFromBuffer = InventoryService.importFromBuffer;
+const originalRollbackImport = (InventoryService as any).rollbackImport;
 
 function buildErrorHandler() {
   return (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -132,6 +133,55 @@ afterEach(() => {
   InventoryService.getInventoryForExport = originalGetInventoryForExport;
   InventoryService.getImportById = originalGetImportById;
   InventoryService.importFromBuffer = originalImportFromBuffer;
+  (InventoryService as any).rollbackImport = originalRollbackImport;
+});
+
+test('POST /api/inventory/imports/:id/rollback returns 401 when IMPORT_API_KEY set and header missing', async () => {
+  process.env.IMPORT_API_KEY = 'test-secret';
+
+  const app = buildApp();
+  const { status, body } = await makeRequest(app, 'POST', '/api/inventory/imports/imp-unauth/rollback', {});
+  const resp = asErrorEnvelope(body);
+
+  assert.equal(status, 401);
+  assert.equal(resp.success, false);
+  assert.equal(resp.error.code, 'UNAUTHORIZED');
+  assert.equal(resp.error.message, 'Missing or invalid API key');
+});
+
+test('POST /api/inventory/imports/:id/rollback forwards batchId and dryRun to InventoryService.rollbackImport', async () => {
+  process.env.IMPORT_API_KEY = 'test-secret';
+
+  (InventoryService as any).rollbackImport = (async (id: string, options: any) => {
+    assert.equal(id, 'imp-123');
+    assert.equal(options.batchId, 'batch-abc');
+    assert.equal(options.dryRun, true);
+    return { reverted: 2, skipped: 0, preview: [] } as any;
+  }) as any;
+
+  const app = buildApp();
+  const { status, body } = await makeRequest(app, 'POST', '/api/inventory/imports/imp-123/rollback', { batchId: 'batch-abc', dryRun: true }, { 'x-api-key': 'test-secret' });
+  assert.equal(status, 200);
+  const resp = body as any;
+  assert.equal(resp.success, true);
+  assert.equal(resp.result.reverted, 2);
+});
+
+test('POST /api/inventory/imports/:id/rollback forwards batchIndex to InventoryService.rollbackImport', async () => {
+  process.env.IMPORT_API_KEY = 'test-secret';
+
+  (InventoryService as any).rollbackImport = (async (id: string, options: any) => {
+    assert.equal(id, 'imp-456');
+    assert.equal(options.batchIndex, 2);
+    return { reverted: 1, skipped: 1 } as any;
+  }) as any;
+
+  const app = buildApp();
+  const { status, body } = await makeRequest(app, 'POST', '/api/inventory/imports/imp-456/rollback', { batchIndex: 2 }, { 'x-api-key': 'test-secret' });
+  assert.equal(status, 200);
+  const resp = body as any;
+  assert.equal(resp.success, true);
+  assert.equal(resp.result.reverted, 1);
 });
 
 test('POST /api/inventory/update-quantity returns 400 envelope with exact Zod message for missing listingId', async () => {

@@ -32,6 +32,15 @@ const decreaseQuantitySchema = z.object({
   amount: z.coerce.number().int('amount must be an integer').positive('amount must be > 0'),
 });
 
+const rollbackSchema = z.object({
+  force: z.boolean().optional(),
+  dryRun: z.boolean().optional(),
+  onlyListingIds: z.array(z.string()).optional(),
+  skipListingIds: z.array(z.string()).optional(),
+  batchId: z.string().optional(),
+  batchIndex: z.number().int().optional(),
+});
+
 function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -119,12 +128,16 @@ router.get('/imports/export', async (req: Request, res: Response) => {
  */
 router.post('/imports/:id/rollback', requireApiKey, async (req: Request, res: Response) => {
   const importId = String(req.params.id);
-  const force = Boolean((req.body && req.body.force) || false);
-  const dryRun = Boolean((req.body && req.body.dryRun) || false);
-  const onlyListingIds = Array.isArray(req.body?.onlyListingIds) ? req.body.onlyListingIds.map(String) : undefined;
-  const skipListingIds = Array.isArray(req.body?.skipListingIds) ? req.body.skipListingIds.map(String) : undefined;
+  const body = parseBodyOrThrow(rollbackSchema, req.body);
 
-  const result = await InventoryService.rollbackImport(importId, { force, dryRun, onlyListingIds, skipListingIds });
+  const force = Boolean(body.force || false);
+  const dryRun = Boolean(body.dryRun || false);
+  const onlyListingIds = Array.isArray(body.onlyListingIds) ? body.onlyListingIds.map(String) : undefined;
+  const skipListingIds = Array.isArray(body.skipListingIds) ? body.skipListingIds.map(String) : undefined;
+  const batchId = body.batchId ? String(body.batchId) : undefined;
+  const batchIndex = typeof body.batchIndex !== 'undefined' ? Number(body.batchIndex) : undefined;
+
+  const result = await InventoryService.rollbackImport(importId, { force, dryRun, onlyListingIds, skipListingIds, batchId, batchIndex });
   res.json({ success: true, result });
 });
 

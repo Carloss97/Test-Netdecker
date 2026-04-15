@@ -228,6 +228,18 @@ export async function getInventoryImportById(importId: string) {
   return data;
 }
 
+export async function rollbackInventoryImport(importId: string, params?: {
+  force?: boolean;
+  dryRun?: boolean;
+  batchId?: string;
+  batchIndex?: number;
+  onlyListingIds?: string[];
+  skipListingIds?: string[];
+}) {
+  const { data } = await apiClient.post(`/inventory/imports/${importId}/rollback`, params || {});
+  return data;
+}
+
 export async function exportInventoryImportsCsv(params?: {
   status?: string;
   dateFrom?: string;

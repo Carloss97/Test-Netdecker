@@ -120,3 +120,57 @@ test('rollbackImport respects onlyListingIds filter', async () => {
     prisma.inventoryImport.update = originalInventoryImportUpdate;
   }
 });
+
+test('rollbackImport reverts only entries for provided batchId', async () => {
+  const originalFindMany = prisma.inventoryImportChange.findMany;
+  const originalListingUpdate = prisma.listing.update;
+  const originalInventoryImportUpdate = prisma.inventoryImport.update;
+
+  try {
+    prisma.inventoryImportChange.findMany = (async () => [
+      { id: 'chB1', importId: 'impB', listingId: 'LB1', oldQuantity: 8, newQuantity: 3 }
+    ]) as any;
+
+    let updated = 0;
+    prisma.listing.update = (async (args: any) => { updated++; return args; }) as any;
+    prisma.inventoryImport.update = (async () => ({})) as any;
+
+    const res: any = await InventoryService.rollbackImport('impB', { force: false, batchId: 'batch-B' });
+    assert.equal(res.reverted, 1);
+    assert.equal(res.skipped, 0);
+    assert.equal(updated, 1);
+  } finally {
+    prisma.inventoryImportChange.findMany = originalFindMany;
+    prisma.listing.update = originalListingUpdate;
+    prisma.inventoryImport.update = originalInventoryImportUpdate;
+  }
+});
+
+test('rollbackImport resolves batchIndex and reverts its entries', async () => {
+  const originalFindMany = prisma.inventoryImportChange.findMany;
+  const originalListingUpdate = prisma.listing.update;
+  const originalImportBatchFind = prisma.importBatch.findFirst;
+  const originalInventoryImportUpdate = prisma.inventoryImport.update;
+
+  try {
+    prisma.importBatch.findFirst = (async () => ({ id: 'batch-idx-1', importId: 'impIdx', batchIndex: 1 })) as any;
+
+    prisma.inventoryImportChange.findMany = (async () => [
+      { id: 'chIdx1', importId: 'impIdx', listingId: 'LI1', oldQuantity: 4, newQuantity: 1 }
+    ]) as any;
+
+    let updated = 0;
+    prisma.listing.update = (async (args: any) => { updated++; return args; }) as any;
+    prisma.inventoryImport.update = (async () => ({})) as any;
+
+    const res: any = await InventoryService.rollbackImport('impIdx', { batchIndex: 1 });
+    assert.equal(res.reverted, 1);
+    assert.equal(res.skipped, 0);
+    assert.equal(updated, 1);
+  } finally {
+    prisma.inventoryImportChange.findMany = originalFindMany;
+    prisma.listing.update = originalListingUpdate;
+    prisma.importBatch.findFirst = originalImportBatchFind;
+    prisma.inventoryImport.update = originalInventoryImportUpdate;
+  }
+});

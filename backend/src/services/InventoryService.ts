@@ -21,6 +21,7 @@ interface ImportOptions {
   fileName?: string;
   importedBy?: string;
   columnMapping?: { [expectedField: string]: string };
+  batchSize?: number;
 }
 
 interface ImportHistoryQuery {
@@ -579,7 +580,16 @@ export class InventoryService {
 
   static async getImportById(importId: string) {
     return prisma.inventoryImport.findUnique({
-      where: { id: importId }
+      where: { id: importId },
+      include: {
+        changes: {
+          orderBy: { createdAt: 'asc' },
+          include: { listing: true }
+        },
+        batches: {
+          orderBy: { batchIndex: 'asc' }
+        }
+      }
     });
   }
 
@@ -728,6 +738,31 @@ export class InventoryService {
       importId = createdImport.id;
     }
 
+    // Prepare batch tracking for partial rollback support.
+    // If a batchSize is provided, we will create ImportBatch records on demand
+    // and attach `batchId` to each InventoryImportChange.
+    const batchesMap: Map<number, string> = new Map();
+    let defaultBatchId: string | undefined;
+
+    async function getBatchIdForRow(rowIndex: number) {
+      if (!importId) return undefined;
+      const batchSize = Number(options.batchSize || 0);
+      if (batchSize > 0) {
+        const bi = Math.floor(rowIndex / batchSize);
+        if (batchesMap.has(bi)) return batchesMap.get(bi);
+        const startRow = bi * batchSize + 1;
+        const endRow = Math.min(rows.length, (bi + 1) * batchSize);
+        const created = await prisma.importBatch.create({ data: { importId, batchIndex: bi, startRow, endRow, status: 'completed' } });
+        batchesMap.set(bi, created.id);
+        return created.id;
+      }
+
+      if (defaultBatchId) return defaultBatchId;
+      const created = await prisma.importBatch.create({ data: { importId, batchIndex: 0, startRow: 1, endRow: rows.length, status: 'completed' } });
+      defaultBatchId = created.id;
+      return created.id;
+    }
+
     const result: ImportResult = {
       total: rows.length,
       success: 0,
@@ -762,12 +797,14 @@ export class InventoryService {
             // Record previous quantity for potential rollback
             if (importId) {
               const prev = await prisma.listing.findUnique({ where: { id: parsedRow.listingId }, select: { quantity: true } });
+              const batchId = await getBatchIdForRow(i);
               await prisma.inventoryImportChange.create({
                 data: {
                   importId,
                   listingId: parsedRow.listingId,
                   oldQuantity: prev?.quantity ?? null,
                   newQuantity: parsedRow.quantity,
+                  batchId: batchId || undefined,
                 }
               });
             }
@@ -910,12 +947,14 @@ export class InventoryService {
 
         // Record change for rollback
         if (importId) {
+          const batchId = await getBatchIdForRow(i);
           await prisma.inventoryImportChange.create({
             data: {
               importId,
               listingId: upserted.id,
               oldQuantity: existingListing?.quantity ?? null,
               newQuantity: quantity,
+              batchId: batchId || undefined,
             }
           });
         }
@@ -1010,14 +1049,30 @@ export class InventoryService {
    */
   static async rollbackImport(
     importId: string,
-    options: { force?: boolean; dryRun?: boolean; onlyListingIds?: string[]; skipListingIds?: string[] } = {}
+    options: { force?: boolean; dryRun?: boolean; onlyListingIds?: string[]; skipListingIds?: string[]; batchId?: string; batchIndex?: number } = {}
   ) {
     const force = Boolean(options.force);
     const dryRun = Boolean(options.dryRun);
     const onlySet = Array.isArray(options.onlyListingIds) ? new Set(options.onlyListingIds) : null;
     const skipSet = Array.isArray(options.skipListingIds) ? new Set(options.skipListingIds) : null;
+    const providedBatchId = options.batchId;
+    const providedBatchIndex = typeof options.batchIndex === 'number' ? options.batchIndex : undefined;
 
-    const changes = await prisma.inventoryImportChange.findMany({ where: { importId } });
+    // Resolve batchId if batchIndex provided
+    let resolvedBatchId: string | undefined = undefined;
+    if (providedBatchId) {
+      resolvedBatchId = providedBatchId;
+    } else if (typeof providedBatchIndex === 'number') {
+      try {
+        const batchRec = await prisma.importBatch.findFirst({ where: { importId, batchIndex: providedBatchIndex }, select: { id: true } });
+        if (!batchRec) throw new Error('Batch not found');
+        resolvedBatchId = batchRec.id;
+      } catch (err) {
+        throw new Error('Batch not found');
+      }
+    }
+
+    const changes = await prisma.inventoryImportChange.findMany({ where: resolvedBatchId ? { importId, batchId: resolvedBatchId } : { importId } });
     if (!changes || !changes.length) {
       throw new NotFoundError('No recorded changes found for this import');
     }
