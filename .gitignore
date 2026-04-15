@@ -45,3 +45,9 @@ prisma/dev.db-journal
 logs/
 *.log
 nbackend/.envn
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
