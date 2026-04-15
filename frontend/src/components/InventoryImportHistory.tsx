@@ -20,6 +20,7 @@ type InventoryImportHistoryItem = {
 
 type ImportDetail = InventoryImportHistoryItem & {
   parsedErrors: ImportErrorItem[];
+  batches?: Array<{ id: string; batchIndex: number; startRow?: number | null; endRow?: number | null }>;
 };
 
 export function InventoryImportHistory() {

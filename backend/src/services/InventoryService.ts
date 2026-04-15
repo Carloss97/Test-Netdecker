@@ -614,7 +614,7 @@ export class InventoryService {
     // Loop fetching pages until no more results
     // Use cursor-based pagination to avoid large offsets.
     while (true) {
-      const page = await prisma.inventoryImport.findMany({
+      const page: any[] = await prisma.inventoryImport.findMany({
         where,
         orderBy: { [sortBy]: sortDir },
         ...(cursor ? { cursor, skip: 1 } : {}),
@@ -623,7 +623,7 @@ export class InventoryService {
 
       if (!page || page.length === 0) break;
       for (const p of page) yield p;
-      const last = page[page.length - 1];
+      const last: any = page[page.length - 1];
       cursor = { id: last.id };
       if (page.length < pageSize) break;
     }

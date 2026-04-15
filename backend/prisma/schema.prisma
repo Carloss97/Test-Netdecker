@@ -314,6 +314,7 @@ model InventoryImport {
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
   changes        InventoryImportChange[]
+  batches        ImportBatch[] @relation("InventoryImport_Batches")
 }
 
 // Tracks per-listing changes introduced by an inventory import so we can
@@ -347,7 +348,7 @@ model InventoryImportChange {
 model ImportBatch {
   id          String   @id @default(cuid())
   importId    String
-  import      InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  import      InventoryImport @relation("InventoryImport_Batches", fields: [importId], references: [id], onDelete: Cascade)
 
   batchIndex  Int
   startRow    Int?
