@@ -111,9 +111,10 @@ export class ListingController {
         marginMultiplier: nextMargin,
       });
 
-      const isVolatile = PriceService.isVolatileChange(
+      const isVolatile = await PriceService.isVolatileChange(
         listing.finalPrice,
-        newPrice.finalPrice
+        newPrice.finalPrice,
+        { listingId: listing.id }
       );
 
       if (isVolatile) {

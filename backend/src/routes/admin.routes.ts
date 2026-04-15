@@ -451,9 +451,10 @@ router.post('/pricing/preview', async (req: Request, res: Response) => {
     diff: {
       delta,
       deltaPercent,
-      isVolatile: currentFinalPrice === null
-        ? null
-        : PriceService.isVolatileChange(currentFinalPrice, calculation.finalPrice),
+      isVolatile: (await (async () => {
+        if (currentFinalPrice === null) return null;
+        return await PriceService.isVolatileChange(currentFinalPrice, calculation.finalPrice, listing ? { listingId: listing.id } : undefined);
+      })()),
     },
   });
 });

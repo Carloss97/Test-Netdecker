@@ -543,7 +543,7 @@ export class PriceSyncService {
             );
 
             const isVolatile = isApiSourced && listing.finalPrice > 0
-              ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice, threshold)
+              ? await PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice, threshold)
               : false;
 
             // If manual approval is required for volatile changes, create an approval
