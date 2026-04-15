@@ -314,7 +314,7 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
   function rewriteUrlName(name?: string) {
     if (!name) return '';
     return String(name)
-      .replace(/[\u005b\u005d()\.,;:'"“”‘’]/g, '')
+      .replace(/[\u005b\u005d().,;:'"“”‘’]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
   }
