@@ -63,7 +63,7 @@ test('cancelOrder restores stock and marks order cancelled', async () => {
 
     const updated = await OrderService.cancelOrder('o1', 'tester');
     assert.equal(txCalled, true);
-    assert.equal(updated.status, 'CANCELLED');
+    assert.equal((updated as { status: string }).status, 'CANCELLED');
   } finally {
     prisma.$transaction = originalTx;
     if (originalTransaction) (prisma as any).$Transaction = originalTransaction;
@@ -103,7 +103,7 @@ test('shipOrder updates status to SHIPPED', async () => {
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
     const updated = await OrderService.shipOrder('o1');
-    assert.equal(updated.status, 'SHIPPED');
+    assert.equal((updated as { status: string }).status, 'SHIPPED');
   } finally {
     prisma.$transaction = originalTx;
   }
@@ -121,7 +121,7 @@ test('deliverOrder updates status to DELIVERED', async () => {
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
     const updated = await OrderService.deliverOrder('o1');
-    assert.equal(updated.status, 'DELIVERED');
+    assert.equal((updated as { status: string }).status, 'DELIVERED');
   } finally {
     prisma.$transaction = originalTx;
   }
