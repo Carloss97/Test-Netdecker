@@ -55,3 +55,68 @@ test('rollbackImport deletes created listings when force=true', async () => {
     prisma.inventoryImport.update = originalInventoryImportUpdate;
   }
 });
+
+test('rollbackImport dryRun returns preview and does not mutate DB', async () => {
+  const originalFindMany = prisma.inventoryImportChange.findMany;
+  const originalListingUpdate = prisma.listing.update;
+  const originalListingDelete = prisma.listing.delete;
+  const originalListingFindUnique = prisma.listing.findUnique;
+
+  try {
+    prisma.inventoryImportChange.findMany = (async () => [
+      { id: 'ch1', importId: 'impX', listingId: 'L1', oldQuantity: 5, newQuantity: 2 },
+      { id: 'ch2', importId: 'impX', listingId: 'L2', oldQuantity: null, newQuantity: 3 }
+    ]) as any;
+
+    let updateCalled = 0;
+    let deleteCalled = 0;
+    prisma.listing.update = (async () => { updateCalled++; return {} as any; }) as any;
+    prisma.listing.delete = (async () => { deleteCalled++; return {} as any; }) as any;
+    prisma.listing.findUnique = (async () => ({ id: 'L2' })) as any;
+
+    const res: any = await InventoryService.rollbackImport('impX', { force: true, dryRun: true });
+    // dryRun should report planned actions and not call DB mutators
+    assert.equal(res.reverted, 2);
+    assert.equal(res.skipped, 0);
+    assert.equal(Array.isArray(res.preview), true);
+    assert.equal(updateCalled, 0);
+    assert.equal(deleteCalled, 0);
+  } finally {
+    prisma.inventoryImportChange.findMany = originalFindMany;
+    prisma.listing.update = originalListingUpdate;
+    prisma.listing.delete = originalListingDelete;
+    prisma.listing.findUnique = originalListingFindUnique;
+  }
+});
+
+test('rollbackImport respects onlyListingIds filter', async () => {
+  const originalFindMany = prisma.inventoryImportChange.findMany;
+  const originalListingUpdate = prisma.listing.update;
+  const originalListingDelete = prisma.listing.delete;
+  const originalInventoryImportUpdate = prisma.inventoryImport.update;
+
+  try {
+    prisma.inventoryImportChange.findMany = (async () => [
+      { id: 'ch1', importId: 'impY', listingId: 'L1', oldQuantity: 5, newQuantity: 2 },
+      { id: 'ch2', importId: 'impY', listingId: 'L2', oldQuantity: null, newQuantity: 3 }
+    ]) as any;
+
+    let updated = 0;
+    let deleted = 0;
+    prisma.listing.update = (async (args: any) => { updated++; return args; }) as any;
+    prisma.listing.delete = (async (args: any) => { deleted++; return args; }) as any;
+    prisma.inventoryImport.update = (async () => ({})) as any;
+
+    const res: any = await InventoryService.rollbackImport('impY', { force: true, onlyListingIds: ['L1'] });
+    // only L1 should be reverted (update), L2 skipped
+    assert.equal(res.reverted, 1);
+    assert.equal(res.skipped >= 0, true);
+    assert.equal(updated, 1);
+    assert.equal(deleted, 0);
+  } finally {
+    prisma.inventoryImportChange.findMany = originalFindMany;
+    prisma.listing.update = originalListingUpdate;
+    prisma.listing.delete = originalListingDelete;
+    prisma.inventoryImport.update = originalInventoryImportUpdate;
+  }
+});

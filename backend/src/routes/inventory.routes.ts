@@ -120,8 +120,11 @@ router.get('/imports/export', async (req: Request, res: Response) => {
 router.post('/imports/:id/rollback', requireApiKey, async (req: Request, res: Response) => {
   const importId = String(req.params.id);
   const force = Boolean((req.body && req.body.force) || false);
+  const dryRun = Boolean((req.body && req.body.dryRun) || false);
+  const onlyListingIds = Array.isArray(req.body?.onlyListingIds) ? req.body.onlyListingIds.map(String) : undefined;
+  const skipListingIds = Array.isArray(req.body?.skipListingIds) ? req.body.skipListingIds.map(String) : undefined;
 
-  const result = await InventoryService.rollbackImport(importId, { force });
+  const result = await InventoryService.rollbackImport(importId, { force, dryRun, onlyListingIds, skipListingIds });
   res.json({ success: true, result });
 });
 

@@ -1007,13 +1007,27 @@ export class InventoryService {
    * changes. If `force=true` created listings (oldQuantity === null) will be
    * deleted when possible; otherwise they are skipped and reported.
    */
-  static async rollbackImport(importId: string, options: { force?: boolean } = {}) {
+  static async rollbackImport(
+    importId: string,
+    options: { force?: boolean; dryRun?: boolean; onlyListingIds?: string[]; skipListingIds?: string[] } = {}
+  ) {
     const force = Boolean(options.force);
+    const dryRun = Boolean(options.dryRun);
+    const onlySet = Array.isArray(options.onlyListingIds) ? new Set(options.onlyListingIds) : null;
+    const skipSet = Array.isArray(options.skipListingIds) ? new Set(options.skipListingIds) : null;
 
     const changes = await prisma.inventoryImportChange.findMany({ where: { importId } });
     if (!changes || !changes.length) {
       throw new Error('No recorded changes found for this import');
     }
+
+    // Filter changes if requested
+    const filtered = changes.filter((ch: any) => {
+      if (!ch.listingId) return false;
+      if (onlySet && !onlySet.has(ch.listingId)) return false;
+      if (skipSet && skipSet.has(ch.listingId)) return false;
+      return true;
+    });
 
     // NOTE: use direct `prisma` calls instead of `tx.*` transaction proxy so
     // test suites that stub `prisma.*` methods can intercept calls. This is a
@@ -1021,10 +1035,22 @@ export class InventoryService {
     // rows are skipped rather than aborting the whole operation.
     let reverted = 0;
     let skipped = 0;
+    const preview: Array<any> = [];
 
-    for (const ch of changes) {
+    for (const ch of filtered) {
       if (!ch.listingId) {
         skipped++;
+        continue;
+      }
+
+      // Determine intention for preview or execution
+      const willDelete = ch.oldQuantity === null || ch.oldQuantity === undefined ? true : false;
+      const intendsToRevert = willDelete ? force : true;
+
+      if (dryRun) {
+        if (intendsToRevert) reverted++;
+        else skipped++;
+        preview.push({ listingId: ch.listingId, oldQuantity: ch.oldQuantity, newQuantity: ch.newQuantity, action: intendsToRevert ? (willDelete ? 'delete' : 'update') : 'skip' });
         continue;
       }
 
@@ -1050,16 +1076,18 @@ export class InventoryService {
       }
     }
 
-    try {
-      const importRec = await prisma.inventoryImport.findUnique({ where: { id: importId }, select: { id: true } });
-      if (importRec) {
-        await prisma.inventoryImport.update({ where: { id: importId }, data: { status: 'rolled_back' } });
+    if (!dryRun) {
+      try {
+        const importRec = await prisma.inventoryImport.findUnique({ where: { id: importId }, select: { id: true } });
+        if (importRec) {
+          await prisma.inventoryImport.update({ where: { id: importId }, data: { status: 'rolled_back' } });
+        }
+      } catch (err) {
+        // ignore failure to update import record
       }
-    } catch (err) {
-      // ignore failure to update import record
     }
 
-    return { reverted, skipped };
+    return dryRun ? { reverted, skipped, preview } : { reverted, skipped };
   }
 
   /**
