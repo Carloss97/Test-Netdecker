@@ -22,7 +22,7 @@ test('integration: inventory import-csv and basic checkout flow', async (t) => {
     await t.test('POST /api/inventory/import-csv accepts CSV file and returns importId', async () => {
       const fd = new FormData();
       const csv = 'listingId,quantity\nL1,2\nL2,3\n';
-      fd.append('file', Buffer.from(csv), 'test.csv');
+      fd.append('file', new Blob([csv]), 'test.csv');
 
       const res = await fetch(`${base}/api/inventory/import-csv`, { method: 'POST', body: fd });
       assert.equal(res.status, 200);

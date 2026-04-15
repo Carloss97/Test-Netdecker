@@ -16,10 +16,10 @@ test('resolveRoundingMultiple respects override and env', () => {
   }
 });
 
-test('isVolatileChange computes percent change correctly', () => {
-  assert.equal(PriceService.isVolatileChange(100, 120, 10), true);
-  assert.equal(PriceService.isVolatileChange(100, 108, 10), false);
-  assert.equal(PriceService.isVolatileChange(0, 100, 10), false);
+test('isVolatileChange computes percent change correctly', async () => {
+  assert.equal(await PriceService.isVolatileChange(100, 120, 10), true);
+  assert.equal(await PriceService.isVolatileChange(100, 108, 10), false);
+  assert.equal(await PriceService.isVolatileChange(0, 100, 10), false);
 });
 
 test('calculateFinalPrice uses ExchangeRateService and rounding', async () => {

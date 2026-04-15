@@ -1,0 +1,62 @@
+name: Auto Rerun Failed PR CI
+
+on:
+  workflow_run:
+    types: [completed]
+
+permissions:
+  actions: write
+  issues: write
+
+jobs:
+  rerun-failed-pr:
+    name: Rerun failed PR workflows once
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' }}
+    steps:
+      - name: Rerun failed workflow and comment on PR
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const run = context.payload.workflow_run;
+            if (!run) {
+              core.info('No workflow_run payload, exiting');
+              return;
+            }
+            const attempt = run.run_attempt || 1;
+            if (attempt >= 2) {
+              core.info(`Run attempt ${attempt} detected — skipping automatic rerun to avoid loops.`);
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runId = run.id;
+            core.info(`Rerunning workflow run ${runId} (attempt ${attempt})`);
+
+            try {
+              await github.actions.reRunWorkflowRun({ owner, repo, run_id: runId });
+            } catch (err) {
+              core.warning(`Failed to trigger rerun for run ${runId}: ${err}`);
+            }
+
+            // Find PRs associated with the head commit and comment to notify maintainers
+            try {
+              const headSha = run.head_sha;
+              const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({ owner, repo, commit_sha: headSha });
+              if (prs.data.length === 0) {
+                core.info('No PRs associated with this run commit.');
+                return;
+              }
+              for (const pr of prs.data) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: pr.number,
+                  body: `Automated retry: workflow "${run.name}" failed and was retried (attempt ${attempt + 1}). If failures persist please review the logs.`,
+                });
+              }
+            } catch (err) {
+              core.warning(`Failed to post PR comment: ${err}`);
+            }

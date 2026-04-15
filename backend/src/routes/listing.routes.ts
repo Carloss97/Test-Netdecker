@@ -262,6 +262,7 @@ router.get('/:id/price-debug', async (req: Request, res: Response) => {
   const delta = recalculatedFinalPrice - listing.finalPrice;
   const deltaPercent = listing.finalPrice === 0 ? 0 : (delta / listing.finalPrice) * 100;
   const recentHistory = await PriceService.getPriceHistory(listing.id, 10);
+  const isVolatile = await PriceService.isVolatileChange(listing.finalPrice, recalculatedFinalPrice, { listingId: listing.id });
 
   res.json({
     listingId: listing.id,
@@ -283,7 +284,7 @@ router.get('/:id/price-debug', async (req: Request, res: Response) => {
       fetchedAt: currentRateMeta.fetchedAt || null,
       expiresAt: currentRateMeta.expiresAt || null,
     },
-    recalculation: {
+      recalculation: {
       formula: `${listing.referencePrice} * ${listing.marginMultiplier} * ${currentRateMeta.rate}`,
       rawRecalculatedFinalPrice: recalculation.rawFinalPrice,
       recalculatedFinalPrice,
@@ -291,7 +292,7 @@ router.get('/:id/price-debug', async (req: Request, res: Response) => {
       roundingMultiple: recalculation.roundingMultiple,
       delta,
       deltaPercent,
-      isVolatile: PriceService.isVolatileChange(listing.finalPrice, recalculatedFinalPrice),
+      isVolatile,
     },
     recentHistory,
   });
