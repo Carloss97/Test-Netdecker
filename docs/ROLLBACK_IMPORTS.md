@@ -24,6 +24,23 @@ This model enables selective rollback by batch or by row.
 - `POST /api/imports/:id/rollback` with optional `batchId` to rollback a specific batch or `?mode=all` to rollback entire run.
 - Service-level: `ImportService.applyImport()` should create `ImportRun`, `ImportBatch` and `ImportRowChange` entries inside a transaction and allow safe rollback operations.
 
+Example: rollback endpoint
+
+POST /api/inventory/imports/:id/rollback
+
+Body (JSON):
+{
+	"dryRun": true,         // optional - preview only
+	"force": false,         // optional - delete created listings when true
+	"batchId": "<batch-id>", // optional - target a specific batch
+	"batchIndex": 1,        // optional - alternative to batchId
+	"onlyListingIds": ["L1","L2"] // optional - filter which listings to revert
+}
+
+Notes:
+- The API requires the `x-api-key` header when `IMPORT_API_KEY` is set in the server environment.
+- The endpoint returns `{ success: true, result }` where `result` is either a preview ({ reverted, skipped, preview }) for `dryRun` or `{ reverted, skipped }` after execution.
+
 ## Concurrency & safety
 
 - Use DB transactions where possible and application-level locks (advisory locks or row-level locks) when performing rollbacks to avoid race conditions.
