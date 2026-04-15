@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class InvoiceService {
-  static generateInvoiceNumber(storeId?: string | null) {
+  static generateInvoiceNumber(_storeId?: string | null) {
     return `INV-${Date.now()}-${Math.floor(Math.random() * 9000) + 1000}`;
   }
 

@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "3334:3333" # map container 3333 to host 3334 to avoid local dev port conflicts
+      - "3335:3333" # map container 3333 to host 3335 to avoid local dev port conflicts
     env_file:
       - ./staging.env
     depends_on:

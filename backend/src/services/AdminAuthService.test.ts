@@ -14,7 +14,7 @@ test('createUser stores hashed password and returns user info', async () => {
   try {
     prisma.adminUser.findUnique = (async () => null) as any;
     let createdArgs: any = null;
-    prisma.adminUser.create = (async (args: any) => { createdArgs = args; return { id: 'u1', email: args.data.email, role: args.data.role }; }) as any;
+    prisma.adminUser.create = (async (_args: any) => { createdArgs = _args; return { id: 'u1', email: _args.data.email, role: _args.data.role }; }) as any;
 
     const res = await AdminAuthService.createUser('admin@example.com', 's3cret', 'STAFF');
     assert.equal(res.email, 'admin@example.com');
@@ -45,8 +45,8 @@ test('authenticate creates session and validateToken works; logout deletes sessi
     prisma.adminUser.findUnique = (async () => ({ id: 'u1', email: 'admin@example.com', passwordSalt: salt, passwordHash: hash, role: 'ADMIN', isActive: true })) as any;
 
     let createdSessionArgs: any = null;
-    prisma.adminSession.create = (async (args: any) => { createdSessionArgs = args; return { id: 's1', token: args.data.token, userId: args.data.userId, expiresAt: args.data.expiresAt }; }) as any;
-    prisma.adminUser.update = (async (args: any) => ({ id: 'u1', ...args.data })) as any;
+    prisma.adminSession.create = (async (_args: any) => { createdSessionArgs = _args; return { id: 's1', token: _args.data.token, userId: _args.data.userId, expiresAt: _args.data.expiresAt }; }) as any;
+    prisma.adminUser.update = (async (_args: any) => ({ id: 'u1', ..._args.data })) as any;
 
     const auth = await AdminAuthService.authenticate('admin@example.com', password);
     assert.ok(auth.token, 'token returned');
@@ -59,7 +59,7 @@ test('authenticate creates session and validateToken works; logout deletes sessi
     assert.equal(validated?.email, 'admin@example.com');
 
     let deleteCalled = false;
-    prisma.adminSession.deleteMany = (async (args: any) => { deleteCalled = true; return { count: 1 }; }) as any;
+    prisma.adminSession.deleteMany = (async (_args: any) => { deleteCalled = true; return { count: 1 }; }) as any;
 
     await AdminAuthService.logout(createdSessionArgs.data.token);
     assert.equal(deleteCalled, true);

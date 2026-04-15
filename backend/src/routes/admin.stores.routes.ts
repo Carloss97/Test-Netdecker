@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import requireApiKey from '../middleware/requireApiKey.js';
 import StoreService from '../services/StoreServiceImpl.js';
-import { ValidationError, NotFoundError } from '../utils/errors.js';
+import { ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 

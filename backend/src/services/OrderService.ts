@@ -89,7 +89,7 @@ export class OrderService {
     });
   }
 
-  static async shipOrder(orderId: string, performedBy?: string | null) {
+  static async shipOrder(orderId: string, _performedBy?: string | null) {
     return prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundError('Order not found');
@@ -105,7 +105,7 @@ export class OrderService {
     });
   }
 
-  static async deliverOrder(orderId: string, performedBy?: string | null) {
+  static async deliverOrder(orderId: string, _performedBy?: string | null) {
     return prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundError('Order not found');

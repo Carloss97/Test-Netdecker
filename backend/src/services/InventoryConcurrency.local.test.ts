@@ -45,7 +45,7 @@ test('local concurrent decrements do not oversell (mocked DB)', async () => {
       }
     },
     stockMovement: {
-      create: async ({ data }: any) => {
+      create: async ({ data: _data }: any) => {
         // return a fake movement id
         return { id: 'm-' + Math.random().toString(36).slice(2, 9) };
       }

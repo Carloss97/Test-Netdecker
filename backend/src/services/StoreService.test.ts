@@ -47,7 +47,7 @@ test('StoreService.createStore accepts currency and taxRate and updateStore work
   const slug = `svc-create-${Date.now()}`;
   const name = 'Service Create With Settings Test';
 
-  const { store, apiKey } = await StoreService.createStore({ slug, name, currency: 'USD', taxRate: 19 });
+  const { store } = await StoreService.createStore({ slug, name, currency: 'USD', taxRate: 19 });
   try {
     assert.equal(store.currency, 'USD');
     assert.equal(Number(store.taxRate), 19);

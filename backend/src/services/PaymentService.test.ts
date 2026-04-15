@@ -10,7 +10,7 @@ test('processPosSale creates order and reduces stock', async () => {
   const originalTx = prisma.$transaction;
 
   try {
-    let orderCreated: any = null;
+    // we don't need to capture created order for this test
     const listingUpdates: any[] = [];
 
     const tx = {
@@ -21,7 +21,7 @@ test('processPosSale creates order and reduces stock', async () => {
         },
         update: async ({ where, data }: any) => { listingUpdates.push({ where, data }); return { id: where.id, ...data }; }
       },
-      order: { create: async ({ data }: any) => { orderCreated = { id: 'o-1', ...data }; return { id: 'o-1', ...data }; } },
+      order: { create: async ({ data }: any) => ({ id: 'o-1', ...data }) },
       orderItem: { create: async ({ data }: any) => ({ id: 'oi-1', ...data }) },
       stockMovement: { create: async ({ data }: any) => ({ id: 'mov-1', ...data }) },
       account: { findFirst: async () => null },
@@ -100,7 +100,7 @@ test('processPosSale creates journal entries when accounts exist', async () => {
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const updated: any = await PaymentService.processPosSale({ items: [{ listingId: 'LJ', quantity: 2 }] } as any);
+    await PaymentService.processPosSale({ items: [{ listingId: 'LJ', quantity: 2 }] } as any);
 
     // Expect two journal entries: sale and COGS
     assert.equal(created.length, 2);
