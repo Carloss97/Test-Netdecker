@@ -46,7 +46,7 @@ let prisma: MinimalPrisma;
 // avoids needing the generated Prisma clients in CI/dev shells.
 if (process.env.SKIP_DB_INIT === 'true') {
 	console.log('[DB] SKIP_DB_INIT=true: using stub Prisma client for tests');
-	const base: any = {
+	const base: any = { 
 		$connect: async () => {},
 		$disconnect: async () => {},
 		$transaction: async (fn: any) => {
@@ -54,15 +54,148 @@ if (process.env.SKIP_DB_INIT === 'true') {
 			return [];
 		}
 	};
+		// Simple in-memory model storage used by the stub. Provides lightweight
+		// implementations of common Prisma model methods so tests can run without
+		// a real database when `SKIP_DB_INIT=true`.
+		const modelMemory = new Map<string, Map<string, any>>();
 
-	// Proxy so tests can assign model methods like `prisma.cart.findMany = ...` without errors.
-	prisma = new Proxy(base, {
-		get(target, prop) {
-			if (prop === Symbol.toStringTag) return 'PrismaStub';
-			if (!(prop in target)) (target as any)[prop] = {};
-			return (target as any)[prop];
+		function createModelHandler(modelName: string) {
+			const store = new Map<string, any>();
+
+			function mkId() {
+				return `mock-${Math.random().toString(36).slice(2, 9)}`;
+			}
+
+			return {
+				create: async ({ data }: { data: any }) => {
+					if (process.env.DEBUG_PRISMA_STUB === 'true') console.log('[PRISMA-STUB] create', modelName, data);
+					const id = data.id ?? mkId();
+					const rec: any = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+					// Provide common default public identifiers used by the real Prisma schema
+					if (!rec.sessionId && /session/i.test(modelName)) {
+						rec.sessionId = `sess-${mkId()}`;
+					}
+					if (!rec.listingId && /listing/i.test(modelName) && typeof rec.listingId === 'undefined') {
+						// leave user-provided listingId as-is; generate only when missing
+						// rec.listingId = `L${mkId()}`;
+					}
+					store.set(id, rec);
+					return rec;
+				},
+				findUnique: async ({ where }: { where: any }) => {
+					if (process.env.DEBUG_PRISMA_STUB === 'true') console.log('[PRISMA-STUB] findUnique', modelName, where);
+					if (!where) return null;
+					if (where.id) return store.get(where.id) ?? null;
+					if (where.sessionId) {
+						const entries = Array.from(store.values());
+						return entries.find((r) => r.sessionId === where.sessionId) ?? null;
+					}
+					// Support common unique fields like slug or apiKeyHash
+					const entries = Array.from(store.values());
+					if (where.slug) return entries.find((r) => r.slug === where.slug) ?? null;
+					if (where.apiKeyHash) return entries.find((r) => r.apiKeyHash === where.apiKeyHash) ?? null;
+					return null;
+				},
+				findFirst: async ({ where }: any) => {
+					const entries = Array.from(store.values());
+					if (!where) return entries[0] ?? null;
+					return entries.find((r) => {
+						for (const k of Object.keys(where)) {
+							const cond = (where as any)[k];
+							if (typeof cond === 'object' && cond?.not !== undefined) {
+								if (r[k] === cond.not) return false;
+							} else if (r[k] !== cond) return false;
+						}
+						return true;
+					}) ?? null;
+				},
+				findMany: async ({ where }: any = {}) => {
+					const entries = Array.from(store.values());
+					if (!where) return entries;
+					if (where.id && where.id.in) return entries.filter(e => where.id.in.includes(e.id));
+					if (where.slug) return entries.filter(e => e.slug === where.slug);
+					return entries;
+				},
+				delete: async ({ where }: any) => {
+					if (!where || !where.id) return null;
+					const rec = store.get(where.id);
+					store.delete(where.id);
+					return rec ?? null;
+				},
+				deleteMany: async ({ where }: any = {}) => {
+					const toDelete: string[] = [];
+					for (const [id, rec] of store.entries()) {
+						let match = true;
+						if (where) {
+							for (const k of Object.keys(where)) {
+								if (rec[k] !== where[k]) { match = false; break; }
+							}
+						}
+						if (match) toDelete.push(id);
+					}
+					for (const id of toDelete) store.delete(id);
+					return { count: toDelete.length };
+				},
+				update: async ({ where, data }: any) => {
+					const rec = store.get(where.id);
+					if (!rec) return null;
+					const updated = { ...rec, ...data, updatedAt: new Date() };
+					store.set(where.id, updated);
+					return updated;
+				},
+				updateMany: async ({ where, data }: any) => {
+					let count = 0;
+					for (const [id, rec] of store.entries()) {
+						let match = true;
+						if (where) {
+							for (const k of Object.keys(where)) {
+								const cond = where[k];
+								if (typeof cond === 'object' && cond.gte !== undefined) {
+									if (!(rec[k] >= cond.gte)) match = false;
+								} else if (typeof cond === 'object' && cond.not !== undefined) {
+									if (rec[k] === cond.not) match = false;
+								} else if (rec[k] !== cond) match = false;
+							}
+						}
+						if (match) { store.set(id, { ...rec, ...data }); count++; }
+					}
+					return { count };
+				},
+				upsert: async ({ where, update, create }: any) => {
+					if (where && where.id && store.has(where.id)) {
+						const existing = store.get(where.id);
+						const updated = { ...existing, ...update, updatedAt: new Date() };
+						store.set(where.id, updated);
+						return updated;
+					}
+					const id = (create && create.id) ? create.id : mkId();
+					const rec = { id, ...(create || {}), createdAt: new Date(), updatedAt: new Date() };
+					store.set(id, rec);
+					return rec;
+				},
+				count: async ({ where }: any = {}) => {
+					if (!where) return store.size;
+					if (where.id && where.id.in) return Array.from(store.values()).filter(e => where.id.in.includes(e.id)).length;
+					return store.size;
+				},
+				aggregate: async (_args: any) => ({ _sum: {} }),
+			};
 		}
-	}) as MinimalPrisma;
+
+		// Proxy so tests can assign model methods like `prisma.cart.findMany = ...` without errors.
+		prisma = new Proxy(base, {
+			get(target, prop) {
+				if (prop === Symbol.toStringTag) return 'PrismaStub';
+				if (!(prop in target)) {
+					const name = String(prop);
+					const handler = createModelHandler(name);
+					(target as any)[prop] = handler;
+				}
+				return (target as any)[prop];
+			}
+		}) as MinimalPrisma;
+
+
 } else {
 	// Dynamically import the correct Prisma client package at runtime.
 	// - PostgreSQL: `@prisma/client`
