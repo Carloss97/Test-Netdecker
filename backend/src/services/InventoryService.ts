@@ -1,5 +1,6 @@
 import prisma from '../utils/db.js';
 import { CardCondition, TCGType } from '@prisma/client';
+import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 
 // Local string union for movement types — avoids depending on generated client enums at compile time.
 type StockMovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUST';
@@ -197,7 +198,7 @@ function parseTcg(raw: string): TCGType {
   }
 
   if (!SUPPORTED_TCGS.includes(normalized as TCGType)) {
-    throw new Error(`Invalid TCG value: ${raw}`);
+    throw new ValidationError(`Invalid TCG value: ${raw}`);
   }
 
   return normalized as TCGType;
@@ -256,11 +257,11 @@ export function validateListingUpdateRow(row: CsvRow, duplicateListingIds: Set<s
   });
 
   if (!parsed.success) {
-    throw new Error(formatZodError(parsed.error));
+    throw new ValidationError(formatZodError(parsed.error));
   }
 
   if (duplicateListingIds.has(parsed.data.listingId)) {
-    throw new Error(`Duplicate listingId in CSV: ${parsed.data.listingId}`);
+    throw new ValidationError(`Duplicate listingId in CSV: ${parsed.data.listingId}`);
   }
 
   return parsed.data;
@@ -284,7 +285,7 @@ export function validateFullUpsertRow(row: CsvRow) {
   });
 
   if (!parsed.success) {
-    throw new Error(formatZodError(parsed.error));
+    throw new ValidationError(formatZodError(parsed.error));
   }
 
   return {
@@ -306,7 +307,7 @@ export function validateFullUpsertRow(row: CsvRow) {
 
 export function detectImportMode(rows: CsvRow[]): ImportMode {
   if (!rows.length) {
-    throw new Error('CSV has no data rows');
+    throw new ValidationError('CSV has no data rows');
   }
 
   const headers = Object.keys(rows[0]);
@@ -410,7 +411,7 @@ export class InventoryService {
     // Use a transaction to create movement and update listing atomically
     return prisma.$transaction(async (tx: any) => {
       const listing = await tx.listing.findUnique({ where: { id: input.listingId } });
-      if (!listing) throw new Error('Listing not found');
+      if (!listing) throw new NotFoundError('Listing not found');
 
       const qty = Number(input.quantity || 0);
 
@@ -431,17 +432,17 @@ export class InventoryService {
             data: { quantity: { decrement: qty } }
           });
 
-          if (!updateResult || (updateResult as any).count === 0) throw new Error('Insufficient stock');
+          if (!updateResult || (updateResult as any).count === 0) throw new ConflictError('Insufficient stock');
         } else {
           const current = await tx.listing.findUnique({ where: { id: input.listingId } });
-          if (!current || Number(current.quantity || 0) < qty) throw new Error('Insufficient stock');
+          if (!current || Number(current.quantity || 0) < qty) throw new ConflictError('Insufficient stock');
           await tx.listing.update({ where: { id: input.listingId }, data: { quantity: Number(current.quantity || 0) - qty } });
         }
       } else if (type === 'TRANSFER') {
         // Transfer does not change global listing.quantity in current model
       } else if (type === 'ADJUST') {
         const newQuantity = Number(listing.quantity || 0) + qty;
-        if (newQuantity < 0) throw new Error('Resulting quantity cannot be negative');
+        if (newQuantity < 0) throw new ValidationError('Resulting quantity cannot be negative');
         await tx.listing.update({ where: { id: input.listingId }, data: { quantity: newQuantity } });
       }
 
@@ -472,18 +473,18 @@ export class InventoryService {
     reference?: string | null;
     notes?: string | null;
   }) {
-    if (input.fromWarehouseId === input.toWarehouseId) throw new Error('Source and destination warehouses must differ');
+    if (input.fromWarehouseId === input.toWarehouseId) throw new ValidationError('Source and destination warehouses must differ');
 
     return prisma.$transaction(async (tx: any) => {
       const listing = await tx.listing.findUnique({ where: { id: input.listingId } });
-      if (!listing) throw new Error('Listing not found');
+      if (!listing) throw new NotFoundError('Listing not found');
 
       const qty = Number(input.quantity || 0);
-      if (qty <= 0) throw new Error('Quantity must be > 0');
+      if (qty <= 0) throw new ValidationError('Quantity must be > 0');
 
       // Check source warehouse stock
       const fromStock = await tx.warehouseStock.findFirst({ where: { listingId: input.listingId, warehouseId: input.fromWarehouseId } });
-      if (!fromStock || Number(fromStock.quantity || 0) < qty) throw new Error('Insufficient stock in source warehouse');
+      if (!fromStock || Number(fromStock.quantity || 0) < qty) throw new ConflictError('Insufficient stock in source warehouse');
 
       // Decrease source warehouse stock
       await tx.warehouseStock.update({ where: { id: fromStock.id }, data: { quantity: Number(fromStock.quantity) - qty } });
@@ -517,7 +518,7 @@ export class InventoryService {
   static async takeStockSnapshot(listingId: string, warehouseId?: string | null) {
     return prisma.$transaction(async (tx: any) => {
       const listing = await tx.listing.findUnique({ where: { id: listingId } });
-      if (!listing) throw new Error('Listing not found');
+      if (!listing) throw new NotFoundError('Listing not found');
 
       const snapshot = await tx.stockSnapshot.create({
         data: {
@@ -542,9 +543,9 @@ export class InventoryService {
   // Returns an object on success, throws on insufficient stock.
   // Allow injecting a DB client for tests (defaults to real `prisma`).
   static async decreaseListingQuantity(listingId: string, amount: number, db: any = prisma) {
-    if (!listingId) throw new Error('listingId required');
+    if (!listingId) throw new ValidationError('listingId required');
     const qty = Number(amount || 0);
-    if (qty <= 0) throw new Error('amount must be > 0');
+    if (qty <= 0) throw new ValidationError('amount must be > 0');
     const run = async () => {
       return db.$transaction(async (tx: any) => {
         const res = await tx.listing.updateMany({
@@ -552,7 +553,7 @@ export class InventoryService {
           data: { quantity: { decrement: qty } }
         });
 
-        if (!res || (res as any).count === 0) throw new Error('Insufficient stock');
+        if (!res || (res as any).count === 0) throw new ConflictError('Insufficient stock');
 
         const movement = await tx.stockMovement.create({
           data: {
@@ -604,14 +605,14 @@ export class InventoryService {
 
     if (query.scope === 'edition') {
       if (!query.editionId) {
-        throw new Error('editionId is required when scope=edition');
+        throw new ValidationError('editionId is required when scope=edition');
       }
       where.editionId = query.editionId;
     }
 
     if (query.scope === 'tcg') {
       if (!query.tcgId) {
-        throw new Error('tcgId is required when scope=tcg');
+        throw new ValidationError('tcgId is required when scope=tcg');
       }
       where.card = { tcgId: query.tcgId };
     }
@@ -711,7 +712,7 @@ export class InventoryService {
       });
 
       if (existing) {
-        throw new Error(`This file was already imported before (importId: ${existing.id})`);
+        throw new ConflictError(`This file was already imported before (importId: ${existing.id})`);
       }
 
       const createdImport = await prisma.inventoryImport.create({
@@ -753,8 +754,8 @@ export class InventoryService {
             select: { id: true }
           });
 
-          if (!existingListing) {
-            throw new Error(`Listing not found: ${parsedRow.listingId}`);
+            if (!existingListing) {
+            throw new NotFoundError(`Listing not found: ${parsedRow.listingId}`);
           }
 
           if (!dryRun) {
@@ -806,7 +807,7 @@ export class InventoryService {
 
         const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
         if (!tcg) {
-          throw new Error(`TCG not initialized: ${tcgType}`);
+          throw new NotFoundError(`TCG not initialized: ${tcgType}`);
         }
 
         const edition = await prisma.edition.upsert({
@@ -955,7 +956,7 @@ export class InventoryService {
 
     const worksheet = workbook.worksheets[0];
     if (!worksheet) {
-      throw new Error('XLSX file has no worksheets');
+      throw new ValidationError('XLSX file has no worksheets');
     }
 
     const rows: string[][] = [];
@@ -986,7 +987,7 @@ export class InventoryService {
     });
 
     if (rows.length === 0) {
-      throw new Error('XLSX worksheet is empty');
+      throw new ValidationError('XLSX worksheet is empty');
     }
 
     // Serialize to CSV so we can reuse all existing CSV logic
@@ -1018,7 +1019,7 @@ export class InventoryService {
 
     const changes = await prisma.inventoryImportChange.findMany({ where: { importId } });
     if (!changes || !changes.length) {
-      throw new Error('No recorded changes found for this import');
+      throw new NotFoundError('No recorded changes found for this import');
     }
 
     // Filter changes if requested

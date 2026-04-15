@@ -1,5 +1,6 @@
 // src/routes/health.routes.ts
 import express, { Request, Response } from 'express';
+import { ApplicationError } from '../utils/errors.js';
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
     const dbMod = await import('../utils/db.js');
     const db = dbMod.default;
     if (!db || typeof db.$connect !== 'function') {
-      throw new Error('DB client not available');
+      throw new ApplicationError(503, 'DB client not available', 'SERVICE_UNAVAILABLE');
     }
     // Attempt a lightweight connect (no-op if already connected)
     await db.$connect();

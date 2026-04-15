@@ -1,6 +1,7 @@
 import prisma from '../utils/db.js';
 import { Prisma } from '@prisma/client';
 import { ListingService } from './ListingService.js';
+import { ValidationError, NotFoundError, ConflictError } from '../utils/errors.js';
 
 interface AddToCartInput {
   sessionId: string;
@@ -91,12 +92,12 @@ export class CartService {
 
   static async addToCart(input: AddToCartInput) {
     if (input.quantity <= 0) {
-      throw new Error('Quantity must be greater than 0');
+      throw new ValidationError('Quantity must be greater than 0');
     }
 
     const listing = await ListingService.getListing(input.listingId);
     if (!listing) {
-      throw new Error('Listing not found');
+      throw new NotFoundError('Listing not found');
     }
 
     const cart = await this.getOrCreateCart(input.sessionId);
@@ -119,9 +120,7 @@ export class CartService {
     );
 
     if (availableForSession < desiredTotal) {
-      throw new Error(
-        `Insufficient stock. Available: ${availableForSession}, requested: ${desiredTotal}`,
-      );
+      throw new ConflictError(`Insufficient stock. Available: ${availableForSession}, requested: ${desiredTotal}`);
     }
 
     if (existingItem) {
@@ -178,7 +177,7 @@ export class CartService {
     });
 
     if (!item) {
-      throw new Error('Cart item not found');
+      throw new NotFoundError('Cart item not found');
     }
 
     // Check available stock for this session (excluding the current item's reservation)
@@ -189,9 +188,7 @@ export class CartService {
     );
 
     if (availableForSession < quantity) {
-      throw new Error(
-        `Insufficient stock. Available: ${availableForSession}, requested: ${quantity}`,
-      );
+      throw new ConflictError(`Insufficient stock. Available: ${availableForSession}, requested: ${quantity}`);
     }
 
     await prisma.orderItem.update({
@@ -209,7 +206,7 @@ export class CartService {
   static async checkout(sessionId: string, customerEmail: string, shippingAddress?: string, notes?: string) {
     const cart = await this.getOrCreateCart(sessionId);
     if (!cart.items.length) {
-      throw new Error('Cart is empty');
+      throw new ValidationError('Cart is empty');
     }
     type CartItemShape = {
       id: string;
@@ -222,7 +219,7 @@ export class CartService {
     for (const item of cart.items as CartItemShape[]) {
       const currentListing = await prisma.listing.findUnique({ where: { id: item.listingId } });
       if (!currentListing || currentListing.quantity < item.quantity) {
-        throw new Error(`Insufficient stock for listing ${item.listingId}`);
+        throw new ConflictError(`Insufficient stock for listing ${item.listingId}`);
       }
     }
 

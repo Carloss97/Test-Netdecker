@@ -2,6 +2,7 @@
 import axios from 'axios';
 import prisma from '../utils/db.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
+import { ValidationError } from '../utils/errors.js';
 
 const CACHE_KEY = 'exchange_rate:usd_clp';
 const CACHE_TTL = 3600 * 6; // 6 hours
@@ -157,7 +158,7 @@ export class ExchangeRateService {
 
   static async setManualUSDtoCLPRate(rate: number): Promise<void> {
     if (!Number.isFinite(rate) || rate <= 0) {
-      throw new Error('Manual exchange rate must be a positive number');
+      throw new ValidationError('Manual exchange rate must be a positive number');
     }
 
     await prisma.exchangeRate.upsert({

@@ -3,6 +3,7 @@ import prisma from '../utils/db.js';
 import { ExchangeRateService } from './ExchangeRateService.js';
 import { PriceUpdateReason } from '@prisma/client';
 import PriceThresholdService from './PriceThresholdService.js';
+import { NotFoundError } from '../utils/errors.js';
 
 interface PriceCalculationInput {
   referencePrice: number; // USD
@@ -104,7 +105,7 @@ export class PriceService {
   ): Promise<void> {
     const listing = await prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) {
-      throw new Error(`Listing not found: ${listingId}`);
+      throw new NotFoundError(`Listing not found: ${listingId}`);
     }
 
     const oldPrice = listing.finalPrice;
