@@ -10,5 +10,7 @@ export default defineConfig({
     environment: 'happy-dom',
     // Enable Jest-style globals like describe/it
     globals: true,
+    // Load test setup (register jest-dom matchers etc.)
+    setupFiles: ['src/test/setup.ts'],
   }
 });
