@@ -24,7 +24,13 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
 
     prisma.listing.findUnique = async ({ where }: any) => ({ id: where.id, finalPrice: 100, marginMultiplier: 1, editionId: 'ed1', card: { tcg: { name: 'MAGIC' } } });
 
-    PriceService.calculateFinalPrice = async ({ referencePrice }: any) => ({ finalPrice: Number(referencePrice) * 2 });
+    PriceService.calculateFinalPrice = async ({ referencePrice }: any) => {
+      const rawFinalPrice = Number(referencePrice) * 2;
+      const exchangeRate = 1;
+      const roundingMultiple = 1;
+      const finalPrice = Math.round(rawFinalPrice);
+      return { finalPrice, rawFinalPrice, exchangeRate, referencePrice: Number(referencePrice), roundingMultiple };
+    };
     PriceThresholdService.getThreshold = async () => 100000; // high threshold so changes are not volatile
     PriceService.updateListingPrice = async () => { /* noop for test */ };
 
