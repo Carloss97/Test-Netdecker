@@ -604,6 +604,31 @@ export class InventoryService {
     });
   }
 
+  // Stream imports for export in pages to avoid loading everything into memory.
+  static async *streamImportsForExport(query: ImportHistoryQuery = {}, pageSize = 500) {
+    const sortBy = query.sortBy || 'createdAt';
+    const sortDir = query.sortDir || 'desc';
+    const where = buildImportWhere(query);
+
+    let cursor: { id: string } | undefined = undefined;
+    // Loop fetching pages until no more results
+    // Use cursor-based pagination to avoid large offsets.
+    while (true) {
+      const page = await prisma.inventoryImport.findMany({
+        where,
+        orderBy: { [sortBy]: sortDir },
+        ...(cursor ? { cursor, skip: 1 } : {}),
+        take: pageSize,
+      });
+
+      if (!page || page.length === 0) break;
+      for (const p of page) yield p;
+      const last = page[page.length - 1];
+      cursor = { id: last.id };
+      if (page.length < pageSize) break;
+    }
+  }
+
   static async getInventoryForExport(query: InventoryExportQuery) {
     const where: {
       status: { in: string[] };

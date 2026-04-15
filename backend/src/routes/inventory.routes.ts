@@ -87,38 +87,54 @@ router.get('/imports', async (req: Request, res: Response) => {
  */
 router.get('/imports/export', async (req: Request, res: Response) => {
   const query = parseImportQuery(req);
-  const items = await InventoryService.getImportsForExport(query);
-
-  const header = ['id', 'fileName', 'status', 'totalRecords', 'successCount', 'failureCount', 'importedBy', 'createdAt', 'completedAt'];
-  const rows = items.map((item: {
-    id: string;
-    fileName: string;
-    status: string;
-    totalRecords: number;
-    successCount: number;
-    failureCount: number;
-    importedBy: string | null;
-    createdAt: Date;
-    completedAt: Date | null;
-  }) => [
-    item.id,
-    item.fileName,
-    item.status,
-    String(item.totalRecords),
-    String(item.successCount),
-    String(item.failureCount),
-    item.importedBy || '',
-    item.createdAt.toISOString(),
-    item.completedAt ? item.completedAt.toISOString() : '',
-  ]);
-
-  const csv = [header, ...rows]
-    .map((cols: string[]) => cols.map((value: string) => `"${String(value).replace(/"/g, '""')}"`).join(','))
-    .join('\r\n');
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="inventory-import-history.csv"');
-  res.send(csv);
+
+  const header = ['id', 'fileName', 'status', 'totalRecords', 'successCount', 'failureCount', 'importedBy', 'createdAt', 'completedAt'];
+  const quote = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+  // Write header
+  res.write(header.map((h) => quote(h)).join(',') + '\r\n');
+
+  try {
+    // Prefer streaming exporter to avoid large memory usage
+    if (typeof (InventoryService as any).streamImportsForExport === 'function') {
+      for await (const item of (InventoryService as any).streamImportsForExport(query)) {
+        const row = [
+          item.id,
+          item.fileName,
+          item.status,
+          String(item.totalRecords),
+          String(item.successCount),
+          String(item.failureCount),
+          item.importedBy || '',
+          item.createdAt ? item.createdAt.toISOString() : '',
+          item.completedAt ? item.completedAt.toISOString() : '',
+        ];
+        res.write(row.map((c) => quote(c)).join(',') + '\r\n');
+      }
+    } else {
+      // Fallback: in older environments, fetch all and stream
+      const items = await InventoryService.getImportsForExport(query);
+      for (const item of items) {
+        const row = [
+          item.id,
+          item.fileName,
+          item.status,
+          String(item.totalRecords),
+          String(item.successCount),
+          String(item.failureCount),
+          item.importedBy || '',
+          item.createdAt ? item.createdAt.toISOString() : '',
+          item.completedAt ? item.completedAt.toISOString() : '',
+        ];
+        res.write(row.map((c) => quote(c)).join(',') + '\r\n');
+      }
+    }
+  } finally {
+    res.end();
+  }
 });
 
 /**

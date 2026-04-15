@@ -7,14 +7,14 @@ import app from '../../index.js';
 import { InventoryService } from '../../services/InventoryService.js';
 
 test('integration: exports import history as CSV', async (t) => {
-  const origGetExports = InventoryService.getImportsForExport;
+  const origStreamExports = (InventoryService as any).streamImportsForExport;
 
   try {
     const createdAt = new Date('2026-04-01T00:00:00.000Z');
     const completedAt = new Date('2026-04-01T00:01:00.000Z');
 
-    InventoryService.getImportsForExport = async () => [
-      {
+    (InventoryService as any).streamImportsForExport = async function* () {
+      yield {
         id: 'imp-123',
         fileName: 'import-test.csv',
         status: 'completed',
@@ -24,8 +24,8 @@ test('integration: exports import history as CSV', async (t) => {
         importedBy: 'tester',
         createdAt,
         completedAt,
-      },
-    ] as any;
+      } as any;
+    };
 
     const server = app.listen(0);
     const addr = server.address();
@@ -58,6 +58,6 @@ test('integration: exports import history as CSV', async (t) => {
 
     server.close();
   } finally {
-    InventoryService.getImportsForExport = origGetExports;
+    (InventoryService as any).streamImportsForExport = origStreamExports;
   }
 });
