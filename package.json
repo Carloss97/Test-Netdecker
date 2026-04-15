@@ -11,10 +11,13 @@
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
     "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check",
     "map:ra5": "node scripts/map-ra5.js",
-    "postinstall": "npm --prefix backend install && npm --prefix frontend install"
+    "postinstall": "npm --prefix backend install && npm --prefix frontend install",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "devDependencies": {
-    "concurrently": "^9.0.1"
+    "concurrently": "^9.0.1",
+    "wrangler": "^4.82.2"
   },
   "dependencies": {
     "axios": "^1.14.0",
