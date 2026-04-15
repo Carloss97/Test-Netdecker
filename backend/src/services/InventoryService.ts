@@ -579,7 +579,16 @@ export class InventoryService {
 
   static async getImportById(importId: string) {
     return prisma.inventoryImport.findUnique({
-      where: { id: importId }
+      where: { id: importId },
+      include: {
+        changes: {
+          orderBy: { createdAt: 'asc' },
+          include: { listing: true }
+        },
+        batches: {
+          orderBy: { batchIndex: 'asc' }
+        }
+      }
     });
   }
 

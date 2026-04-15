@@ -121,10 +121,14 @@ router.post('/imports/:id/rollback', requireApiKey, async (req: Request, res: Re
   const importId = String(req.params.id);
   const force = Boolean((req.body && req.body.force) || false);
   const dryRun = Boolean((req.body && req.body.dryRun) || false);
-  const onlyListingIds = Array.isArray(req.body?.onlyListingIds) ? req.body.onlyListingIds.map(String) : undefined;
-  const skipListingIds = Array.isArray(req.body?.skipListingIds) ? req.body.skipListingIds.map(String) : undefined;
+  const onlyListingIds = Array.isArray(req.body?.onlyListingIds) ? req.body?.onlyListingIds.map(String) : undefined;
+  const skipListingIds = Array.isArray(req.body?.skipListingIds) ? req.body?.skipListingIds.map(String) : undefined;
 
-  const result = await InventoryService.rollbackImport(importId, { force, dryRun, onlyListingIds, skipListingIds });
+  // Optional targeting: either `batchId` (string) or `batchIndex` (number)
+  const batchId = req.body?.batchId ? String(req.body.batchId) : undefined;
+  const batchIndex = typeof req.body?.batchIndex !== 'undefined' ? Number(req.body.batchIndex) : undefined;
+
+  const result = await InventoryService.rollbackImport(importId, { force, dryRun, onlyListingIds, skipListingIds, batchId, batchIndex });
   res.json({ success: true, result });
 });
 
