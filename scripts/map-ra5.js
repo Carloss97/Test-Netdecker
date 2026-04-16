@@ -29,21 +29,10 @@ if (!fs.existsSync(TEMPLATE_PATH)) {
 
 console.log('Template:', TEMPLATE_PATH);
 console.log('CSV:', CSV_PATH);
-
-// Read template and get headers using ExcelJS
-const tplWb = new ExcelJS.Workbook();
-await tplWb.xlsx.readFile(TEMPLATE_PATH);
-const tplSheet = tplWb.worksheets[0];
-const tplSheetName = tplSheet.name || 'Sheet1';
-const firstRow = tplSheet.getRow(1).values.slice(1);
-const tplHeaders = firstRow.map((v) => (v === null || v === undefined) ? '' : String(v));
-
-console.log('Detected template headers (first row):');
-console.log(tplHeaders.join(' | '));
-
-// Read CSV into objects using csv-parse
-const csvContent = fs.readFileSync(CSV_PATH, 'utf8');
-const csvData = parse(csvContent, { columns: true, skip_empty_lines: true, relax_column_count: true });
+// Header and CSV placeholders (will be populated in the async flow)
+let tplHeaders = [];
+let tplSheetName = 'Sheet1';
+let csvData = [];
 
 function getCsvVal(row, keys) {
   for (const key of keys) {
@@ -364,6 +353,21 @@ async function mapRowToTemplate(csvRow) {
 
 // Build output rows starting with template headers and optionally fetch types remotely
 (async () => {
+  // Read template and populate headers
+  const tplWb = new ExcelJS.Workbook();
+  await tplWb.xlsx.readFile(TEMPLATE_PATH);
+  const tplSheet = tplWb.worksheets[0];
+  tplSheetName = tplSheet.name || 'Sheet1';
+  const firstRow = tplSheet.getRow(1).values.slice(1);
+  tplHeaders = firstRow.map((v) => (v === null || v === undefined) ? '' : String(v));
+
+  console.log('Detected template headers (first row):');
+  console.log(tplHeaders.join(' | '));
+
+  // Read CSV into objects using csv-parse
+  const csvContent = fs.readFileSync(CSV_PATH, 'utf8');
+  csvData = parse(csvContent, { columns: true, skip_empty_lines: true, relax_column_count: true });
+
   const outRows = [tplHeaders];
   for (const row of csvData) {
     const editionCode = String(getCsvVal(row, ['editionCode', 'edition_code']) || '').toUpperCase();
