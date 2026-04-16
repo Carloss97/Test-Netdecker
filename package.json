@@ -27,12 +27,15 @@
   }
   ,
   "overrides": {
-    "glob": "^8.1.0",
+    "glob": "^13.0.6",
     "rimraf": "^4.0.1",
     "encoding-sniffer": "1.0.2",
-    "whatwg-encoding": "^3.1.1",
     "domexception": "^4.0.2",
     "abab": "^2.0.6",
-    "lodash.isequal": "^4.5.0"
+    "lodash.isequal": "^4.5.0",
+    "@fast-csv/format": "^5.0.5",
+    "archiver-utils": "^5.0.2"
+    ,
+    "unzipper": "^0.12.3"
   }
 }
