@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { createMercadoPagoPreference, posCheckout } from '../services/erp';
+import { useState } from 'react';
+import { createMercadoPagoPreference } from '../services/erp';
 
 export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { items: { listingId: string; quantity: number }[]; onSuccess?: () => void; storeId?: string | null }) {
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { ite
       // Build request items: include optional title/unit_price if available
       const reqItems = items.map((it) => ({ listingId: it.listingId, quantity: it.quantity }));
       const returnUrl = `${window.location.origin}/tienda/pos`; // landing return
-      const resp = await createMercadoPagoPreference({ items: items.map((i) => ({ listingId: i.listingId, quantity: i.quantity })), storeId, back_urls: { success: returnUrl, failure: returnUrl, pending: returnUrl } });
+      const resp = await createMercadoPagoPreference({ items: reqItems, storeId, back_urls: { success: returnUrl, failure: returnUrl, pending: returnUrl } });
       const pref = resp?.preference || resp?.preference || resp;
       const initPoint = pref?.init_point || pref?.sandbox_init_point || pref?.response?.init_point || pref?.response?.sandbox_init_point;
       if (!initPoint) throw new Error('No init_point returned from Mercado Pago');

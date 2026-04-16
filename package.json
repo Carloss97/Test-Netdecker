@@ -8,10 +8,10 @@
     "start:dev": "bash scripts/start-dev.sh",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build": "node scripts/build.js",
     "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check",
     "map:ra5": "node scripts/map-ra5.js",
-    "postinstall": "npm --prefix backend install && npm --prefix frontend install"
+    "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
