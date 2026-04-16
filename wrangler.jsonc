@@ -2,9 +2,6 @@
   "name": "netdeckerp",
   "compatibility_date": "2026-04-15",
   "pages_build_output_dir": "./frontend/dist",
-  "assets": {
-    "directory": "./frontend/dist"
-  },
   "d1_databases": [
     {
       "binding": "TCG_D1",
