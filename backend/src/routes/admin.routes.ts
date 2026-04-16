@@ -19,9 +19,9 @@ import approvalsRoutes from './admin.approvals.routes.js';
 const router = express.Router();
 
 router.use('/stores', storesRoutes);
-  router.use('/accounts', accountsRoutes);
-  router.use('/pricing/thresholds', thresholdsRoutes);
-  router.use('/approvals', approvalsRoutes);
+router.use('/accounts', accountsRoutes);
+router.use('/pricing/thresholds', thresholdsRoutes);
+router.use('/approvals', approvalsRoutes);
 
 // Simple in-memory cache for the admin dashboard to keep the UI responsive
 let _adminDashboardCache: { ts: number; data: unknown } | null = null;

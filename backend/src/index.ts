@@ -53,6 +53,7 @@ import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
 import { startInvoiceCleanupJob } from './jobs/invoiceCleanup.job.js';
+import { startReservationCleanupCron } from './jobs/reservationCleanup.job.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3333;
@@ -176,6 +177,7 @@ export function startServer(portArg?: number | string) {
     startPriceSyncCron();
     startCatalogSyncCron();
     startCartCleanupCron();
+    startReservationCleanupCron();
     startInvoiceCleanupJob();
 
     console.log(`
