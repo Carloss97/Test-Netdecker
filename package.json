@@ -25,4 +25,14 @@
     "exceljs": "^4.4.0",
     "csv-parse": "^6.0.0"
   }
+  ,
+  "overrides": {
+    "glob": "^8.1.0",
+    "rimraf": "^4.0.1",
+    "encoding-sniffer": "1.0.2",
+    "whatwg-encoding": "^3.1.1",
+    "domexception": "^4.0.2",
+    "abab": "^2.0.6",
+    "lodash.isequal": "^4.5.0"
+  }
 }
