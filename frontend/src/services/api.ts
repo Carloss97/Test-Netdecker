@@ -52,7 +52,25 @@ apiClient.interceptors.request.use(
 
 // Response interceptor
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Defensive: if the server returned HTML (e.g. index.html) for an API
+    // request, reject the response so callers handle it as an error instead
+    // of trying to process HTML as JSON/arrays (which caused the runtime
+    // TypeErrors like "x.map is not a function").
+    try {
+      const headers = response.headers as Record<string, string> | undefined;
+      const ct = headers ? (headers['content-type'] || headers['Content-Type'] || '') : '';
+      if (typeof response.data === 'string' && ct.includes('text/html')) {
+        const e = new Error('Unexpected HTML response from API; check backend or _redirects rules');
+        // attach the response for diagnostics
+        (e as any).response = response;
+        return Promise.reject(e);
+      }
+    } catch (_) {
+      // ignore and continue
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const config = (error.config || {}) as RetryableConfig;
 
