@@ -14,12 +14,14 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 import storesRoutes from './admin.stores.routes.js';
 import accountsRoutes from './admin.accounts.routes.js';
 import thresholdsRoutes from './admin.thresholds.routes.js';
+import approvalsRoutes from './admin.approvals.routes.js';
 
 const router = express.Router();
+
 router.use('/stores', storesRoutes);
 router.use('/accounts', accountsRoutes);
 router.use('/pricing/thresholds', thresholdsRoutes);
-// approvals routes added in separate feature branch
+router.use('/approvals', approvalsRoutes);
 
 // Simple in-memory cache for the admin dashboard to keep the UI responsive
 let _adminDashboardCache: { ts: number; data: unknown } | null = null;

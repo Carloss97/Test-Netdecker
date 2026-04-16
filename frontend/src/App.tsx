@@ -9,6 +9,7 @@ import { ImportMapper } from './pages/ImportMapper';
 import { CardSearchPage } from './pages/CardSearchPage';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import ThresholdsPage from './pages/admin/ThresholdsPage';
+import ApprovalsPage from './pages/admin/ApprovalsPage';
 import { LowStockPage } from './pages/LowStockPage';
 import { PosPage } from './pages/PosPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
@@ -30,6 +31,7 @@ function App() {
           <Route path="/admin/accounts" element={<AdminAccountsPage />} />
           <Route path="/admin/stores" element={<StoresList />} />
           <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
+          <Route path="/admin/approvals" element={<ApprovalsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
         </Routes>
       </Layout>
