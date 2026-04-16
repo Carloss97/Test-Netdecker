@@ -1,6 +1,5 @@
 {
   "name": "tcg-erp",
-  "account_id": "61550294a6458f12ff284ade94ed0411",
   "compatibility_date": "2026-04-16",
   "pages_build_output_dir": "./frontend/dist",
   "d1_databases": [
