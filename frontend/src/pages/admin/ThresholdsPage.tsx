@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getThresholds, createThreshold, updateThreshold, deleteThreshold, ThresholdInput } from '../../services/adminThresholds';
-import { useAsync } from '../../hooks/useAsync';
 import { Link } from 'react-router-dom';
 
 const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];

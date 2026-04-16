@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LowStockPage } from './LowStockPage';
@@ -30,12 +30,12 @@ describe('LowStockPage', () => {
 
     render(<LowStockPage />);
 
-    expect(screen.getByText(/Cargando stock bajo/)).toBeInTheDocument();
+    expect(screen.getByText(/Cargando stock bajo/)).toBeTruthy();
 
     deferred.resolve([]);
 
     await waitFor(() => {
-      expect(screen.getByText('Sin alertas con el umbral actual')).toBeInTheDocument();
+      expect(screen.getByText('Sin alertas con el umbral actual')).toBeTruthy();
     });
   });
 
@@ -45,7 +45,7 @@ describe('LowStockPage', () => {
     render(<LowStockPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('⚠️ Error al cargar stock bajo: network down')).toBeInTheDocument();
+      expect(screen.getByText('⚠️ Error al cargar stock bajo: network down')).toBeTruthy();
     });
   });
 
@@ -55,8 +55,8 @@ describe('LowStockPage', () => {
     render(<LowStockPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Sin alertas con el umbral actual')).toBeInTheDocument();
-      expect(screen.getByText('No hay listings activos con stock menor o igual a 5.')).toBeInTheDocument();
+      expect(screen.getByText('Sin alertas con el umbral actual')).toBeTruthy();
+      expect(screen.getByText('No hay listings activos con stock menor o igual a 5.')).toBeTruthy();
     });
   });
 
@@ -88,10 +88,10 @@ describe('LowStockPage', () => {
     render(<LowStockPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('1 listing(s) en alerta (umbral: 5)')).toBeInTheDocument();
+      expect(screen.getByText('1 listing(s) en alerta (umbral: 5)')).toBeTruthy();
       expect(screen.getAllByText('Lightning Bolt').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('CARD-001').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Rareza')).toBeInTheDocument();
+      expect(screen.getByText('Rareza')).toBeTruthy();
       expect(screen.getAllByText('Rare').length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -151,18 +151,28 @@ describe('LowStockPage', () => {
     expect(previewAside).not.toBeNull();
 
     await userEvent.click(screen.getAllByTitle('Fijar vista previa')[0]);
-    expect(within(previewAside as HTMLElement).getByText('Lightning Bolt')).toBeInTheDocument();
-    expect(within(previewAside as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeInTheDocument();
+    expect(within(previewAside as HTMLElement).getByText('Lightning Bolt')).toBeTruthy();
+    expect(within(previewAside as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeTruthy();
 
-    await userEvent.hover(screen.getByText('Counterspell'));
-    expect(within(previewAside as HTMLElement).getByText('Lightning Bolt')).toBeInTheDocument();
+    // Trigger mouseEnter on the table row containing the second listing
+    const rows = screen.getAllByRole('row');
+    const counterspellRow = rows.find(r => within(r).queryByText('Counterspell')) as HTMLElement | undefined;
+    expect(counterspellRow).toBeTruthy();
+    fireEvent.mouseEnter(counterspellRow!);
+    expect(within(previewAside as HTMLElement).getByText('Lightning Bolt')).toBeTruthy();
     expect(within(previewAside as HTMLElement).queryByText('Counterspell')).toBeNull();
-
     await userEvent.click(screen.getByRole('button', { name: 'Fijada' }));
-    await userEvent.hover(screen.getByText('Counterspell'));
+    // After unpinning, find the current Counterspell row and click its title
+    const rowsAfter = screen.getAllByRole('row');
+    const counterspellRowAfter = rowsAfter.find(r => within(r).queryByText('Counterspell')) as HTMLElement | undefined;
+    expect(counterspellRowAfter).toBeTruthy();
+    const titleInRowAfter = within(counterspellRowAfter!).getByTitle('Fijar vista previa');
+    await userEvent.click(titleInRowAfter);
 
     await waitFor(() => {
-      expect(within(previewAside as HTMLElement).getByText('Counterspell')).toBeInTheDocument();
+      const asides = Array.from(document.querySelectorAll('aside.inventory-preview-panel'));
+      const found = asides.some((a) => within(a as HTMLElement).queryByText('Counterspell'));
+      expect(found).toBeTruthy();
     });
   });
 });

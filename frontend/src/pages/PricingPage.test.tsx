@@ -88,23 +88,32 @@ describe('PricingPage', () => {
   it('keeps preview fixed after pinning a pricing row', async () => {
     render(<PricingPage />);
 
-    const previewPanel = await screen.findByText('Vista previa');
-    const previewAside = previewPanel.closest('aside');
+    await waitFor(() => {
+      expect(document.querySelector('.listings-preview-pane aside.inventory-preview-panel')).not.toBeNull();
+    });
+    const previewAside = document.querySelector('.listings-preview-pane aside.inventory-preview-panel') as HTMLElement | null;
     expect(previewAside).not.toBeNull();
 
     await userEvent.click(screen.getAllByTitle('Fijar vista previa')[0]);
-    expect(within(previewAside as HTMLElement).getByText('Sample Card')).toBeInTheDocument();
-    expect(within(previewAside as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeInTheDocument();
+    expect(within(previewAside as HTMLElement).getByText('Sample Card')).toBeTruthy();
+    expect(within(previewAside as HTMLElement).getByText('Vista fija: el hover no cambia la carta')).toBeTruthy();
 
-    await userEvent.hover(screen.getByText('Second Card'));
-    expect(within(previewAside as HTMLElement).getByText('Sample Card')).toBeInTheDocument();
+    // Hover the table row that contains 'Second Card'
+    const rows = screen.getAllByRole('row');
+    const secondRow = rows.find(r => within(r).queryByText('Second Card')) as HTMLElement | undefined;
+    expect(secondRow).toBeTruthy();
+    await userEvent.hover(secondRow!);
+    expect(within(previewAside as HTMLElement).getByText('Sample Card')).toBeTruthy();
     expect(within(previewAside as HTMLElement).queryByText('Second Card')).toBeNull();
 
     await userEvent.click(screen.getByRole('button', { name: 'Fijada' }));
-    await userEvent.hover(screen.getByText('Second Card'));
+    const rowsAfter = screen.getAllByRole('row');
+    const secondRowAfter = rowsAfter.find(r => within(r).queryByText('Second Card')) as HTMLElement | undefined;
+    expect(secondRowAfter).toBeTruthy();
+    await userEvent.hover(secondRowAfter!);
 
     await waitFor(() => {
-      expect(within(previewAside as HTMLElement).getByText('Second Card')).toBeInTheDocument();
+      expect(within(previewAside as HTMLElement).getByText('Second Card')).toBeTruthy();
     });
   });
 });
