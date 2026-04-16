@@ -12,7 +12,7 @@ import prisma from '../utils/db.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 
-function makeRequest(app: Express, method: string, path: string, body?: unknown) {
+function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders?: Record<string,string>) {
   return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
@@ -20,7 +20,7 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown)
       const port = addr.port as number;
       const url = `http://127.0.0.1:${port}${path}`;
       const data = body !== undefined ? JSON.stringify(body) : undefined;
-      const options = { method, headers: { 'Content-Type': 'application/json', ...(data ? { 'Content-Length': String(Buffer.byteLength(data)) } : {}) } };
+      const options = { method, headers: { 'Content-Type': 'application/json', ...(data ? { 'Content-Length': String(Buffer.byteLength(data)) } : {}), ...(extraHeaders || {}) } };
 
       const req = httpRequest(url, options, (res) => {
         const chunks: Buffer[] = [];
@@ -71,17 +71,21 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
 
   const app = express();
   app.use(express.json());
+  // Stub admin session lookup so requireAdmin middleware passes in tests
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  (prisma.adminSession as any).findUnique = async (_args: any) => ({ token: 'faketoken', expiresAt: null, user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true } });
+
   app.use('/api/admin', adminRoutes);
   app.use(buildErrorHandler());
 
   // First: GET should reflect the runtime default (true)
-  let r = await makeRequest(app, 'GET', '/api/admin/pricing-config');
+  let r = await makeRequest(app, 'GET', '/api/admin/pricing-config', undefined, { Authorization: 'Bearer faketoken' });
   assert.equal(r.status, 200);
   assert.equal((r.body as any).success, true);
   assert.equal((r.body as any).config.importSetSyncPricesDefault, true);
 
   // Now POST to change the runtime default to false
-  r = await makeRequest(app, 'POST', '/api/admin/pricing-config', { importSetSyncPricesDefault: false });
+  r = await makeRequest(app, 'POST', '/api/admin/pricing-config', { importSetSyncPricesDefault: false }, { Authorization: 'Bearer faketoken' });
   assert.equal(r.status, 200);
   assert.equal((r.body as any).success, true);
 
@@ -89,7 +93,7 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
   assert.equal(isImportSetSyncPricesDefault(), false);
 
   // GET should now return the updated value
-  r = await makeRequest(app, 'GET', '/api/admin/pricing-config');
+  r = await makeRequest(app, 'GET', '/api/admin/pricing-config', undefined, { Authorization: 'Bearer faketoken' });
   assert.equal(r.status, 200);
   assert.equal((r.body as any).config.importSetSyncPricesDefault, false);
 
@@ -97,6 +101,9 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
   (prisma.listing as any).aggregate = origAggregate;
   ExchangeRateService.getUSDtoCLPRateMetaFast = origFast;
   ExchangeRateService.getUSDtoCLPRateMeta = origMeta;
+
+  // Restore admin session stub
+  (prisma.adminSession as any).findUnique = originalAdminSessionFind;
 
   // Reset runtime default
   setImportSetSyncPricesDefault(true);

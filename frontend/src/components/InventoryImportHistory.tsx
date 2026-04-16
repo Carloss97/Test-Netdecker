@@ -364,11 +364,11 @@ export function InventoryImportHistory() {
             {rollbackResult && <span style={{ marginLeft: 8 }}>{rollbackResult?.message || 'Resultado disponible'}</span>}
           </div>
 
-          {selectedImportDetail.batches && selectedImportDetail.batches.length > 0 && (
+          {(selectedImportDetail as any)?.batches && (selectedImportDetail as any).batches.length > 0 && (
             <div style={{ marginTop: 12 }}>
               <h5>Batches</h5>
               <ul>
-                {selectedImportDetail.batches.map((b: any) => (
+                {(selectedImportDetail as any).batches.map((b: any) => (
                   <li key={b.id} style={{ marginBottom: 6 }}>
                     Batch {b.batchIndex} ({b.startRow ?? '-'} - {b.endRow ?? '-'}){' '}
                     <button onClick={() => handleRollbackBatch(b.id, undefined)} disabled={rollbackLoading} style={{ marginLeft: 8 }}>{rollbackLoading ? '...' : (rollbackDryRun ? 'Rollback batch (dry-run)' : 'Rollback batch')}</button>
