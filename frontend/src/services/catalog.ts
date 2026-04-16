@@ -828,8 +828,10 @@ export async function getEditions(params?: { tcgId?: string; activeOnly?: boolea
     const response = await apiClient.get('/editions', { params });
     return response.data;
   } catch (_) {
-    // Fallback: use external set list for the given TCG if available
-    if (params?.tcgId) {
+    // Fallback: only surface external sets when the caller explicitly requests non-active sets
+    // (e.g., Import page uses `activeOnly: false`). For normal inventory views we avoid
+    // pre-populating external sets so the UI doesn't show sets before they're imported.
+    if (params?.tcgId && params.activeOnly === false) {
       try {
         const res: any = await listExternalSets(params.tcgId as any);
         const sets = (res && res.sets) || [];
@@ -839,7 +841,7 @@ export async function getEditions(params?: { tcgId?: string; activeOnly?: boolea
           editionCode: s.code,
           editionName: s.name,
           releaseDate: s.releaseDate,
-          isActive: true,
+          isActive: false,
           cardCount: s.totalCards ?? 0,
           listingCount: 0,
         } as EditionWithCounts));
@@ -847,6 +849,7 @@ export async function getEditions(params?: { tcgId?: string; activeOnly?: boolea
         return [] as EditionWithCounts[];
       }
     }
+
     return [] as EditionWithCounts[];
   }
 }
