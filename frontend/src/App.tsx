@@ -14,6 +14,7 @@ import { LowStockPage } from './pages/LowStockPage';
 import { PosPage } from './pages/PosPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import StoresList from './pages/admin/StoresList';
+import LocalImportsManager from './pages/LocalImportsManager';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
           <Route path="/admin/approvals" element={<ApprovalsPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/local-imports" element={<LocalImportsManager />} />
         </Routes>
       </Layout>
     </BrowserRouter>

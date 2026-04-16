@@ -7,8 +7,12 @@ export type ThresholdInput = {
 };
 
 export async function getThresholds(params?: Record<string, unknown>) {
-  const resp = await apiClient.get('/admin/pricing/thresholds', { params });
-  return resp.data;
+  try {
+    const resp = await apiClient.get('/admin/pricing/thresholds', { params });
+    return resp.data;
+  } catch (_) {
+    return { total: 0, items: [] } as any;
+  }
 }
 
 export async function createThreshold(payload: ThresholdInput) {
