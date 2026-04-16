@@ -5,6 +5,12 @@ Quick summary
 - Use `npx wrangler pages deploy frontend/dist --project-name tcg-erp --branch main` to deploy the built `frontend/dist` folder.
 - Wrangler needs a user API token (not the project "build token") with Pages permissions.
 
+Token formatting / security note
+
+- Do NOT include the literal prefix `Bearer ` when setting `CLOUDFLARE_API_TOKEN` — the value must be the token string only. Trim whitespace/newlines when copying.
+- If you accidentally exposed a token (printed it in a terminal), revoke it immediately via Dashboard → Profile → API Tokens.
+
+
 Create a usable API token
 
 1. Go to Cloudflare Dashboard → Profile → API Tokens → Create Token.
@@ -60,3 +66,31 @@ If you want, I can also:
 - Create a small verification step that runs `npx wrangler pages project list` during CI to validate the token before attempting deploy.
 
 If you want that workflow, tell me and I will add it (I can create a `/.github/workflows/deploy-pages.yml`).
+
+CI / GitHub Actions (recommended)
+
+- A workflow is included at `.github/workflows/deploy-pages.yml` that builds `frontend` and runs a token validation step before deploying with `wrangler pages deploy`.
+- Make sure to add a repository secret named `CLOUDFLARE_API_TOKEN` (Settings → Secrets) containing a user API token with `Pages: Edit` for the account that owns the Pages project.
+- You can verify the token and visible projects locally with:
+
+PowerShell:
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = "<NEW_TOKEN>"
+node scripts/check-pages-project.js 61550294a6458f12ff284ade94ed0411
+```
+
+Bash:
+
+```bash
+export CLOUDFLARE_API_TOKEN="<NEW_TOKEN>"
+node scripts/check-pages-project.js 61550294a6458f12ff284ade94ed0411
+```
+
+Or use the npm helper:
+
+```bash
+npm run verify:pages -- 61550294a6458f12ff284ade94ed0411
+```
+
+If the script prints projects, ensure the `slug` shown matches the `--project-name` value you use when calling `wrangler pages deploy` (the default in this repo is `tcg-erp`).

@@ -36,8 +36,8 @@ jobs:
 
       - name: List build output
         run: |
-          echo "Listing ${{ env.DIST_DIR }}"
-          ls -la ${{ env.DIST_DIR }}
+          echo "Listing $DIST_DIR"
+          ls -la $DIST_DIR
 
       - name: Validate Cloudflare token
         env:
@@ -52,5 +52,5 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          echo "Deploying ${PAGES_PROJECT} from ${{ env.DIST_DIR }}..."
-          npx --yes wrangler@4.83.0 pages deploy ${{ env.DIST_DIR }} --project-name ${PAGES_PROJECT} --branch main
+          echo "Deploying $PAGES_PROJECT from $DIST_DIR..."
+          npx --yes wrangler@4.83.0 pages deploy "$DIST_DIR" --project-name "$PAGES_PROJECT" --branch main
