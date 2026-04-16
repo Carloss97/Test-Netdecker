@@ -3,7 +3,9 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { posCheckout, createStripePaymentIntent } from '../services/erp';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE as string);
+// Guard against missing publishable key in environment (e.g., Pages preview without env var)
+const STRIPE_PUBLISHABLE = import.meta.env.VITE_STRIPE_PUBLISHABLE as string | undefined;
+const stripePromise = STRIPE_PUBLISHABLE ? loadStripe(STRIPE_PUBLISHABLE) : null;
 
 function InnerStripeCheckout({ items, onSuccess, storeId }: { items: { listingId: string; quantity: number }[]; onSuccess?: () => void; storeId?: string | null }) {
   const stripe = useStripe();
@@ -61,6 +63,19 @@ function InnerStripeCheckout({ items, onSuccess, storeId }: { items: { listingId
 }
 
 export default function StripeCheckout({ items, onSuccess, storeId }: { items: { listingId: string; quantity: number }[]; onSuccess?: () => void; storeId?: string | null }) {
+  if (!stripePromise) {
+    return (
+      <div>
+        <div style={{ color: '#b45309', background: '#fff7ed', padding: 8, borderRadius: 6, marginBottom: 8 }}>
+          Pasarela de pagos con tarjeta no configurada.
+        </div>
+        <button disabled title="Stripe no configurado">
+          Pagar con tarjeta
+        </button>
+      </div>
+    );
+  }
+
   return (
     <Elements stripe={stripePromise}>
       <InnerStripeCheckout items={items} onSuccess={onSuccess} storeId={storeId} />
