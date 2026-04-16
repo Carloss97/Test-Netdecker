@@ -86,18 +86,87 @@ export async function getTCGById(id: string) {
 }
 
 export async function searchCards(name: string, tcgId?: string, limit?: number) {
-  const { data } = await apiClient.get('/cards/search', {
-    params: { name, tcgId, limit }
-  });
-  return data;
+  try {
+    const { data } = await apiClient.get('/cards/search', {
+      params: { name, tcgId, limit }
+    });
+    return data;
+  } catch (_) {
+    // Fallback: search external sources directly from the browser
+    const max = limit ?? 50;
+    const results: any[] = [];
+
+    const toCard = (ec: any) => ({
+      id: ec.externalId,
+      tcgId: ec.tcg,
+      editionId: `${ec.tcg}:${ec.editionCode}`,
+      cardCode: ec.cardNumber ?? ec.externalId,
+      cardName: ec.cardName,
+      cardNumber: ec.cardNumber,
+      rarity: ec.rarity,
+      colorIdentity: ec.colorIdentity,
+      tags: ec.tags,
+      imageUrl: ec.imageUrl,
+      description: ec.description,
+    });
+
+    const tryTcg = async (tcg: any) => {
+      try {
+        let cards: any[] = [];
+        try {
+          cards = await tcgcsvClient.searchCards(tcg as any, name, max);
+        } catch (_) { cards = []; }
+        if (!cards || cards.length === 0) {
+          switch (tcg) {
+            case 'MAGIC':
+              cards = await scryfallClient.searchCards(name, 1, max);
+              break;
+            case 'POKEMON':
+              cards = await pokemonClient.searchCards(name, undefined, max);
+              break;
+            case 'YUGIOH':
+              cards = await ygoproClient.searchCards(name);
+              break;
+            case 'ONE_PIECE':
+              cards = await optcgClient.searchCards(name);
+              break;
+            default:
+              cards = [];
+          }
+        }
+        for (const c of (cards || [])) {
+          results.push(toCard(c));
+          if (results.length >= max) return;
+        }
+      } catch (_) {}
+    };
+
+    if (tcgId) {
+      await tryTcg(tcgId);
+    } else {
+      const allTcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
+      for (const t of allTcgs) {
+        await tryTcg(t);
+        if (results.length >= max) break;
+      }
+    }
+
+    return results.slice(0, max);
+  }
 }
 
 /** Search cards by card code (partial match). Returns all rarities/editions that match. */
 export async function searchCardsByCode(code: string, tcgId?: string, limit?: number) {
-  const { data } = await apiClient.get('/cards/search', {
-    params: { code, tcgId, limit }
-  });
-  return data;
+  try {
+    const { data } = await apiClient.get('/cards/search', {
+      params: { code, tcgId, limit }
+    });
+    return data;
+  } catch (_) {
+    // Fallback: search by name/code across external sources
+    const q = code;
+    return await searchCards(q, tcgId, limit);
+  }
 }
 
 export async function getCardById(id: string) {
@@ -122,13 +191,26 @@ export async function getAvailableListings(tcgId?: string, editionId?: string) {
 }
 
 export async function getListingsByCard(cardId: string) {
-  const { data } = await apiClient.get(`/listings/card/${cardId}`);
-  return data;
+  try {
+    const { data } = await apiClient.get(`/listings/card/${cardId}`);
+    return data;
+  } catch (_) {
+    const all = localImports.listLocalListings();
+    const matched = all.filter((l) => String(l.card.externalId) === String(cardId));
+    return matched.map(mapLocalToListing);
+  }
 }
 
 export async function getListingById(id: string) {
-  const { data } = await apiClient.get(`/listings/${id}`);
-  return data;
+  try {
+    const { data } = await apiClient.get(`/listings/${id}`);
+    return data;
+  } catch (_) {
+    const all = localImports.listLocalListings();
+    const found = all.find((l) => l.id === id);
+    if (!found) throw new Error('Listing not found');
+    return mapLocalToListing(found);
+  }
 }
 
 export async function updateListingStock(
@@ -136,8 +218,22 @@ export async function updateListingStock(
   op: 'set' | 'inc' | 'dec',
   value: number,
 ) {
-  const { data } = await apiClient.patch(`/listings/${listingId}/stock`, { op, value });
-  return data as { success: boolean; listingId: string; quantity: number };
+  try {
+    const { data } = await apiClient.patch(`/listings/${listingId}/stock`, { op, value });
+    return data as { success: boolean; listingId: string; quantity: number };
+  } catch (_) {
+    // Local fallback
+    const all = localImports.listLocalListings();
+    const idx = all.findIndex((l) => l.id === listingId);
+    if (idx === -1) throw new Error('Listing not found');
+    const current = all[idx];
+    let nextQty = current.quantity ?? 0;
+    if (op === 'set') nextQty = value;
+    if (op === 'inc') nextQty = nextQty + value;
+    if (op === 'dec') nextQty = Math.max(0, nextQty - value);
+    localImports.updateListing({ id: listingId, quantity: nextQty });
+    return { success: true, listingId, quantity: nextQty } as any;
+  }
 }
 
 export async function updateListingPricingMode(
@@ -145,20 +241,38 @@ export async function updateListingPricingMode(
   mode: 'manual' | 'api',
   manualPrice?: number,
 ) {
-  const { data } = await apiClient.patch(`/listings/${listingId}/pricing-mode`, {
-    mode,
-    ...(mode === 'manual' && typeof manualPrice === 'number' ? { manualPrice } : {}),
-  });
-  return data as { success: boolean; pricingMode: 'manual' | 'api'; listing: Listing };
+  try {
+    const { data } = await apiClient.patch(`/listings/${listingId}/pricing-mode`, {
+      mode,
+      ...(mode === 'manual' && typeof manualPrice === 'number' ? { manualPrice } : {}),
+    });
+    return data as { success: boolean; pricingMode: 'manual' | 'api'; listing: Listing };
+  } catch (_) {
+    // Local fallback: update local listing referencePrice when switching to manual
+    const all = localImports.listLocalListings();
+    const found = all.find((l) => l.id === listingId);
+    if (!found) throw new Error('Listing not found');
+    if (mode === 'manual' && typeof manualPrice === 'number') {
+      localImports.updateListing({ id: listingId, referencePrice: manualPrice });
+    }
+    const updated = localImports.listLocalListings().find((l) => l.id === listingId)!;
+    return { success: true, pricingMode: mode, listing: mapLocalToListing(updated) } as any;
+  }
 }
 
 export async function previewListingPrice(referencePrice: number, marginMultiplier: number, roundingMultiple?: number) {
-  const { data } = await apiClient.post('/listings/price-preview', {
-    referencePrice,
-    marginMultiplier,
-    roundingMultiple
-  });
-  return data;
+  try {
+    const { data } = await apiClient.post('/listings/price-preview', {
+      referencePrice,
+      marginMultiplier,
+      roundingMultiple
+    });
+    return data;
+  } catch (_) {
+    const usd = getUsdToClpRate();
+    const final = Math.round((referencePrice || 0) * (marginMultiplier || 1) * usd);
+    return { finalPrice: final, currency: 'CLP' } as any;
+  }
 }
 
 export async function previewAdminPricing(params: {
@@ -206,15 +320,36 @@ export async function syncListingPrices(
   fetchExternalPrices?: boolean,
   filters?: { tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'; editionId?: string },
 ) {
-  const { data } = await apiClient.post('/listings/sync-prices', {
-    updates,
-    roundingMultiple,
-    notes,
-    fetchExternalPrices,
-    ...(filters?.tcgName ? { tcgName: filters.tcgName } : {}),
-    ...(filters?.editionId ? { editionId: filters.editionId } : {}),
-  });
-  return data;
+  try {
+    const { data } = await apiClient.post('/listings/sync-prices', {
+      updates,
+      roundingMultiple,
+      notes,
+      fetchExternalPrices,
+      ...(filters?.tcgName ? { tcgName: filters.tcgName } : {}),
+      ...(filters?.editionId ? { editionId: filters.editionId } : {}),
+    });
+    return data;
+  } catch (_) {
+    // Local fallback: apply updates to local listings and compute summary
+    const all = localImports.listLocalListings();
+    let processed = 0;
+    let updated = 0;
+    if (Array.isArray(updates) && updates.length > 0) {
+      for (const u of updates) {
+        const idx = all.findIndex((l) => l.id === u.listingId);
+        if (idx === -1) continue;
+        processed += 1;
+        try {
+          localImports.updateListing({ id: u.listingId, referencePrice: u.referencePrice, marginMultiplier: u.marginMultiplier ?? all[idx].marginMultiplier });
+          updated += 1;
+        } catch (_) {}
+      }
+    } else {
+      // No updates array => nothing to do in local fallback
+    }
+    return { success: true, processed, updated } as any;
+  }
 }
 
 export async function getPriceSyncRuns(limit: number = 20) {
@@ -320,13 +455,36 @@ export async function getInventoryImports(params?: {
   sortBy?: 'createdAt' | 'status' | 'fileName' | 'totalRecords';
   sortDir?: 'asc' | 'desc';
 }) {
-  const { data } = await apiClient.get('/inventory/imports', { params });
-  return data;
+  try {
+    const { data } = await apiClient.get('/inventory/imports', { params });
+    return data;
+  } catch (_) {
+    // Fallback: read import jobs from localStorage if present
+    try {
+      const raw = localStorage.getItem('netdecker.local_import_jobs_v1');
+      const jobs = raw ? JSON.parse(raw) : [];
+      return { items: jobs || [], total: (jobs || []).length } as any;
+    } catch (_) {
+      return { items: [], total: 0 } as any;
+    }
+  }
 }
 
 export async function getInventoryImportById(importId: string) {
-  const { data } = await apiClient.get(`/inventory/imports/${importId}`);
-  return data;
+  try {
+    const { data } = await apiClient.get(`/inventory/imports/${importId}`);
+    return data;
+  } catch (_) {
+    try {
+      const raw = localStorage.getItem('netdecker.local_import_jobs_v1');
+      const jobs = raw ? JSON.parse(raw) : [];
+      const found = (jobs || []).find((j: any) => j.id === importId);
+      if (!found) throw new Error('Import not found');
+      return found;
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 export async function rollbackInventoryImport(importId: string, params?: {
@@ -337,8 +495,12 @@ export async function rollbackInventoryImport(importId: string, params?: {
   onlyListingIds?: string[];
   skipListingIds?: string[];
 }) {
-  const { data } = await apiClient.post(`/inventory/imports/${importId}/rollback`, params || {});
-  return data;
+  try {
+    const { data } = await apiClient.post(`/inventory/imports/${importId}/rollback`, params || {});
+    return data;
+  } catch (_) {
+    return { success: false, message: 'Backend not available' } as any;
+  }
 }
 
 export async function exportInventoryImportsCsv(params?: {
@@ -701,7 +863,79 @@ export async function getEditionCardsWithStock(editionId: string): Promise<Editi
     const response = await apiClient.get(`/editions/${editionId}/cards-with-stock`);
     return response.data;
   } catch (_) {
-    // Build inventory view from local listings
+    // Try to fetch set cards from external sources (TCGCSV, Scryfall, PokemonTCG, YGOPRO, OPTCG)
+    let tcg: string | undefined;
+    let setCode = editionId;
+    if (editionId.includes(':')) {
+      const parts = editionId.split(':');
+      tcg = parts[0];
+      setCode = parts.slice(1).join(':');
+    }
+
+    const externalCards: any[] = [];
+
+    const tryFetch = async (tryTcg?: string) => {
+      try {
+        if ((tryTcg || tcg) && setCode) {
+          const t = (tryTcg || tcg) as any;
+          // Prefer tcgcsv when available (server-side), otherwise use public APIs
+          try {
+            const cards = await tcgcsvClient.getSetCards(t, setCode);
+            if (cards && cards.length > 0) return cards;
+          } catch (_) {}
+
+          switch (t) {
+            case 'MAGIC':
+              return await scryfallClient.getSetCards(setCode);
+            case 'POKEMON':
+              return await pokemonClient.getSetCards(setCode);
+            case 'YUGIOH':
+              return await ygoproClient.getSetCards(setCode);
+            case 'ONE_PIECE':
+              return await optcgClient.getSetCards(setCode);
+            default:
+              return [];
+          }
+        }
+        return [];
+      } catch (_) {
+        return [];
+      }
+    };
+
+    if (tcg) {
+      externalCards.push(...(await tryFetch(tcg)));
+    } else {
+      const allTcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
+      for (const t of allTcgs) {
+        const found = await tryFetch(t);
+        if (found && found.length > 0) {
+          externalCards.push(...found);
+          tcg = t;
+          break;
+        }
+      }
+    }
+
+    if (externalCards.length > 0) {
+      const cards = externalCards.map((c) => ({
+        id: c.externalId,
+        cardCode: c.cardNumber ?? c.externalId,
+        cardName: c.cardName,
+        cardNumber: c.cardNumber,
+        rarity: c.rarity,
+        colorIdentity: c.colorIdentity,
+        imageUrl: c.imageUrl,
+        tags: c.tags,
+        listings: [],
+      } as any));
+
+      const edition: any = { id: editionId, editionCode: setCode, editionName: setCode, tcg: { id: tcg || 'EXTERNAL', name: tcg || 'External', displayName: tcg || 'External' } };
+
+      return { edition, totalCards: cards.length, cardsWithStock: 0, cards } as EditionInventory;
+    }
+
+    // Fallback: build inventory view from local listings
     const all = localImports.listLocalListings();
     const matched = all.filter((l) => l.card.editionCode === editionId || l.card.editionCode === editionId.split(':').pop());
     const byCard: Record<string, any[]> = {};
@@ -764,8 +998,15 @@ export async function batchUpdateStock(updates: Array<{ listingId: string; quant
  * Useful for low-stock alerts on the dashboard.
  */
 export async function getLowStockListings(threshold?: number): Promise<Listing[]> {
-  const response = await apiClient.get('/listings/low-stock', { params: { threshold } });
-  return response.data;
+  try {
+    const response = await apiClient.get('/listings/low-stock', { params: { threshold } });
+    return response.data;
+  } catch (_) {
+    const th = typeof threshold === 'number' ? threshold : 2;
+    const all = localImports.listLocalListings();
+    const matched = all.filter((l) => (l.quantity ?? 0) <= th).map(mapLocalToListing);
+    return matched;
+  }
 }
 
 /**
@@ -782,6 +1023,17 @@ export async function getPriceHistory(listingId?: string, limit?: number): Promi
  * Preserves TCG records and exchange rates.
  */
 export async function resetCatalog(): Promise<{ success: boolean; message: string }> {
-  const { data } = await apiClient.post('/admin/catalog/reset', { confirm: true });
-  return data;
+  try {
+    const { data } = await apiClient.post('/admin/catalog/reset', { confirm: true });
+    return data;
+  } catch (_) {
+    // Local fallback: clear local imports/listings if confirmation provided
+    try {
+      localImports.clearLocalListings();
+      try { localStorage.removeItem('netdecker.local_import_jobs_v1'); } catch (_) {}
+      return { success: true, message: 'Local listings cleared (no backend available).' };
+    } catch (err: any) {
+      return { success: false, message: err?.message ?? 'Failed to reset locally' };
+    }
+  }
 }
