@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import './PosPage.css'
 import apiClient from '../services/api'
 import * as erp from '../services/erp'
@@ -29,6 +29,8 @@ type Listing = {
 
 const OFFLINE_KEY = 'pos_offline_queue'
 
+const MpLazy = React.lazy(() => import('../components/MercadoPagoCheckout'))
+
 export function PosPage() {
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Card[]>([])
@@ -37,6 +39,7 @@ export function PosPage() {
   const [message, setMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [showCardPayment, setShowCardPayment] = useState(false)
+  const [showMppayment, setShowMpPayment] = useState(false)
   const [offlineQueueEntries, setOfflineQueueEntries] = useState<Array<{ createdAt: string; cart: CartItem[] }>>([])
   const searchDebounce = useRef<any>(null)
 
@@ -280,7 +283,8 @@ export function PosPage() {
             <div style={{ fontWeight: 'bold' }}>Total: {total}</div>
             <div style={{ marginTop: 8 }}>
               <button className="pos-action" onClick={handleCheckout} disabled={isProcessing}>{isProcessing ? 'Procesando...' : 'Cerrar venta'}</button>
-              <button style={{ marginLeft: 8 }} onClick={() => setShowCardPayment((s) => !s)} disabled={!cart.length}>{showCardPayment ? 'Ocultar pago con tarjeta' : 'Pagar con tarjeta'}</button>
+              <button style={{ marginLeft: 8 }} onClick={() => setShowCardPayment((s) => !s)} disabled={!cart.length}>{showCardPayment ? 'Ocultar pago con tarjeta' : 'Pagar con tarjeta (Stripe)'}</button>
+              <button style={{ marginLeft: 8 }} onClick={() => setShowMpPayment((s) => !s)} disabled={!cart.length}>{showMppayment ? 'Ocultar Mercado Pago' : 'Pagar con Mercado Pago'}</button>
             </div>
             {message && <div style={{ marginTop: 8 }}>{message}</div>}
           </div>
@@ -288,6 +292,14 @@ export function PosPage() {
             <div style={{ marginTop: 12 }}>
               <h4>Pagar con tarjeta</h4>
               <StripeCheckout items={cart.map((it) => ({ listingId: it.id, quantity: it.qty }))} onSuccess={() => { setCart([]); setMessage('Pago con tarjeta y orden creada'); setShowCardPayment(false); }} />
+            </div>
+          )}
+          {showMppayment && (
+            <div style={{ marginTop: 12 }}>
+              <h4>Mercado Pago</h4>
+              <React.Suspense fallback={<div>Preparando Mercado Pago…</div>}>
+                <MpLazy items={cart.map((it) => ({ listingId: it.id, quantity: it.qty }))} onSuccess={() => { setCart([]); setMessage('Checkout Mercado Pago iniciado'); setShowMpPayment(false); }} />
+              </React.Suspense>
             </div>
           )}
           {offlineQueueEntries.length > 0 && (
