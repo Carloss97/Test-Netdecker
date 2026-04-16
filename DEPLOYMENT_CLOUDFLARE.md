@@ -34,6 +34,18 @@ D1 binding (wrangler)
 ---------------------
 Si publicas con Wrangler, `wrangler.*` config ya contiene la referencia. Verifica `wrangler.jsonc` o `wrangler.toml` y asegúrate de que existe una entrada para `d1_databases` o `d1_bindings` con name `TCG_D1` y database name `tcg-erp-db`.
 
+Nota sobre `wrangler versions upload`
+-----------------------------------
+Si tu pipeline de Pages usa `npx wrangler versions upload` como comando de deploy (sin argumentos), asegúrate de que `wrangler.jsonc` incluye una sección `assets` con la carpeta de salida, por ejemplo:
+
+```jsonc
+{
+  "assets": { "directory": "./frontend/dist" }
+}
+```
+
+De esta forma `wrangler versions upload` subirá los activos estáticos sin necesitar argumentos adicionales.
+
 Comandos útiles
 ---------------
 - Local build (monorepo):
