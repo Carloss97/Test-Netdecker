@@ -10,6 +10,8 @@ jobs:
   backend-sqlite-tests:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
+    env:
+      NPM_CONFIG_LOGLEVEL: error
     steps:
       - name: Checkout
         uses: actions/checkout@v4

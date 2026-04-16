@@ -9,6 +9,8 @@ jobs:
     name: Fast backend tests (SQLite + fixtures)
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
+    env:
+      NPM_CONFIG_LOGLEVEL: error
     services:
       redis:
         image: redis:7

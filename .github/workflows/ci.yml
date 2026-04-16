@@ -130,6 +130,7 @@ jobs:
     if: ${{ github.event_name != 'pull_request' }}
     env:
       NODE_OPTIONS: --max-old-space-size=4096
+      NPM_CONFIG_LOGLEVEL: error
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -219,6 +220,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tcg_singles_test
       REDIS_URL: redis://localhost:6379
       NODE_OPTIONS: --max-old-space-size=4096
+      NPM_CONFIG_LOGLEVEL: error
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

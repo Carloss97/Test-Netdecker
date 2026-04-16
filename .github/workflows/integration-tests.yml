@@ -10,6 +10,8 @@ jobs:
   integration-tests:
     name: Integration tests (stub DB)
     runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_LOGLEVEL: error
     steps:
       - name: Checkout
         uses: actions/checkout@v4
