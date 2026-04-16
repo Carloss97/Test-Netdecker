@@ -67,9 +67,11 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      // Handle auth errors
+      // Handle auth errors: clear token and reload the page so Cloudflare Access
+      // (or any external auth) can re-run its flow. Redirecting to `/login`
+      // caused blank pages when no `/login` route exists.
       localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+      window.location.reload();
     }
     return Promise.reject(error);
   }
