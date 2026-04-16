@@ -1,8 +1,8 @@
-Deploying to Cloudflare Pages (tcgerp)
+Deploying to Cloudflare Pages (tcg-erp)
 
 Quick summary
 
-- Use `npx wrangler pages deploy frontend/dist --project-name tcgerp --branch main` to deploy the built `frontend/dist` folder.
+- Use `npx wrangler pages deploy frontend/dist --project-name tcg-erp --branch main` to deploy the built `frontend/dist` folder.
 - Wrangler needs a user API token (not the project "build token") with Pages permissions.
 
 Create a usable API token
@@ -32,7 +32,7 @@ npm run deploy:pages
 CI / GitHub Actions
 
 - Add a repository secret named `CLOUDFLARE_API_TOKEN` (or use your CI provider secrets) and reference it in the workflow.
-- Use the same `npm run deploy:pages` step or call `npx wrangler pages deploy frontend/dist --project-name tcgerp --branch main` directly in the job.
+- Use the same `npm run deploy:pages` step or call `npx wrangler pages deploy frontend/dist --project-name tcg-erp --branch main` directly in the job.
 
 Useful wrangler checks
 
