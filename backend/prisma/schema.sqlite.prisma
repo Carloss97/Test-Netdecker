@@ -167,6 +167,8 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
+  // Relation: an import can be broken into multiple batches for rollback
+  batches        ImportBatch[]
   changes        InventoryImportChange[]
 }
 

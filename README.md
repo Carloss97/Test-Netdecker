@@ -349,6 +349,17 @@ npm run prisma:push   # Aplica el nuevo campo everHadStock a la tabla Listing
 
 
 
+## Despliegue en Cloudflare Pages + D1
+
+Para una guía completa ver [DEPLOYMENT_CLOUDFLARE.md](DEPLOYMENT_CLOUDFLARE.md).
+
+Resumen rápido:
+
+- Build command (Pages): `npm run build` (raíz del repo). Esto genera `frontend/dist`.
+- Output directory: `frontend/dist`.
+- Crear D1 DB y añadir binding `TCG_D1` en Pages/Wrangler.
+- Si trabajas en Windows y tienes problemas con `prisma generate`, revisa `backend/PRISMA_WINDOWS.md`.
+
 ## Licencia
 
 MIT
