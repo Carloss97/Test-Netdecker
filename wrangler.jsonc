@@ -1,9 +1,7 @@
 {
   "name": "tcg-erp",
   "compatibility_date": "2026-04-16",
-  "assets": {
-    "directory": "./frontend/dist"
-  },
+  "pages_build_output_dir": "./frontend/dist",
   "d1_databases": [
     {
       "binding": "TCG_D1",
