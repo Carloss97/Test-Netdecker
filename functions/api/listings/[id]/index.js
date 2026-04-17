@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../../_shared/exchange-rate.js';
 
 async function findCardFallback(db, cardId) {
@@ -48,7 +48,7 @@ export async function onRequest(context) {
     const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','externalId','tcg','rarity','priceMarket','priceMid','priceLow']);
 
     let listingSelect = listingCols;
-    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
 
     const selectParts = [listingSelect];
     if (cardCols) selectParts.push(cardCols);

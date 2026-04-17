@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../_shared/d1.js';
 
 function csvQuote(v) {
   return `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -24,12 +24,16 @@ export async function onRequest(context) {
 
     // ensure aliases for listing id and editionCode
     let listingSelect = listingCols;
-    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
-    if (listingSelect.includes('l.editionCode')) listingSelect = listingSelect.replace(/\bl\.editionCode\b/g, 'l.editionCode as listingEditionCode');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'editionCode', 'listingEditionCode');
 
     const selectParts = [];
     if (listingSelect) selectParts.push(listingSelect);
-    if (cardCols) selectParts.push(cardCols.replace(/\bc\.tcg\b/, 'c.tcg as cardTcg'));
+    if (cardCols) {
+      // Safely alias c.tcg -> cardTcg using shared helper to avoid malformed SQL
+      const cardColsAliased = aliasSelectColumn(cardCols, 'c', 'tcg', 'cardTcg');
+      selectParts.push(cardColsAliased);
+    }
     selectParts.push('e.editionName');
 
     let sql = `SELECT ${selectParts.join(', ')} FROM listing l
@@ -53,7 +57,8 @@ export async function onRequest(context) {
       binds.push(tcgId, `${tcgId}:%`);
     }
 
-    sql += ' ORDER BY l.editionCode ASC, c.cardCode ASC, l.condition ASC';
+    // Order by output aliases (avoid referencing physical columns that may be missing)
+    sql += ' ORDER BY listingEditionCode ASC, cardCode ASC, condition ASC';
 
     let res;
     try {
@@ -65,19 +70,39 @@ export async function onRequest(context) {
 
     const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
 
+    // Batch-fetch missing card metadata when join returned nulls
+    const cardMap = new Map();
+    const missingCardIds = Array.from(new Set(rows.filter((r) => !r.cardName && r.cardId).map((r) => r.cardId)));
+    const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+    if (missingCardIds.length > 0) {
+      const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','cardCode','cardNumber','rarity','tags','imageUrl','tcg']);
+      for (const cids of chunk(missingCardIds, 50)) {
+        try {
+          const placeholders = cids.map(() => '?').join(',');
+          const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
+          const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+          for (const cr of rowsRes) cardMap.set(cr.id || cr.ID || cr.Id || cr.id, cr);
+        } catch (_) {}
+      }
+    }
+
     const header = ['tcg','editionCode','editionName','cardCode','cardName','cardNumber','rarity','tags','imageUrl','condition','quantity','referencePrice','marginMultiplier'];
     const lines = [header.map(csvQuote).join(',')];
 
     for (const r of rows) {
-      const tcg = r.cardTcg || (r.cardId ? String(r.cardId).split(':')[0] : '');
+      // try to fill missing card info from batch fetch
+      let card = null;
+      if (!r.cardName && r.cardId) card = cardMap.get(r.cardId) || null;
+
+      const tcg = (r.cardTcg || (card && card.tcg) || (r.cardId ? String(r.cardId).split(':')[0] : ''));
       const editionCode = r.listingEditionCode || '';
       const editionName = r.editionName || '';
-      const cardCode = r.cardCode || (r.cardId ? String(r.cardId).split(':').slice(-1)[0] : '');
-      const cardName = r.cardName || '';
-      const cardNumber = r.cardNumber || '';
-      const rarity = r.rarity || '';
-      const tags = r.tags || '';
-      const imageUrl = r.imageUrl || '';
+      const cardCode = r.cardCode || (card && card.cardCode) || (r.cardId ? String(r.cardId).split(':').slice(-1)[0] : '');
+      const cardName = r.cardName || (card && card.cardName) || '';
+      const cardNumber = r.cardNumber || (card && card.cardNumber) || '';
+      const rarity = r.rarity || (card && card.rarity) || '';
+      const tags = r.tags || (card && card.tags) || '';
+      const imageUrl = r.imageUrl || (card && card.imageUrl) || '';
       const condition = r.condition || 'NM';
       const quantity = String(r.quantity ?? 0);
       const referencePrice = String(r.referencePrice ?? '');

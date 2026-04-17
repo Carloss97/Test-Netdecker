@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 
 async function findCardFallback(db, cardId) {
@@ -56,8 +56,8 @@ export async function onRequest(context) {
     const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','externalId','tcg','rarity','priceMarket','priceMid','priceLow','cardCode','imageUrl']);
 
     let listingSelect = listingCols;
-    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
-    if (listingSelect.includes('l.editionCode')) listingSelect = listingSelect.replace(/\bl\.editionCode\b/g, 'l.editionCode as editionCode');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'editionCode', 'editionCode');
 
     const selectParts = [];
     if (listingSelect) selectParts.push(listingSelect);
@@ -78,7 +78,8 @@ export async function onRequest(context) {
     if (search) {
       sql += ' AND lower(c.cardName) LIKE ?'; binds.push(`%${search}%`);
     }
-    sql += ' ORDER BY l.quantity DESC, l.finalPrice ASC LIMIT ? OFFSET ?';
+    // Order by output aliases to avoid runtime failures when physical columns are missing
+    sql += ' ORDER BY quantity DESC, finalPrice ASC LIMIT ? OFFSET ?';
     binds.push(limit, offset);
 
     let res;

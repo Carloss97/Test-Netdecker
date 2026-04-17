@@ -1,6 +1,41 @@
 import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../../_shared/exchange-rate.js';
 
+// Fallback to locate card metadata when JOINs fail or older D1 schemas lack columns
+async function findCardFallback(db, cardId) {
+  if (!cardId) return null;
+  try {
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow','rarity']);
+    // try by id
+    const selById = `SELECT ${cardCols} FROM card c WHERE c.id = ?`;
+    const r1 = await db.prepare(selById).bind(cardId).all();
+    const row1 = firstRow(r1);
+    if (row1) return row1;
+
+    const parts = String(cardId).split(':').filter(Boolean);
+    if (parts.length >= 2) {
+      const tcg = parts[0];
+      const maybe = parts[parts.length - 1];
+      const selByTcg = `SELECT ${cardCols} FROM card c WHERE c.tcg = ? AND (c.externalId = ? OR c.cardCode = ? OR c.id = ?) LIMIT 1`;
+      const r2 = await db.prepare(selByTcg).bind(tcg, maybe, maybe, `${tcg}:${maybe}`).all();
+      const row2 = firstRow(r2);
+      if (row2) return row2;
+
+      const selByExternal = `SELECT ${cardCols} FROM card c WHERE c.externalId = ? LIMIT 1`;
+      const r3 = await db.prepare(selByExternal).bind(maybe).all();
+      const row3 = firstRow(r3);
+      if (row3) return row3;
+    }
+
+    const last = String(cardId).slice(-10);
+    const selByName = `SELECT ${cardCols} FROM card c WHERE lower(c.cardName) LIKE ? LIMIT 1`;
+    const r4 = await db.prepare(selByName).bind(`%${last}%`).all();
+    return firstRow(r4);
+  } catch (err) {
+    return null;
+  }
+}
+
 function uuid() {
   if (globalThis.crypto && globalThis.crypto.randomUUID) return globalThis.crypto.randomUUID();
   return `L-${Date.now()}-${Math.floor(Math.random()*100000)}`;
@@ -14,7 +49,8 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ error: 'No DB bound' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     await ensureSchema(db);
 
-    const edRes = await db.prepare('SELECT id, tcg, editionCode, editionName, releaseDate FROM edition WHERE id = ?').bind(id).all();
+    const editionCols = await buildSelectColumns(db, 'edition', 'e', ['id','tcg','editionCode','editionName','releaseDate']);
+    const edRes = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();
     const ed = firstRow(edRes);
     if (!ed) return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
@@ -23,7 +59,7 @@ export async function onRequest(context) {
 
     // Fetch cards for this edition (build select dynamically to avoid missing columns)
     const cardSelect = await buildSelectColumns(db, 'card', 'c', ['id','externalId','tcg','editionCode','cardCode','cardName','rarity','imageUrl','priceMarket','priceMid','priceLow']);
-    const cardsRes = await db.prepare(`SELECT ${cardSelect} FROM card c WHERE c.tcg = ? AND c.editionCode = ? ORDER BY c.cardCode ASC, c.cardName ASC`).bind(tcg, editionCode).all();
+    const cardsRes = await db.prepare(`SELECT ${cardSelect} FROM card c WHERE c.tcg = ? AND c.editionCode = ? ORDER BY cardCode ASC, cardName ASC`).bind(tcg, editionCode).all();
     const cardsRows = Array.isArray(cardsRes?.results) ? cardsRes.results : (Array.isArray(cardsRes) ? cardsRes : []);
 
     // fast FX read for computing CLP prices when finalPrice missing
@@ -40,11 +76,24 @@ export async function onRequest(context) {
     const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
     const cardIds = cardsRows.map((c) => c.id);
     const listingMap = new Map(); // cardId -> [listings]
+    const listingSelectCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','condition','quantity','referencePrice','marginMultiplier','finalPrice','lastSyncedAt','status']);
     for (const chunked of chunk(cardIds, 50)) {
       const placeholders = chunked.map(() => '?').join(',');
       try {
-        const sel = await db.prepare(`SELECT id, cardId, condition, quantity, referencePrice, marginMultiplier, finalPrice, lastSyncedAt, status FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();
-        const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+        // Primary query: prefer editionCode-scoped listings
+        let sel = await db.prepare(`SELECT ${listingSelectCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();
+        let rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+
+        // Fallback: sometimes listings may not have editionCode populated consistently; try by cardId only
+        if ((!rowsRes || rowsRes.length === 0)) {
+          try {
+            sel = await db.prepare(`SELECT ${listingSelectCols} FROM listing l WHERE l.cardId IN (${placeholders})`).bind(...chunked).all();
+            rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+          } catch (_) {
+            rowsRes = [];
+          }
+        }
+
         for (const r of rowsRes) {
           const key = r.cardId || r.cardID || r.cardid || r.cardId;
           const arr = listingMap.get(key) || [];
@@ -58,6 +107,24 @@ export async function onRequest(context) {
 
     const cardsOut = [];
     for (const c of cardsRows) {
+      // If card metadata is missing due to schema differences or failed JOINs,
+      // try a fallback lookup to populate cardName, cardCode, rarity, etc.
+      if (!c.cardName || !c.cardCode || !c.rarity) {
+        try {
+          const fb = await findCardFallback(db, c.id);
+          if (fb) {
+            c.cardName = fb.cardName || c.cardName;
+            c.externalId = fb.externalId || c.externalId;
+            c.tcg = fb.tcg || c.tcg;
+            c.rarity = fb.rarity || c.rarity;
+            c.priceMarket = fb.priceMarket || c.priceMarket;
+            c.priceMid = fb.priceMid || c.priceMid;
+            c.priceLow = fb.priceLow || c.priceLow;
+            c.cardCode = fb.cardCode || c.cardCode;
+            c.imageUrl = fb.imageUrl || c.imageUrl;
+          }
+        } catch (_) {}
+      }
       const listings = listingMap.get(c.id) || [];
       const mapped = listings.map((l) => {
         const margin = l.marginMultiplier || defaultMargin;

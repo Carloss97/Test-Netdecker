@@ -1,5 +1,5 @@
 import { getGroups, getGroupProducts, getGroupPrices } from '../../../_shared/tcgcsv.js';
-import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -51,7 +51,8 @@ export async function onRequest(context) {
 
               if (createListing) {
                 const listingIdSelect = await buildSelectColumns(db, 'listing', 'l', ['id']);
-                const exist = await db.prepare(`SELECT ${listingIdSelect} FROM listing l WHERE l.cardId = ? AND l.editionCode = ?`).bind(cardKey, editionCode).all();
+                const listingIdSelectAliased = aliasSelectColumn(listingIdSelect, 'l', 'id', 'listingId');
+                const exist = await db.prepare(`SELECT ${listingIdSelectAliased} FROM listing l WHERE l.cardId = ? AND l.editionCode = ?`).bind(cardKey, editionCode).all();
                 const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);
                 if (!has) {
                   const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;

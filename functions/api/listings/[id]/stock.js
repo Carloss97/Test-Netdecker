@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
@@ -21,7 +21,8 @@ export async function onRequest(context) {
     // determine new quantity when op provided
     let newQuantity = null;
     if (op) {
-      const curRes = await db.prepare('SELECT quantity FROM listing WHERE id = ?').bind(id).all();
+      const curCols = await buildSelectColumns(db, 'listing', 'l', ['quantity']);
+      const curRes = await db.prepare(`SELECT ${curCols} FROM listing l WHERE l.id = ?`).bind(id).all();
       const curRow = Array.isArray(curRes.results) ? curRes.results[0] : (Array.isArray(curRes) ? curRes[0] : null);
       const curQty = curRow ? (Number(curRow.quantity) || 0) : 0;
       if (op === 'set') {
@@ -48,7 +49,7 @@ export async function onRequest(context) {
 
     const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','quantity','status']);
     let listingSelect = listingCols;
-    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
     const res = await db.prepare(`SELECT ${listingSelect} FROM listing l WHERE l.id = ?`).bind(id).all();
     const row = Array.isArray(res.results) ? res.results[0] : (Array.isArray(res) ? res[0] : null);
     return new Response(JSON.stringify({ success: true, listing: row }), { status: 200, headers: { 'Content-Type': 'application/json' } });

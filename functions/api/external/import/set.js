@@ -1,5 +1,5 @@
 import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode } from '../../../_shared/tcgcsv.js';
-import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -142,9 +142,10 @@ export async function onRequest(context) {
       // Query existing listings for this edition
       const existingListingCardIds = new Set();
       const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId']);
+      const listingColsAliasedId = aliasSelectColumn(listingCols, 'l', 'id', 'listingId');
       for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
+        const sel = await db.prepare(`SELECT ${listingColsAliasedId} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
         for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);
       }
 

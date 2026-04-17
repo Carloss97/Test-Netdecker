@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
@@ -25,7 +25,7 @@ export async function onRequest(context) {
 
     const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','referencePrice','marginMultiplier','finalPrice']);
     let listingSelect = listingCols;
-    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
     const lres = await db.prepare(`SELECT ${listingSelect} FROM listing l WHERE l.id = ?`).bind(id).all();
     const listing = (Array.isArray(lres.results) ? lres.results[0] : (Array.isArray(lres) ? lres[0] : null));
     if (!listing) return new Response(JSON.stringify({ success: false, error: 'Listing not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });

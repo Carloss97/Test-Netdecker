@@ -209,3 +209,23 @@ async function buildSelectColumns(db, tableName, alias, desired) {
 }
 
 export { pickDb, ensureSchema, firstRow, getTableColumns, buildSelectColumns };
+
+// Safely rename the alias for a selected column inside a SELECT fragment
+// Ensures we replace patterns like `alias.col AS col` or `NULL AS col` with `alias.col AS newAlias`
+function aliasSelectColumn(selectFragment, alias, column, newAlias) {
+  if (!selectFragment || !alias || !column || !newAlias) return selectFragment;
+  try {
+    // Replace explicit alias pattern: alias.col AS col -> alias.col AS newAlias
+    const reExplicit = new RegExp(`\\b${alias}\\.${column}\\s+AS\\s+${column}\\b`, 'gi');
+    selectFragment = selectFragment.replace(reExplicit, `${alias}.${column} AS ${newAlias}`);
+    // Replace NULL projection: NULL AS col -> NULL AS newAlias
+    const reNull = new RegExp(`\\bNULL\\s+AS\\s+${column}\\b`, 'gi');
+    selectFragment = selectFragment.replace(reNull, `NULL AS ${newAlias}`);
+    // Replace bare alias.column when no AS present: alias.col -> alias.col AS newAlias
+    const reBare = new RegExp(`\\b${alias}\\.${column}\\b(?!\\s+AS)`, 'g');
+    selectFragment = selectFragment.replace(reBare, `${alias}.${column} AS ${newAlias}`);
+  } catch (_) {}
+  return selectFragment;
+}
+
+export { aliasSelectColumn };

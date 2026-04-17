@@ -64,7 +64,7 @@ export async function onRequest(context) {
       whereClause = 'WHERE l.quantity <= ? AND l.everHadStock = 1 AND l.status IN ("active","manual")';
     }
 
-    const sql = `SELECT ${listingCols} FROM listing l ${whereClause} ORDER BY l.quantity ASC LIMIT ?`;
+    const sql = `SELECT ${listingCols} FROM listing l ${whereClause} ORDER BY quantity ASC LIMIT ?`;
     const res = await db.prepare(sql).bind(...bindsArr).all();
     const rows = Array.isArray(res.results) ? res.results : (Array.isArray(res) ? res : []);
 

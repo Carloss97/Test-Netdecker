@@ -464,6 +464,18 @@ export async function exportInventoryXlsxDavid(params?: {
     params,
     responseType: 'blob',
   });
+
+  const ct = (response.headers && (response.headers['content-type'] || response.headers['Content-Type'] || '')) as string;
+  // Defensive: if server returned JSON (error) instead of XLSX, surface as error instead of saving a corrupt file
+  if (!ct || !ct.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+    try {
+      const text = await (response.data as Blob).text();
+      throw new Error(`Export failed: unexpected content-type=${ct}. Body: ${text.slice(0, 500)}`);
+    } catch (err) {
+      throw new Error(`Export failed: unexpected content-type=${ct}`);
+    }
+  }
+
   return response.data as Blob;
 }
 

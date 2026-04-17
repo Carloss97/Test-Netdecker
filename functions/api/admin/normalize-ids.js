@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../_shared/d1.js';
 
 // Admin utility: detect listings referencing missing cards and attempt safe fixes.
 export async function onRequest(context) {
@@ -16,8 +16,12 @@ export async function onRequest(context) {
     // precompute safe select for card id to avoid referencing missing columns
     const cardIdSelect = await buildSelectColumns(db, 'card', 'c', ['id']);
 
-    // Find listings whose cardId does not have a matching card row
-    const orphanRes = await db.prepare('SELECT l.id as listingId, l.cardId, l.editionCode FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE c.id IS NULL LIMIT 1000').all();
+    // Find listings whose cardId does not have a matching card row (use dynamic select for safety)
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','editionCode']);
+    let listingSelect = listingCols;
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'editionCode', 'editionCode');
+    const orphanRes = await db.prepare(`SELECT ${listingSelect} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE c.id IS NULL LIMIT 1000`).all();
     const orphanRows = Array.isArray(orphanRes?.results) ? orphanRes.results : (Array.isArray(orphanRes) ? orphanRes : []);
     const plans = [];
 

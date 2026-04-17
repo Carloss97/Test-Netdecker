@@ -492,6 +492,7 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
   const fileName =
     scope === 'edition'
@@ -502,7 +503,9 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-  res.send(Buffer.from(buffer));
+  res.setHeader('Content-Length', String(buf.length));
+  // Send binary buffer explicitly to avoid accidental string encoding
+  res.end(buf);
 });
 
 /**

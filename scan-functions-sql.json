@@ -13,11 +13,11 @@
   {
     "file": "functions\\api\\admin\\normalize-ids.js",
     "matches": [
-      "    const orphanRes = await db.prepare('SELECT l.id as listingId, l.cardId, l.editionCode FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE c.id IS NULL LIMIT 1000').all();\r\n    const orphanRows = Array.isArray(orphanRes?.results) ? orphanRes.results : (Array.isArray(orphanRes) ? orphanRes : []);\r\n    const plans = [];\r\n\r",
-      "          const ext = await db.prepare('SELECT id FROM card WHERE externalId = ? LIMIT 1').bind(maybe).all();\r\n          const extRow = firstRow(ext);\r\n          if (extRow && extRow.id) candidates.push(extRow.id);\r\n\r",
-      "          const code = await db.prepare('SELECT id FROM card WHERE cardCode = ? AND editionCode = ? LIMIT 1').bind(maybe, editionCode).all();\r\n          const codeRow = firstRow(code);\r\n          if (codeRow && codeRow.id) candidates.push(codeRow.id);\r\n\r",
-      "          const full = await db.prepare('SELECT id FROM card WHERE id = ? LIMIT 1').bind(cardId).all();\r\n          const fullRow = firstRow(full);\r\n          if (fullRow && fullRow.id) candidates.push(fullRow.id);\r\n        }\r",
-      "        const nameMatch = await db.prepare('SELECT id FROM card WHERE cardName LIKE ? LIMIT 1').bind(`%${last}%`).all();\r\n        const nameRow = firstRow(nameMatch);\r\n        if (nameRow && nameRow.id) candidates.push(nameRow.id);\r\n      } catch (_) {}\r"
+      "    // precompute safe select for card id to avoid referencing missing columns\r\n    const cardIdSelect = await buildSelectColumns(db, 'card', 'c', ['id']);\r\n\r\n    // Find listings whose cardId does not have a matching card row\r",
+      "          const ext = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.externalId = ? LIMIT 1`).bind(maybe).all();\r\n          const extRow = firstRow(ext);\r\n          if (extRow && extRow.id) candidates.push(extRow.id);\r\n\r",
+      "          const code = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.cardCode = ? AND c.editionCode = ? LIMIT 1`).bind(maybe, editionCode).all();\r\n          const codeRow = firstRow(code);\r\n          if (codeRow && codeRow.id) candidates.push(codeRow.id);\r\n\r",
+      "          const full = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.id = ? LIMIT 1`).bind(cardId).all();\r\n          const fullRow = firstRow(full);\r\n          if (fullRow && fullRow.id) candidates.push(fullRow.id);\r\n        }\r",
+      "        const nameMatch = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.cardName LIKE ? LIMIT 1`).bind(`%${last}%`).all();\r\n        const nameRow = firstRow(nameMatch);\r\n        if (nameRow && nameRow.id) candidates.push(nameRow.id);\r\n      } catch (_) {}\r"
     ]
   },
   {
@@ -47,7 +47,7 @@
     "file": "functions\\api\\editions\\[id]\\cards-with-stock.js",
     "matches": [
       "    // Fetch cards for this edition (build select dynamically to avoid missing columns)\r\n    const cardSelect = await buildSelectColumns(db, 'card', 'c', ['id','externalId','tcg','editionCode','cardCode','cardName','rarity','imageUrl','priceMarket','priceMid','priceLow']);\r\n    const cardsRes = await db.prepare(`SELECT ${cardSelect} FROM card c WHERE c.tcg = ? AND c.editionCode = ? ORDER BY c.cardCode ASC, c.cardName ASC`).bind(tcg, editio",
-      "        const sel = await db.prepare(`SELECT id, cardId, condition, quantity, referencePrice, marginMultiplier, finalPrice, lastSyncedAt, status FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();\r\n        const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);\r\n        for (const r of rowsRes) {\r\n          const key = r.cardId || r.cardID || r.",
+      "    const listingSelectCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','condition','quantity','referencePrice','marginMultiplier','finalPrice','lastSyncedAt','status']);\r\n    for (const chunked of chunk(cardIds, 50)) {\r\n      const placeholders = chunked.map(() => '?').join(',');\r\n      try {\r",
       "COLUMN_REF:priceMarket",
       "COLUMN_REF:priceMid",
       "COLUMN_REF:priceLow"
@@ -56,7 +56,7 @@
   {
     "file": "functions\\api\\editions\\[id]\\index.js",
     "matches": [
-      "    const cardsRes = await db.prepare('SELECT COUNT(*) AS cnt FROM card WHERE tcg = ? AND editionCode = ?').bind(tcg, editionCode).all();\r\n    const listingsRes = await db.prepare('SELECT COUNT(*) AS cnt FROM listing WHERE editionCode = ?').bind(editionCode).all();\r\n    const cardsCnt = firstRow(cardsRes)?.cnt || 0;\r\n    const listingsCnt = firstRow(listingsRes)?.cnt || 0;\r",
+      "    const res = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();\r\n    const row = firstRow(res);\r\n    if (!row) return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });\r\n\r",
       "    const listingsRes = await db.prepare('SELECT COUNT(*) AS cnt FROM listing WHERE editionCode = ?').bind(editionCode).all();\r\n    const cardsCnt = firstRow(cardsRes)?.cnt || 0;\r\n    const listingsCnt = firstRow(listingsRes)?.cnt || 0;\r\n\r"
     ]
   },
@@ -71,22 +71,22 @@
   {
     "file": "functions\\api\\external\\import\\card.js",
     "matches": [
-      "        const exist = await db.prepare('SELECT id FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardKey, editionCode).all();\r\n        const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);\r\n        if (!has) {\r\n          const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.",
+      "        const listingIdSelect = await buildSelectColumns(db, 'listing', 'l', ['id']);\r\n        const exist = await db.prepare(`SELECT ${listingIdSelect} FROM listing l WHERE l.cardId = ? AND l.editionCode = ?`).bind(cardKey, editionCode).all();\r\n        const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);\r\n        if (!has) {\r",
       "COLUMN_REF:priceMarket"
     ]
   },
   {
     "file": "functions\\api\\external\\import\\search.js",
     "matches": [
-      "                const exist = await db.prepare('SELECT id FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardKey, editionCode).all();\r\n                const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);\r\n                if (!has) {\r\n                  const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.n",
+      "                const listingIdSelect = await buildSelectColumns(db, 'listing', 'l', ['id']);\r\n                const exist = await db.prepare(`SELECT ${listingIdSelect} FROM listing l WHERE l.cardId = ? AND l.editionCode = ?`).bind(cardKey, editionCode).all();\r\n                const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);\r\n                if (!has) {\r",
       "COLUMN_REF:priceMarket"
     ]
   },
   {
     "file": "functions\\api\\external\\import\\set.js",
     "matches": [
-      "        const sel = await db.prepare(`SELECT id FROM card WHERE id IN (${placeholders})`).bind(...cids).all();\r\n        for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.Id || r.cardId || r.cardid || r.id);\r\n      }\r\n\r",
-      "        const sel = await db.prepare(`SELECT id, cardId FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...cids).all();\r\n        for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);\r\n      }\r\n\r",
+      "      const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);\r\n      for (const cids of chunk(cardIds, 50)) {\r\n        const placeholders = cids.map(() => '?').join(',');\r\n        const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();\r",
+      "      const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId']);\r\n      for (const cids of chunk(cardIds, 50)) {\r\n        const placeholders = cids.map(() => '?').join(',');\r\n        const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...cids).all();\r",
       "COLUMN_REF:priceMarket",
       "COLUMN_REF:priceMid",
       "COLUMN_REF:priceLow"
@@ -101,8 +101,8 @@
   {
     "file": "functions\\api\\inventory\\import-csv.js",
     "matches": [
-      "          const sel = await db.prepare(`SELECT id FROM card WHERE id IN (${placeholders})`).bind(...cids).all();\r\n          const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);\r\n          for (const r of rowsRes) existingCards.add(r.id || r.ID || r.id);\r\n        } catch (_) {}\r",
-      "            const sel = await db.prepare(`SELECT id, cardId, condition, rarity FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();\r\n            const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);\r\n            for (const r of rowsRes) {\r\n              const key = `${r.cardId}|${editionCode}|${r.condition || ''}|${r.rarity || ''}`;\r",
+      "      const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);\r\n      for (const cids of chunk(cardIds, 50)) {\r\n        const placeholders = cids.map(() => '?').join(',');\r\n        try {\r",
+      "            const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();\r\n            const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);\r\n            for (const r of rowsRes) {\r\n              const key = `${r.cardId}|${editionCode}|${r.condition || ''}|${r.rarity || ''}`;\r",
       "COLUMN_REF:priceMarket",
       "COLUMN_REF:everHadStock"
     ]

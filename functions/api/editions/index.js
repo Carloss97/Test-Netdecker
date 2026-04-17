@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -14,10 +14,11 @@ export async function onRequest(context) {
 
     const binds = [];
     let where = '';
-    if (tcg) { where += ' AND tcg = ?'; binds.push(tcg); }
-    if (filterActive) { where += ' AND isActive = 1'; }
+    if (tcg) { where += ' AND e.tcg = ?'; binds.push(tcg); }
+    if (filterActive) { where += ' AND e.isActive = 1'; }
 
-    const sql = `SELECT id, tcg, editionCode, editionName, releaseDate, isActive FROM edition WHERE 1=1 ${where} ORDER BY releaseDate DESC`;
+    const editionCols = await buildSelectColumns(db, 'edition', 'e', ['id','tcg','editionCode','editionName','releaseDate','isActive']);
+    const sql = `SELECT ${editionCols} FROM edition e WHERE 1=1 ${where} ORDER BY releaseDate DESC`;
     const res = await db.prepare(sql).bind(...binds).all();
     const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
 

@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -23,7 +23,13 @@ export async function onRequest(context) {
 
     params.push(limit);
 
-    const sql = `SELECT ph.id AS id, ph.listingId AS listingId, ph.oldPrice AS oldPrice, ph.newPrice AS newPrice, ph.oldReferencePrice AS oldReferencePrice, ph.newReferencePrice AS newReferencePrice, ph.percentChange AS percentChange, ph.createdAt AS createdAt, l.cardId AS cardId, l.editionCode AS editionCode, c.cardName AS cardName FROM priceHistory ph LEFT JOIN listing l ON l.id = ph.listingId LEFT JOIN card c ON c.id = l.cardId ${where} ORDER BY ph.createdAt DESC LIMIT ?`;
+    // Build safe SELECT fragments so older D1 schemas don't cause runtime errors
+    const phCols = await buildSelectColumns(db, 'priceHistory', 'ph', ['id','listingId','oldPrice','newPrice','oldReferencePrice','newReferencePrice','percentChange','createdAt']);
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['cardId','editionCode']);
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName']);
+    const selectParts = [phCols, listingCols, cardCols];
+
+    const sql = `SELECT ${selectParts.join(', ')} FROM priceHistory ph LEFT JOIN listing l ON l.id = ph.listingId LEFT JOIN card c ON c.id = l.cardId ${where} ORDER BY createdAt DESC LIMIT ?`;
     const res = await db.prepare(sql).bind(...params).all();
 
     const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);

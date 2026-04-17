@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
@@ -8,7 +8,8 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ error: 'No DB bound' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     await ensureSchema(db);
 
-    const res = await db.prepare('SELECT id, tcg, editionCode, editionName, releaseDate, isActive FROM edition WHERE id = ?').bind(id).all();
+    const editionCols = await buildSelectColumns(db, 'edition', 'e', ['id','tcg','editionCode','editionName','releaseDate','isActive']);
+    const res = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();
     const row = firstRow(res);
     if (!row) return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 

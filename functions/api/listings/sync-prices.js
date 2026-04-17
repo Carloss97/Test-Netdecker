@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../_shared/d1.js';
 import { getSetCards } from '../../_shared/tcgcsv.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 import { incr, startTimer } from '../../_shared/metrics.js';
@@ -68,7 +68,7 @@ export async function onRequest(context) {
             // use dynamic select to avoid missing-column failures
             const listingColsForUpdate = await buildSelectColumns(db, 'listing', 'l', ['id','referencePrice','marginMultiplier','finalPrice']);
             let listingSelectForUpdate = listingColsForUpdate;
-            if (listingSelectForUpdate.includes('l.id')) listingSelectForUpdate = listingSelectForUpdate.replace(/\bl\.id\b/g, 'l.id as listingId');
+            listingSelectForUpdate = aliasSelectColumn(listingSelectForUpdate, 'l', 'id', 'listingId');
             const lres = await db.prepare(`SELECT ${listingSelectForUpdate} FROM listing l WHERE l.id = ?`).bind(u.listingId).all();
             const listing = (Array.isArray(lres.results) ? lres.results[0] : (Array.isArray(lres) ? lres[0] : null));
             if (!listing) throw new Error('Listing not found');
@@ -132,7 +132,7 @@ export async function onRequest(context) {
     const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','referencePrice','marginMultiplier','finalPrice','quantity','status']);
     const cardCols = await buildSelectColumns(db, 'card', 'c', ['externalId','cardName','tcg','editionCode','rarity']);
     let listingSelect = listingCols;
-    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    listingSelect = aliasSelectColumn(listingSelect, 'l', 'id', 'listingId');
     const selectParts = [];
     if (listingSelect) selectParts.push(listingSelect);
     if (cardCols) selectParts.push(cardCols);
