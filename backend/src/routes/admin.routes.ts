@@ -35,6 +35,10 @@ router.use('/approvals', approvalsRoutes);
 let _adminDashboardCache: { ts: number; data: unknown } | null = null;
 const ADMIN_DASHBOARD_CACHE_TTL_MS = Number(process.env.ADMIN_DASHBOARD_CACHE_TTL_MS || 15000);
 
+// Simple in-memory cache for the admin dashboard to keep the UI responsive
+let _adminDashboardCache: { ts: number; data: unknown } | null = null;
+const ADMIN_DASHBOARD_CACHE_TTL_MS = Number(process.env.ADMIN_DASHBOARD_CACHE_TTL_MS || 15000);
+
 type AdminListingAlert = {
   id: string;
   condition: string;

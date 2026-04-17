@@ -29,7 +29,17 @@ export class PosService {
   }
 
   static async getSessionByPublicId(sessionId: string) {
-    return (prisma as any).pOSSession.findUnique({ where: { sessionId } as any, include: { transactions: true } as any } as any);
+    const sess = await (prisma as any).pOSSession.findUnique({ where: { sessionId } as any, include: { transactions: true } as any } as any);
+    if (!sess) return sess;
+    // If items were stored as a string (SQLite variant), parse them back to objects
+    if (typeof sess.items === 'string') {
+      try {
+        sess.items = JSON.parse(sess.items);
+      } catch (_e) {
+        // leave as string if parsing fails
+      }
+    }
+    return sess;
   }
 
   static async createTransaction(sessionPublicId: string, input: {
