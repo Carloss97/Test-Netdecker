@@ -1,4 +1,4 @@
-const BASE = process.env.TCGCSV_BASE || 'https://tcgcsv.com/tcgplayer';
+const BASE = (typeof process !== 'undefined' && process.env && process.env.TCGCSV_BASE) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_BASE) || 'https://tcgcsv.com/tcgplayer';
 
 const TCGCSV_CATEGORY_IDS = {
   MAGIC: 1,
