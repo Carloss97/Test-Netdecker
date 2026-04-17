@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow } from '../../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
 
 function uuid() {
   if (globalThis.crypto && globalThis.crypto.randomUUID) return globalThis.crypto.randomUUID();
@@ -27,7 +27,7 @@ export async function onRequest(context) {
     const cardsOut = [];
     for (const c of cardsRows) {
       const cardId = c.id;
-      const lres = await db.prepare('SELECT id, condition, quantity, referencePrice, marginMultiplier, finalPrice, currency, lastSyncedAt, status FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardId, editionCode).all();
+      const lres = await db.prepare('SELECT id, condition, quantity, referencePrice, marginMultiplier, finalPrice, lastSyncedAt, status FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardId, editionCode).all();
       let listings = Array.isArray(lres?.results) ? lres.results : (Array.isArray(lres) ? lres : []);
 
       // If no listings, create a default one
@@ -37,7 +37,7 @@ export async function onRequest(context) {
           await db.prepare('INSERT OR IGNORE INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
             .bind(newId, cardId, editionCode, 0, Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), 0, 0, 'active', null)
             .run();
-          listings = [{ id: newId, condition: 'NM', quantity: 0, referencePrice: 0, marginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), finalPrice: 0, currency: 'CLP', lastSyncedAt: null, status: 'active' }];
+          listings = [{ id: newId, condition: 'NM', quantity: 0, referencePrice: 0, marginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), finalPrice: 0, lastSyncedAt: null, status: 'active' }];
         } catch (_) {
           listings = [];
         }
@@ -52,7 +52,7 @@ export async function onRequest(context) {
         colorIdentity: null,
         imageUrl: c.imageUrl || null,
         tags: null,
-        listings: listings.map((l) => ({ id: l.id, condition: l.condition || 'NM', quantity: l.quantity ?? 0, referencePrice: l.referencePrice ?? 0, marginMultiplier: l.marginMultiplier ?? Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), finalPrice: l.finalPrice ?? 0, currency: l.currency || 'CLP', lastSyncedAt: l.lastSyncedAt || null, status: l.status || 'active' })),
+        listings: listings.map((l) => ({ id: l.id, condition: l.condition || 'NM', quantity: l.quantity ?? 0, referencePrice: l.referencePrice ?? 0, marginMultiplier: l.marginMultiplier ?? Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), finalPrice: l.finalPrice ?? 0, currency: 'CLP', lastSyncedAt: l.lastSyncedAt || null, status: l.status || 'active' })),
       });
     }
 

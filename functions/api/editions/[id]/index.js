@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow } from '../../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
