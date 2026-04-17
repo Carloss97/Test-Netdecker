@@ -123,7 +123,7 @@ export async function onRequest(context) {
       }
 
       const cardStmt = db.prepare(`INSERT OR REPLACE INTO card (id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`);
-      const listingStmt = db.prepare(`INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`);
+      const listingStmt = db.prepare(`INSERT OR IGNORE INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`);
       const priceHistoryStmt = db.prepare('INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, oldExchangeRate, newExchangeRate, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
       for (const c of cards) {
@@ -138,8 +138,12 @@ export async function onRequest(context) {
           const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;
           const ref = typeof c.priceMarket === 'number' && c.priceMarket > 0 ? c.priceMarket : (c.priceMid || c.priceLow || 0.5);
           const finalPrice = Math.round(ref * marginMultiplier * usdToClp);
-          await listingStmt.bind(listingId, cardId, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, 'active', new Date().toISOString()).run();
-          createdListings += 1;
+          try {
+            await listingStmt.bind(listingId, cardId, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, 'active', new Date().toISOString()).run();
+            createdListings += 1;
+          } catch (e) {
+            // ignore insert errors (unique constraint, race conditions), do not fail whole import
+          }
           existingListingCardIds.add(cardId);
 
           // Insert initial price history

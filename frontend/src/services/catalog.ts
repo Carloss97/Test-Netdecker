@@ -179,7 +179,10 @@ export async function getAvailableListings(tcgId?: string, editionId?: string) {
     const { data } = await apiClient.get('/listings/available', {
       params: { tcgId, editionId }
     });
-    return data;
+    // Normalize: backend returns { success, total, listings } but callers expect an array of listings
+    if (data && Array.isArray(data.listings)) return data.listings;
+    if (Array.isArray(data)) return data;
+    return [];
   } catch (err) {
     // Fallback to local imports saved in browser
     const all = localImports.listLocalListings();
@@ -193,7 +196,9 @@ export async function getAvailableListings(tcgId?: string, editionId?: string) {
 export async function getListingsByCard(cardId: string) {
   try {
     const { data } = await apiClient.get(`/listings/card/${cardId}`);
-    return data;
+    if (data && Array.isArray(data.listings)) return data.listings;
+    if (Array.isArray(data)) return data;
+    return [];
   } catch (_) {
     const all = localImports.listLocalListings();
     const matched = all.filter((l) => String(l.card.externalId) === String(cardId));
