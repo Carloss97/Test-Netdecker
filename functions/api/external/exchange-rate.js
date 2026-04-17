@@ -111,6 +111,19 @@ export async function onRequest(context) {
       return jsonResponse({ success: true, usdToCLP: fallback, source: 'fallback', note: String(err), fetchedAt: new Date().toISOString() });
     }
   } catch (err) {
+    // Try to persist last error for debugging when DB is available
+    try {
+      const dbErr = pickDb(env);
+      if (dbErr) {
+        const payload = JSON.stringify({ error: String(err), url: request?.url || null, ts: new Date().toISOString() });
+        await dbErr.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
+          .bind('exchangeRateLastError', payload, new Date().toISOString())
+          .run();
+      }
+    } catch (_) {
+      // ignore logging failures
+    }
+
     return jsonResponse({ success: false, error: String(err) }, 500);
   }
 }

@@ -46,18 +46,20 @@ let prisma: MinimalPrisma;
 
 function createPrismaStub(): MinimalPrisma {
 	console.log('[DB] Creating fallback Prisma stub');
+	let baseProxy: any = null;
 	const base: any = {
- 		$connect: async () => {},
- 		$disconnect: async () => {},
- 		$transaction: async (fn: any) => {
- 			if (typeof fn === 'function') return fn(base);
- 			return [];
- 		}
- 	};
+		$connect: async () => {},
+		$disconnect: async () => {},
+		$transaction: async (fn: any) => {
+			// Ensure transactions receive the full proxied client with model handlers
+			if (typeof fn === 'function') return fn(baseProxy ?? base);
+			return [];
+		}
+	};
 
- 	const modelMemory = new Map<string, Map<string, any>>();
+	const modelMemory = new Map<string, Map<string, any>>();
 
- 	function createModelHandler(modelName: string) {
+	function createModelHandler(modelName: string) {
  		const store = new Map<string, any>();
  		function mkId() { return `mock-${Math.random().toString(36).slice(2, 9)}`; }
  		return {
@@ -68,11 +70,32 @@ function createPrismaStub(): MinimalPrisma {
  				return rec;
  			},
  			findUnique: async ({ where }: { where: any }) => {
- 				if (!where) return null;
- 				if (where.id) return store.get(where.id) ?? null;
- 				const entries = Array.from(store.values());
- 				if (where.slug) return entries.find((r) => r.slug === where.slug) ?? null;
- 				return null;
+				if (!where) return null;
+				if (where.id) return store.get(where.id) ?? null;
+				const entries = Array.from(store.values());
+				// If caller requests a unique lookup by a single non-id field, try to match it
+				const whereKeys = Object.keys(where || {});
+				if (whereKeys.length === 1) {
+					const k = whereKeys[0];
+					const v = where[k];
+					if (v && typeof v === 'object') {
+						// nested composite unique (e.g., { tcgId_editionCode: { tcgId: 't-1', editionCode: 'E1' } })
+						const nestedKeys = Object.keys(v);
+						const found = entries.find((entry) => nestedKeys.every((nk) => entry[nk] === v[nk]));
+						if (found) return found;
+					} else {
+						const found = entries.find((entry) => entry[k] === v);
+						if (found) return found;
+					}
+				}
+				// common unique fields fallback
+				if (where.sessionId) {
+					const entriesA = Array.from(store.values());
+					return entriesA.find((r) => r.sessionId === where.sessionId) ?? null;
+				}
+				if (where.slug) return entries.find((r) => r.slug === where.slug) ?? null;
+				if (where.apiKeyHash) return entries.find((r) => r.apiKeyHash === where.apiKeyHash) ?? null;
+				return null;
  			},
  			findFirst: async ({ where }: any) => {
  				const entries = Array.from(store.values());
@@ -113,43 +136,107 @@ function createPrismaStub(): MinimalPrisma {
  				for (const id of toDelete) store.delete(id);
  				return { count: toDelete.length };
  			},
- 			update: async ({ where, data }: any) => {
- 				const rec = store.get(where.id);
- 				if (!rec) return null;
- 				const updated = { ...rec, ...data, updatedAt: new Date() };
- 				store.set(where.id, updated);
- 				return updated;
- 			},
- 			updateMany: async ({ where, data }: any) => {
- 				let count = 0;
- 				for (const [id, rec] of store.entries()) {
- 					let match = true;
- 					if (where) {
- 						for (const k of Object.keys(where)) {
- 							const cond = where[k];
- 							if (typeof cond === 'object' && cond.gte !== undefined) {
- 								if (!(rec[k] >= cond.gte)) match = false;
- 							} else if (typeof cond === 'object' && cond.not !== undefined) {
- 								if (rec[k] === cond.not) match = false;
- 							} else if (rec[k] !== cond) match = false;
- 						}
- 					}
- 					if (match) { store.set(id, { ...rec, ...data }); count++; }
- 				}
- 				return { count };
- 			},
- 			upsert: async ({ where, update, create }: any) => {
- 				if (where && where.id && store.has(where.id)) {
- 					const existing = store.get(where.id);
- 					const updated = { ...existing, ...update, updatedAt: new Date() };
- 					store.set(where.id, updated);
- 					return updated;
- 				}
- 				const id = (create && create.id) ? create.id : mkId();
- 				const rec = { id, ...(create || {}), createdAt: new Date(), updatedAt: new Date() };
- 				store.set(id, rec);
- 				return rec;
- 			},
+			update: async ({ where, data }: any) => {
+				const rec = store.get(where.id);
+				if (!rec) return null;
+				// Apply Prisma-like numeric operations (increment / decrement) for numeric fields
+				const applied = { ...rec };
+				for (const key of Object.keys(data || {})) {
+					const val = data[key];
+					if (val && typeof val === 'object') {
+						if (typeof val.decrement === 'number') {
+							applied[key] = Number(applied[key] || 0) - val.decrement;
+							continue;
+						}
+						if (typeof val.increment === 'number') {
+							applied[key] = Number(applied[key] || 0) + val.increment;
+							continue;
+						}
+					}
+					applied[key] = val;
+				}
+				applied.updatedAt = new Date();
+				store.set(where.id, applied);
+				return applied;
+			},
+			updateMany: async ({ where, data }: any) => {
+				let count = 0;
+				for (const [id, rec] of store.entries()) {
+					let match = true;
+					if (where) {
+						for (const k of Object.keys(where)) {
+							const cond = where[k];
+							if (typeof cond === 'object' && cond.gte !== undefined) {
+								if (!(rec[k] >= cond.gte)) match = false;
+							} else if (typeof cond === 'object' && cond.not !== undefined) {
+								if (rec[k] === cond.not) match = false;
+							} else if (rec[k] !== cond) match = false;
+						}
+					}
+					if (match) {
+						// Apply numeric ops similar to Prisma
+						const applied = { ...rec };
+						for (const key of Object.keys(data || {})) {
+							const val = data[key];
+							if (val && typeof val === 'object') {
+								if (typeof val.decrement === 'number') {
+									applied[key] = Number(applied[key] || 0) - val.decrement;
+									continue;
+								}
+								if (typeof val.increment === 'number') {
+									applied[key] = Number(applied[key] || 0) + val.increment;
+									continue;
+								}
+							}
+							applied[key] = val;
+						}
+						applied.updatedAt = new Date();
+						store.set(id, applied);
+						count++;
+					}
+				}
+				return { count };
+			},
+			upsert: async ({ where, update, create }: any) => {
+				// Try id-based upsert first
+				if (where && where.id && store.has(where.id)) {
+					const existing = store.get(where.id);
+					const updated = { ...existing, ...(update || {}), updatedAt: new Date() };
+					store.set(where.id, updated);
+					return updated;
+				}
+
+				// Attempt to find existing entry by other unique shapes (single-field or nested composite)
+				if (where && Object.keys(where).length > 0) {
+					for (const k of Object.keys(where)) {
+						const v = where[k];
+						if (v && typeof v === 'object') {
+							const nestedKeys = Object.keys(v);
+							const foundEntry = Array.from(store.entries()).find(([, rec]) => nestedKeys.every((nk) => rec[nk] === v[nk]));
+							if (foundEntry) {
+								const [foundId, existing] = foundEntry;
+								const updated = { ...existing, ...(update || {}), updatedAt: new Date() };
+								store.set(foundId, updated);
+								return updated;
+							}
+						} else {
+							const foundEntry = Array.from(store.entries()).find(([, rec]) => rec[k] === v);
+							if (foundEntry) {
+								const [foundId, existing] = foundEntry;
+								const updated = { ...existing, ...(update || {}), updatedAt: new Date() };
+								store.set(foundId, updated);
+								return updated;
+							}
+						}
+					}
+				}
+
+				// Fallback: create new record
+				const id = (create && create.id) ? create.id : mkId();
+				const rec = { id, ...(create || {}), createdAt: new Date(), updatedAt: new Date() };
+				store.set(id, rec);
+				return rec;
+			},
  			count: async ({ where }: any = {}) => {
  				if (!where) return store.size;
  				if (where.id && where.id.in) return Array.from(store.values()).filter(e => where.id.in.includes(e.id)).length;
@@ -159,19 +246,19 @@ function createPrismaStub(): MinimalPrisma {
  		};
  	}
 
- 	const baseProxy = new Proxy(base, {
- 		get(target, prop) {
- 			if (prop === Symbol.toStringTag) return 'PrismaStub';
- 			if (!(prop in target)) {
- 				const name = String(prop);
- 				const handler = createModelHandler(name);
- 				(target as any)[prop] = handler;
- 			}
- 			return (target as any)[prop];
- 		}
- 	});
+	baseProxy = new Proxy(base, {
+		get(target, prop) {
+			if (prop === Symbol.toStringTag) return 'PrismaStub';
+			if (!(prop in target)) {
+				const name = String(prop);
+				const handler = createModelHandler(name);
+				(target as any)[prop] = handler;
+			}
+			return (target as any)[prop];
+		}
+	});
 
- 	return baseProxy as MinimalPrisma;
+	return baseProxy as MinimalPrisma;
 }
 
 // Allow tests to opt-out of real Prisma initialization by setting
@@ -185,27 +272,38 @@ if (process.env.SKIP_DB_INIT === 'true') {
 	// - PostgreSQL: `@prisma/client`
 	// - SQLite: `@prisma/client_sqlite` (generated via `prisma:generate:sqlite`)
 	try {
-		if (useSqlite) {
-			console.log('[DB] Attempting to load @prisma/client_sqlite...');
-			// @ts-ignore - dynamic import of generated sqlite client; ambient types may not exist in all environments
-			const pkg = await import('@prisma/client_sqlite');
-			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-			prisma = new PrismaClientClass() as unknown as MinimalPrisma;
-			console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
-		} else {
-			console.log('[DB] Loading @prisma/client (Postgres)');
-			const pkg = await import('@prisma/client');
-			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-			prisma = new PrismaClientClass() as unknown as MinimalPrisma;
-			console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
-		}
+		// Avoid noisy import attempts when generated Prisma clients are not installed.
+		// Check for package.json presence under backend/node_modules before attempting dynamic import.
+		const pkgPath = useSqlite
+			? path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite/package.json')
+			: path.resolve(__dirname, '../../node_modules/@prisma/client/package.json');
 
-		// Connect and log status
-		prisma.$connect().then(() => {
-			console.log('[DB] PrismaClient connected');
-		}).catch((err: unknown) => {
-			console.error('[DB] PrismaClient connection error:', err instanceof Error ? err.message : String(err));
-		});
+		if (!fs.existsSync(pkgPath)) {
+			console.warn(`[DB] Prisma client package not found at ${pkgPath}; using in-memory stub`);
+			prisma = createPrismaStub();
+		} else {
+			if (useSqlite) {
+				console.log('[DB] Attempting to load @prisma/client_sqlite...');
+				// @ts-ignore - dynamic import of generated sqlite client; ambient types may not exist in all environments
+				const pkg = await import('@prisma/client_sqlite');
+				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+				prisma = new PrismaClientClass() as unknown as MinimalPrisma;
+				console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
+			} else {
+				console.log('[DB] Loading @prisma/client (Postgres)');
+				const pkg = await import('@prisma/client');
+				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+				prisma = new PrismaClientClass() as unknown as MinimalPrisma;
+				console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
+			}
+
+			// Connect and log status
+			prisma.$connect().then(() => {
+				console.log('[DB] PrismaClient connected');
+			}).catch((err: unknown) => {
+				console.error('[DB] PrismaClient connection error:', err instanceof Error ? err.message : String(err));
+			});
+		}
 	} catch (err) {
 		console.error('[DB] Failed to initialize Prisma client:', err);
 		console.warn('[DB] Falling back to in-memory Prisma stub to allow startup without generated client');
