@@ -39,7 +39,7 @@ export async function onRequest(context) {
 
     // Exchange rate: read from appConfig pricingConfig if present
     const cfgRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('pricingConfig').all();
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToCLP = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
     let exchangeSource = 'env';
     let fetchedAt = null;
     try {
@@ -47,13 +47,13 @@ export async function onRequest(context) {
       if (cfgRow && cfgRow.value) {
         const parsed = JSON.parse(cfgRow.value);
         if (parsed && parsed.exchangeRate) {
-          usdToClp = Number(parsed.exchangeRate.activeRate || usdToClp);
+          usdToCLP = Number(parsed.exchangeRate.activeRate || usdToCLP);
           exchangeSource = parsed.exchangeRate.source || exchangeSource;
         }
       }
     } catch (_) {}
 
-    const totalValueCLP = Math.round(Number(sumUsd) * usdToClp);
+    const totalValueCLP = Math.round(Number(sumUsd) * usdToCLP);
 
     // recent sync runs
     const runsRes = await db.prepare('SELECT id, source, status, total, updated, volatile, failed, startedAt, completedAt FROM priceSyncRun ORDER BY startedAt DESC LIMIT 10;').all();
