@@ -636,7 +636,7 @@ export function PricingPage() {
                       </span>
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>
-                      {listing.referencePrice != null ? `$${listing.referencePrice.toFixed(2)}` : '—'}
+                      {listing.referencePrice != null && Number.isFinite(Number(listing.referencePrice)) ? `$${Number(listing.referencePrice).toFixed(2)}` : '—'}
                     </td>
                     <td style={{ fontWeight: 600, overflow: 'hidden' }}>
                       {isManual ? (

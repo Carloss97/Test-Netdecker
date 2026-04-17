@@ -72,22 +72,49 @@ async function getGroupPrices(tcg, groupId) {
   return Array.isArray(data?.results) ? data.results : [];
 }
 
-function resolveGroupBySetCode(groups, setCode) {
+function extractYgoSetCodePrefix(cardSetCode) {
+  const raw = String(cardSetCode || '').trim();
+  if (!raw) return '';
+  const upper = raw.toUpperCase();
+
+  // Pattern: prefix - letters(1-3) numbers(optional), e.g. '-EN', '-EN01'
+  let m = upper.match(/^(.*?)-[A-Z]{1,3}\d*$/);
+  if (m && m[1]) return m[1];
+
+  // Pattern: prefix - digits, e.g. '-1', '-12'
+  m = upper.match(/^(.*?)-\d+$/);
+  if (m && m[1]) return m[1];
+
+  // Fallback: remove any non-alphanumeric and return uppercase compact form
+  return upper.replace(/[^A-Z0-9]/g, '');
+}
+
+function resolveGroupBySetCode(tcg, groups, setCode) {
   const normalizedCode = String(setCode || '').trim().toUpperCase();
   const normalizedCompactCode = normalizeSetIdentifier(setCode);
+  const ygoPrefix = String(tcg || '').toUpperCase() === 'YUGIOH' ? extractYgoSetCodePrefix(setCode) : '';
+
   return groups.find((g) => {
     const abbr = (g.abbreviation || '').toUpperCase();
     if (abbr === normalizedCode) return true;
     if (String(g.groupId) === normalizedCode) return true;
     if (normalizeSetIdentifier(g.abbreviation || '') === normalizedCompactCode) return true;
     if (normalizeSetIdentifier(g.name || '') === normalizedCompactCode) return true;
+
+    if (ygoPrefix) {
+      const abbrPrefix = extractYgoSetCodePrefix(abbr);
+      if (abbrPrefix && abbrPrefix === ygoPrefix) return true;
+      const namePrefix = extractYgoSetCodePrefix(String(g.name || '').toUpperCase());
+      if (namePrefix && namePrefix === ygoPrefix) return true;
+    }
+
     return false;
   });
 }
 
 async function getSetCards(tcg, setCode) {
   const groups = await getGroups(tcg);
-  const group = resolveGroupBySetCode(groups, setCode);
+  const group = resolveGroupBySetCode(tcg, groups, setCode);
   if (!group) return [];
 
   const [products, prices] = await Promise.all([
@@ -131,4 +158,4 @@ async function getSetCards(tcg, setCode) {
   return cards;
 }
 
-export { getGroups, getSetCards, getGroupProducts, getGroupPrices, TCGCSV_CATEGORY_IDS };
+export { getGroups, getSetCards, getGroupProducts, getGroupPrices, TCGCSV_CATEGORY_IDS, resolveGroupBySetCode };

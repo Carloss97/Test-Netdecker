@@ -15,9 +15,24 @@ function extractYgoPrice(priceEntry: any): number | undefined {
 }
 
 function extractYgoSetCodePrefix(cardSetCode: string): string {
-  const normalized = cardSetCode.trim().toUpperCase();
-  const match = normalized.match(/^(.+)-[A-Z]{0,3}\d+$/);
-  return match?.[1] ?? normalized;
+  const raw = String(cardSetCode || '').trim();
+  if (!raw) return '';
+
+  // Prefer a compact uppercase prefix. Cover common YGOPRO suffix patterns:
+  // - EN, EN1, EN01, -1, -12, -ABC123 etc. Try progressively wider matches.
+  // Examples: 'DASA-EN', 'DASA-EN01', 'BLAR-1' -> 'DASA', 'DASA', 'BLAR'
+  const upper = raw.toUpperCase();
+
+  // Pattern: prefix - letters(1-3) numbers(optional), e.g. '-EN', '-EN01'
+  let m = upper.match(/^(.*?)-[A-Z]{1,3}\d*$/);
+  if (m && m[1]) return m[1];
+
+  // Pattern: prefix - digits, e.g. '-1', '-12'
+  m = upper.match(/^(.*?)-\d+$/);
+  if (m && m[1]) return m[1];
+
+  // Fallback: remove any non-alphanumeric and return uppercase compact form
+  return upper.replace(/[^A-Z0-9]/g, '');
 }
 
 function ygoCardToExternal(card: any, setFilter?: string): ExternalCard {

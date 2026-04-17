@@ -2,9 +2,13 @@ import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
+  const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
   try {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
+    }
     if (request.method !== 'GET') {
-      return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', Allow: 'GET' } });
+      return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
     }
 
     const db = pickDb(env);
@@ -31,14 +35,14 @@ export async function onRequest(context) {
     if (pricingMode === 'manual') {
       const manual = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
       const val = Number.isFinite(manual) && manual > 0 ? manual : Number(env.FALLBACK_USD_TO_CLP || 950);
-      return new Response(JSON.stringify({ success: true, usdToCLP: val, source: 'manual', fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return jsonResponse({ success: true, usdToCLP: val, source: 'manual', fetchedAt: new Date().toISOString() });
     }
 
     // If pricingMode is null (no DB) we still allow manual env to force a static rate
     if (!db) {
       const manual = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 0);
       if (Number.isFinite(manual) && manual > 0) {
-        return new Response(JSON.stringify({ success: true, usdToCLP: manual, source: 'manual', fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return jsonResponse({ success: true, usdToCLP: manual, source: 'manual', fetchedAt: new Date().toISOString() });
       }
     }
 
@@ -52,7 +56,7 @@ export async function onRequest(context) {
           const cachedRate = Number(cached?.usdToCLP);
           const fetchedAt = cached?.fetchedAt ? new Date(cached.fetchedAt).getTime() : 0;
           if (!isNaN(cachedRate) && fetchedAt && (Date.now() - fetchedAt) < ttlSeconds * 1000) {
-            return new Response(JSON.stringify({ success: true, usdToCLP: Number(cachedRate), source: 'cache', fetchedAt: cached.fetchedAt }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            return jsonResponse({ success: true, usdToCLP: Number(cachedRate), source: 'cache', fetchedAt: cached.fetchedAt });
           }
         }
       } catch (_) {
@@ -84,7 +88,7 @@ export async function onRequest(context) {
         }
       }
 
-      return new Response(JSON.stringify({ success: true, usdToCLP: Number(rate), source: 'exchangerate.host', fetchedAt }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return jsonResponse({ success: true, usdToCLP: Number(rate), source: 'exchangerate.host', fetchedAt });
     } catch (err) {
       // On external failure, try returning stale cache if available, otherwise fallback to env
       if (db) {
@@ -95,7 +99,7 @@ export async function onRequest(context) {
             const cached2 = JSON.parse(cacheRow2.value);
             const cachedRate2 = Number(cached2?.usdToCLP);
             if (!isNaN(cachedRate2)) {
-              return new Response(JSON.stringify({ success: true, usdToCLP: Number(cachedRate2), source: 'cache', note: 'external_failed', error: String(err), fetchedAt: cached2.fetchedAt || new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+              return jsonResponse({ success: true, usdToCLP: Number(cachedRate2), source: 'cache', note: 'external_failed', error: String(err), fetchedAt: cached2.fetchedAt || new Date().toISOString() });
             }
           }
         } catch (_) {
@@ -104,9 +108,9 @@ export async function onRequest(context) {
       }
 
       const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
-      return new Response(JSON.stringify({ success: true, usdToCLP: fallback, source: 'fallback', note: String(err), fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return jsonResponse({ success: true, usdToCLP: fallback, source: 'fallback', note: String(err), fetchedAt: new Date().toISOString() });
     }
   } catch (err) {
-    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return jsonResponse({ success: false, error: String(err) }, 500);
   }
 }

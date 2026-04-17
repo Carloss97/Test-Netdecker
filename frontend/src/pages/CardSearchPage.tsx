@@ -626,7 +626,7 @@ export function CardSearchPage() {
                                   </button>
                                 </div>
                               </td>
-                              <td>{listing.referencePrice ? `$${listing.referencePrice.toFixed(2)}` : '—'}</td>
+                              <td>{listing.referencePrice != null && Number.isFinite(listing.referencePrice) ? `$${Number(listing.referencePrice).toFixed(2)}` : '—'}</td>
                               <td style={{ fontWeight: 500 }}>
                                 {isManual ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

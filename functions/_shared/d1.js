@@ -112,6 +112,36 @@ async function ensureSchema(db) {
     value TEXT,
     updatedAt TEXT
   );`).run();
+
+  // Ensure commonly referenced columns exist on existing tables (safe ALTER TABLE)
+  async function addColumnIfMissing(table, column, definition) {
+    try {
+      const infoRes = await db.prepare(`PRAGMA table_info(${table});`).all();
+      const infoRows = Array.isArray(infoRes?.results) ? infoRes.results : (Array.isArray(infoRes) ? infoRes : []);
+      const colNames = infoRows.map((r) => r.name || r.NAME || Object.values(r)[1]);
+      if (!colNames.includes(column)) {
+        await db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`).run();
+      }
+    } catch (err) {
+      // ignore errors when trying to alter existing schema
+    }
+  }
+
+  // Listing table may have been created with older schema. Ensure commonly used columns exist.
+  await addColumnIfMissing('listing', 'condition', "TEXT DEFAULT 'NM'");
+  await addColumnIfMissing('listing', 'rarity', 'TEXT');
+  await addColumnIfMissing('listing', 'exchangeRate', 'REAL DEFAULT 1.0');
+  await addColumnIfMissing('listing', 'finalPrice', 'REAL DEFAULT 0');
+  await addColumnIfMissing('listing', 'currency', "TEXT DEFAULT 'CLP'");
+  await addColumnIfMissing('listing', 'costPrice', 'REAL');
+  await addColumnIfMissing('listing', 'everHadStock', 'INTEGER DEFAULT 0');
+  await addColumnIfMissing('listing', 'lastSyncedAt', 'TEXT');
+  await addColumnIfMissing('listing', 'createdAt', 'TEXT');
+  await addColumnIfMissing('listing', 'updatedAt', 'TEXT');
+
+  // PriceHistory may have newer columns in some versions
+  await addColumnIfMissing('priceHistory', 'oldExchangeRate', 'REAL');
+  await addColumnIfMissing('priceHistory', 'newExchangeRate', 'REAL');
 }
 
 function firstRow(res) {

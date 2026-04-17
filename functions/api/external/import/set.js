@@ -1,4 +1,4 @@
-import { getGroups, getGroupProducts, getGroupPrices } from '../../../_shared/tcgcsv.js';
+import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode } from '../../../_shared/tcgcsv.js';
 import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
@@ -21,14 +21,9 @@ export async function onRequest(context) {
     const db = pickDb(env);
     if (db) await ensureSchema(db);
 
-    // Resolve group first to expose edition metadata
+    // Resolve group first to expose edition metadata (tcg-aware resolution)
     const groups = await getGroups(tcg).catch(() => []);
-    const resolved = groups.find((g) => {
-      const abbr = (g.abbreviation || '').toUpperCase();
-      if (abbr === setCode.toUpperCase()) return true;
-      if (String(g.groupId) === setCode) return true;
-      return false;
-    });
+    const resolved = resolveGroupBySetCode(tcg, groups, setCode);
 
     if (!resolved) {
       return new Response(JSON.stringify({ success: false, error: 'set not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
@@ -87,7 +82,19 @@ export async function onRequest(context) {
       };
     });
 
-    const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    // Prefer cached exchange rate from appConfig when available (so imports use same rate as admin)
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    if (db) {
+      try {
+        const pc = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
+        const first = Array.isArray(pc?.results) ? pc.results[0] : (Array.isArray(pc) ? pc[0] : null);
+        if (first && first.value) {
+          const parsed = JSON.parse(first.value);
+          const cached = Number(parsed?.usdToCLP);
+          if (!isNaN(cached) && cached > 0) usdToClp = cached;
+        }
+      } catch (_) {}
+    }
 
     const results = [];
     let createdCards = 0;

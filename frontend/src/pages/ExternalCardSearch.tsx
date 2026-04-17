@@ -31,7 +31,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 function PriceTag({ label, value }: { label: string; value?: number }) {
-  if (value === undefined || value === null) return null;
+  if (value === undefined || value === null || !Number.isFinite(value)) return null;
   return (
     <span
       style={{
@@ -43,7 +43,7 @@ function PriceTag({ label, value }: { label: string; value?: number }) {
         color: '#2e7d32',
       }}
     >
-      {label}: ${value.toFixed(2)}
+      {label}: ${Number(value).toFixed(2)}
     </span>
   );
 }

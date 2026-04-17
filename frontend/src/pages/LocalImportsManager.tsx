@@ -174,7 +174,7 @@ export default function LocalImportsManager() {
                   {editingId === l.id ? (
                     <input type="number" step="0.01" value={String(editState.referencePrice ?? l.referencePrice ?? '')} onChange={(e) => setEditState((s) => ({ ...s, referencePrice: e.target.value ? parseFloat(e.target.value) : undefined }))} style={{ width: 100 }} />
                   ) : (
-                    l.referencePrice ? `$${l.referencePrice.toFixed(2)}` : '—'
+                    l.referencePrice != null && Number.isFinite(l.referencePrice) ? `$${Number(l.referencePrice).toFixed(2)}` : '—'
                   )}
                 </td>
                 <td style={{ padding: 8 }}>
