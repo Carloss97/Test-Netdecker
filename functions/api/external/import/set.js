@@ -152,20 +152,38 @@ export async function onRequest(context) {
         results.push({ externalId: c.externalId, cardName: c.cardName, priceMarket: c.priceMarket });
       }
 
-      const chunkSize = 50;
-
-      // Helper to run batched multi-row INSERTs
+      // Choose a safe chunk size based on SQLite parameter limits
+      const SQLITE_MAX_VARS = 900; // safe lower-than-default limit
       const runBatchedInsert = async (tableCols, rows, orReplace = false, orIgnore = false) => {
         if (!rows || rows.length === 0) return;
-        const colCount = tableCols.length;
-        for (const batch of chunk(rows, chunkSize)) {
+        const colCount = tableCols.cols.length;
+        // compute safe batch size so that colCount * batchSize <= SQLITE_MAX_VARS
+        const safeBatch = Math.max(1, Math.floor(SQLITE_MAX_VARS / Math.max(1, colCount)));
+
+        const insertOne = async (row) => {
+          const placeholders = `(${new Array(colCount).fill('?').join(',')})`;
+          const sql = `INSERT ${orReplace ? 'OR REPLACE' : orIgnore ? 'OR IGNORE' : ''} INTO ${tableCols.table} (${tableCols.cols.join(',')}) VALUES ${placeholders};`;
+          try {
+            await db.prepare(sql).bind(...row).run();
+            return true;
+          } catch (e) {
+            return false;
+          }
+        };
+
+        const batches = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+
+        for (const batch of batches(rows, safeBatch)) {
           const placeholders = batch.map(() => `(${new Array(colCount).fill('?').join(',')})`).join(',');
           const sql = `INSERT ${orReplace ? 'OR REPLACE' : orIgnore ? 'OR IGNORE' : ''} INTO ${tableCols.table} (${tableCols.cols.join(',')}) VALUES ${placeholders};`;
           const params = batch.flat();
           try {
             await db.prepare(sql).bind(...params).run();
           } catch (e) {
-            // ignore batch errors to avoid failing whole import
+            // Batch failed — try per-row to salvage as many inserts as possible
+            for (const row of batch) {
+              await insertOne(row);
+            }
           }
         }
       };

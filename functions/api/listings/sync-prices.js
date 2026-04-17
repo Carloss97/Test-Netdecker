@@ -135,18 +135,56 @@ export async function onRequest(context) {
 
     for (const [key, group] of grouped.entries()) {
       const [tcgName, editionCode] = key.split('|');
-      // Respect rate limits - gentle pause
-      await new Promise((res) => setTimeout(res, 120));
-      const setCards = await getSetCards(tcgName, editionCode).catch(() => []);
-      const setPriceLookup = new Map();
-      const setPriceByName = new Map();
-      for (const s of setCards) {
-        const price = s.priceMarket ?? s.priceMid ?? s.priceLow;
-        if (typeof price === 'number' && Number.isFinite(price) && price > 0) {
-          setPriceLookup.set(s.externalId, price);
-          const nameKey = (s.cardName || '').trim().toLowerCase();
-          const existing = setPriceByName.get(nameKey);
-          if (!existing || price > existing) setPriceByName.set(nameKey, price);
+
+      // Try to use cached set prices to avoid external calls on every sync
+      const cacheKey = `setPrices:${tcgName}:${editionCode}`;
+      const ttl = Number(env.EXTERNAL_SET_CACHE_TTL_SECONDS || env.VITE_EXTERNAL_SET_CACHE_TTL_SECONDS || 3600);
+      let setPriceLookup = new Map();
+      let setPriceByName = new Map();
+      let usedCache = false;
+
+      if (db) {
+        try {
+          const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind(cacheKey).all();
+          const cacheRow = (Array.isArray(cacheRes?.results) ? cacheRes.results[0] : (Array.isArray(cacheRes) ? cacheRes[0] : null));
+          if (cacheRow && cacheRow.value) {
+            const parsed = JSON.parse(cacheRow.value);
+            const fetchedAt = parsed?.fetchedAt ? new Date(parsed.fetchedAt).getTime() : 0;
+            if (fetchedAt && (Date.now() - fetchedAt) < ttl * 1000) {
+              // restore maps
+              for (const [k, v] of Object.entries(parsed.pricesById || {})) setPriceLookup.set(k, v);
+              for (const [k, v] of Object.entries(parsed.pricesByName || {})) setPriceByName.set(k, v);
+              usedCache = true;
+            }
+          }
+        } catch (_) {
+          // ignore cache read errors
+        }
+      }
+
+      if (!usedCache) {
+        // Respect rate limits - gentle pause
+        await new Promise((res) => setTimeout(res, 120));
+        const setCards = await getSetCards(tcgName, editionCode).catch(() => []);
+        for (const s of setCards) {
+          const price = s.priceMarket ?? s.priceMid ?? s.priceLow;
+          if (typeof price === 'number' && Number.isFinite(price) && price > 0) {
+            setPriceLookup.set(s.externalId, price);
+            const nameKey = (s.cardName || '').trim().toLowerCase();
+            const existing = setPriceByName.get(nameKey);
+            if (!existing || price > existing) setPriceByName.set(nameKey, price);
+          }
+        }
+
+        // persist cache for subsequent syncs
+        if (db) {
+          try {
+            await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
+              .bind(cacheKey, JSON.stringify({ pricesById: Object.fromEntries([...setPriceLookup.entries()]), pricesByName: Object.fromEntries([...setPriceByName.entries()]), fetchedAt: new Date().toISOString() }), new Date().toISOString())
+              .run();
+          } catch (_) {
+            // ignore cache write errors
+          }
         }
       }
 

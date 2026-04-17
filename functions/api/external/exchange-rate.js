@@ -7,37 +7,42 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', Allow: 'GET' } });
     }
 
-    const manual = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 0);
-    if (Number.isFinite(manual) && manual > 0) {
-      return new Response(JSON.stringify({ success: true, usdToCLP: manual, source: 'manual', fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-
     const db = pickDb(env);
     if (db) await ensureSchema(db);
 
     const ttlSeconds = Number(env.EXCHANGE_RATE_CACHE_TTL_SECONDS || env.VITE_EXCHANGE_RATE_CACHE_TTL_SECONDS || 3600);
 
-    // Check pricing-config to respect selected mode (manual | api)
-    let pricingMode = 'api';
-    try {
-      if (db) {
+    // Determine pricing mode from DB if available; fall back to env behavior when DB absent
+    let pricingMode = null; // null = unknown
+    if (db) {
+      try {
         const pcRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('pricingConfig').all();
         const pcRow = firstRow(pcRes);
         if (pcRow && pcRow.value) {
           const parsed = JSON.parse(pcRow.value);
-          pricingMode = parsed?.exchangeRate?.mode || pricingMode;
+          pricingMode = parsed?.exchangeRate?.mode || null;
         }
+      } catch (_) {
+        // ignore
       }
-    } catch (_) {
-      // ignore
     }
 
-    if (pricingMode !== 'api') {
-      const fallback = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
-      return new Response(JSON.stringify({ success: true, usdToCLP: fallback, source: 'manual', fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    // If pricingMode is explicitly 'manual' use the manual env/fallback
+    if (pricingMode === 'manual') {
+      const manual = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
+      const val = Number.isFinite(manual) && manual > 0 ? manual : Number(env.FALLBACK_USD_TO_CLP || 950);
+      return new Response(JSON.stringify({ success: true, usdToCLP: val, source: 'manual', fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // If mode is 'api', try cached value first
+    // If pricingMode is null (no DB) we still allow manual env to force a static rate
+    if (!db) {
+      const manual = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 0);
+      if (Number.isFinite(manual) && manual > 0) {
+        return new Response(JSON.stringify({ success: true, usdToCLP: manual, source: 'manual', fetchedAt: new Date().toISOString() }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+    }
+
+    // From here: pricingMode !== 'manual' (either 'api' or unspecified) -> try cache/API
     if (db) {
       try {
         const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
