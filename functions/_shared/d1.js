@@ -46,6 +46,47 @@ async function ensureSchema(db) {
   } catch (err) {
     // ignore index creation errors
   }
+
+  // Price history
+  await db.prepare(`CREATE TABLE IF NOT EXISTS priceHistory (
+    id TEXT PRIMARY KEY,
+    listingId TEXT,
+    oldPrice REAL,
+    newPrice REAL,
+    oldReferencePrice REAL,
+    newReferencePrice REAL,
+    oldExchangeRate REAL,
+    newExchangeRate REAL,
+    reason TEXT,
+    percentChange REAL,
+    changedBy TEXT,
+    notes TEXT,
+    createdAt TEXT
+  );`).run();
+
+  // Price sync runs
+  await db.prepare(`CREATE TABLE IF NOT EXISTS priceSyncRun (
+    id TEXT PRIMARY KEY,
+    source TEXT,
+    status TEXT,
+    notes TEXT,
+    total INTEGER,
+    updated INTEGER,
+    volatile INTEGER,
+    failed INTEGER,
+    roundingMultiple INTEGER,
+    errors TEXT,
+    startedAt TEXT,
+    completedAt TEXT,
+    createdAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_priceHistory_listing ON priceHistory(listingId);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_priceSyncRun_startedAt ON priceSyncRun(startedAt);').run();
+  } catch (err) {
+    // ignore index creation errors
+  }
 }
 
 function firstRow(res) {

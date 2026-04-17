@@ -24,6 +24,16 @@ export async function onRequest(context) {
     const db = pickDb(env);
     if (db) await ensureSchema(db);
 
+    // create a run record for this sync
+    let runId = null;
+    const startedAt = new Date().toISOString();
+    if (db) {
+      runId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `run-${Date.now()}`;
+      await db.prepare(`INSERT INTO priceSyncRun (id, source, status, notes, total, updated, volatile, failed, roundingMultiple, startedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(runId, body.source || 'manual', 'running', body.notes || null, 0, 0, 0, 0, Number(body.roundingMultiple) || 1, startedAt, startedAt)
+        .run();
+    }
+
     const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
 
     const updates = body.updates;
@@ -44,7 +54,7 @@ export async function onRequest(context) {
         try {
           if (!db) throw new Error('No DB binding available');
           if (u.listingId) {
-            const lres = await db.prepare('SELECT id, referencePrice, marginMultiplier FROM listing WHERE id = ?').bind(u.listingId).all();
+            const lres = await db.prepare('SELECT id, referencePrice, marginMultiplier, finalPrice FROM listing WHERE id = ?').bind(u.listingId).all();
             const listing = (Array.isArray(lres.results) ? lres.results[0] : (Array.isArray(lres) ? lres[0] : null));
             if (!listing) throw new Error('Listing not found');
             const margin = typeof u.marginMultiplier === 'number' ? u.marginMultiplier : (listing.marginMultiplier || 1);
@@ -53,6 +63,14 @@ export async function onRequest(context) {
             const finalPrice = Math.round(ref * margin * usdToClp);
             await db.prepare('UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?')
               .bind(ref, margin, finalPrice, new Date().toISOString(), u.listingId).run();
+            // record price history for manual update
+            try {
+              const phId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `ph-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+              const percent = listing.finalPrice && listing.finalPrice > 0 ? ((finalPrice - listing.finalPrice) / listing.finalPrice) * 100 : null;
+              await db.prepare('INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(phId, listing.id || u.listingId, listing.finalPrice ?? null, finalPrice, listing.referencePrice ?? null, ref, 'MANUAL_SYNC', percent, body.changedBy || body.source || 'system', body.notes || null, new Date().toISOString())
+                .run();
+            } catch (_) {}
             result.updated += 1;
             continue;
           }
@@ -66,6 +84,12 @@ export async function onRequest(context) {
             const finalPrice = Math.round(ref * margin * usdToClp);
             await db.prepare('INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
               .bind(listingId, cardId, u.editionCode || '', ref, margin, finalPrice, u.quantity ? Number(u.quantity) : 0, 'active', new Date().toISOString()).run();
+            try {
+              const phId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `ph-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+              await db.prepare('INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                .bind(phId, listingId, null, finalPrice, null, ref, 'TCGPLAYER_SYNC', null, body.changedBy || body.source || 'system', 'Initial listing creation', new Date().toISOString())
+                .run();
+            } catch (_) {}
             result.updated += 1;
             continue;
           }
@@ -84,7 +108,7 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ success: false, error: 'No DB binding available for sync' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
 
     // Build query
-    let sql = `SELECT l.id as listingId, l.referencePrice, l.marginMultiplier, l.quantity, l.status, c.externalId as externalId, c.cardName as cardName, c.tcg as tcg, c.editionCode as editionCode, c.rarity as rarity
+    let sql = `SELECT l.id as listingId, l.referencePrice, l.marginMultiplier, l.finalPrice, l.quantity, l.status, c.externalId as externalId, c.cardName as cardName, c.tcg as tcg, c.editionCode as editionCode, c.rarity as rarity
       FROM listing l JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
     const binds = [];
     if (inventoryOnly) {
@@ -137,9 +161,22 @@ export async function onRequest(context) {
 
           const margin = listing.marginMultiplier || 1.2;
           const finalPrice = Math.round(chosenReference * margin * usdToClp);
-          await db.prepare('UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?')
-            .bind(chosenReference, margin, finalPrice, new Date().toISOString(), listing.listingId).run();
-          result.updated += 1;
+          // capture old values and update, then write history
+          try {
+            const oldFinal = listing.finalPrice ?? null;
+            const oldRef = listing.referencePrice ?? null;
+            await db.prepare('UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?')
+              .bind(chosenReference, margin, finalPrice, new Date().toISOString(), listing.listingId).run();
+            const phId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `ph-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+            const percent = oldFinal && oldFinal > 0 ? ((finalPrice - oldFinal) / oldFinal) * 100 : null;
+            await db.prepare('INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+              .bind(phId, listing.listingId, oldFinal, finalPrice, oldRef, chosenReference, 'EXTERNAL_API_SYNC', percent, body.changedBy || body.source || 'system', null, new Date().toISOString())
+              .run();
+            result.updated += 1;
+          } catch (err) {
+            result.failed += 1;
+            result.errors.push({ listingId: listing.listingId, message: (err && err.message) || String(err) });
+          }
         } catch (err) {
           result.failed += 1;
           result.errors.push({ listingId: listing.listingId, message: (err && err.message) || String(err) });
@@ -147,8 +184,28 @@ export async function onRequest(context) {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    // finalize run
+    if (db && runId) {
+      const completedAt = new Date().toISOString();
+      try {
+        await db.prepare('UPDATE priceSyncRun SET status = ?, total = ?, updated = ?, failed = ?, errors = ?, completedAt = ? WHERE id = ?')
+          .bind(result.failed > 0 && result.updated === 0 ? 'failed' : 'completed', result.total, result.updated, result.failed, (result.errors && result.errors.length ? JSON.stringify(result.errors) : null), completedAt, runId)
+          .run();
+      } catch (_) {}
+    }
+
+    return new Response(JSON.stringify({ success: true, runId, ...result }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
+    // mark run failed when possible
+    if (typeof err !== 'undefined' && env) {
+      const dbFail = pickDb(env);
+      if (dbFail) {
+        try {
+          await dbFail.prepare('UPDATE priceSyncRun SET status = ?, errors = ?, completedAt = ? WHERE id = ?')
+            .bind('failed', JSON.stringify([{ listingId: 'N/A', message: String(err) }]), new Date().toISOString(), runId || 'unknown').run();
+        } catch (_) {}
+      }
+    }
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
