@@ -1,5 +1,6 @@
 import type { ExternalCard } from '../types';
 import * as tcgcsvClient from './tcgcsv';
+const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
 import * as scryfallClient from './scryfall';
 import * as pokemonClient from './pokemontcg';
 import * as ygoproClient from './ygopro';
@@ -46,8 +47,10 @@ function genId(prefix = 'local'): string {
 async function resolveCard(tcg: string, cardId: string): Promise<ExternalCard | null> {
   // Try TCGCSV first, then fallbacks per tcg
   try {
-    const c = await tcgcsvClient.getCardById(tcg as any, cardId);
-    if (c) return c;
+    if (ALLOW_DIRECT_TCGCSV) {
+      const c = await tcgcsvClient.getCardById(tcg as any, cardId);
+      if (c) return c;
+    }
   } catch (_) {}
 
   try {
@@ -136,7 +139,7 @@ export async function importSearchLocal(tcg: string, query: string, options: Imp
   // Search via TCGCSV primary, then fallbacks if needed
   let cards: ExternalCard[] = [];
   try {
-    cards = await tcgcsvClient.searchCards(tcg as any, query, 100);
+    if (ALLOW_DIRECT_TCGCSV) cards = await tcgcsvClient.searchCards(tcg as any, query, 100);
   } catch (_) { /* ignore */ }
 
   if (!cards || cards.length === 0) {
@@ -183,7 +186,7 @@ export async function importSearchLocal(tcg: string, query: string, options: Imp
 export async function importSetLocal(tcg: string, setCode: string, options: ImportOptions = {}): Promise<BulkImportResult> {
   let cards: ExternalCard[] = [];
   try {
-    cards = await tcgcsvClient.getSetCards(tcg as any, setCode);
+    if (ALLOW_DIRECT_TCGCSV) cards = await tcgcsvClient.getSetCards(tcg as any, setCode);
   } catch (_) { cards = []; }
 
   if (!cards || cards.length === 0) {

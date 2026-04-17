@@ -1,6 +1,7 @@
 import apiClient from './api';
 import type { EditionWithCounts, EditionInventory, Listing } from '../types';
 import * as tcgcsvClient from './tcgcsv';
+const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
 import * as scryfallClient from './scryfall';
 import * as pokemonClient from './pokemontcg';
 import * as ygoproClient from './ygopro';
@@ -111,11 +112,15 @@ export async function searchCards(name: string, tcgId?: string, limit?: number) 
     });
 
     const tryTcg = async (tcg: any) => {
-      try {
-        let cards: any[] = [];
         try {
-          cards = await tcgcsvClient.searchCards(tcg as any, name, max);
-        } catch (_) { cards = []; }
+          let cards: any[] = [];
+          try {
+            if (ALLOW_DIRECT_TCGCSV) {
+              cards = await tcgcsvClient.searchCards(tcg as any, name, max);
+            } else {
+              cards = [];
+            }
+          } catch (_) { cards = []; }
         if (!cards || cards.length === 0) {
           switch (tcg) {
             case 'MAGIC':
@@ -547,11 +552,13 @@ export async function searchExternalCards(
     // ignore and try fallbacks
   }
 
-  // Fallback 1: TCGCSV client in-browser
-  try {
-    const tcgcsvRes = await tcgcsvClient.searchCards(tcg as any, query, limit);
-    if (Array.isArray(tcgcsvRes) && tcgcsvRes.length > 0) return { success: true, tcg, query, total: tcgcsvRes.length, cards: tcgcsvRes };
-  } catch (_) {}
+    // Fallback 1: TCGCSV client in-browser (only if explicitly enabled)
+  if (ALLOW_DIRECT_TCGCSV) {
+    try {
+      const tcgcsvRes = await tcgcsvClient.searchCards(tcg as any, query, limit);
+      if (Array.isArray(tcgcsvRes) && tcgcsvRes.length > 0) return { success: true, tcg, query, total: tcgcsvRes.length, cards: tcgcsvRes };
+    } catch (_) {}
+  }
 
   // Fallback 2: Other public APIs per TCG
   try {
@@ -588,11 +595,13 @@ export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ON
     if (data && Array.isArray(data.sets) && data.sets.length > 0) return { success: true, tcg, total: data.sets.length, sets: data.sets };
   } catch (_) {}
 
-  // Fallback: direct TCGCSV client in-browser
-  try {
-    const tcgcsv = await tcgcsvClient.listSets(tcg as any);
-    if (Array.isArray(tcgcsv) && tcgcsv.length > 0) return { success: true, tcg, total: tcgcsv.length, sets: tcgcsv };
-  } catch (_) {}
+  // Fallback: direct TCGCSV client in-browser (only if explicitly enabled)
+  if (ALLOW_DIRECT_TCGCSV) {
+    try {
+      const tcgcsv = await tcgcsvClient.listSets(tcg as any);
+      if (Array.isArray(tcgcsv) && tcgcsv.length > 0) return { success: true, tcg, total: tcgcsv.length, sets: tcgcsv };
+    } catch (_) {}
+  }
 
   // Final fallback: other public APIs per TCG
   try {
@@ -626,11 +635,13 @@ export async function getExternalCardById(
   tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
   cardId: string,
 ) {
-  // Primary: TCGCSV
-  try {
-    const tcgcsv = await tcgcsvClient.getCardById(tcg as any, cardId);
-    if (tcgcsv) return { success: true, card: tcgcsv };
-  } catch (_) {}
+  // Primary: TCGCSV (only if explicitly enabled)
+  if (ALLOW_DIRECT_TCGCSV) {
+    try {
+      const tcgcsv = await tcgcsvClient.getCardById(tcg as any, cardId);
+      if (tcgcsv) return { success: true, card: tcgcsv };
+    } catch (_) {}
+  }
 
   try {
     switch (tcg) {
@@ -905,8 +916,10 @@ export async function getEditionCardsWithStock(editionId: string): Promise<Editi
           const t = (tryTcg || tcg) as any;
           // Prefer tcgcsv when available (server-side), otherwise use public APIs
           try {
-            const cards = await tcgcsvClient.getSetCards(t, setCode);
-            if (cards && cards.length > 0) return cards;
+            if (ALLOW_DIRECT_TCGCSV) {
+              const cards = await tcgcsvClient.getSetCards(t, setCode);
+              if (cards && cards.length > 0) return cards;
+            }
           } catch (_) {}
 
           switch (t) {

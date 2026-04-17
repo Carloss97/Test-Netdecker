@@ -88,6 +88,13 @@ async function ensureSchema(db) {
   } catch (err) {
     // ignore index creation errors
   }
+
+  // App configuration (key/value JSON)
+  await db.prepare(`CREATE TABLE IF NOT EXISTS appConfig (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updatedAt TEXT
+  );`).run();
 }
 
 function firstRow(res) {

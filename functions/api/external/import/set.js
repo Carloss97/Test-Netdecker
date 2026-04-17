@@ -111,7 +111,7 @@ export async function onRequest(context) {
       for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
         const sel = await db.prepare(`SELECT id FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
-        for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.id);
+        for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.Id || r.cardId || r.cardid || r.id);
       }
 
       // Query existing listings for this edition
@@ -122,15 +122,16 @@ export async function onRequest(context) {
         for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);
       }
 
-      const cardStmt = db.prepare(`INSERT OR REPLACE INTO card (id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`);
-      const listingStmt = db.prepare(`INSERT OR IGNORE INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`);
-      const priceHistoryStmt = db.prepare('INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, oldExchangeRate, newExchangeRate, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      // Build rows to insert in batches to reduce number of D1 calls
+      const cardRows = [];
+      const listingRows = [];
+      const priceHistoryRows = [];
 
       for (const c of cards) {
         const cardId = `${tcg}:${c.externalId}`;
         const existed = existingCardIds.has(cardId);
 
-        await cardStmt.bind(cardId, c.externalId, tcg, editionCode, c.cardNumber || c.externalId, c.cardName || '', c.rarity || null, c.imageUrl || null, c.priceMarket || null).run();
+        cardRows.push([cardId, c.externalId, tcg, editionCode, c.cardNumber || c.externalId, c.cardName || '', c.rarity || null, c.imageUrl || null, c.priceMarket || null]);
 
         if (existed) updatedCards += 1; else { createdCards += 1; existingCardIds.add(cardId); }
 
@@ -138,21 +139,45 @@ export async function onRequest(context) {
           const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;
           const ref = typeof c.priceMarket === 'number' && c.priceMarket > 0 ? c.priceMarket : (c.priceMid || c.priceLow || 0.5);
           const finalPrice = Math.round(ref * marginMultiplier * usdToClp);
-          try {
-            await listingStmt.bind(listingId, cardId, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, 'active', new Date().toISOString()).run();
-            createdListings += 1;
-          } catch (e) {
-            // ignore insert errors (unique constraint, race conditions), do not fail whole import
-          }
-          existingListingCardIds.add(cardId);
 
-          // Insert initial price history
+          listingRows.push([listingId, cardId, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, 'active', new Date().toISOString()]);
+
           const phId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `PH-${Date.now()}-${Math.floor(Math.random()*10000)}`;
-          await priceHistoryStmt.bind(phId, listingId, null, finalPrice, null, ref, null, usdToClp, 'initial_import', null, 'import', '', new Date().toISOString()).run();
+          priceHistoryRows.push([phId, listingId, null, finalPrice, null, ref, null, usdToClp, 'initial_import', null, 'import', '', new Date().toISOString()]);
+
+          existingListingCardIds.add(cardId);
+          createdListings += 1; // count attempted new listings
         }
 
         results.push({ externalId: c.externalId, cardName: c.cardName, priceMarket: c.priceMarket });
       }
+
+      const chunkSize = 50;
+
+      // Helper to run batched multi-row INSERTs
+      const runBatchedInsert = async (tableCols, rows, orReplace = false, orIgnore = false) => {
+        if (!rows || rows.length === 0) return;
+        const colCount = tableCols.length;
+        for (const batch of chunk(rows, chunkSize)) {
+          const placeholders = batch.map(() => `(${new Array(colCount).fill('?').join(',')})`).join(',');
+          const sql = `INSERT ${orReplace ? 'OR REPLACE' : orIgnore ? 'OR IGNORE' : ''} INTO ${tableCols.table} (${tableCols.cols.join(',')}) VALUES ${placeholders};`;
+          const params = batch.flat();
+          try {
+            await db.prepare(sql).bind(...params).run();
+          } catch (e) {
+            // ignore batch errors to avoid failing whole import
+          }
+        }
+      };
+
+      // Insert cards (INSERT OR REPLACE)
+      await runBatchedInsert({ table: 'card', cols: ['id','externalId','tcg','editionCode','cardCode','cardName','rarity','imageUrl','priceMarket'] }, cardRows, true, false);
+
+      // Insert listings (INSERT OR IGNORE)
+      await runBatchedInsert({ table: 'listing', cols: ['id','cardId','editionCode','referencePrice','marginMultiplier','finalPrice','quantity','status','lastSyncedAt'] }, listingRows, false, true);
+
+      // Insert price history rows
+      await runBatchedInsert({ table: 'priceHistory', cols: ['id','listingId','oldPrice','newPrice','oldReferencePrice','newReferencePrice','oldExchangeRate','newExchangeRate','reason','percentChange','changedBy','notes','createdAt'] }, priceHistoryRows, false, false);
     } else {
       // No DB configured — just return inspection results
       for (const p of cards) results.push({ externalId: p.externalId, cardName: p.cardName, priceMarket: p.priceMarket });
