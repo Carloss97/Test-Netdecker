@@ -34,10 +34,33 @@ export async function onRequest(context) {
       }
       for (const g of groups) {
         const products = await getGroupProducts(tcg, g.groupId).catch(() => []);
+        // Try persisted cache for group prices to avoid repeated per-product calls
+        const ttl = Number(env.EXTERNAL_SET_CACHE_TTL_SECONDS || env.VITE_EXTERNAL_SET_CACHE_TTL_SECONDS || 3600);
+        let prices = [];
+        if (db) {
+          try {
+            const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind(`groupPrices:${tcg}:${g.groupId}`).all();
+            const cacheRow = (Array.isArray(cacheRes?.results) ? cacheRes.results[0] : (Array.isArray(cacheRes) ? cacheRes[0] : null));
+            if (cacheRow && cacheRow.value) {
+              const parsed = JSON.parse(cacheRow.value);
+              if (parsed && parsed.fetchedAt && (Date.now() - new Date(parsed.fetchedAt).getTime()) < (ttl * 1000) && Array.isArray(parsed.data)) {
+                prices = parsed.data;
+              }
+            }
+          } catch (_) {}
+        }
+        if (!prices || prices.length === 0) {
+          try {
+            prices = await getGroupPrices(tcg, g.groupId).catch(() => []);
+          } catch (_) { prices = []; }
+          if (db && prices && prices.length) {
+            try { await db.prepare('INSERT OR REPLACE INTO appConfig (key, value) VALUES (?, ?)').bind(`groupPrices:${tcg}:${g.groupId}`, JSON.stringify({ fetchedAt: new Date().toISOString(), data: prices })).run(); } catch (_) {}
+          }
+        }
+
         for (const p of (products || [])) {
           if (!p || !p.name) continue;
           if (p.name.toLowerCase().includes(lowerQ)) {
-            const prices = await getGroupPrices(tcg, g.groupId).catch(() => []);
             const matchingPrices = prices.filter((pr) => String(pr.productId) === String(p.productId));
             const best = matchingPrices.sort((a,b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1))[0];
 

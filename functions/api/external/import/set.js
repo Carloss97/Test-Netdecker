@@ -1,4 +1,4 @@
-import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode } from '../../../_shared/tcgcsv.js';
+import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode, getSetCards } from '../../../_shared/tcgcsv.js';
 import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
@@ -44,57 +44,35 @@ export async function onRequest(context) {
         .run();
     }
 
-    // Fetch products and prices in parallel for the resolved group (avoid re-calling getGroups inside helper)
-    let products = [];
-    let prices = [];
-    try {
-      [products, prices] = await Promise.all([
-        getGroupProducts(tcg, resolved.groupId),
-        getGroupPrices(tcg, resolved.groupId),
-      ]);
-    } catch (e) {
-      return new Response(JSON.stringify({ success: false, error: 'TCGCSV fetch failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    // Prefer cached set cards (persisted in appConfig) to avoid repeated external calls
+    const cacheKey = `setCards:${tcg}:${editionCode}`;
+    const ttl = Number(env.EXTERNAL_SET_CACHE_TTL_SECONDS || env.VITE_EXTERNAL_SET_CACHE_TTL_SECONDS || 3600);
+    let cards = [];
+    if (db) {
+      try {
+        const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind(cacheKey).all();
+        const cacheRow = (Array.isArray(cacheRes?.results) ? cacheRes.results[0] : (Array.isArray(cacheRes) ? cacheRes[0] : null));
+        if (cacheRow && cacheRow.value) {
+          const parsed = JSON.parse(cacheRow.value);
+          if (parsed && parsed.fetchedAt && (Date.now() - new Date(parsed.fetchedAt).getTime()) < (ttl * 1000) && Array.isArray(parsed.cards)) {
+            cards = parsed.cards;
+          }
+        }
+      } catch (_) {}
     }
 
-    // Build price map (best price per productId)
-    const priceByProductId = new Map();
-    for (const p of prices) {
-      const existing = priceByProductId.get(p.productId);
-      if (!existing) {
-        priceByProductId.set(p.productId, p);
-        continue;
+    if (!cards || cards.length === 0) {
+      try {
+        cards = await getSetCards(tcg, setCode);
+      } catch (e) {
+        return new Response(JSON.stringify({ success: false, error: 'TCGCSV fetch failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
       }
-      const candidates = [existing, p];
-      candidates.sort((a, b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1));
-      priceByProductId.set(p.productId, candidates[0]);
+      if (db) {
+        try {
+          await db.prepare('INSERT OR REPLACE INTO appConfig (key, value) VALUES (?, ?)').bind(cacheKey, JSON.stringify({ fetchedAt: new Date().toISOString(), cards })).run();
+        } catch (_) {}
+      }
     }
-
-    const cards = (products || []).filter((product) => {
-      const ext = product.extendedData || [];
-      return ext.some((entry) => {
-        const key = (entry.name || entry.displayName || '').toLowerCase();
-        return key === 'rarity' || key === 'number' || key === 'cardnumber' || key === 'collectornumber';
-      });
-    }).map((product) => {
-      const ext = product.extendedData || [];
-      const getExt = (k) => {
-        const found = ext.find((e) => ((e.name || e.displayName) || '').toLowerCase() === String(k).toLowerCase());
-        return found ? found.value : undefined;
-      };
-      const price = priceByProductId.get(product.productId);
-      const priceMarket = price ? (price.marketPrice ?? price.midPrice ?? price.lowPrice) : null;
-      return {
-        externalId: String(product.productId),
-        tcg,
-        cardName: product.name,
-        cardNumber: getExt('number') || getExt('cardnumber') || getExt('collectornumber') || null,
-        rarity: getExt('rarity') || product.subTypeName || null,
-        imageUrl: product.imageUrl || null,
-        priceLow: price?.lowPrice ?? null,
-        priceMid: price?.midPrice ?? null,
-        priceMarket: priceMarket ?? null,
-      };
-    });
 
     // Prefer cached exchange rate from appConfig when available (so imports use same rate as admin)
     let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
