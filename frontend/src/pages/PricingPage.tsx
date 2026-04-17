@@ -508,10 +508,10 @@ export function PricingPage() {
               <div key={i} className="alert-row">
                 <span style={{ flex: 1, fontWeight: 500, fontSize: '0.875rem' }}>{v.cardName ?? 'Carta desconocida'}</span>
                 <span style={{ color: (v.percentChange ?? 0) > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: '0.875rem' }}>
-                  {(v.percentChange ?? 0) > 0 ? '+' : ''}{v.percentChange?.toFixed(1)}%
+                  {(v.percentChange ?? 0) > 0 ? '+' : ''}{Number(v.percentChange ?? 0).toFixed(1)}%
                 </span>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  ${v.oldPrice?.toFixed(2)} → ${v.newPrice?.toFixed(2)}
+                  ${Number(v.oldPrice ?? 0).toFixed(2)} → ${Number(v.newPrice ?? 0).toFixed(2)}
                 </span>
               </div>
             ))}

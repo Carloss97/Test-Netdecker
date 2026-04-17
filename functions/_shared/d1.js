@@ -22,9 +22,17 @@ async function ensureSchema(db) {
     editionCode TEXT,
     cardCode TEXT,
     cardName TEXT,
+    cardNumber TEXT,
     rarity TEXT,
+    colorIdentity TEXT,
+    tags TEXT,
     imageUrl TEXT,
-    priceMarket REAL
+    description TEXT,
+    priceLow REAL,
+    priceMid REAL,
+    priceMarket REAL,
+    createdAt TEXT,
+    updatedAt TEXT
   );`).run();
 
   // Listings
@@ -32,18 +40,27 @@ async function ensureSchema(db) {
     id TEXT PRIMARY KEY,
     cardId TEXT,
     editionCode TEXT,
-    referencePrice REAL,
-    marginMultiplier REAL,
-    finalPrice REAL,
-    quantity INTEGER,
-    status TEXT,
-    lastSyncedAt TEXT
+    condition TEXT DEFAULT 'NM',
+    rarity TEXT,
+    quantity INTEGER DEFAULT 0,
+    referencePrice REAL DEFAULT 0,
+    marginMultiplier REAL DEFAULT 1.2,
+    exchangeRate REAL DEFAULT 1.0,
+    finalPrice REAL DEFAULT 0,
+    currency TEXT DEFAULT 'CLP',
+    costPrice REAL,
+    status TEXT DEFAULT 'active',
+    everHadStock INTEGER DEFAULT 0,
+    lastSyncedAt TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
   );`).run();
 
   try {
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_card_tcg_edition ON card(tcg, editionCode);').run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_listing_card ON listing(cardId);').run();
     await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_card_edition ON listing(cardId, editionCode);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_listing_quantity ON listing(quantity);').run();
   } catch (err) {
     // ignore index creation errors
   }

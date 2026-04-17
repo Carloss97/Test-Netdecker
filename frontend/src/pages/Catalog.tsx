@@ -96,7 +96,7 @@ export function Catalog({ onOpenPriceDebug }: CatalogProps) {
                   <ul style={{ marginTop: 8 }}>
                     {listingsByCard[card.id].map((listing) => (
                       <li key={listing.id}>
-                        {listing.condition} | Stock: {listing.quantity} | Precio: {listing.finalPrice.toFixed(0)} CLP{' '}
+                        {listing.condition} | Stock: {listing.quantity} | Precio: {Number(listing.finalPrice ?? 0).toFixed(0)} CLP{' '}
                         {onOpenPriceDebug && (
                           <button type="button" onClick={() => onOpenPriceDebug(listing.id)}>
                             Debug precio

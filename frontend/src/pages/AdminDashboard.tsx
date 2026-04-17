@@ -782,7 +782,7 @@ export function AdminDashboardPage() {
                     }}
                   >
                     {e.percentChange > 0 ? '+' : ''}
-                    {e.percentChange.toFixed(1)}%
+                    {Number(e.percentChange ?? 0).toFixed(1)}%
                   </td>
                   <td style={tdStyle}>{new Date(e.createdAt).toLocaleDateString()}</td>
                 </tr>
