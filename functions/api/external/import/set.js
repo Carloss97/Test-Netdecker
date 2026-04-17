@@ -44,19 +44,16 @@ export async function onRequest(context) {
         .run();
     }
 
-    // Fetch products and prices for the resolved group (avoid re-calling getGroups inside helper)
-    let products;
+    // Fetch products and prices in parallel for the resolved group (avoid re-calling getGroups inside helper)
+    let products = [];
+    let prices = [];
     try {
-      products = await getGroupProducts(tcg, resolved.groupId);
+      [products, prices] = await Promise.all([
+        getGroupProducts(tcg, resolved.groupId),
+        getGroupPrices(tcg, resolved.groupId),
+      ]);
     } catch (e) {
-      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupProducts failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
-    }
-
-    let prices;
-    try {
-      prices = await getGroupPrices(tcg, resolved.groupId);
-    } catch (e) {
-      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupPrices failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV fetch failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
     }
 
     // Build price map (best price per productId)
@@ -122,6 +119,8 @@ export async function onRequest(context) {
       // Preload existing cards and listings to avoid per-card SELECTs
       const cardIds = cards.map((c) => `${tcg}:${c.externalId}`);
       const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+      const SQLITE_MAX_VARS = 900; // conservative limit for D1/SQLite
+      const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
 
       const rowsFrom = (res) => {
         if (!res) return [];
@@ -133,7 +132,7 @@ export async function onRequest(context) {
       // Query existing cards in chunks
       const existingCardIds = new Set();
       const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);
-      for (const cids of chunk(cardIds, 50)) {
+      for (const cids of chunk(cardIds, safeSelectChunk)) {
         const placeholders = cids.map(() => '?').join(',');
         const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
         for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.Id || r.cardId || r.cardid || r.id);
@@ -143,7 +142,7 @@ export async function onRequest(context) {
       const existingListingCardIds = new Set();
       const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId']);
       const listingColsAliasedId = aliasSelectColumn(listingCols, 'l', 'id', 'listingId');
-      for (const cids of chunk(cardIds, 50)) {
+      for (const cids of chunk(cardIds, safeSelectChunk)) {
         const placeholders = cids.map(() => '?').join(',');
         const sel = await db.prepare(`SELECT ${listingColsAliasedId} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
         for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);

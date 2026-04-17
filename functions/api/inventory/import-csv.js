@@ -237,7 +237,9 @@ export async function onRequest(context) {
       // Prefetch existing cards and listings for this batch
       const existingCards = new Set();
       const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);
-      for (const cids of chunk(cardIds, 50)) {
+        const SQLITE_MAX_VARS = 900;
+        const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
+        for (const cids of chunk(cardIds, safeSelectChunk)) {
         const placeholders = cids.map(() => '?').join(',');
         try {
           const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
@@ -253,7 +255,7 @@ export async function onRequest(context) {
       const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','condition','rarity']);
       for (const editionCode of Array.from(editionCodes)) {
         const cids = cardIds.filter((id) => id.includes(`:${editionCode}:`));
-        for (const chunked of chunk(cids, 50)) {
+        for (const chunked of chunk(cids, safeSelectChunk)) {
           const placeholders = chunked.map(() => '?').join(',');
           try {
             const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();

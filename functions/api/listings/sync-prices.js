@@ -136,7 +136,7 @@ export async function onRequest(context) {
     const selectParts = [];
     if (listingSelect) selectParts.push(listingSelect);
     if (cardCols) selectParts.push(cardCols);
-    let sql = `SELECT ${selectParts.join(', ')} FROM listing l JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
+    let sql = `SELECT ${selectParts.join(', ')} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
     const binds = [];
     if (inventoryOnly) {
       sql += ' AND l.quantity > 0';

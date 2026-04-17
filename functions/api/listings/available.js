@@ -105,8 +105,10 @@ export async function onRequest(context) {
     // Batch fetch missing card rows to avoid per-row fallbacks
     const missingCardIds = Array.from(new Set(rows.filter((r) => !r.cardName && r.cardId).map((r) => r.cardId)));
     const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+    const SQLITE_MAX_VARS = 900;
+    const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
     const cardMap = new Map();
-    for (const cids of chunk(missingCardIds, 50)) {
+    for (const cids of chunk(missingCardIds, safeSelectChunk)) {
       try {
         const placeholders = cids.map(() => '?').join(',');
         const batchCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','externalId','tcg','rarity','priceMarket','priceMid','priceLow','cardCode']);
