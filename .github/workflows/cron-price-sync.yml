@@ -1,0 +1,18 @@
+name: Cron - Price Sync
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # every 6 hours
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Price Sync (external)
+        env:
+          PAGES_URL: ${{ secrets.PAGES_URL }}
+        run: |
+          if [ -z "$PAGES_URL" ]; then echo "PAGES_URL secret not set"; exit 1; fi
+          echo "Calling $PAGES_URL/api/listings/sync-prices"
+          curl -sSf -X POST "$PAGES_URL/api/listings/sync-prices" -H "Content-Type: application/json" -d '{}' | jq || true

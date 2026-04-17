@@ -140,6 +140,20 @@ async function ensureSchema(db) {
   await addColumnIfMissing('listing', 'createdAt', 'TEXT');
   await addColumnIfMissing('listing', 'updatedAt', 'TEXT');
 
+  // Card table may have been created with older schema in some D1 instances.
+  // Ensure commonly referenced card columns exist so queries referencing
+  // `c.priceMid`, `c.priceMarket`, `c.cardNumber`, etc. do not fail.
+  await addColumnIfMissing('card', 'cardNumber', 'TEXT');
+  await addColumnIfMissing('card', 'tags', 'TEXT');
+  await addColumnIfMissing('card', 'priceLow', 'REAL');
+  await addColumnIfMissing('card', 'priceMid', 'REAL');
+  await addColumnIfMissing('card', 'priceMarket', 'REAL');
+  await addColumnIfMissing('card', 'imageUrl', 'TEXT');
+  await addColumnIfMissing('card', 'externalId', 'TEXT');
+  await addColumnIfMissing('card', 'cardCode', 'TEXT');
+  await addColumnIfMissing('card', 'createdAt', 'TEXT');
+  await addColumnIfMissing('card', 'updatedAt', 'TEXT');
+
   // PriceHistory may have newer columns in some versions
   await addColumnIfMissing('priceHistory', 'oldExchangeRate', 'REAL');
   await addColumnIfMissing('priceHistory', 'newExchangeRate', 'REAL');
@@ -163,4 +177,35 @@ function firstRow(res) {
   return null;
 }
 
-export { pickDb, ensureSchema, firstRow };
+// Return array of column names for a table, with a lightweight cache in globalThis
+async function getTableColumns(db, table) {
+  if (!db || !table) return [];
+  try {
+    const cache = globalThis.__TCG_D1_COLUMNS_CACHE_V1 || (globalThis.__TCG_D1_COLUMNS_CACHE_V1 = {});
+    if (cache[table]) return cache[table];
+    const res = await db.prepare(`PRAGMA table_info(${table});`).all();
+    const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
+    const cols = rows.map((r) => (r && (r.name || r.NAME)) || Object.values(r)[1]).filter(Boolean);
+    cache[table] = cols;
+    return cols;
+  } catch (err) {
+    return [];
+  }
+}
+
+// Build a SELECT fragment for a given table alias/table name and desired columns only if present
+async function buildSelectColumns(db, tableName, alias, desired) {
+  // When no DB is provided, return alias-qualified columns (caller usually guards against missing DB).
+  if (!db) return desired.map((c) => `${alias}.${c} AS ${c}`).join(', ');
+
+  // Query actual table columns and build a safe select list where missing columns are projected
+  // as NULL so queries keep stable column names across schema versions.
+  const existing = await getTableColumns(db, tableName);
+  const parts = desired.map((c) => {
+    if (existing && existing.includes(c)) return `${alias}.${c} AS ${c}`;
+    return `NULL AS ${c}`;
+  });
+  return parts.join(', ');
+}
+
+export { pickDb, ensureSchema, firstRow, getTableColumns, buildSelectColumns };

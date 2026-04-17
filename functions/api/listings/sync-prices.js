@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
 import { getSetCards } from '../../_shared/tcgcsv.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 import { incr, startTimer } from '../../_shared/metrics.js';
@@ -65,7 +65,11 @@ export async function onRequest(context) {
         try {
           if (!db) throw new Error('No DB binding available');
           if (u.listingId) {
-            const lres = await db.prepare('SELECT id, referencePrice, marginMultiplier, finalPrice FROM listing WHERE id = ?').bind(u.listingId).all();
+            // use dynamic select to avoid missing-column failures
+            const listingColsForUpdate = await buildSelectColumns(db, 'listing', 'l', ['id','referencePrice','marginMultiplier','finalPrice']);
+            let listingSelectForUpdate = listingColsForUpdate;
+            if (listingSelectForUpdate.includes('l.id')) listingSelectForUpdate = listingSelectForUpdate.replace(/\bl\.id\b/g, 'l.id as listingId');
+            const lres = await db.prepare(`SELECT ${listingSelectForUpdate} FROM listing l WHERE l.id = ?`).bind(u.listingId).all();
             const listing = (Array.isArray(lres.results) ? lres.results[0] : (Array.isArray(lres) ? lres[0] : null));
             if (!listing) throw new Error('Listing not found');
             const margin = typeof u.marginMultiplier === 'number' ? u.marginMultiplier : (listing.marginMultiplier || 1);
@@ -78,8 +82,9 @@ export async function onRequest(context) {
             try {
               const phId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `ph-${Date.now()}-${Math.floor(Math.random()*10000)}`;
               const percent = listing.finalPrice && listing.finalPrice > 0 ? ((finalPrice - listing.finalPrice) / listing.finalPrice) * 100 : null;
+              const listingIdForHistory = listing.id || listing.listingId || u.listingId;
               await db.prepare('INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                .bind(phId, listing.id || u.listingId, listing.finalPrice ?? null, finalPrice, listing.referencePrice ?? null, ref, 'MANUAL_SYNC', percent, body.changedBy || body.source || 'system', body.notes || null, new Date().toISOString())
+                .bind(phId, listingIdForHistory, listing.finalPrice ?? null, finalPrice, listing.referencePrice ?? null, ref, 'MANUAL_SYNC', percent, body.changedBy || body.source || 'system', body.notes || null, new Date().toISOString())
                 .run();
             } catch (_) {}
             result.updated += 1;
@@ -123,9 +128,15 @@ export async function onRequest(context) {
     // No explicit updates -> fetch listings and try to fetch external prices
     if (!db) return new Response(JSON.stringify({ success: false, error: 'No DB binding available for sync' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
 
-    // Build query
-    let sql = `SELECT l.id as listingId, l.cardId as cardId, l.referencePrice, l.marginMultiplier, l.finalPrice, l.quantity, l.status, c.externalId as externalId, c.cardName as cardName, c.tcg as tcg, c.editionCode as editionCode, c.rarity as rarity
-      FROM listing l JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
+    // Build query using dynamic select columns so old D1 schemas don't crash
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','referencePrice','marginMultiplier','finalPrice','quantity','status']);
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['externalId','cardName','tcg','editionCode','rarity']);
+    let listingSelect = listingCols;
+    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    const selectParts = [];
+    if (listingSelect) selectParts.push(listingSelect);
+    if (cardCols) selectParts.push(cardCols);
+    let sql = `SELECT ${selectParts.join(', ')} FROM listing l JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
     const binds = [];
     if (inventoryOnly) {
       sql += ' AND l.quantity > 0';

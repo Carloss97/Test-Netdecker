@@ -1,5 +1,5 @@
 import { getGroups, getGroupProducts, getGroupPrices } from '../../../_shared/tcgcsv.js';
-import { pickDb, ensureSchema } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -16,15 +16,27 @@ export async function onRequest(context) {
     }
 
     const db = pickDb(env);
-    if (db) await ensureSchema(db);
+    if (db) {
+      await ensureSchema(db);
+    }
 
     // find the product in TCGCSV
-    const groups = await getGroups(tcg).catch(() => []);
+    let groups;
+    try {
+      groups = await getGroups(tcg);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroups failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
     let found = null;
     let foundGroup = null;
     const numeric = Number(cardId);
     for (const g of groups) {
-      const products = await getGroupProducts(tcg, g.groupId).catch(() => []);
+      let products;
+      try {
+        products = await getGroupProducts(tcg, g.groupId);
+      } catch (e) {
+        return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupProducts failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      }
       const f = products.find((p) => String(p.productId) === String(cardId) || (numeric && p.productId === numeric));
       if (f) { found = f; foundGroup = g; break; }
     }
@@ -33,21 +45,27 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, error: 'card not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const prices = await getGroupPrices(tcg, foundGroup.groupId).catch(() => []);
+    let prices;
+    try {
+      prices = await getGroupPrices(tcg, foundGroup.groupId);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupPrices failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
     const matchingPrices = prices.filter((pr) => String(pr.productId) === String(found.productId));
     const best = matchingPrices.sort((a,b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1))[0];
 
     const editionCode = (foundGroup.abbreviation || String(foundGroup.groupId)).toUpperCase();
     const cardKey = `${tcg}:${found.productId}`;
 
-    if (db) {
-      await db.prepare(`INSERT OR REPLACE INTO card (id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`)
+      if (db) {
+        await db.prepare(`INSERT OR REPLACE INTO card (id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`)
         .bind(cardKey, String(found.productId), tcg, editionCode, found.name, found.name, found.subTypeName || null, found.imageUrl || null, best ? (best.marketPrice ?? best.midPrice ?? best.lowPrice) : null)
         .run();
 
       let createdListing = false;
       if (createListing) {
-        const exist = await db.prepare('SELECT id FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardKey, editionCode).all();
+        const listingIdSelect = await buildSelectColumns(db, 'listing', 'l', ['id']);
+        const exist = await db.prepare(`SELECT ${listingIdSelect} FROM listing l WHERE l.cardId = ? AND l.editionCode = ?`).bind(cardKey, editionCode).all();
         const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);
         if (!has) {
           const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;

@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
@@ -23,7 +23,10 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ success: false, error: 'No DB binding available' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     await ensureSchema(db);
 
-    const lres = await db.prepare('SELECT id, referencePrice, marginMultiplier, finalPrice FROM listing WHERE id = ?').bind(id).all();
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','referencePrice','marginMultiplier','finalPrice']);
+    let listingSelect = listingCols;
+    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    const lres = await db.prepare(`SELECT ${listingSelect} FROM listing l WHERE l.id = ?`).bind(id).all();
     const listing = (Array.isArray(lres.results) ? lres.results[0] : (Array.isArray(lres) ? lres[0] : null));
     if (!listing) return new Response(JSON.stringify({ success: false, error: 'Listing not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
@@ -53,7 +56,7 @@ export async function onRequest(context) {
         .run();
     } catch (_) {}
 
-    const res = await db.prepare('SELECT id as listingId, referencePrice, marginMultiplier, finalPrice FROM listing WHERE id = ?').bind(id).all();
+    const res = await db.prepare(`SELECT ${listingSelect} FROM listing l WHERE l.id = ?`).bind(id).all();
     const updated = Array.isArray(res.results) ? res.results[0] : (Array.isArray(res) ? res[0] : null);
     return new Response(JSON.stringify({ success: true, listing: updated }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {

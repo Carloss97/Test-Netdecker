@@ -1,27 +1,35 @@
-import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 
 async function findCardFallback(db, cardId) {
   if (!cardId) return null;
   try {
-    // include price fields for fallback price computation
-    const r1 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE id = ?').bind(cardId).all();
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow','rarity']);
+
+    // prefer aliased select when possible
+    const selById = `SELECT ${cardCols} FROM card c WHERE c.id = ?`;
+    const r1 = await db.prepare(selById).bind(cardId).all();
     const row1 = firstRow(r1);
     if (row1) return row1;
+
     const parts = String(cardId).split(':').filter(Boolean);
     if (parts.length >= 2) {
       const tcg = parts[0];
       const maybe = parts[parts.length - 1];
-      const r2 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE tcg = ? AND (externalId = ? OR cardCode = ? OR id = ?) LIMIT 1')
-        .bind(tcg, maybe, maybe, `${tcg}:${maybe}`).all();
+      const selByTcg = `SELECT ${cardCols} FROM card c WHERE c.tcg = ? AND (c.externalId = ? OR c.cardCode = ? OR c.id = ?) LIMIT 1`;
+      const r2 = await db.prepare(selByTcg).bind(tcg, maybe, maybe, `${tcg}:${maybe}`).all();
       const row2 = firstRow(r2);
       if (row2) return row2;
-      const r3 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE externalId = ? LIMIT 1').bind(maybe).all();
+
+      const selByExternal = `SELECT ${cardCols} FROM card c WHERE c.externalId = ? LIMIT 1`;
+      const r3 = await db.prepare(selByExternal).bind(maybe).all();
       const row3 = firstRow(r3);
       if (row3) return row3;
     }
+
     const last = String(cardId).slice(-10);
-    const r4 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE cardName LIKE ? LIMIT 1').bind(`%${last}%`).all();
+    const selByName = `SELECT ${cardCols} FROM card c WHERE lower(c.cardName) LIKE ? LIMIT 1`;
+    const r4 = await db.prepare(selByName).bind(`%${last}%`).all();
     return firstRow(r4);
   } catch (err) {
     return null;
@@ -43,8 +51,19 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ success: false, error: 'No DB binding available' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     await ensureSchema(db);
 
-    let sql = `SELECT l.id as listingId, l.cardId, l.editionCode, l.referencePrice, l.marginMultiplier, l.finalPrice, l.quantity, l.status, l.lastSyncedAt, c.cardName, c.externalId, c.tcg, c.rarity, c.priceMarket, c.priceMid, c.priceLow, c.cardCode, c.imageUrl
-      FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE 1=1`;
+    // Build dynamic select list so older D1 DBs missing columns won't crash
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','editionCode','referencePrice','marginMultiplier','finalPrice','quantity','status','lastSyncedAt']);
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','externalId','tcg','rarity','priceMarket','priceMid','priceLow','cardCode','imageUrl']);
+
+    let listingSelect = listingCols;
+    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    if (listingSelect.includes('l.editionCode')) listingSelect = listingSelect.replace(/\bl\.editionCode\b/g, 'l.editionCode as editionCode');
+
+    const selectParts = [];
+    if (listingSelect) selectParts.push(listingSelect);
+    if (cardCols) selectParts.push(cardCols);
+
+    let sql = `SELECT ${selectParts.join(', ')} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE 1=1`;
     const binds = [];
     if (tcg) {
       // include listings even when card row is missing by matching cardId prefix
@@ -89,7 +108,8 @@ export async function onRequest(context) {
     for (const cids of chunk(missingCardIds, 50)) {
       try {
         const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT id, cardName, externalId, tcg, rarity, priceMarket, priceMid, priceLow, cardCode FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
+        const batchCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','externalId','tcg','rarity','priceMarket','priceMid','priceLow','cardCode']);
+        const sel = await db.prepare(`SELECT ${batchCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
         const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
         for (const rr of rowsRes) cardMap.set(rr.id || rr.ID || rr.Id || rr.id, rr);
       } catch (_) {}

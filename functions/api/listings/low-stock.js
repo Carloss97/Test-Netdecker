@@ -1,10 +1,12 @@
-import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, getTableColumns, buildSelectColumns } from '../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 
 async function findCardFallback(db, cardId) {
   if (!cardId) return null;
   try {
-    const r1 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE id = ?').bind(cardId).all();
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow','rarity']);
+    const selById = `SELECT ${cardCols} FROM card c WHERE c.id = ?`;
+    const r1 = await db.prepare(selById).bind(cardId).all();
     const row1 = firstRow(r1);
     if (row1) return row1;
 
@@ -12,18 +14,20 @@ async function findCardFallback(db, cardId) {
     if (parts.length >= 2) {
       const tcg = parts[0];
       const maybe = parts[parts.length - 1];
-      const r2 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE tcg = ? AND (externalId = ? OR cardCode = ? OR id = ?) LIMIT 1')
-        .bind(tcg, maybe, maybe, `${tcg}:${maybe}`).all();
+      const selByTcg = `SELECT ${cardCols} FROM card c WHERE c.tcg = ? AND (c.externalId = ? OR c.cardCode = ? OR c.id = ?) LIMIT 1`;
+      const r2 = await db.prepare(selByTcg).bind(tcg, maybe, maybe, `${tcg}:${maybe}`).all();
       const row2 = firstRow(r2);
       if (row2) return row2;
 
-      const r3 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE externalId = ? LIMIT 1').bind(maybe).all();
+      const selByExternal = `SELECT ${cardCols} FROM card c WHERE c.externalId = ? LIMIT 1`;
+      const r3 = await db.prepare(selByExternal).bind(maybe).all();
       const row3 = firstRow(r3);
       if (row3) return row3;
     }
 
     const last = String(cardId).slice(-10);
-    const r4 = await db.prepare('SELECT cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE cardName LIKE ? LIMIT 1').bind(`%${last}%`).all();
+    const selByName = `SELECT ${cardCols} FROM card c WHERE lower(c.cardName) LIKE ? LIMIT 1`;
+    const r4 = await db.prepare(selByName).bind(`%${last}%`).all();
     return firstRow(r4);
   } catch (err) {
     return null;
@@ -50,8 +54,18 @@ export async function onRequest(context) {
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
 
     // Only consider listings that at some point had stock (everHadStock = 1) and are active/manual
-    const res = await db.prepare('SELECT l.id as listingId, l.quantity, l.editionCode, l.cardId, l.referencePrice, l.marginMultiplier, l.finalPrice FROM listing l WHERE l.quantity <= ? AND l.everHadStock = 1 AND l.status IN ("active","manual") ORDER BY l.quantity ASC LIMIT ?')
-      .bind(threshold, limit).all();
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','quantity','editionCode','cardId','referencePrice','marginMultiplier','finalPrice','everHadStock','status']);
+    // decide whether to include everHadStock predicate depending on D1 schema
+    const existing = await getTableColumns(db, 'listing');
+    const hasEverHadStock = existing.includes('everHadStock');
+    let whereClause = 'WHERE l.quantity <= ? AND l.status IN ("active","manual")';
+    const bindsArr = [threshold, limit];
+    if (hasEverHadStock) {
+      whereClause = 'WHERE l.quantity <= ? AND l.everHadStock = 1 AND l.status IN ("active","manual")';
+    }
+
+    const sql = `SELECT ${listingCols} FROM listing l ${whereClause} ORDER BY l.quantity ASC LIMIT ?`;
+    const res = await db.prepare(sql).bind(...bindsArr).all();
     const rows = Array.isArray(res.results) ? res.results : (Array.isArray(res) ? res : []);
 
     // Batch fetch card rows for all listings to avoid N+1
@@ -61,7 +75,8 @@ export async function onRequest(context) {
     for (const cids of chunk(cardIds, 50)) {
       try {
         const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT id, cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
+        const batchCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow']);
+        const sel = await db.prepare(`SELECT ${batchCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
         const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
         for (const rr of rowsRes) cardMap.set(rr.id || rr.ID || rr.Id || rr.id, rr);
       } catch (_) {}

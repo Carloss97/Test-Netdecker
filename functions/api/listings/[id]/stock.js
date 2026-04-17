@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env, params } = context;
@@ -46,7 +46,10 @@ export async function onRequest(context) {
 
     await db.prepare(sql).bind(...binds).run();
 
-    const res = await db.prepare('SELECT id as listingId, quantity, status FROM listing WHERE id = ?').bind(id).all();
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','quantity','status']);
+    let listingSelect = listingCols;
+    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    const res = await db.prepare(`SELECT ${listingSelect} FROM listing l WHERE l.id = ?`).bind(id).all();
     const row = Array.isArray(res.results) ? res.results[0] : (Array.isArray(res) ? res[0] : null);
     return new Response(JSON.stringify({ success: true, listing: row }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {

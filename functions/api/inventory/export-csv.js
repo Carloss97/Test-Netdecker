@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
 
 function csvQuote(v) {
   return `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -18,10 +18,21 @@ export async function onRequest(context) {
     await ensureSchema(db);
 
     // Build query to fetch inventory rows (join listing + card + edition when possible)
-    // We'll prefer card data when available; otherwise use listing fields
-    let sql = `SELECT l.id as listingId, l.cardId, l.editionCode as listingEditionCode, l.condition, l.quantity, l.referencePrice, l.marginMultiplier,
-      c.cardName, c.cardCode, c.cardNumber, c.rarity, c.tags, c.imageUrl, c.tcg as cardTcg, e.editionName
-      FROM listing l
+    // Use `buildSelectColumns` to avoid referencing missing columns on older D1 instances
+    const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','editionCode','condition','quantity','referencePrice','marginMultiplier']);
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName','cardCode','cardNumber','rarity','tags','imageUrl','tcg']);
+
+    // ensure aliases for listing id and editionCode
+    let listingSelect = listingCols;
+    if (listingSelect.includes('l.id')) listingSelect = listingSelect.replace(/\bl\.id\b/g, 'l.id as listingId');
+    if (listingSelect.includes('l.editionCode')) listingSelect = listingSelect.replace(/\bl\.editionCode\b/g, 'l.editionCode as listingEditionCode');
+
+    const selectParts = [];
+    if (listingSelect) selectParts.push(listingSelect);
+    if (cardCols) selectParts.push(cardCols.replace(/\bc\.tcg\b/, 'c.tcg as cardTcg'));
+    selectParts.push('e.editionName');
+
+    let sql = `SELECT ${selectParts.join(', ')} FROM listing l
       LEFT JOIN card c ON l.cardId = c.id
       LEFT JOIN edition e ON (c.tcg = e.tcg AND c.editionCode = e.editionCode)
       WHERE 1=1`;

@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 import { incr, startTimer } from '../../_shared/metrics.js';
 
@@ -236,10 +236,11 @@ export async function onRequest(context) {
 
       // Prefetch existing cards and listings for this batch
       const existingCards = new Set();
+      const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);
       for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
         try {
-          const sel = await db.prepare(`SELECT id FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
+          const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
           const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
           for (const r of rowsRes) existingCards.add(r.id || r.ID || r.id);
         } catch (_) {}
@@ -249,12 +250,13 @@ export async function onRequest(context) {
       // We'll query listings by editionCode + cardId IN (...) to build lookup
       const listingLookup = new Map();
       const editionCodes = new Set(rowsBatch.map((r) => String(r.editionCode || '').trim()).filter(Boolean));
+      const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','condition','rarity']);
       for (const editionCode of Array.from(editionCodes)) {
         const cids = cardIds.filter((id) => id.includes(`:${editionCode}:`));
         for (const chunked of chunk(cids, 50)) {
           const placeholders = chunked.map(() => '?').join(',');
           try {
-            const sel = await db.prepare(`SELECT id, cardId, condition, rarity FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();
+            const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();
             const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
             for (const r of rowsRes) {
               const key = `${r.cardId}|${editionCode}|${r.condition || ''}|${r.rarity || ''}`;

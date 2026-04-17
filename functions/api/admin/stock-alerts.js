@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -10,7 +10,10 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ alerts: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     await ensureSchema(db);
 
-    const res = await db.prepare('SELECT l.id AS listingId, l.quantity AS quantity, l.referencePrice AS referencePrice, c.cardName AS cardName, l.editionCode AS editionCode FROM listing l LEFT JOIN card c ON c.id = l.cardId WHERE COALESCE(l.quantity,0) <= ? ORDER BY COALESCE(l.quantity,0) ASC LIMIT 200;').bind(threshold).all();
+    const cardCols = await buildSelectColumns(db, 'card', 'c', ['cardName']);
+    const selectCard = cardCols || 'c.cardName AS cardName';
+    const sql = `SELECT l.id AS listingId, l.quantity AS quantity, l.referencePrice AS referencePrice, ${selectCard}, l.editionCode AS editionCode FROM listing l LEFT JOIN card c ON c.id = l.cardId WHERE COALESCE(l.quantity,0) <= ? ORDER BY COALESCE(l.quantity,0) ASC LIMIT 200;`;
+    const res = await db.prepare(sql).bind(threshold).all();
     const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
     const alerts = rows.map((r) => ({ listingId: r.listingId, quantity: r.quantity || 0, cardName: r.cardName || 'Unknown', editionCode: r.editionCode || null, finalPrice: Math.round((r.referencePrice || 0) * 100) / 100 }));
 

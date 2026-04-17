@@ -1,5 +1,5 @@
 import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode } from '../../../_shared/tcgcsv.js';
-import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -22,7 +22,13 @@ export async function onRequest(context) {
     if (db) await ensureSchema(db);
 
     // Resolve group first to expose edition metadata (tcg-aware resolution)
-    const groups = await getGroups(tcg).catch(() => []);
+    let groups;
+    try {
+      groups = await getGroups(tcg);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroups failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const resolved = resolveGroupBySetCode(tcg, groups, setCode);
 
     if (!resolved) {
@@ -39,8 +45,19 @@ export async function onRequest(context) {
     }
 
     // Fetch products and prices for the resolved group (avoid re-calling getGroups inside helper)
-    const products = await getGroupProducts(tcg, resolved.groupId).catch(() => []);
-    const prices = await getGroupPrices(tcg, resolved.groupId).catch(() => []);
+    let products;
+    try {
+      products = await getGroupProducts(tcg, resolved.groupId);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupProducts failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    let prices;
+    try {
+      prices = await getGroupPrices(tcg, resolved.groupId);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupPrices failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
 
     // Build price map (best price per productId)
     const priceByProductId = new Map();
@@ -115,17 +132,19 @@ export async function onRequest(context) {
 
       // Query existing cards in chunks
       const existingCardIds = new Set();
+      const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);
       for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT id FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
+        const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
         for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.Id || r.cardId || r.cardid || r.id);
       }
 
       // Query existing listings for this edition
       const existingListingCardIds = new Set();
+      const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId']);
       for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT id, cardId FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
+        const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
         for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);
       }
 

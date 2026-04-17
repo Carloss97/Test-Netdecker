@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../../_shared/exchange-rate.js';
 
 function uuid() {
@@ -21,8 +21,9 @@ export async function onRequest(context) {
     const tcg = ed.tcg;
     const editionCode = ed.editionCode;
 
-    // Fetch cards for this edition
-    const cardsRes = await db.prepare('SELECT id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket FROM card WHERE tcg = ? AND editionCode = ? ORDER BY cardCode ASC, cardName ASC').bind(tcg, editionCode).all();
+    // Fetch cards for this edition (build select dynamically to avoid missing columns)
+    const cardSelect = await buildSelectColumns(db, 'card', 'c', ['id','externalId','tcg','editionCode','cardCode','cardName','rarity','imageUrl','priceMarket','priceMid','priceLow']);
+    const cardsRes = await db.prepare(`SELECT ${cardSelect} FROM card c WHERE c.tcg = ? AND c.editionCode = ? ORDER BY c.cardCode ASC, c.cardName ASC`).bind(tcg, editionCode).all();
     const cardsRows = Array.isArray(cardsRes?.results) ? cardsRes.results : (Array.isArray(cardsRes) ? cardsRes : []);
 
     // fast FX read for computing CLP prices when finalPrice missing

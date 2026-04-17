@@ -1,5 +1,5 @@
 import { getGroups, getGroupProducts, getGroupPrices } from '../../../_shared/tcgcsv.js';
-import { pickDb, ensureSchema } from '../../../_shared/d1.js';
+import { pickDb, ensureSchema, buildSelectColumns } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -26,7 +26,12 @@ export async function onRequest(context) {
     const foundCards = [];
 
     for (const tcg of tcgsToSearch) {
-      const groups = await getGroups(tcg).catch(() => []);
+      let groups;
+      try {
+        groups = await getGroups(tcg);
+      } catch (e) {
+        return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroups failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      }
       for (const g of groups) {
         const products = await getGroupProducts(tcg, g.groupId).catch(() => []);
         for (const p of (products || [])) {
@@ -45,7 +50,8 @@ export async function onRequest(context) {
                 .run();
 
               if (createListing) {
-                const exist = await db.prepare('SELECT id FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardKey, editionCode).all();
+                const listingIdSelect = await buildSelectColumns(db, 'listing', 'l', ['id']);
+                const exist = await db.prepare(`SELECT ${listingIdSelect} FROM listing l WHERE l.cardId = ? AND l.editionCode = ?`).bind(cardKey, editionCode).all();
                 const has = Array.isArray(exist.results) ? exist.results.length > 0 : (Array.isArray(exist) ? exist.length > 0 : false);
                 if (!has) {
                   const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;

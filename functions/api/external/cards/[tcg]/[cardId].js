@@ -9,7 +9,12 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, error: 'tcg and cardId required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const groups = await getGroups(tcg).catch(() => []);
+    let groups;
+    try {
+      groups = await getGroups(tcg);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroups failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
     for (const g of groups) {
       const products = await getGroupProducts(tcg, g.groupId).catch(() => []);
       const numeric = Number(cardId);

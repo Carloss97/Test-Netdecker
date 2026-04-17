@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow, buildSelectColumns } from '../../_shared/d1.js';
 
 // Admin utility: detect listings referencing missing cards and attempt safe fixes.
 export async function onRequest(context) {
@@ -12,6 +12,9 @@ export async function onRequest(context) {
     const db = pickDb(env);
     if (!db) return json({ success: false, error: 'No DB binding available' }, 500);
     await ensureSchema(db);
+
+    // precompute safe select for card id to avoid referencing missing columns
+    const cardIdSelect = await buildSelectColumns(db, 'card', 'c', ['id']);
 
     // Find listings whose cardId does not have a matching card row
     const orphanRes = await db.prepare('SELECT l.id as listingId, l.cardId, l.editionCode FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE c.id IS NULL LIMIT 1000').all();
@@ -30,24 +33,24 @@ export async function onRequest(context) {
         if (parts.length >= 2) {
           const maybe = parts[parts.length - 1];
           // try externalId
-          const ext = await db.prepare('SELECT id FROM card WHERE externalId = ? LIMIT 1').bind(maybe).all();
+          const ext = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.externalId = ? LIMIT 1`).bind(maybe).all();
           const extRow = firstRow(ext);
           if (extRow && extRow.id) candidates.push(extRow.id);
 
           // try cardCode + edition
-          const code = await db.prepare('SELECT id FROM card WHERE cardCode = ? AND editionCode = ? LIMIT 1').bind(maybe, editionCode).all();
+          const code = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.cardCode = ? AND c.editionCode = ? LIMIT 1`).bind(maybe, editionCode).all();
           const codeRow = firstRow(code);
           if (codeRow && codeRow.id) candidates.push(codeRow.id);
 
           // try full id match if different separators
-          const full = await db.prepare('SELECT id FROM card WHERE id = ? LIMIT 1').bind(cardId).all();
+          const full = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.id = ? LIMIT 1`).bind(cardId).all();
           const fullRow = firstRow(full);
           if (fullRow && fullRow.id) candidates.push(fullRow.id);
         }
 
         // broader name match fallback: last 10 chars in cardName
         const last = cardId.slice(-10);
-        const nameMatch = await db.prepare('SELECT id FROM card WHERE cardName LIKE ? LIMIT 1').bind(`%${last}%`).all();
+        const nameMatch = await db.prepare(`SELECT ${cardIdSelect} FROM card c WHERE c.cardName LIKE ? LIMIT 1`).bind(`%${last}%`).all();
         const nameRow = firstRow(nameMatch);
         if (nameRow && nameRow.id) candidates.push(nameRow.id);
       } catch (_) {}

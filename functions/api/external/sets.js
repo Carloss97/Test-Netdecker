@@ -11,7 +11,12 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const groups = await getGroups(tcgRaw).catch(() => []);
+    let groups;
+    try {
+      groups = await getGroups(tcgRaw);
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroups failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
 
     const totalCardsOf = (g) => {
       const candidates = [g.totalCards, g.cardCount, g.totalItems, g.productCount, g.numOfCards];
