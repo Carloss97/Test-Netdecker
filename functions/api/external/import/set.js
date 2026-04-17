@@ -108,7 +108,7 @@ export async function onRequest(context) {
 
       // Query existing cards in chunks
       const existingCardIds = new Set();
-      for (const cids of chunk(cardIds, 150)) {
+      for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
         const sel = await db.prepare(`SELECT id FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
         for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.id);
@@ -116,7 +116,7 @@ export async function onRequest(context) {
 
       // Query existing listings for this edition
       const existingListingCardIds = new Set();
-      for (const cids of chunk(cardIds, 150)) {
+      for (const cids of chunk(cardIds, 50)) {
         const placeholders = cids.map(() => '?').join(',');
         const sel = await db.prepare(`SELECT id, cardId FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
         for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);
