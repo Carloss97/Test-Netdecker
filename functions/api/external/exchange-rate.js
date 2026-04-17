@@ -16,14 +16,16 @@ export async function onRequest(context) {
 
     const ttlSeconds = Number(env.EXCHANGE_RATE_CACHE_TTL_SECONDS || env.VITE_EXCHANGE_RATE_CACHE_TTL_SECONDS || 3600);
 
-    // Determine pricing mode from DB if available; fall back to env behavior when DB absent
+    // Determine pricing config from DB if available; fall back to env behavior when DB absent
     let pricingMode = null; // null = unknown
+    let pricingConfig = null;
     if (db) {
       try {
         const pcRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('pricingConfig').all();
         const pcRow = firstRow(pcRes);
         if (pcRow && pcRow.value) {
           const parsed = JSON.parse(pcRow.value);
+          pricingConfig = parsed;
           pricingMode = parsed?.exchangeRate?.mode || null;
         }
       } catch (_) {
@@ -33,8 +35,15 @@ export async function onRequest(context) {
 
     // If pricingMode is explicitly 'manual' use the manual env/fallback
     if (pricingMode === 'manual') {
-      const manual = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
-      const val = Number.isFinite(manual) && manual > 0 ? manual : Number(env.FALLBACK_USD_TO_CLP || 950);
+      // Prefer manual active rate stored in pricingConfig when available
+      let manualRate = null;
+      if (pricingConfig && pricingConfig.exchangeRate && Number.isFinite(Number(pricingConfig.exchangeRate.activeRate))) {
+        manualRate = Number(pricingConfig.exchangeRate.activeRate);
+      }
+      if (!manualRate || manualRate <= 0) {
+        manualRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
+      }
+      const val = Number.isFinite(manualRate) && manualRate > 0 ? manualRate : Number(env.FALLBACK_USD_TO_CLP || 950);
       return jsonResponse({ success: true, usdToCLP: val, source: 'manual', fetchedAt: new Date().toISOString() });
     }
 
@@ -64,31 +73,48 @@ export async function onRequest(context) {
       }
     }
 
-    // Fetch from external API and store in cache
+    // Fetch from external APIs (try multiple providers sequentially) and store in cache
     try {
-      const res = await fetch('https://api.exchangerate.host/convert?from=USD&to=CLP');
-      if (!res.ok) {
-        const t = await res.text().catch(() => '');
-        throw new Error(`external api failed: ${res.status} ${t}`);
-      }
-      const body = await res.json().catch(() => ({}));
-      const rate = body && (body.result ?? (body.rates && body.rates.CLP));
-      if (rate === null || rate === undefined || typeof rate !== 'number') {
-        throw new Error('invalid rate from external API');
-      }
+      const providers = [
+        { name: 'exchangerate.host', url: 'https://api.exchangerate.host/convert?from=USD&to=CLP', extract: (b) => b?.result ?? (b?.rates && b.rates.CLP) },
+        { name: 'exchangerate-api.com', url: 'https://api.exchangerate-api.com/v4/latest/USD', extract: (b) => b?.rates?.CLP },
+        { name: 'open.er-api.com', url: 'https://open.er-api.com/v6/latest/USD', extract: (b) => b?.rates?.CLP },
+      ];
 
-      const fetchedAt = new Date().toISOString();
-      if (db) {
+      let lastErr = null;
+      for (const p of providers) {
         try {
-          await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
-            .bind('exchangeRateCache', JSON.stringify({ usdToCLP: Number(rate), source: 'exchangerate.host', fetchedAt }), fetchedAt)
-            .run();
-        } catch (_) {
-          // ignore cache write errors
+          const res = await fetch(p.url);
+          if (!res.ok) {
+            const t = await res.text().catch(() => '');
+            throw new Error(`provider ${p.name} failed: ${res.status} ${t}`);
+          }
+          const body = await res.json().catch(() => ({}));
+          const rate = p.extract(body);
+          if (rate === null || rate === undefined || typeof rate !== 'number') {
+            throw new Error(`invalid rate from ${p.name}`);
+          }
+
+          const fetchedAt = new Date().toISOString();
+          if (db) {
+            try {
+              await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
+                .bind('exchangeRateCache', JSON.stringify({ usdToCLP: Number(rate), source: p.name, fetchedAt }), fetchedAt)
+                .run();
+            } catch (_) {
+              // ignore cache write errors
+            }
+          }
+
+          return jsonResponse({ success: true, usdToCLP: Number(rate), source: p.name, fetchedAt });
+        } catch (innerErr) {
+          lastErr = innerErr;
+          // try next provider
         }
       }
 
-      return jsonResponse({ success: true, usdToCLP: Number(rate), source: 'exchangerate.host', fetchedAt });
+      // If we reach here all providers failed
+      throw lastErr || new Error('all providers failed');
     } catch (err) {
       // On external failure, try returning stale cache if available, otherwise fallback to env
       if (db) {

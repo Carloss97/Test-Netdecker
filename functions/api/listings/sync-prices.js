@@ -1,5 +1,6 @@
 import { pickDb, ensureSchema } from '../../_shared/d1.js';
 import { getSetCards } from '../../_shared/tcgcsv.js';
+import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 
 function estimateFallbackReferencePrice(tcgName, rarity) {
   const baseByTcg = { MAGIC: 0.5, POKEMON: 0.75, YUGIOH: 0.5, ONE_PIECE: 0.35, DIGIMON: 0.35, WEISS_SCHWARZ: 0.35 };
@@ -34,7 +35,15 @@ export async function onRequest(context) {
         .run();
     }
 
-    const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
+    if (db) {
+      try {
+        const meta = await getUSDtoCLPRateMetaFast(env, db);
+        if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
+      } catch (_) {
+        // fall back to env if cache read fails
+      }
+    }
 
     const updates = body.updates;
     const inventoryOnly = body.inventoryOnly === 'true' || body.inventoryOnly === true;
@@ -108,7 +117,7 @@ export async function onRequest(context) {
     if (!db) return new Response(JSON.stringify({ success: false, error: 'No DB binding available for sync' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
 
     // Build query
-    let sql = `SELECT l.id as listingId, l.referencePrice, l.marginMultiplier, l.finalPrice, l.quantity, l.status, c.externalId as externalId, c.cardName as cardName, c.tcg as tcg, c.editionCode as editionCode, c.rarity as rarity
+    let sql = `SELECT l.id as listingId, l.cardId as cardId, l.referencePrice, l.marginMultiplier, l.finalPrice, l.quantity, l.status, c.externalId as externalId, c.cardName as cardName, c.tcg as tcg, c.editionCode as editionCode, c.rarity as rarity
       FROM listing l JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
     const binds = [];
     if (inventoryOnly) {
@@ -128,7 +137,9 @@ export async function onRequest(context) {
     // Group by tcg|editionCode
     const grouped = new Map();
     for (const r of rows) {
-      const key = `${r.tcg}|${String(r.editionCode || '').toUpperCase()}`;
+      // derive tcg from card row when missing by using cardId prefix (fallback)
+      const inferredTcg = r.tcg || (r.cardId && String(r.cardId).split(':')[0]) || 'LOCAL';
+      const key = `${inferredTcg}|${String(r.editionCode || '').toUpperCase()}`;
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key).push(r);
     }
@@ -165,7 +176,10 @@ export async function onRequest(context) {
       if (!usedCache) {
         // Respect rate limits - gentle pause
         await new Promise((res) => setTimeout(res, 120));
+        const _t0 = Date.now();
         const setCards = await getSetCards(tcgName, editionCode).catch(() => []);
+        const _t1 = Date.now() - _t0;
+        try { console.log(`[sync-prices] fetched set ${tcgName}/${editionCode} in ${_t1}ms; cards=${setCards.length}`); } catch (_) {}
         for (const s of setCards) {
           const price = s.priceMarket ?? s.priceMid ?? s.priceLow;
           if (typeof price === 'number' && Number.isFinite(price) && price > 0) {

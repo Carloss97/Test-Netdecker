@@ -1,4 +1,5 @@
 import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 
 function normalizeHeader(header) {
   return header.replace(/^\uFEFF/, '').trim();
@@ -128,17 +129,16 @@ export async function onRequest(context) {
 
     await ensureSchema(db);
 
-    // Prefer cached exchange rate from appConfig when available
+    // Prefer cached exchange rate from appConfig when available (fast path)
     let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
     try {
-      const pc = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
-      const first = Array.isArray(pc?.results) ? pc.results[0] : (Array.isArray(pc) ? pc[0] : null);
-      if (first && first.value) {
-        const parsed = JSON.parse(first.value);
-        const cached = Number(parsed?.usdToCLP);
-        if (!isNaN(cached) && cached > 0) usdToClp = cached;
+      if (db) {
+        const meta = await getUSDtoCLPRateMetaFast(env, db);
+        if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
       }
-    } catch (_) {}
+    } catch (_) {
+      // fall back to env value
+    }
 
     const result = { total: rows.length, success: 0, failed: 0, errors: [], mode, dryRun: !!dryRun };
 

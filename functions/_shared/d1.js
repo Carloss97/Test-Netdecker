@@ -4,7 +4,13 @@ function pickDb(env) {
 
 async function ensureSchema(db) {
   if (!db) return;
-  // Editions
+
+  try {
+    if (globalThis.__TCG_D1_SCHEMA_INITIALIZED_V1) return;
+  } catch (_) {}
+  const _t0 = Date.now();
+
+  // create tables
   await db.prepare(`CREATE TABLE IF NOT EXISTS edition (
     id TEXT PRIMARY KEY,
     tcg TEXT,
@@ -14,7 +20,6 @@ async function ensureSchema(db) {
     isActive INTEGER
   );`).run();
 
-  // Cards
   await db.prepare(`CREATE TABLE IF NOT EXISTS card (
     id TEXT PRIMARY KEY,
     externalId TEXT,
@@ -35,7 +40,6 @@ async function ensureSchema(db) {
     updatedAt TEXT
   );`).run();
 
-  // Listings
   await db.prepare(`CREATE TABLE IF NOT EXISTS listing (
     id TEXT PRIMARY KEY,
     cardId TEXT,
@@ -65,7 +69,6 @@ async function ensureSchema(db) {
     // ignore index creation errors
   }
 
-  // Price history
   await db.prepare(`CREATE TABLE IF NOT EXISTS priceHistory (
     id TEXT PRIMARY KEY,
     listingId TEXT,
@@ -82,7 +85,6 @@ async function ensureSchema(db) {
     createdAt TEXT
   );`).run();
 
-  // Price sync runs
   await db.prepare(`CREATE TABLE IF NOT EXISTS priceSyncRun (
     id TEXT PRIMARY KEY,
     source TEXT,
@@ -106,7 +108,6 @@ async function ensureSchema(db) {
     // ignore index creation errors
   }
 
-  // App configuration (key/value JSON)
   await db.prepare(`CREATE TABLE IF NOT EXISTS appConfig (
     key TEXT PRIMARY KEY,
     value TEXT,
@@ -118,7 +119,7 @@ async function ensureSchema(db) {
     try {
       const infoRes = await db.prepare(`PRAGMA table_info(${table});`).all();
       const infoRows = Array.isArray(infoRes?.results) ? infoRes.results : (Array.isArray(infoRes) ? infoRes : []);
-      const colNames = infoRows.map((r) => r.name || r.NAME || Object.values(r)[1]);
+      const colNames = infoRows.map((r) => (r && (r.name || r.NAME)) || Object.values(r)[1]);
       if (!colNames.includes(column)) {
         await db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`).run();
       }
@@ -142,6 +143,17 @@ async function ensureSchema(db) {
   // PriceHistory may have newer columns in some versions
   await addColumnIfMissing('priceHistory', 'oldExchangeRate', 'REAL');
   await addColumnIfMissing('priceHistory', 'newExchangeRate', 'REAL');
+
+  try {
+    const checked = globalThis.__TCG_D1_SCHEMA_TABLES_V1 || new Set();
+    globalThis.__TCG_D1_SCHEMA_TABLES_V1 = checked;
+  } catch (_) {}
+
+  try {
+    globalThis.__TCG_D1_SCHEMA_INITIALIZED_V1 = true;
+  } catch (_) {}
+  const _t1 = Date.now() - _t0;
+  try { console.log(`[d1] ensureSchema completed in ${_t1}ms`); } catch(_) {}
 }
 
 function firstRow(res) {

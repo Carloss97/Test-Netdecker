@@ -1,4 +1,30 @@
-import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+
+async function findCardFallback(db, cardId) {
+  if (!cardId) return null;
+  try {
+    const r1 = await db.prepare('SELECT cardName, externalId, tcg, editionCode FROM card WHERE id = ?').bind(cardId).all();
+    const row1 = firstRow(r1);
+    if (row1) return row1;
+    const parts = String(cardId).split(':').filter(Boolean);
+    if (parts.length >= 2) {
+      const tcg = parts[0];
+      const maybe = parts[parts.length - 1];
+      const r2 = await db.prepare('SELECT cardName, externalId, tcg, editionCode FROM card WHERE tcg = ? AND (externalId = ? OR cardCode = ? OR id = ?) LIMIT 1')
+        .bind(tcg, maybe, maybe, `${tcg}:${maybe}`).all();
+      const row2 = firstRow(r2);
+      if (row2) return row2;
+      const r3 = await db.prepare('SELECT cardName, externalId, tcg, editionCode FROM card WHERE externalId = ? LIMIT 1').bind(maybe).all();
+      const row3 = firstRow(r3);
+      if (row3) return row3;
+    }
+    const last = String(cardId).slice(-10);
+    const r4 = await db.prepare('SELECT cardName, externalId, tcg, editionCode FROM card WHERE cardName LIKE ? LIMIT 1').bind(`%${last}%`).all();
+    return firstRow(r4);
+  } catch (err) {
+    return null;
+  }
+}
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -16,7 +42,7 @@ export async function onRequest(context) {
     await ensureSchema(db);
 
     let sql = `SELECT l.id as listingId, l.cardId, l.editionCode, l.referencePrice, l.marginMultiplier, l.finalPrice, l.quantity, l.status, l.lastSyncedAt, c.cardName, c.externalId, c.tcg, c.rarity
-      FROM listing l JOIN card c ON l.cardId = c.id WHERE 1=1`;
+      FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE 1=1`;
     const binds = [];
     if (tcg) {
       sql += ' AND c.tcg = ?'; binds.push(tcg);
@@ -34,7 +60,24 @@ export async function onRequest(context) {
 
     const res = await db.prepare(sql).bind(...binds).all();
     const rows = Array.isArray(res.results) ? res.results : (Array.isArray(res) ? res : []);
-    return new Response(JSON.stringify({ success: true, total: rows.length, listings: rows }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+    // Fill missing card data when possible
+    const out = [];
+    for (const r of rows) {
+      if (!r.cardName) {
+        try {
+          const fb = await findCardFallback(db, r.cardId);
+          if (fb) {
+            r.cardName = fb.cardName || r.cardName;
+            r.externalId = fb.externalId || r.externalId;
+            r.tcg = fb.tcg || r.tcg;
+          }
+        } catch (_) {}
+      }
+      out.push(r);
+    }
+
+    return new Response(JSON.stringify({ success: true, total: out.length, listings: out }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

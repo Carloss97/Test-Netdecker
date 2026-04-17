@@ -180,6 +180,16 @@ export function startServer(portArg?: number | string) {
     startReservationCleanupCron();
     startInvoiceCleanupJob();
 
+    // Preconnect to Redis in background (non-blocking). This starts the client
+    // connect attempt but does not block server startup — failures degrade gracefully.
+    try {
+      import('./utils/redis.js').then((m) => {
+        if (m && typeof m.getRedisClient === 'function') {
+          m.getRedisClient().then(() => console.log('Redis preconnect succeeded')).catch((err) => console.warn('Redis preconnect failed (non-blocking)', err?.message || err));
+        }
+      }).catch(() => {});
+    } catch (_) {}
+
     console.log(`
 ╔═══════════════════════════════════════════╗
 ║   TCG Singles Platform - Backend Server   ║

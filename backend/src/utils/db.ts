@@ -63,12 +63,18 @@ function createPrismaStub(): MinimalPrisma {
  		const store = new Map<string, any>();
  		function mkId() { return `mock-${Math.random().toString(36).slice(2, 9)}`; }
  		return {
- 			create: async ({ data }: { data: any }) => {
- 				const id = data.id ?? mkId();
- 				const rec: any = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
- 				store.set(id, rec);
- 				return rec;
- 			},
+						create: async ({ data }: { data: any }) => {
+								const id = data.id ?? mkId();
+								const rec: any = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+								// Auto-generate common defaults used by Prisma schema when missing
+								try {
+									if (!Object.prototype.hasOwnProperty.call(rec, 'sessionId') && /session/i.test(modelName)) {
+										rec.sessionId = mkId();
+									}
+								} catch (_) {}
+								store.set(id, rec);
+								return rec;
+						},
  			findUnique: async ({ where }: { where: any }) => {
 				if (!where) return null;
 				if (where.id) return store.get(where.id) ?? null;
@@ -231,11 +237,16 @@ function createPrismaStub(): MinimalPrisma {
 					}
 				}
 
-				// Fallback: create new record
-				const id = (create && create.id) ? create.id : mkId();
-				const rec = { id, ...(create || {}), createdAt: new Date(), updatedAt: new Date() };
-				store.set(id, rec);
-				return rec;
+								// Fallback: create new record
+								const id = (create && create.id) ? create.id : mkId();
+								const rec = { id, ...(create || {}), createdAt: new Date(), updatedAt: new Date() };
+								try {
+									if (!Object.prototype.hasOwnProperty.call(rec, 'sessionId') && /session/i.test(modelName)) {
+										rec.sessionId = mkId();
+									}
+								} catch (_) {}
+								store.set(id, rec);
+								return rec;
 			},
  			count: async ({ where }: any = {}) => {
  				if (!where) return store.size;

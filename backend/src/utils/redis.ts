@@ -36,10 +36,19 @@ export async function getRedisClient(): Promise<RedisClientType> {
   });
   redisClient.on('connect', () => console.log('Redis Client Connected'));
 
+  // Attempt to connect but don't block indefinitely — use a short timeout
+  const CONNECT_TIMEOUT_MS = Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 2000);
   try {
-    await redisClient.connect();
+    await Promise.race([
+      redisClient.connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connect timeout')), CONNECT_TIMEOUT_MS)),
+    ]);
   } catch (err) {
     redisUnavailable = true;
+    try {
+      // best-effort cleanup
+      await redisClient.disconnect?.();
+    } catch (_) {}
     redisClient = null;
     warnRedisUnavailable(err);
     throw new ApplicationError(503, 'Redis unavailable', 'SERVICE_UNAVAILABLE');
