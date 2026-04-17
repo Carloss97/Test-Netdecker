@@ -72,7 +72,7 @@ describe('CardSearchPage', () => {
     fireEvent.blur(manualInput);
 
     await waitFor(() => {
-      expect(screen.getByText('⚠️ Ingresa un precio final en CLP valido (> 0). El precio de referencia USD se muestra aparte.')).toBeInTheDocument();
+      expect(screen.getByText('⚠️ Ingresa un precio final en CLP valido (> 0). El precio de referencia USD se muestra aparte.')).toBeTruthy();
     });
 
     expect(mockUpdateListingPricingMode).not.toHaveBeenCalled();

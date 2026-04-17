@@ -2,6 +2,8 @@
 import prisma from '../utils/db.js';
 import { ExchangeRateService } from './ExchangeRateService.js';
 import { PriceUpdateReason } from '@prisma/client';
+import PriceThresholdService from './PriceThresholdService.js';
+import { NotFoundError } from '../utils/errors.js';
 
 interface PriceCalculationInput {
   referencePrice: number; // USD
@@ -103,7 +105,7 @@ export class PriceService {
   ): Promise<void> {
     const listing = await prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) {
-      throw new Error(`Listing not found: ${listingId}`);
+      throw new NotFoundError(`Listing not found: ${listingId}`);
     }
 
     const oldPrice = listing.finalPrice;
@@ -154,13 +156,35 @@ export class PriceService {
 
   /**
    * Check if a price change is volatile (exceeds safe threshold)
-   * Returns true if change > 10% or < -10%
+   * - If `thresholdOrCtx` is a number, it is used directly.
+   * - If `thresholdOrCtx` is an object with `listingId`/`tcgName`/`editionId`, the service
+   *   will resolve the configured threshold from DB (edition -> tcg -> env default).
+   * Returns a Promise<boolean>.
    */
-  static isVolatileChange(oldPrice: number, newPrice: number, threshold: number = 10): boolean {
+  static async isVolatileChange(
+    oldPrice: number,
+    newPrice: number,
+    thresholdOrCtx: number | { listingId?: string; tcgName?: string; editionId?: string } | undefined = undefined,
+  ): Promise<boolean> {
     if (oldPrice === 0) {
       // First priced import is not treated as volatility.
       return false;
     }
+
+    let threshold: number;
+    if (typeof thresholdOrCtx === 'number') {
+      threshold = thresholdOrCtx;
+    } else if (thresholdOrCtx && typeof thresholdOrCtx === 'object') {
+      if (thresholdOrCtx.listingId) {
+        threshold = await PriceThresholdService.getThresholdForListing(thresholdOrCtx.listingId);
+      } else {
+        threshold = await PriceThresholdService.getThreshold(thresholdOrCtx.tcgName ?? null, thresholdOrCtx.editionId ?? null);
+      }
+    } else {
+      // No context provided: use env default
+      threshold = await PriceThresholdService.getThreshold(undefined, undefined);
+    }
+
     const percentChange = ((newPrice - oldPrice) / oldPrice) * 100;
     return Math.abs(percentChange) > threshold;
   }

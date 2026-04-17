@@ -59,6 +59,15 @@ export async function createStripePaymentIntent(params: {
   return data;
 }
 
+export async function createMercadoPagoPreference(params: {
+  items: { listingId: string; quantity: number; title?: string; unit_price?: number }[];
+  storeId?: string | null;
+  back_urls?: Record<string,string> | null;
+}) {
+  const { data } = await apiClient.post('/payments/mercadopago/create-preference', params);
+  return data;
+}
+
 export default {
   createReservation,
   commitReservation,
@@ -67,4 +76,5 @@ export default {
   createAndCommitReservation,
   posCheckout,
   createStripePaymentIntent,
+  createMercadoPagoPreference,
 };

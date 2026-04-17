@@ -12,7 +12,7 @@ export class OrderReceiptPdfService {
 
       doc.on('data', (c: Uint8Array) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', (err) => reject(err));
+      doc.on('error', (err: any) => reject(err));
 
       doc.fontSize(18).text('Recibo / Receipt', { align: 'center' });
       doc.moveDown();

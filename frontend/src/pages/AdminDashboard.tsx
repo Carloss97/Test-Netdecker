@@ -242,6 +242,12 @@ export function AdminDashboardPage() {
           <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #ddd', background: '#fff' }}>
             🔄 Recargar
           </button>
+          <a href="/admin/pricing/thresholds" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #1976d2', background: '#e8f0ff', color: '#1976d2', textDecoration: 'none', display: 'inline-block' }}>
+            ⚖️ Umbrales
+          </a>
+          <a href="/admin/approvals" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #ff9800', background: '#fff4e5', color: '#ff9800', textDecoration: 'none', display: 'inline-block' }}>
+            🛟 Aprobaciones
+          </a>
           <button onClick={() => setShowResetConfirm(true)} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #d32f2f', background: '#ffebee', color: '#d32f2f', fontWeight: 500 }}>
             🗑️ Resetear BD
           </button>
@@ -547,8 +553,8 @@ export function AdminDashboardPage() {
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
                 <KpiCard
                   label="Cobertura Global"
-                  value={`${coverage.global.coveragePercent.toFixed(2)}%`}
-                  sub={`${coverage.global.coveredCards} / ${coverage.global.totalCards} cartas`}
+                  value={`${Number(coverage.global.coveragePercent ?? 0).toFixed(2)}%`}
+                  sub={`${coverage.global.coveredCards ?? 0} / ${coverage.global.totalCards ?? 0} cartas`}
                   color="#5d4037"
                 />
                 <KpiCard
@@ -572,7 +578,7 @@ export function AdminDashboardPage() {
                   {coverage.byTcg.map((item) => (
                     <tr key={item.tcg} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={tdStyle}>{item.tcgDisplayName}</td>
-                      <td style={tdStyle}>{item.coveragePercent.toFixed(2)}%</td>
+                      <td style={tdStyle}>{Number(item.coveragePercent ?? 0).toFixed(2)}%</td>
                       <td style={tdStyle}>{item.coveredCards}</td>
                       <td style={tdStyle}>{item.uncoveredCards}</td>
                       <td style={tdStyle}>{item.totalCards}</td>
@@ -776,7 +782,7 @@ export function AdminDashboardPage() {
                     }}
                   >
                     {e.percentChange > 0 ? '+' : ''}
-                    {e.percentChange.toFixed(1)}%
+                    {Number(e.percentChange ?? 0).toFixed(1)}%
                   </td>
                   <td style={tdStyle}>{new Date(e.createdAt).toLocaleDateString()}</td>
                 </tr>

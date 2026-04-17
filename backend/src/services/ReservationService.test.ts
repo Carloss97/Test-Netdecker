@@ -29,12 +29,11 @@ test('commitReservation creates stock movement and updates listing', async () =>
   try {
     let movementCreated = false;
     let listingUpdated: any = null;
-    let reservationUpdated: any = null;
 
     const tx = {
       reservation: {
         findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L200', warehouseId: 'W2', quantity: 3, status: 'ACTIVE' }),
-        update: async ({ where, data }: any) => { reservationUpdated = { where, data }; return { id: where.id, ...data }; }
+        update: async ({ where, data }: any) => { return { id: where.id, ...data }; }
       },
       listing: {
         findUnique: async ({ where }: any) => ({ id: where.id, quantity: 5 }),
@@ -88,7 +87,7 @@ test('commitReservation creates journal entries when accounts exist', async () =
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
-    const updated: any = await ReservationService.commitReservation('res-je');
+    await ReservationService.commitReservation('res-je');
 
     // Expect two journal entries: sale and COGS
     assert.equal(created.length, 2);

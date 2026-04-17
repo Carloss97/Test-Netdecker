@@ -65,13 +65,13 @@ export class ListingController {
         return;
       }
 
-      function getStatusCodeFromUnknown(e: unknown): number | undefined {
+      const getStatusCodeFromUnknown = (e: unknown): number | undefined => {
         if (typeof e === 'object' && e !== null) {
           const maybe = e as Record<string, unknown>;
           if (typeof maybe.statusCode === 'number') return maybe.statusCode;
         }
         return undefined;
-      }
+      };
 
       const message = error instanceof Error ? error.message : 'Internal Server Error';
       const statusCode = getStatusCodeFromUnknown(error) ?? 500;
@@ -111,9 +111,10 @@ export class ListingController {
         marginMultiplier: nextMargin,
       });
 
-      const isVolatile = PriceService.isVolatileChange(
+      const isVolatile = await PriceService.isVolatileChange(
         listing.finalPrice,
-        newPrice.finalPrice
+        newPrice.finalPrice,
+        { listingId: listing.id }
       );
 
       if (isVolatile) {
@@ -141,13 +142,13 @@ export class ListingController {
         return;
       }
 
-      function getStatusCodeFromUnknown(e: unknown): number | undefined {
+      const getStatusCodeFromUnknown = (e: unknown): number | undefined => {
         if (typeof e === 'object' && e !== null) {
           const maybe = e as Record<string, unknown>;
           if (typeof maybe.statusCode === 'number') return maybe.statusCode;
         }
         return undefined;
-      }
+      };
 
       const message = error instanceof Error ? error.message : 'Internal Server Error';
       const statusCode = getStatusCodeFromUnknown(error) ?? 500;

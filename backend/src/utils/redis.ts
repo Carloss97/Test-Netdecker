@@ -1,5 +1,6 @@
 // src/utils/redis.ts
 import { createClient, RedisClientType } from 'redis';
+import { ApplicationError } from './errors.js';
 
 let redisClient: RedisClientType | null = null;
 let redisUnavailable = false;
@@ -19,7 +20,7 @@ function warnRedisUnavailable(err: unknown): void {
 
 export async function getRedisClient(): Promise<RedisClientType> {
   if (redisUnavailable) {
-    throw new Error('Redis unavailable');
+    throw new ApplicationError(503, 'Redis unavailable', 'SERVICE_UNAVAILABLE');
   }
 
   if (redisClient) {
@@ -35,13 +36,22 @@ export async function getRedisClient(): Promise<RedisClientType> {
   });
   redisClient.on('connect', () => console.log('Redis Client Connected'));
 
+  // Attempt to connect but don't block indefinitely — use a short timeout
+  const CONNECT_TIMEOUT_MS = Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 2000);
   try {
-    await redisClient.connect();
+    await Promise.race([
+      redisClient.connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connect timeout')), CONNECT_TIMEOUT_MS)),
+    ]);
   } catch (err) {
     redisUnavailable = true;
+    try {
+      // best-effort cleanup
+      await redisClient.disconnect?.();
+    } catch (_) {}
     redisClient = null;
     warnRedisUnavailable(err);
-    throw new Error('Redis unavailable');
+    throw new ApplicationError(503, 'Redis unavailable', 'SERVICE_UNAVAILABLE');
   }
 
   return redisClient;

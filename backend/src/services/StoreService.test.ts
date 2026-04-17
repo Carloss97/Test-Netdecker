@@ -42,3 +42,20 @@ test('StoreService.rotateApiKey replaces key and invalidates previous', async ()
     await prisma.store.delete({ where: { id: created.store.id } });
   }
 });
+
+test('StoreService.createStore accepts currency and taxRate and updateStore works', async () => {
+  const slug = `svc-create-${Date.now()}`;
+  const name = 'Service Create With Settings Test';
+
+  const { store } = await StoreService.createStore({ slug, name, currency: 'USD', taxRate: 19 });
+  try {
+    assert.equal(store.currency, 'USD');
+    assert.equal(Number(store.taxRate), 19);
+
+    const updated = await StoreService.updateStore(store.id, { currency: 'CLP', taxRate: 0 });
+    assert.equal(updated.currency, 'CLP');
+    assert.equal(Number(updated.taxRate), 0);
+  } finally {
+    await prisma.store.delete({ where: { id: store.id } });
+  }
+});

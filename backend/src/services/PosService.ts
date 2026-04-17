@@ -10,15 +10,8 @@ export class PosService {
     total?: number;
     status?: string;
   }) {
-    const useSqlite = (process.env.USE_SQLITE === 'true') || ((process.env.DATABASE_URL ?? '').startsWith('file:'));
-    let itemsValue: any = null;
-    if (input.items !== undefined) {
-      if (useSqlite && typeof input.items !== 'string') itemsValue = JSON.stringify(input.items);
-      else itemsValue = input.items as any;
-    }
-
-    console.log('[PosService] createSession useSqlite=', useSqlite, 'itemsValue type=', typeof itemsValue);
-    console.log('[PosService] itemsValue preview=', itemsValue);
+    const useSqlite = process.env.USE_SQLITE === 'true' || false;
+    const itemsValue = input.items != null && useSqlite ? JSON.stringify(input.items) : input.items || null;
 
     const session = await (prisma as any).pOSSession.create({
       data: {

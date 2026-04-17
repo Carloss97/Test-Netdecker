@@ -1,6 +1,7 @@
 // src/routes/cart.routes.ts
 import express, { Request, Response } from 'express';
 import { CartService } from '../services/CartService.js';
+import { ValidationError } from '../utils/errors.js';
 
 const router = express.Router();
 
@@ -9,12 +10,8 @@ const router = express.Router();
  * Get cart by session ID
  */
 router.get('/:sessionId', async (req: Request, res: Response) => {
-  try {
-    const cart = await CartService.getCart(req.params.sessionId);
-    res.json(cart);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  const cart = await CartService.getCart(req.params.sessionId);
+  res.json(cart);
 });
 
 /**
@@ -22,22 +19,18 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
  * Add item to cart
  */
 router.post('/:sessionId/add', async (req: Request, res: Response) => {
-  try {
-    const { listingId, quantity } = req.body;
-    if (!listingId || !quantity) {
-      return res.status(400).json({ error: 'listingId and quantity are required' });
-    }
-
-    const cart = await CartService.addToCart({
-      sessionId: req.params.sessionId,
-      listingId,
-      quantity: Number(quantity)
-    });
-
-    res.json(cart);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const { listingId, quantity } = req.body;
+  if (!listingId || !quantity) {
+    throw new ValidationError('listingId and quantity are required');
   }
+
+  const cart = await CartService.addToCart({
+    sessionId: req.params.sessionId,
+    listingId,
+    quantity: Number(quantity)
+  });
+
+  res.json(cart);
 });
 
 /**
@@ -45,23 +38,19 @@ router.post('/:sessionId/add', async (req: Request, res: Response) => {
  * Checkout cart
  */
 router.post('/:sessionId/checkout', async (req: Request, res: Response) => {
-  try {
-    const { customerEmail, shippingAddress, notes } = req.body;
-    if (!customerEmail) {
-      return res.status(400).json({ error: 'customerEmail is required' });
-    }
-
-    const order = await CartService.checkout(
-      req.params.sessionId,
-      customerEmail,
-      shippingAddress,
-      notes
-    );
-
-    res.status(201).json(order);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const { customerEmail, shippingAddress, notes } = req.body;
+  if (!customerEmail) {
+    throw new ValidationError('customerEmail is required');
   }
+
+  const order = await CartService.checkout(
+    req.params.sessionId,
+    customerEmail,
+    shippingAddress,
+    notes
+  );
+
+  res.status(201).json(order);
 });
 
 /**
@@ -69,22 +58,18 @@ router.post('/:sessionId/checkout', async (req: Request, res: Response) => {
  * Update item quantity
  */
 router.patch('/:sessionId/item/:itemId', async (req: Request, res: Response) => {
-  try {
-    const { quantity } = req.body;
-    if (quantity === undefined) {
-      return res.status(400).json({ error: 'quantity is required' });
-    }
-
-    const cart = await CartService.updateItemQuantity(
-      req.params.sessionId,
-      req.params.itemId,
-      Number(quantity)
-    );
-
-    res.json(cart);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  const { quantity } = req.body;
+  if (quantity === undefined) {
+    throw new ValidationError('quantity is required');
   }
+
+  const cart = await CartService.updateItemQuantity(
+    req.params.sessionId,
+    req.params.itemId,
+    Number(quantity)
+  );
+
+  res.json(cart);
 });
 
 /**
@@ -92,16 +77,12 @@ router.patch('/:sessionId/item/:itemId', async (req: Request, res: Response) => 
  * Remove item from cart
  */
 router.delete('/:sessionId/item/:itemId', async (req: Request, res: Response) => {
-  try {
-    const cart = await CartService.removeFromCart(
-      req.params.sessionId,
-      req.params.itemId
-    );
+  const cart = await CartService.removeFromCart(
+    req.params.sessionId,
+    req.params.itemId
+  );
 
-    res.json(cart);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
-  }
+  res.json(cart);
 });
 
 export default router;

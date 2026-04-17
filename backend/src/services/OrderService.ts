@@ -65,8 +65,8 @@ export class OrderService {
       const listings = await tx.listing.findMany({ where: { id: { in: listingIds } } });
       const listingMap = new Map(listings.map((l: any) => [l.id, l]));
 
-      for (const it of order.items) {
-        const listing = listingMap.get(it.listingId);
+      for (const it of order.items as any[]) {
+        const listing = listingMap.get((it as any).listingId) as any;
         // best-effort: if listing missing, skip stock restore
         if (!listing) continue;
 
@@ -81,7 +81,7 @@ export class OrderService {
           },
         });
 
-        await tx.listing.update({ where: { id: it.listingId }, data: { quantity: Number(listing.quantity || 0) + it.quantity } });
+        await tx.listing.update({ where: { id: it.listingId }, data: { quantity: Number(listing.quantity || 0) + Number((it as any).quantity || 0) } });
       }
 
       const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' }, include: { items: true } });
@@ -89,7 +89,7 @@ export class OrderService {
     });
   }
 
-  static async shipOrder(orderId: string, performedBy?: string | null) {
+  static async shipOrder(orderId: string, _performedBy?: string | null) {
     return prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundError('Order not found');
@@ -105,7 +105,7 @@ export class OrderService {
     });
   }
 
-  static async deliverOrder(orderId: string, performedBy?: string | null) {
+  static async deliverOrder(orderId: string, _performedBy?: string | null) {
     return prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundError('Order not found');

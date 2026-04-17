@@ -1,0 +1,32 @@
+name: Integration Tests (PR)
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    name: Integration tests (stub DB)
+    runs-on: ubuntu-latest
+    env:
+      NPM_CONFIG_LOGLEVEL: error
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+
+      - name: Run integration tests (SKIP_DB_INIT)
+        working-directory: backend
+        env:
+          SKIP_DB_INIT: 'true'
+        run: npx tsx --test src/tests/integration/**/*.test.ts

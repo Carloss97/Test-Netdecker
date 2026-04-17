@@ -6,6 +6,8 @@ import { PriceService } from './PriceService.js';
 import PriceApprovalService from './PriceApprovalService.js';
 import PriceThresholdService from './PriceThresholdService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+import createD1Proxy from '../utils/d1Proxy.js';
 
 export interface PriceSyncUpdateInput {
   listingId?: string;
@@ -155,6 +157,25 @@ function estimateFallbackReferencePrice(tcgName: string, rarity?: string): numbe
 
 export class PriceSyncService {
   static async runPriceSync(input: RunPriceSyncInput): Promise<PriceSyncResult> {
+    // If configured to use D1 backend, delegate to the D1 implementation
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const priceSync = await import('../../../functions/_shared/priceSyncService.js');
+      const res = await priceSync.runPriceSync(db, process.env, input as any);
+      return {
+        runId: res.runId,
+        source: res.source,
+        total: res.total,
+        updated: res.updated,
+        volatile: res.volatile,
+        failed: res.failed,
+        roundingMultiple: input.roundingMultiple ?? 1,
+        errors: res.errors || [],
+        pricingSourceStats: undefined,
+        startedAt: res.startedAt,
+        completedAt: res.completedAt,
+      } as PriceSyncResult;
+    }
     const startedAt = new Date();
     const resolvedRounding = PriceService.resolveRoundingMultiple(input.roundingMultiple);
     const runDelegate = getPriceSyncRunDelegate();
@@ -525,7 +546,7 @@ export class PriceSyncService {
             });
 
             if (!listing) {
-              throw new Error('Listing not found');
+              throw new NotFoundError('Listing not found');
             }
 
             const resolvedMargin = update.marginMultiplier || listing.marginMultiplier;
@@ -543,7 +564,7 @@ export class PriceSyncService {
             );
 
             const isVolatile = isApiSourced && listing.finalPrice > 0
-              ? PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice, threshold)
+              ? await PriceService.isVolatileChange(listing.finalPrice, calculated.finalPrice, threshold)
               : false;
 
             // If manual approval is required for volatile changes, create an approval
@@ -612,7 +633,7 @@ export class PriceSyncService {
             continue;
           }
 
-          throw new Error('Sync target missing listingId or cardId');
+          throw new ValidationError('Sync target missing listingId or cardId');
         } catch (error: unknown) {
           result.failed += 1;
           result.errors.push({

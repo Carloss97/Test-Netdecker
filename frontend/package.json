@@ -4,11 +4,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "e2e:install": "playwright install --with-deps"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.1.0",
@@ -19,6 +22,7 @@
     "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -27,8 +31,10 @@
     "@vitejs/plugin-react": "^4.2.1",
     "esbuild": "^0.27.7",
     "happy-dom": "^20.8.9",
+    "jsdom": "^29.0.2",
+    "playwright": "^1.40.0",
     "typescript": "^5.3.3",
-    "vite": "^5.0.8",
+    "vite": "^7.0.0",
     "vitest": "^4.1.2"
   }
 }

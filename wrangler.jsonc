@@ -1,0 +1,12 @@
+{
+  "name": "tcg-erp",
+  "compatibility_date": "2026-04-16",
+  "pages_build_output_dir": "./frontend/dist",
+  "d1_databases": [
+    {
+      "binding": "TCG_D1",
+      "database_name": "tcg-erp-db",
+      "database_id": "838515cb-9c78-48a6-825d-0d21d3652821"
+    }
+  ]
+}

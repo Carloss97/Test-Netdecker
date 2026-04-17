@@ -716,8 +716,8 @@ export function InventoryPage() {
                             )}
                           </td>
                           <td style={{ fontSize: '0.8rem' }}>
-                            {mainListing?.referencePrice
-                              ? `$${mainListing.referencePrice.toFixed(2)}`
+                            {mainListing?.referencePrice != null && Number.isFinite(mainListing.referencePrice)
+                              ? `$${Number(mainListing.referencePrice).toFixed(2)}`
                               : '—'}
                           </td>
                           <td style={{ fontSize: '0.8rem', fontWeight: 500 }}>

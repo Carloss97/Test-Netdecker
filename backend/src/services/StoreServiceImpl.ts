@@ -33,17 +33,21 @@ function verifyApiKeyAgainstHash(apiKey: string, stored: string) {
 }
 
 class StoreServiceImpl {
-  static async createStore(input: { slug: string; name: string; description?: string }) {
+  static async createStore(input: { slug: string; name: string; description?: string; currency?: string; taxRate?: number; settings?: any }) {
     const slug = String(input.slug || '').trim().toLowerCase();
     const name = String(input.name || '').trim();
     if (!slug) throw new ValidationError('slug is required');
     if (!name) throw new ValidationError('name is required');
-
     const apiKey = generateApiKey();
     const apiKeyHash = hashApiKey(apiKey);
 
     try {
-      const store = await prisma.store.create({ data: { slug, name, description: input.description ?? null, apiKeyHash } });
+      const data: any = { slug, name, description: input.description ?? null, apiKeyHash };
+      if ((input as any).currency !== undefined) data.currency = (input as any).currency;
+      if ((input as any).taxRate !== undefined) data.taxRate = Number((input as any).taxRate);
+      if ((input as any).settings !== undefined) data.settings = typeof (input as any).settings === 'string' ? (input as any).settings : JSON.stringify((input as any).settings);
+
+      const store = await prisma.store.create({ data });
       return { store, apiKey };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -52,6 +56,21 @@ class StoreServiceImpl {
       }
       throw err;
     }
+  }
+
+  static async updateStore(storeId: string, input: { name?: string; description?: string; currency?: string; taxRate?: number; settings?: any }) {
+    const existing = await prisma.store.findUnique({ where: { id: storeId } });
+    if (!existing) throw new NotFoundError('Store not found');
+
+    const data: any = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.description !== undefined) data.description = input.description;
+    if (input.currency !== undefined) data.currency = input.currency;
+    if (input.taxRate !== undefined) data.taxRate = Number(input.taxRate);
+    if (input.settings !== undefined) data.settings = typeof input.settings === 'string' ? input.settings : JSON.stringify(input.settings);
+
+    const updated = await prisma.store.update({ where: { id: storeId }, data });
+    return updated;
   }
 
   static async rotateApiKey(storeId: string) {

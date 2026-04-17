@@ -12,7 +12,7 @@ export class InvoicePdfService {
 
       doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', (err) => reject(err));
+      doc.on('error', (err: any) => reject(err));
 
       // Header
       doc.fontSize(20).text('Factura / Invoice', { align: 'center' });

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
+const { parse } = require('csv-parse/sync');
 const axios = require('axios');
 
 const DATA_DIR = path.resolve(process.cwd(), 'testRA5');
@@ -28,21 +29,10 @@ if (!fs.existsSync(TEMPLATE_PATH)) {
 
 console.log('Template:', TEMPLATE_PATH);
 console.log('CSV:', CSV_PATH);
-
-// Read template and get headers
-const tplWb = XLSX.readFile(TEMPLATE_PATH);
-const tplSheetName = tplWb.SheetNames[0];
-const tplWs = tplWb.Sheets[tplSheetName];
-const tplRows = XLSX.utils.sheet_to_json(tplWs, { header: 1 });
-const tplHeaders = (tplRows && tplRows[0]) ? tplRows[0] : [];
-
-console.log('Detected template headers (first row):');
-console.log(tplHeaders.join(' | '));
-
-// Read CSV into objects
-const csvWb = XLSX.readFile(CSV_PATH, { raw: false });
-const csvSheet = csvWb.Sheets[csvWb.SheetNames[0]];
-const csvData = XLSX.utils.sheet_to_json(csvSheet, { defval: '' });
+// Header and CSV placeholders (will be populated in the async flow)
+let tplHeaders = [];
+let tplSheetName = 'Sheet1';
+let csvData = [];
 
 function getCsvVal(row, keys) {
   for (const key of keys) {
@@ -363,6 +353,21 @@ async function mapRowToTemplate(csvRow) {
 
 // Build output rows starting with template headers and optionally fetch types remotely
 (async () => {
+  // Read template and populate headers
+  const tplWb = new ExcelJS.Workbook();
+  await tplWb.xlsx.readFile(TEMPLATE_PATH);
+  const tplSheet = tplWb.worksheets[0];
+  tplSheetName = tplSheet.name || 'Sheet1';
+  const firstRow = tplSheet.getRow(1).values.slice(1);
+  tplHeaders = firstRow.map((v) => (v === null || v === undefined) ? '' : String(v));
+
+  console.log('Detected template headers (first row):');
+  console.log(tplHeaders.join(' | '));
+
+  // Read CSV into objects using csv-parse
+  const csvContent = fs.readFileSync(CSV_PATH, 'utf8');
+  csvData = parse(csvContent, { columns: true, skip_empty_lines: true, relax_column_count: true });
+
   const outRows = [tplHeaders];
   for (const row of csvData) {
     const editionCode = String(getCsvVal(row, ['editionCode', 'edition_code']) || '').toUpperCase();
@@ -377,9 +382,12 @@ async function mapRowToTemplate(csvRow) {
     outRows.push(arr);
   }
 
-  const outWs = XLSX.utils.aoa_to_sheet(outRows);
-  const outWb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(outWb, outWs, tplSheetName);
-  XLSX.writeFile(outWb, OUTPUT_PATH);
+  // Build output workbook using ExcelJS
+  const outWb = new ExcelJS.Workbook();
+  const outWs = outWb.addWorksheet(tplSheetName);
+  for (const r of outRows) {
+    outWs.addRow(r);
+  }
+  await outWb.xlsx.writeFile(OUTPUT_PATH);
   console.log('Wrote', OUTPUT_PATH);
 })();

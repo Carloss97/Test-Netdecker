@@ -13,10 +13,27 @@ import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import storesRoutes from './admin.stores.routes.js';
 import accountsRoutes from './admin.accounts.routes.js';
+import thresholdsRoutes from './admin.thresholds.routes.js';
+import approvalsRoutes from './admin.approvals.routes.js';
+import requireAdmin, { requireAdminRole } from '../middleware/requireAdmin.js';
+import adminAudit from '../middleware/adminAudit.js';
 
 const router = express.Router();
+
+// Expose store management endpoints via API key (used for onboarding/automation)
 router.use('/stores', storesRoutes);
+
+// Protect the remaining admin routes with admin authentication + audit
+router.use(requireAdmin, adminAudit);
+
+// All routes mounted after this point require admin auth (role checks applied where needed)
 router.use('/accounts', accountsRoutes);
+router.use('/pricing/thresholds', thresholdsRoutes);
+router.use('/approvals', approvalsRoutes);
+
+// Simple in-memory cache for the admin dashboard to keep the UI responsive
+let _adminDashboardCache: { ts: number; data: unknown } | null = null;
+const ADMIN_DASHBOARD_CACHE_TTL_MS = Number(process.env.ADMIN_DASHBOARD_CACHE_TTL_MS || 15000);
 
 // Simple in-memory cache for the admin dashboard to keep the UI responsive
 let _adminDashboardCache: { ts: number; data: unknown } | null = null;
@@ -277,7 +294,7 @@ router.get('/editions', async (_req: Request, res: Response) => {
  * POST /api/admin/catalog/bootstrap
  * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE'|'DIGIMON'|'WEISS_SCHWARZ', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
  */
-router.post('/catalog/bootstrap', async (req: Request, res: Response) => {
+router.post('/catalog/bootstrap', requireAdminRole('ADMIN'), async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
   const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
     ? (tcgRaw as typeof SUPPORTED_TCGS[number])
@@ -303,7 +320,7 @@ router.post('/catalog/bootstrap', async (req: Request, res: Response) => {
  * POST /api/admin/catalog/sync
  * Sync only new or changed external sets into the local catalog.
  */
-router.post('/catalog/sync', async (req: Request, res: Response) => {
+router.post('/catalog/sync', requireAdminRole('ADMIN'), async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
   const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
     ? (tcgRaw as typeof SUPPORTED_TCGS[number])
@@ -451,9 +468,10 @@ router.post('/pricing/preview', async (req: Request, res: Response) => {
     diff: {
       delta,
       deltaPercent,
-      isVolatile: currentFinalPrice === null
-        ? null
-        : PriceService.isVolatileChange(currentFinalPrice, calculation.finalPrice),
+      isVolatile: (await (async () => {
+        if (currentFinalPrice === null) return null;
+        return await PriceService.isVolatileChange(currentFinalPrice, calculation.finalPrice, listing ? { listingId: listing.id } : undefined);
+      })()),
     },
   });
 });

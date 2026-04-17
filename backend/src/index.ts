@@ -47,12 +47,13 @@ import publicRoutes from './routes/public.routes.js';
 import pricingRoutes from './routes/pricing.routes.js';
 import posRoutes from './routes/pos.routes.js';
 import cashSessionsRoutes from './routes/cashSessions.routes.js';
-import posCashRoutes from './routes/pos.cash.routes.js';
+// posCashRoutes was removed from mounting to avoid duplicate routes; import removed
 import invoicesRoutes from './routes/invoices.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
 import { startInvoiceCleanupJob } from './jobs/invoiceCleanup.job.js';
+import { startReservationCleanupCron } from './jobs/reservationCleanup.job.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3333;
@@ -169,14 +170,25 @@ app.use((req: Request, res: Response) => {
 // Server startup is performed from `src/server.ts` to avoid starting the
 // HTTP listener when this module is imported by tests or other tools.
 export function startServer(portArg?: number | string) {
-  const portVal = portArg ?? process.env.PORT ?? 3333;
+  const portVal = portArg ?? PORT;
   const port = typeof portVal === 'string' ? Number(portVal) : portVal;
 
   const server = app.listen(port, () => {
     startPriceSyncCron();
     startCatalogSyncCron();
     startCartCleanupCron();
+    startReservationCleanupCron();
     startInvoiceCleanupJob();
+
+    // Preconnect to Redis in background (non-blocking). This starts the client
+    // connect attempt but does not block server startup — failures degrade gracefully.
+    try {
+      import('./utils/redis.js').then((m) => {
+        if (m && typeof m.getRedisClient === 'function') {
+          m.getRedisClient().then(() => console.log('Redis preconnect succeeded')).catch((err) => console.warn('Redis preconnect failed (non-blocking)', err?.message || err));
+        }
+      }).catch(() => {});
+    } catch (_) {}
 
     console.log(`
 ╔═══════════════════════════════════════════╗

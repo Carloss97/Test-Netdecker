@@ -1,0 +1,18 @@
+name: Cron - Exchange Rate Refresh
+
+on:
+  schedule:
+    - cron: '0 * * * *' # every hour at minute 0
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Exchange Rate Refresh endpoint
+        env:
+          PAGES_URL: ${{ secrets.PAGES_URL }}
+        run: |
+          if [ -z "$PAGES_URL" ]; then echo "PAGES_URL secret not set"; exit 1; fi
+          echo "Calling $PAGES_URL/api/external/exchange-rate-refresh"
+          curl -sSf -X POST "$PAGES_URL/api/external/exchange-rate-refresh" -H "Content-Type: application/json" -d '{}' | jq || true

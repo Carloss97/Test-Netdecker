@@ -8,10 +8,15 @@
     "start:dev": "bash scripts/start-dev.sh",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build": "node scripts/build.js",
+    "deploy:pages": "npm run build && npx wrangler pages deploy frontend/dist --project-name tcg-erp --branch main",
+    "deploy:wrangler": "npm run build && npx wrangler deploy",
     "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check",
     "map:ra5": "node scripts/map-ra5.js",
-    "postinstall": "npm --prefix backend install && npm --prefix frontend install"
+    "verify:pages": "node scripts/check-pages-project.js",
+    "test:pages-smoke": "node scripts/pages-smoke-test.js",
+    "scan:sql": "node scripts/scan_functions_sql.js",
+    "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
@@ -19,6 +24,20 @@
   "dependencies": {
     "axios": "^1.14.0",
     "cheerio": "^1.2.0",
-    "xlsx": "^0.18.5"
+    "exceljs": "^4.4.0",
+    "csv-parse": "^6.0.0"
+  }
+  ,
+  "overrides": {
+    "glob": "^13.0.6",
+    "rimraf": "^4.0.1",
+    "encoding-sniffer": "1.0.2",
+    "domexception": "^4.0.2",
+    "abab": "^2.0.6",
+    "lodash.isequal": "^4.5.0",
+    "@fast-csv/format": "^5.0.5",
+    "archiver-utils": "^5.0.2"
+    ,
+    "unzipper": "^0.12.3"
   }
 }

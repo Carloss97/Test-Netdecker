@@ -97,6 +97,30 @@ export async function importWithMapping(file: File, mapping: ColumnMapping, apiK
   return postMultipart('/api/inventory/import-csv', transformed, apiKey);
 }
 
+export async function precheckImport(file: File, mapping: ColumnMapping | undefined, apiKey?: string) {
+  const transformed = mapping ? await transformFileHeaders(file, mapping) : file;
+  const fd = new FormData();
+  fd.append('file', transformed);
+  if (mapping) fd.append('mapping', JSON.stringify(mapping));
+  fd.append('precheck', 'true');
+  const headers: Record<string, string> = {};
+  if (apiKey) headers['x-api-key'] = apiKey;
+  const res = await fetch('/api/inventory/import-csv', { method: 'POST', headers, body: fd });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function importWithMappingAutoCheck(file: File, mapping: ColumnMapping | undefined, apiKey?: string) {
+  // run precheck automatically and then upload (server also auto-chunks)
+  const pre = await precheckImport(file, mapping, apiKey).catch(() => null);
+  const transformed = mapping ? await transformFileHeaders(file, mapping) : file;
+  const result = await postMultipart('/api/inventory/import-csv', transformed, apiKey);
+  return { precheck: pre, result };
+}
+
 async function postMultipartWithMapping(url: string, file: File, mapping: ColumnMapping | undefined, apiKey?: string) {
   const fd = new FormData();
   fd.append('file', file);

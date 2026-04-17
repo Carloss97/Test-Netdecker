@@ -6,6 +6,7 @@ import {
   importExternalSet,
   listExternalSets,
 } from '../services/catalog';
+import * as localImports from '../services/localImports';
 import type { ExternalCard, ExternalEdition } from '../types';
 import { DEFAULT_MARGIN_INPUT } from '../constants/pricing';
 
@@ -30,7 +31,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 function PriceTag({ label, value }: { label: string; value?: number }) {
-  if (value === undefined || value === null) return null;
+  if (value === undefined || value === null || !Number.isFinite(value)) return null;
   return (
     <span
       style={{
@@ -42,7 +43,7 @@ function PriceTag({ label, value }: { label: string; value?: number }) {
         color: '#2e7d32',
       }}
     >
-      {label}: ${value.toFixed(2)}
+      {label}: ${Number(value).toFixed(2)}
     </span>
   );
 }
@@ -418,6 +419,54 @@ export function ExternalCardSearch() {
           <div>{successMsg}</div>
         </div>
       )}
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={() => {
+            const json = localImports.exportLocalListingsJson();
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'netdecker-local-imports.json';
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={{ padding: '6px 12px', cursor: 'pointer' }}
+        >
+          Export Local Imports (JSON)
+        </button>
+        <button
+          onClick={() => {
+            const csv = localImports.exportLocalListingsCsv();
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'netdecker-local-imports.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          style={{ padding: '6px 12px', cursor: 'pointer' }}
+        >
+          Export Local Imports (CSV)
+        </button>
+        <button
+          onClick={() => {
+            const all = localImports.listLocalListings();
+            if (!all.length) {
+              setSuccessMsg('No local imports found.');
+              setTimeout(() => setSuccessMsg(null), 3000);
+              return;
+            }
+            const names = all.slice(0, 20).map((l) => `${l.card.cardName} (${l.card.externalId}) x${l.quantity}`).join('\n');
+            alert(`Local listings (${all.length}):\n\n${names}${all.length > 20 ? '\n\n(only first 20 shown)' : ''}`);
+          }}
+          style={{ padding: '6px 12px', cursor: 'pointer' }}
+        >
+          View Local Imports
+        </button>
+      </div>
       {bulkResult && (
         <div style={{ background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 4, padding: 12, marginBottom: 12, display: 'flex', gap: 16, alignItems: 'center' }}>
           <span>📦</span>

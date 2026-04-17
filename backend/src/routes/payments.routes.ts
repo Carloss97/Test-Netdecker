@@ -3,6 +3,7 @@ import { z } from 'zod';
 import PaymentService from '../services/PaymentService.js';
 import { ValidationError } from '../utils/errors.js';
 import StripeService from '../services/StripeService.js';
+import MercadoPagoService from '../services/MercadoPagoService.js';
 import prisma from '../utils/db.js';
 
 const router = express.Router();
@@ -39,6 +40,24 @@ router.post('/stripe/create-intent', async (req, res) => {
   const body = parseBodyOrThrow(createIntentSchema, req.body);
   const intent = await StripeService.createPaymentIntent({ items: body.items, storeId: body.storeId || null, currency: body.currency || 'CLP' });
   res.json({ success: true, clientSecret: intent.clientSecret, paymentIntentId: intent.id, amount: intent.amount, currency: intent.currency });
+});
+
+// Create Mercado Pago preference for client checkout
+const mpSchema = z.object({
+  items: z.array(z.object({ listingId: z.string().trim().min(1), title: z.string().optional(), quantity: z.coerce.number().int().min(1), unit_price: z.coerce.number().min(0) })).min(1),
+  storeId: z.string().optional(),
+  back_urls: z.record(z.string()).optional(),
+});
+
+router.post('/mercadopago/create-preference', async (req, res) => {
+  const body = parseBodyOrThrow(mpSchema, req.body);
+  const items = body.items.map((i: any) => ({ id: i.listingId, title: i.title || i.listingId, quantity: i.quantity, unit_price: i.unit_price }));
+  try {
+    const pref = await MercadoPagoService.createPreference({ items, back_urls: body.back_urls || {}, external_reference: body.storeId || undefined });
+    res.json({ success: true, preference: pref });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'MercadoPago error' });
+  }
 });
 
 // Stripe webhook receiver - use raw body for signature verification

@@ -40,3 +40,16 @@ Notes
 - `GHCR_PAT` must have `write:packages` permission at minimum. Creating a PAT scoped to packages only is recommended for least privilege.
 - Never commit private keys or secrets into the repo. Use `gh secret set` or the GitHub UI.
 - After adding secrets, trigger the `Build and Push Docker images to GHCR` workflow (`Actions` tab) to run the build.
+
+Pages & runtime secrets
+- `PAGES_URL` — Public Pages URL for the deployment (e.g. `https://tcg-erp.pages.dev`). Used by scheduled GitHub Actions that call Pages Functions.
+- `ADMIN_MIGRATE_TOKEN` — Optional token for `x-admin-token` header used by `/api/admin/migrate` to protect remote migrations.
+
+Set them via the UI or `gh` CLI, for example:
+
+```sh
+gh secret set PAGES_URL --body "https://tcg-erp.pages.dev"
+gh secret set ADMIN_MIGRATE_TOKEN --body "$(openssl rand -hex 16)"
+```
+
+Once `PAGES_URL` is configured, scheduled workflows like `.github/workflows/cron-exchange-rate.yml` and `.github/workflows/cron-price-sync.yml` will be able to reach your Pages Functions.

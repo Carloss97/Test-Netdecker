@@ -1,4 +1,5 @@
 import prisma from '../utils/db.js';
+import { ValidationError } from '../utils/errors.js';
 
 type LineInput = {
   accountId: string;
@@ -16,13 +17,13 @@ export class AccountingService {
     lines: LineInput[];
   }) {
     const lines = input.lines || [];
-    if (!lines.length) throw new Error('Journal entry must contain at least one line');
+    if (!lines.length) throw new ValidationError('Journal entry must contain at least one line');
 
     const totalDebit = lines.reduce((s, l) => s + (Number(l.debit || 0)), 0);
     const totalCredit = lines.reduce((s, l) => s + (Number(l.credit || 0)), 0);
 
     if (Math.abs(totalDebit - totalCredit) > 1e-9) {
-      throw new Error('Journal entry not balanced: debits must equal credits');
+      throw new ValidationError('Journal entry not balanced: debits must equal credits');
     }
 
     return prisma.$transaction(async (tx: any) => {

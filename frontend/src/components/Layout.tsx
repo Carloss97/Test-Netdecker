@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/importar', icon: '📥', label: 'Importar' },
   { to: '/buscar', icon: '🔍', label: 'Buscar Carta' },
   { to: '/admin', icon: '⚙️', label: 'Admin' },
+  { to: '/local-imports', icon: '🗂️', label: 'Local Imports' },
 ];
 
 interface LayoutProps {

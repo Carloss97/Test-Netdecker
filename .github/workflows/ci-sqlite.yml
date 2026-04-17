@@ -1,0 +1,39 @@
+name: CI - Backend (SQLite)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-sqlite-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
+    env:
+      NPM_CONFIG_LOGLEVEL: error
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Generate Prisma SQLite client
+        run: npm --prefix backend run prisma:generate:sqlite
+
+      - name: Push SQLite schema (create dev.sqlite)
+        env:
+          DATABASE_URL: file:./backend/dev.sqlite
+        run: npm --prefix backend run prisma:push:sqlite
+
+      - name: Run backend CI tests (SQLite)
+        env:
+          USE_SQLITE: 'true'
+          DATABASE_URL: file:./backend/dev.sqlite
+        run: npm --prefix backend run ci:test:sqlite

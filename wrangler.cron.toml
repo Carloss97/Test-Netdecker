@@ -1,0 +1,23 @@
+# Template wrangler config for a scheduled worker that triggers the exchange-rate refresh
+# Replace placeholders (account_id, zone_id) before deploying.
+
+name = "tcg-erp-cron-refresh"
+compatibility_date = "2026-04-16"
+type = "javascript"
+
+# Cloudflare account id goes here
+account_id = "61550294a6458f12ff284ade94ed0411"
+
+# Deploy to workers.dev during testing
+workers_dev = true
+
+[triggers]
+# Run every 30 minutes (adjust as needed)
+crons = ["*/30 * * * *"]
+
+[env.production]
+# Optional: override schedule or other env per env
+
+# Bindings: set PAGES_URL to your deployed Pages origin (e.g. https://tcg-erp.pages.dev)
+[vars]
+PAGES_URL = "tcg-erp.pages.dev"

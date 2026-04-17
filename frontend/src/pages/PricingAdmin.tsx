@@ -268,14 +268,14 @@ export function PricingAdmin({ initialListingId }: PricingAdminProps) {
               Tipo de cambio: <strong>{previewResult.preview.exchangeRate}</strong> ({previewResult.preview.exchangeRateRetrievalSource})
             </p>
             <p>
-              Precio base (sin redondeo): <strong>{previewResult.preview.rawFinalPrice.toFixed(2)} CLP</strong>
+              Precio base (sin redondeo): <strong>{Number(previewResult.preview.rawFinalPrice ?? 0).toFixed(2)} CLP</strong>
             </p>
             <p>
-              Precio final: <strong>{previewResult.preview.finalPrice.toFixed(2)} CLP</strong> (multiplo: {previewResult.preview.roundingMultiple})
+              Precio final: <strong>{Number(previewResult.preview.finalPrice ?? 0).toFixed(2)} CLP</strong> (multiplo: {previewResult.preview.roundingMultiple})
             </p>
             {previewResult.diff.delta !== null && previewResult.diff.deltaPercent !== null && (
               <p>
-                Delta vs actual: <strong>{previewResult.diff.delta.toFixed(2)} CLP</strong> ({previewResult.diff.deltaPercent.toFixed(2)}%)
+                Delta vs actual: <strong>{Number(previewResult.diff.delta ?? 0).toFixed(2)} CLP</strong> ({Number(previewResult.diff.deltaPercent ?? 0).toFixed(2)}%)
                 {previewResult.diff.isVolatile !== null && (
                   <> | Volatil: <strong>{previewResult.diff.isVolatile ? 'SI' : 'NO'}</strong></>
                 )}
@@ -309,16 +309,16 @@ export function PricingAdmin({ initialListingId }: PricingAdminProps) {
               Guardado: ref USD {debugResult.pricing.storedReferencePrice} * margen {debugResult.pricing.storedMarginMultiplier} * fx {debugResult.pricing.storedExchangeRate}
             </p>
             <p>
-              Precio guardado: <strong>{debugResult.pricing.storedFinalPrice.toFixed(2)} CLP</strong>
+              Precio guardado: <strong>{Number(debugResult.pricing.storedFinalPrice ?? 0).toFixed(2)} CLP</strong>
             </p>
             <p>
-              Recalculo actual: <strong>{debugResult.recalculation.recalculatedFinalPrice.toFixed(2)} CLP</strong> ({debugResult.recalculation.formula})
+              Recalculo actual: <strong>{Number(debugResult.recalculation.recalculatedFinalPrice ?? 0).toFixed(2)} CLP</strong> ({debugResult.recalculation.formula})
             </p>
             <p>
-              Recalculo base (sin redondeo): <strong>{debugResult.recalculation.rawRecalculatedFinalPrice.toFixed(2)} CLP</strong> | Multiplo aplicado: {debugResult.recalculation.roundingMultiple}
+              Recalculo base (sin redondeo): <strong>{Number(debugResult.recalculation.rawRecalculatedFinalPrice ?? 0).toFixed(2)} CLP</strong> | Multiplo aplicado: {debugResult.recalculation.roundingMultiple}
             </p>
             <p>
-              Delta: <strong>{debugResult.recalculation.delta.toFixed(2)} CLP</strong> ({debugResult.recalculation.deltaPercent.toFixed(2)}%)
+              Delta: <strong>{Number(debugResult.recalculation.delta ?? 0).toFixed(2)} CLP</strong> ({Number(debugResult.recalculation.deltaPercent ?? 0).toFixed(2)}%)
             </p>
             <p>
               Volatil: <strong>{debugResult.recalculation.isVolatile ? 'SI' : 'NO'}</strong>

@@ -32,6 +32,15 @@ const decreaseQuantitySchema = z.object({
   amount: z.coerce.number().int('amount must be an integer').positive('amount must be > 0'),
 });
 
+const rollbackSchema = z.object({
+  force: z.boolean().optional(),
+  dryRun: z.boolean().optional(),
+  onlyListingIds: z.array(z.string()).optional(),
+  skipListingIds: z.array(z.string()).optional(),
+  batchId: z.string().optional(),
+  batchIndex: z.number().int().optional(),
+});
+
 function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -78,38 +87,54 @@ router.get('/imports', async (req: Request, res: Response) => {
  */
 router.get('/imports/export', async (req: Request, res: Response) => {
   const query = parseImportQuery(req);
-  const items = await InventoryService.getImportsForExport(query);
-
-  const header = ['id', 'fileName', 'status', 'totalRecords', 'successCount', 'failureCount', 'importedBy', 'createdAt', 'completedAt'];
-  const rows = items.map((item: {
-    id: string;
-    fileName: string;
-    status: string;
-    totalRecords: number;
-    successCount: number;
-    failureCount: number;
-    importedBy: string | null;
-    createdAt: Date;
-    completedAt: Date | null;
-  }) => [
-    item.id,
-    item.fileName,
-    item.status,
-    String(item.totalRecords),
-    String(item.successCount),
-    String(item.failureCount),
-    item.importedBy || '',
-    item.createdAt.toISOString(),
-    item.completedAt ? item.completedAt.toISOString() : '',
-  ]);
-
-  const csv = [header, ...rows]
-    .map((cols: string[]) => cols.map((value: string) => `"${String(value).replace(/"/g, '""')}"`).join(','))
-    .join('\r\n');
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="inventory-import-history.csv"');
-  res.send(csv);
+
+  const header = ['id', 'fileName', 'status', 'totalRecords', 'successCount', 'failureCount', 'importedBy', 'createdAt', 'completedAt'];
+  const quote = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+  // Write header
+  res.write(header.map((h) => quote(h)).join(',') + '\r\n');
+
+  try {
+    // Prefer streaming exporter to avoid large memory usage
+    if (typeof (InventoryService as any).streamImportsForExport === 'function') {
+      for await (const item of (InventoryService as any).streamImportsForExport(query)) {
+        const row = [
+          item.id,
+          item.fileName,
+          item.status,
+          String(item.totalRecords),
+          String(item.successCount),
+          String(item.failureCount),
+          item.importedBy || '',
+          item.createdAt ? item.createdAt.toISOString() : '',
+          item.completedAt ? item.completedAt.toISOString() : '',
+        ];
+        res.write(row.map((c) => quote(c)).join(',') + '\r\n');
+      }
+    } else {
+      // Fallback: in older environments, fetch all and stream
+      const items = await InventoryService.getImportsForExport(query);
+      for (const item of items) {
+        const row = [
+          item.id,
+          item.fileName,
+          item.status,
+          String(item.totalRecords),
+          String(item.successCount),
+          String(item.failureCount),
+          item.importedBy || '',
+          item.createdAt ? item.createdAt.toISOString() : '',
+          item.completedAt ? item.completedAt.toISOString() : '',
+        ];
+        res.write(row.map((c) => quote(c)).join(',') + '\r\n');
+      }
+    }
+  } finally {
+    res.end();
+  }
 });
 
 /**
@@ -118,17 +143,18 @@ router.get('/imports/export', async (req: Request, res: Response) => {
  * Attempts a best-effort rollback of changes recorded for the given import.
  */
 router.post('/imports/:id/rollback', requireApiKey, async (req: Request, res: Response) => {
-  try {
-    const importId = String(req.params.id);
-    const force = Boolean((req.body && req.body.force) || false);
+  const importId = String(req.params.id);
+  const body = parseBodyOrThrow(rollbackSchema, req.body);
 
-    const result = await InventoryService.rollbackImport(importId, { force });
-    res.json({ success: true, result });
-  } catch (err) {
-    if (err instanceof NotFoundError) return res.status(404).json({ success: false, error: err.message });
-    if (err instanceof ValidationError) return res.status(400).json({ success: false, error: err.message });
-    res.status(500).json({ success: false, error: (err as Error).message });
-  }
+  const force = Boolean(body.force || false);
+  const dryRun = Boolean(body.dryRun || false);
+  const onlyListingIds = Array.isArray(body.onlyListingIds) ? body.onlyListingIds.map(String) : undefined;
+  const skipListingIds = Array.isArray(body.skipListingIds) ? body.skipListingIds.map(String) : undefined;
+  const batchId = body.batchId ? String(body.batchId) : undefined;
+  const batchIndex = typeof body.batchIndex !== 'undefined' ? Number(body.batchIndex) : undefined;
+
+  const result = await InventoryService.rollbackImport(importId, { force, dryRun, onlyListingIds, skipListingIds, batchId, batchIndex });
+  res.json({ success: true, result });
 });
 
 /**
@@ -259,7 +285,7 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
 
   function stripRarityFromName(rawName?: string, rarityText?: string) {
     if (!rawName) return '';
-    let name = String(rawName).trim();
+    const name = String(rawName).trim();
     const keywords = [
       'rare', 'collector', "collector's", 'secret', 'ultra', 'ultimate', 'platinum', 'ghost', 'gold', 'starlight', 'prismatic', 'mosaic'
     ];
@@ -314,7 +340,7 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
   function rewriteUrlName(name?: string) {
     if (!name) return '';
     return String(name)
-      .replace(/[()\[\]\.,;:'"“”‘’]/g, '')
+      .replace(/[\u005b\u005d().,;:'"“”‘’]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
   }
@@ -466,6 +492,7 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
   const fileName =
     scope === 'edition'
@@ -476,7 +503,9 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-  res.send(Buffer.from(buffer));
+  res.setHeader('Content-Length', String(buf.length));
+  // Send binary buffer explicitly to avoid accidental string encoding
+  res.end(buf);
 });
 
 /**

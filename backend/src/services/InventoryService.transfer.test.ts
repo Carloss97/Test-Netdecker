@@ -78,7 +78,7 @@ test('transferStock fails on insufficient source stock', async () => {
   try {
     const tx = {
       listing: { findUnique: async ({ where }: any) => ({ id: where.id, quantity: 5 }) },
-      warehouseStock: { findFirst: async ({ where }: any) => ({ id: 'ws-from', quantity: 2 }) },
+      warehouseStock: { findFirst: async ({ _where }: any) => ({ id: 'ws-from', quantity: 2 }) },
       stockMovement: { create: async ({ data }: any) => ({ id: 'mov-t3', ...data }) }
     } as any;
 
