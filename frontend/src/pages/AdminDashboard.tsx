@@ -553,8 +553,8 @@ export function AdminDashboardPage() {
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
                 <KpiCard
                   label="Cobertura Global"
-                  value={`${coverage.global.coveragePercent.toFixed(2)}%`}
-                  sub={`${coverage.global.coveredCards} / ${coverage.global.totalCards} cartas`}
+                  value={`${Number(coverage.global.coveragePercent ?? 0).toFixed(2)}%`}
+                  sub={`${coverage.global.coveredCards ?? 0} / ${coverage.global.totalCards ?? 0} cartas`}
                   color="#5d4037"
                 />
                 <KpiCard
@@ -578,7 +578,7 @@ export function AdminDashboardPage() {
                   {coverage.byTcg.map((item) => (
                     <tr key={item.tcg} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={tdStyle}>{item.tcgDisplayName}</td>
-                      <td style={tdStyle}>{item.coveragePercent.toFixed(2)}%</td>
+                      <td style={tdStyle}>{Number(item.coveragePercent ?? 0).toFixed(2)}%</td>
                       <td style={tdStyle}>{item.coveredCards}</td>
                       <td style={tdStyle}>{item.uncoveredCards}</td>
                       <td style={tdStyle}>{item.totalCards}</td>
