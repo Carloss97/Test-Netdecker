@@ -71,8 +71,10 @@ export async function onRequest(context) {
     // Batch fetch card rows for all listings to avoid N+1
     const cardIds = Array.from(new Set(rows.map((r) => r.cardId).filter(Boolean)));
     const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+    const SQLITE_MAX_VARS = 900;
+    const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
     const cardMap = new Map();
-    for (const cids of chunk(cardIds, 50)) {
+    for (const cids of chunk(cardIds, safeSelectChunk)) {
       try {
         const placeholders = cids.map(() => '?').join(',');
         const batchCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow']);

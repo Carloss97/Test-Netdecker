@@ -7,6 +7,7 @@ import PriceApprovalService from './PriceApprovalService.js';
 import PriceThresholdService from './PriceThresholdService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import createD1Proxy from '../utils/d1Proxy.js';
 
 export interface PriceSyncUpdateInput {
   listingId?: string;
@@ -156,6 +157,25 @@ function estimateFallbackReferencePrice(tcgName: string, rarity?: string): numbe
 
 export class PriceSyncService {
   static async runPriceSync(input: RunPriceSyncInput): Promise<PriceSyncResult> {
+    // If configured to use D1 backend, delegate to the D1 implementation
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const priceSync = await import('../../../functions/_shared/priceSyncService.js');
+      const res = await priceSync.runPriceSync(db, process.env, input as any);
+      return {
+        runId: res.runId,
+        source: res.source,
+        total: res.total,
+        updated: res.updated,
+        volatile: res.volatile,
+        failed: res.failed,
+        roundingMultiple: input.roundingMultiple ?? 1,
+        errors: res.errors || [],
+        pricingSourceStats: undefined,
+        startedAt: res.startedAt,
+        completedAt: res.completedAt,
+      } as PriceSyncResult;
+    }
     const startedAt = new Date();
     const resolvedRounding = PriceService.resolveRoundingMultiple(input.roundingMultiple);
     const runDelegate = getPriceSyncRunDelegate();

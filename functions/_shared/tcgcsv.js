@@ -1,5 +1,13 @@
 const BASE = (typeof process !== 'undefined' && process.env && process.env.TCGCSV_BASE) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_BASE) || 'https://tcgcsv.com/tcgplayer';
 
+// In-memory cache and concurrency limiter (per-worker instance). TTL and concurrency
+// can be tuned via env vars: TCGCSV_CACHE_TTL (seconds) and TCGCSV_CONCURRENCY_LIMIT
+const DEFAULT_TTL = Number((typeof process !== 'undefined' && process.env && process.env.TCGCSV_CACHE_TTL) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_CACHE_TTL) || 3600);
+const CONCURRENCY_LIMIT = Number((typeof process !== 'undefined' && process.env && process.env.TCGCSV_CONCURRENCY_LIMIT) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_CONCURRENCY_LIMIT) || 6);
+
+if (!globalThis.__TCGCSV_CACHE_V1) globalThis.__TCGCSV_CACHE_V1 = new Map();
+if (!globalThis.__TCGCSV_CONCURRENCY_V1) globalThis.__TCGCSV_CONCURRENCY_V1 = { active: 0, queue: [] };
+
 const TCGCSV_CATEGORY_IDS = {
   MAGIC: 1,
   YUGIOH: 2,
@@ -10,12 +18,35 @@ const TCGCSV_CATEGORY_IDS = {
 };
 
 async function fetchJson(url) {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (!res.ok) {
-    const t = await res.text().catch(() => '');
-    throw new Error(`fetch ${url} failed: ${res.status} ${t}`);
+  try {
+    const cacheKey = String(url);
+    const cache = globalThis.__TCGCSV_CACHE_V1;
+    const cached = cache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < (DEFAULT_TTL * 1000)) return cached.data;
+
+    // concurrency limiter
+    const concurrency = globalThis.__TCGCSV_CONCURRENCY_V1;
+    if (concurrency.active >= CONCURRENCY_LIMIT) {
+      await new Promise((resolve) => concurrency.queue.push(resolve));
+    }
+    concurrency.active += 1;
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        throw new Error(`fetch ${url} failed: ${res.status} ${t}`);
+      }
+      const data = await res.json();
+      try { cache.set(cacheKey, { ts: Date.now(), data }); } catch (_) {}
+      return data;
+    } finally {
+      concurrency.active -= 1;
+      const next = concurrency.queue.shift();
+      if (next) next();
+    }
+  } catch (err) {
+    throw err;
   }
-  return res.json();
 }
 
 function normalizeSetIdentifier(value) {

@@ -99,6 +99,17 @@ export async function onRequest(context) {
             const ref = Number(u.referencePrice) || 0;
             const margin = typeof u.marginMultiplier === 'number' ? u.marginMultiplier : 1.2;
             const finalPrice = Math.round(ref * margin * usdToClp);
+
+            // Ensure a minimal card row exists to avoid orphan listings. Prefer not to overwrite richer metadata.
+            try {
+              const now = new Date().toISOString();
+              const parts = String(cardId || '').split(':');
+              const inferredTcg = parts.length > 1 ? parts[0] : null;
+              const externalId = parts.length > 1 ? parts.slice(1).join(':') : cardId;
+              await db.prepare(`INSERT OR IGNORE INTO card (id, externalId, tcg, editionCode, cardName, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?);`)
+                .bind(cardId, externalId, inferredTcg, u.editionCode || '', null, now, now).run();
+            } catch (_) {}
+
             await db.prepare('INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
               .bind(listingId, cardId, u.editionCode || '', ref, margin, finalPrice, u.quantity ? Number(u.quantity) : 0, 'active', new Date().toISOString()).run();
             try {
@@ -136,7 +147,7 @@ export async function onRequest(context) {
     const selectParts = [];
     if (listingSelect) selectParts.push(listingSelect);
     if (cardCols) selectParts.push(cardCols);
-    let sql = `SELECT ${selectParts.join(', ')} FROM listing l JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
+    let sql = `SELECT ${selectParts.join(', ')} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
     const binds = [];
     if (inventoryOnly) {
       sql += ' AND l.quantity > 0';

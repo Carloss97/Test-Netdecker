@@ -45,11 +45,32 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, error: 'card not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
-    let prices;
-    try {
-      prices = await getGroupPrices(tcg, foundGroup.groupId);
-    } catch (e) {
-      return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupPrices failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    // Try persisted cache for group prices (appConfig) to reduce external calls
+    const ttl = Number(env.EXTERNAL_SET_CACHE_TTL_SECONDS || env.VITE_EXTERNAL_SET_CACHE_TTL_SECONDS || 3600);
+    let prices = [];
+    if (db) {
+      try {
+        const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind(`groupPrices:${tcg}:${foundGroup.groupId}`).all();
+        const cacheRow = (Array.isArray(cacheRes?.results) ? cacheRes.results[0] : (Array.isArray(cacheRes) ? cacheRes[0] : null));
+        if (cacheRow && cacheRow.value) {
+          const parsed = JSON.parse(cacheRow.value);
+          if (parsed && parsed.fetchedAt && (Date.now() - new Date(parsed.fetchedAt).getTime()) < (ttl * 1000) && Array.isArray(parsed.data)) {
+            prices = parsed.data;
+          }
+        }
+      } catch (_) {}
+    }
+    if (!prices || prices.length === 0) {
+      try {
+        prices = await getGroupPrices(tcg, foundGroup.groupId);
+      } catch (e) {
+        return new Response(JSON.stringify({ success: false, error: 'TCGCSV getGroupPrices failed', detail: String(e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      }
+      if (db) {
+        try {
+          await db.prepare('INSERT OR REPLACE INTO appConfig (key, value) VALUES (?, ?)').bind(`groupPrices:${tcg}:${foundGroup.groupId}`, JSON.stringify({ fetchedAt: new Date().toISOString(), data: prices })).run();
+        } catch (_) {}
+      }
     }
     const matchingPrices = prices.filter((pr) => String(pr.productId) === String(found.productId));
     const best = matchingPrices.sort((a,b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1))[0];
