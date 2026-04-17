@@ -2,6 +2,7 @@
 import prisma from '../utils/db.js';
 import { NotFoundError } from '../utils/errors.js';
 import type { Prisma } from '@prisma/client';
+import createD1Proxy from '../utils/d1Proxy.js';
 
 console.log('[CardService] Loaded, prisma available:', prisma ? 'YES' : 'NO');
 
@@ -40,6 +41,13 @@ export class CardService {
    * Get card by ID
    */
   static async getCard(id: string) {
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const rec = await CardD1.getCard(db, id);
+      return rec;
+    }
+
     return prisma.card.findUnique({
       where: { id },
       include: {
@@ -52,6 +60,12 @@ export class CardService {
    * Find card by code (TCG/Edition/CardCode)
    */
   static async findCardByCode(tcgId: string, editionId: string, cardCode: string, rarity?: string) {
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      return CardD1.findCardByCode(db, tcgId, editionId, cardCode, rarity);
+    }
+
     return prisma.card.findUnique({
       where: {
         tcgId_editionId_cardCode_rarity: {
@@ -71,6 +85,12 @@ export class CardService {
    * Search cards by name (case-insensitive, partial match)
    */
   static async searchByName(name: string, tcgId?: string, limit: number = 20) {
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      return CardD1.searchByName(db, name, tcgId, limit);
+    }
+
     const useSqlite = Boolean(process.env.USE_SQLITE && process.env.USE_SQLITE !== 'false');
 
     const cardNameFilter: Record<string, unknown> = useSqlite
@@ -95,6 +115,12 @@ export class CardService {
    * Returns all matching cards across editions and rarities.
    */
   static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      return CardD1.searchByCode(db, code, tcgId, limit);
+    }
+
     const normalized = code.trim();
     const useSqlite = Boolean(process.env.USE_SQLITE && process.env.USE_SQLITE !== 'false');
     const containsFilter = (val: string) => (useSqlite ? { contains: val } : { contains: val, mode: 'insensitive' } as any);
@@ -122,6 +148,12 @@ export class CardService {
    * Get cards by edition
    */
   static async getCardsByEdition(editionId: string) {
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      return CardD1.getCardsByEdition(db, editionId);
+    }
+
     return prisma.card.findMany({
       where: { editionId },
       include: { listings: true },
@@ -134,6 +166,11 @@ export class CardService {
    */
   static async getCardsByTCG(tcgIdentifier: string) {
     console.log('[CardService.getCardsByTCG] Called with:', tcgIdentifier);
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../functions/_shared/cardService.js');
+      return CardD1.getCardsByTCG(db, tcgIdentifier);
+    }
 
     // First try lookup by ID
     let tcg = await prisma.tCG.findUnique({ where: { id: tcgIdentifier } });
@@ -172,6 +209,12 @@ export class CardService {
    * Bulk upsert cards from CSV/import
    */
   static async bulkUpsertCards(cards: CreateCardInput[]) {
+    if (process.env.USE_D1 === 'true') {
+      const db = createD1Proxy(prisma);
+      const CardD1 = await import('../../functions/_shared/cardService.js');
+      return CardD1.bulkUpsertCards(db, cards as any, {});
+    }
+
     const results: { created: number; updated: number; errors: Array<{ cardCode: string; error: string }> } = {
       created: 0,
       updated: 0,

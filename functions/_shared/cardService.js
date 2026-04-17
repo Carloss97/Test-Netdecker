@@ -49,6 +49,33 @@ export async function getCardsByEdition(db, editionCode) {
   return rows;
 }
 
+export async function searchByCode(db, code, tcgId, limit = 50) {
+  if (!db) return [];
+  await ensureSchema(db);
+  const normalized = String(code || '').trim();
+  const q = `%${normalized}%`;
+  const params = [q, q, q, limit];
+  let sql = 'SELECT * FROM card WHERE (cardCode LIKE ? OR cardNumber LIKE ? OR editionCode LIKE ?)';
+  if (tcgId) {
+    sql += ' AND tcg = ?';
+    params.splice(3, 0, tcgId); // insert tcgId before limit
+  }
+  // ensure limit is last param
+  if (tcgId) params.push(limit);
+  else params[3] = limit;
+  const res = await db.prepare(sql + ' LIMIT ?').bind(...params).all();
+  const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
+  return rows.slice(0, limit);
+}
+
+export async function getCardsByTCG(db, tcgIdentifier) {
+  if (!db) return [];
+  await ensureSchema(db);
+  const res = await db.prepare('SELECT * FROM card WHERE tcg = ?').bind(tcgIdentifier).all();
+  const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
+  return rows;
+}
+
 // Bulk upsert cards using batched INSERT OR REPLACE to be D1-friendly
 export async function bulkUpsertCards(db, cards, opts = {}) {
   if (!db || !Array.isArray(cards) || cards.length === 0) return { created: 0, updated: 0 };
@@ -91,5 +118,7 @@ export default {
   findCardByCode,
   searchByName,
   getCardsByEdition,
+  searchByCode,
+  getCardsByTCG,
   bulkUpsertCards,
 };
