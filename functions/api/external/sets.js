@@ -1,33 +1,17 @@
+import { getGroups, getGroupProducts } from '../../_shared/tcgcsv.js';
+
 export async function onRequest(context) {
-  const { request, env } = context;
+  const { request } = context;
   try {
     const url = new URL(request.url);
     const tcgRaw = (url.searchParams.get('tcg') || '').toUpperCase();
 
-    const TCGLookup = {
-      MAGIC: 1,
-      YUGIOH: 2,
-      POKEMON: 3,
-      WEISS_SCHWARZ: 20,
-      DIGIMON: 63,
-      ONE_PIECE: 68,
-    };
-
-    if (!TCGLookup[tcgRaw]) {
+    const supported = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
+    if (!supported.includes(tcgRaw)) {
       return new Response(JSON.stringify({ success: false, error: 'tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const categoryId = TCGLookup[tcgRaw];
-    const base = 'https://tcgcsv.com/tcgplayer';
-
-    const resp = await fetch(`${base}/${categoryId}/groups`, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      return new Response(JSON.stringify({ success: false, error: 'failed to fetch tcgcsv groups', status: resp.status, body: text }), { status: 502, headers: { 'Content-Type': 'application/json' } });
-    }
-
-    const body = await resp.json().catch(() => ({}));
-    const groups = Array.isArray(body.results) ? body.results : [];
+    const groups = await getGroups(tcgRaw).catch(() => []);
 
     const totalCardsOf = (g) => {
       const candidates = [g.totalCards, g.cardCount, g.totalItems, g.productCount, g.numOfCards];
@@ -37,15 +21,35 @@ export async function onRequest(context) {
       return 0;
     };
 
+    // Build basic set list
     const sets = groups.map((g) => ({
+      groupId: g.groupId,
       code: (g.abbreviation || String(g.groupId) || '').toUpperCase(),
       name: g.name || '',
       releaseDate: g.publishedOn || null,
-      totalCards: totalCardsOf(g),
+      totalCards: totalCardsOf(g) || 0,
       source: 'tcgcsv',
     }));
 
-    return new Response(JSON.stringify({ success: true, tcg: tcgRaw, total: sets.length, sets }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    // For sets without a totalCards value, fetch product counts with limited concurrency
+    const toFetch = sets.filter((s) => !s.totalCards || s.totalCards === 0);
+    const concurrency = 6;
+    for (let i = 0; i < toFetch.length; i += concurrency) {
+      const batch = toFetch.slice(i, i + concurrency);
+      await Promise.all(batch.map(async (s) => {
+        try {
+          const products = await getGroupProducts(tcgRaw, s.groupId).catch(() => []);
+          s.totalCards = Array.isArray(products) ? products.length : 0;
+        } catch (_) {
+          s.totalCards = 0;
+        }
+      }));
+    }
+
+    // Cleanup: remove internal groupId before returning
+    const out = sets.map(({ groupId, ...rest }) => rest);
+
+    return new Response(JSON.stringify({ success: true, tcg: tcgRaw, total: out.length, sets: out }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

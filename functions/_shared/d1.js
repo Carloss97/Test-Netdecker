@@ -43,6 +43,7 @@ async function ensureSchema(db) {
   try {
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_card_tcg_edition ON card(tcg, editionCode);').run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_listing_card ON listing(cardId);').run();
+    await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_listing_card_edition ON listing(cardId, editionCode);').run();
   } catch (err) {
     // ignore index creation errors
   }
