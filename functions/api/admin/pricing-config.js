@@ -7,9 +7,10 @@ export async function onRequest(context) {
     if (db) await ensureSchema(db);
 
     if (request.method === 'GET') {
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };
+
       if (!db) {
-        const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
-        const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };
         return new Response(JSON.stringify({ config: defaultConfig }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
 
@@ -18,12 +19,13 @@ export async function onRequest(context) {
       if (row && row.value) {
         try {
           const parsed = JSON.parse(row.value);
+          // Ensure exchangeRate.activeRate is always a number for UI
+          if (!parsed.exchangeRate) parsed.exchangeRate = { mode: 'manual', activeRate: defaultRate, source: 'env' };
+          if (parsed.exchangeRate.activeRate === null || parsed.exchangeRate.activeRate === undefined) parsed.exchangeRate.activeRate = defaultRate;
           return new Response(JSON.stringify({ config: parsed }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         } catch (_) {}
       }
 
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
-      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };
       return new Response(JSON.stringify({ config: defaultConfig }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -33,11 +35,13 @@ export async function onRequest(context) {
       const exchangeRateMode = body.exchangeRateMode === 'api' ? 'api' : 'manual';
       const manualUsdToClp = typeof body.manualUsdToClp === 'number' ? body.manualUsdToClp : (Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 950);
 
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
       const config = {
         defaultMarginMultiplier,
         exchangeRate: {
           mode: exchangeRateMode,
-          activeRate: exchangeRateMode === 'manual' ? manualUsdToClp : null,
+          // always provide a numeric activeRate for the UI; when using 'api' mode, keep env/default as placeholder
+          activeRate: exchangeRateMode === 'manual' ? manualUsdToClp : defaultRate,
           source: exchangeRateMode === 'manual' ? 'manual' : 'api',
         },
       };
