@@ -157,7 +157,7 @@ export async function onRequest(context) {
       }
 
       // Choose a safe chunk size based on SQLite parameter limits
-      const SQLITE_MAX_VARS = 900; // safe lower-than-default limit
+      // reuse SQLITE_MAX_VARS declared above
       const runBatchedInsert = async (tableCols, rows, orReplace = false, orIgnore = false) => {
         if (!rows || rows.length === 0) return;
         const colCount = tableCols.cols.length;
