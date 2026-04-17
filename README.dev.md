@@ -2,11 +2,13 @@ Development setup (local)
 
 Quick start:
 
-1. Start local services (Postgres + Redis):
+1. By default the project uses SQLite (file:./dev.sqlite) for local development and Cloudflare Pages D1 compatibility.
+
+   If you need Postgres/Redis for integration testing, start local services with Docker:
 
    docker compose up -d
 
-   - Postgres is mapped to host port 5433 (container 5432).
+   - Postgres (optional) is mapped to host port 5433 (container 5432).
    - Redis is mapped to host port 6379.
 
 2. Copy the backend environment example and edit if needed:
@@ -30,7 +32,7 @@ Quick start:
 
 Notes:
 
-- If port `3334` (backend) or `5433` (Postgres) are already in use, edit `backend/.env` or `docker-compose.yml` accordingly.
+- If port `3334` (backend) or `5433` (Postgres, optional) are already in use, edit `backend/.env` or `docker-compose.yml` accordingly.
 - To reapply Prisma schema manually:
 
    npm --prefix backend run prisma:push

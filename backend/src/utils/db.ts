@@ -15,11 +15,14 @@ if (fs.existsSync(envPath)) {
 	dotenv.config();
 }
 
-// If DATABASE_URL is missing, fall back to the local Docker Postgres used by `docker-compose.yml`.
+// If DATABASE_URL is missing, fall back to local SQLite (Pages D1 / local dev).
+// Prefer SQLite by default for Cloudflare Pages D1 compatibility and simpler local dev.
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
-	const defaultPg = 'postgresql://user:password@localhost:5433/tcg_singles_db';
-	process.env.DATABASE_URL = defaultPg;
-	console.log(`[DB] No DATABASE_URL found; falling back to default Postgres URL: ${defaultPg}`);
+	const defaultSqlite = 'file:./dev.sqlite';
+	process.env.DATABASE_URL = defaultSqlite;
+	// Mark explicit preference for SQLite client loading
+	process.env.USE_SQLITE = 'true';
+	console.log(`[DB] No DATABASE_URL found; falling back to local SQLite at ${defaultSqlite} and enabling USE_SQLITE=true`);
 } else {
 	console.log('[DB] Using provided DATABASE_URL (redacted)');
 }

@@ -530,15 +530,25 @@ export async function searchExternalCards(
 ) {
   const limit = (options as any).limit ?? 50;
 
-  // Primary: TCGCSV
+  // Primary: backend API (/api/external/search) — fallback to direct TCGCSV and then other public APIs
   try {
-    const tcgcsvRes = await tcgcsvClient.searchCards(tcg as any, query, limit);
-    if (Array.isArray(tcgcsvRes) && tcgcsvRes.length > 0) return { success: true, tcg, query, total: tcgcsvRes.length, cards: tcgcsvRes };
+    const { data } = await apiClient.get('/external/search', {
+      params: { tcg, query, setCode: (options as any).setCode, page: (options as any).page, limit },
+    });
+    if (data && Array.isArray(data.cards) && data.cards.length > 0) {
+      return { success: true, tcg, query, total: data.total ?? data.cards.length, cards: data.cards };
+    }
   } catch (_) {
     // ignore and try fallbacks
   }
 
-  // Fallbacks by TCG
+  // Fallback 1: TCGCSV client in-browser
+  try {
+    const tcgcsvRes = await tcgcsvClient.searchCards(tcg as any, query, limit);
+    if (Array.isArray(tcgcsvRes) && tcgcsvRes.length > 0) return { success: true, tcg, query, total: tcgcsvRes.length, cards: tcgcsvRes };
+  } catch (_) {}
+
+  // Fallback 2: Other public APIs per TCG
   try {
     switch (tcg) {
       case 'MAGIC': {
@@ -567,12 +577,19 @@ export async function searchExternalCards(
 
 
 export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ') {
-  // Primary: TCGCSV
+  // Primary: query backend API which centralizes tcgcsv + caching
+  try {
+    const { data } = await apiClient.get('/external/sets', { params: { tcg } });
+    if (data && Array.isArray(data.sets) && data.sets.length > 0) return { success: true, tcg, total: data.sets.length, sets: data.sets };
+  } catch (_) {}
+
+  // Fallback: direct TCGCSV client in-browser
   try {
     const tcgcsv = await tcgcsvClient.listSets(tcg as any);
     if (Array.isArray(tcgcsv) && tcgcsv.length > 0) return { success: true, tcg, total: tcgcsv.length, sets: tcgcsv };
   } catch (_) {}
 
+  // Final fallback: other public APIs per TCG
   try {
     switch (tcg) {
       case 'MAGIC': {
