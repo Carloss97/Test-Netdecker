@@ -424,6 +424,17 @@ export async function importInventoryCsv(file: File, importedBy: string = 'admin
   const formData = new FormData();
   formData.append('file', file);
   formData.append('importedBy', importedBy);
+  // Run a quick pre-check to get recommended chunk size (UI may use it), then proceed with upload.
+  try {
+    const pre = new FormData();
+    pre.append('file', file);
+    pre.append('importedBy', importedBy);
+    pre.append('precheck', 'true');
+    const preResp = await fetch('/api/inventory/import-csv', { method: 'POST', body: pre });
+    if (preResp && preResp.ok) {
+      try { const prejson = await preResp.json(); console.info('Import precheck', prejson); } catch (_) {}
+    }
+  } catch (_) {}
 
   const { data } = await apiClient.post('/inventory/import-csv', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }

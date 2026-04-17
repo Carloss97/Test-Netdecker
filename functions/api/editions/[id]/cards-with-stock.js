@@ -1,4 +1,5 @@
 import { pickDb, ensureSchema, firstRow } from '../../../_shared/d1.js';
+import { getUSDtoCLPRateMetaFast } from '../../../_shared/exchange-rate.js';
 
 function uuid() {
   if (globalThis.crypto && globalThis.crypto.randomUUID) return globalThis.crypto.randomUUID();
@@ -24,6 +25,16 @@ export async function onRequest(context) {
     const cardsRes = await db.prepare('SELECT id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket FROM card WHERE tcg = ? AND editionCode = ? ORDER BY cardCode ASC, cardName ASC').bind(tcg, editionCode).all();
     const cardsRows = Array.isArray(cardsRes?.results) ? cardsRes.results : (Array.isArray(cardsRes) ? cardsRes : []);
 
+    // fast FX read for computing CLP prices when finalPrice missing
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    try {
+      const meta = await getUSDtoCLPRateMetaFast(env, db);
+      if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
+    } catch (_) {}
+
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
+
     const cardsOut = [];
     for (const c of cardsRows) {
       const cardId = c.id;
@@ -43,6 +54,18 @@ export async function onRequest(context) {
         }
       }
 
+      const mapped = listings.map((l) => {
+        const margin = l.marginMultiplier || defaultMargin;
+        const ref = Number(l.referencePrice) || Number(c.priceMarket) || Number(c.priceMid) || Number(c.priceLow) || 0;
+        let finalPrice = Number(l.finalPrice) || 0;
+        let priceComputed = false;
+        if ((!finalPrice || finalPrice <= 0) && ref > 0) {
+          finalPrice = Math.round(ref * margin * usdToClp);
+          priceComputed = true;
+        }
+        return { id: l.id, condition: l.condition || 'NM', quantity: l.quantity ?? 0, referencePrice: ref, marginMultiplier: margin, finalPrice, currency: 'CLP', lastSyncedAt: l.lastSyncedAt || null, status: l.status || 'active', priceComputed, stockAlert: Number(l.quantity || 0) <= stockAlertThreshold };
+      });
+
       cardsOut.push({
         id: c.id,
         cardCode: c.cardCode || c.externalId,
@@ -52,7 +75,7 @@ export async function onRequest(context) {
         colorIdentity: null,
         imageUrl: c.imageUrl || null,
         tags: null,
-        listings: listings.map((l) => ({ id: l.id, condition: l.condition || 'NM', quantity: l.quantity ?? 0, referencePrice: l.referencePrice ?? 0, marginMultiplier: l.marginMultiplier ?? Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), finalPrice: l.finalPrice ?? 0, currency: 'CLP', lastSyncedAt: l.lastSyncedAt || null, status: l.status || 'active' })),
+        listings: mapped,
       });
     }
 

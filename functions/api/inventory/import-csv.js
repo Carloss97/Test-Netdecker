@@ -81,10 +81,9 @@ function uuid() { if (globalThis.crypto && globalThis.crypto.randomUUID) return 
 
 export async function onRequest(context) {
   const { request, env } = context;
-    const stopTimer = startTimer('import_csv_duration_seconds');
-    try {
-      try { incr('import_csv_total', {}, 1); } catch (_) {}
-      try { incr('import_csv_rows_total', {}, rows.length); } catch (_) {}
+  const stopTimer = startTimer('import_csv_duration_seconds');
+  try {
+    try { incr('import_csv_total', {}, 1); } catch (_) {}
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', Allow: 'POST' } });
     }
@@ -120,6 +119,19 @@ export async function onRequest(context) {
 
     const rows = parseCsv(content);
     const mode = detectImportMode(rows);
+
+    // record rows count now that we parsed CSV
+    try { incr('import_csv_rows_total', {}, rows.length); } catch (_) {}
+
+    // Precheck option: return recommended chunk size and estimated binds instead of performing import
+    const precheckRaw = form.get('precheck') || form.get('estimate') || null;
+    const precheck = String(precheckRaw || '').toLowerCase() === 'true' || String(precheckRaw || '').toLowerCase() === '1' || String(precheckRaw || '').toLowerCase() === 'yes';
+    const SQLITE_MAX_VARS = 900; // consistent with batching below
+    const estimatedBindsPerRow = 12; // heuristic used elsewhere
+    const recommendedChunkSize = Math.max(1, Math.floor(SQLITE_MAX_VARS / estimatedBindsPerRow));
+    if (precheck) {
+      return new Response(JSON.stringify({ success: true, rows: rows.length, estimatedBindsPerRow, recommendedChunkSize, message: `Chunk your CSV into sizes of ${recommendedChunkSize} rows for safe imports (server will also auto-chunk large uploads)` }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
 
     const db = pickDb(env);
     if (!db) {
