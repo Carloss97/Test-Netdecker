@@ -74,6 +74,10 @@ export async function onRequest(context) {
       }
     }
 
+    if (Array.isArray(cards) && cards.length === 0) {
+      try { console.warn(`[import/set] resolved group for ${tcg}:${setCode} (abbr=${resolved.abbreviation}, id=${resolved.groupId}) but fetched 0 cards`); } catch (_) {}
+    }
+
     // Prefer cached exchange rate from appConfig when available (so imports use same rate as admin)
     let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
     if (db) {

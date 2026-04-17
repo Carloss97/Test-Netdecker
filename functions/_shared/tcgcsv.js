@@ -18,34 +18,45 @@ const TCGCSV_CATEGORY_IDS = {
 };
 
 async function fetchJson(url) {
-  try {
-    const cacheKey = String(url);
-    const cache = globalThis.__TCGCSV_CACHE_V1;
-    const cached = cache.get(cacheKey);
-    if (cached && (Date.now() - cached.ts) < (DEFAULT_TTL * 1000)) return cached.data;
+  const cacheKey = String(url);
+  const cache = globalThis.__TCGCSV_CACHE_V1;
+  const cached = cache.get(cacheKey);
+  if (cached && (Date.now() - cached.ts) < (DEFAULT_TTL * 1000)) return cached.data;
 
-    // concurrency limiter
-    const concurrency = globalThis.__TCGCSV_CONCURRENCY_V1;
-    if (concurrency.active >= CONCURRENCY_LIMIT) {
-      await new Promise((resolve) => concurrency.queue.push(resolve));
-    }
-    concurrency.active += 1;
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) {
-        const t = await res.text().catch(() => '');
-        throw new Error(`fetch ${url} failed: ${res.status} ${t}`);
+  // concurrency limiter
+  const concurrency = globalThis.__TCGCSV_CONCURRENCY_V1;
+  if (concurrency.active >= CONCURRENCY_LIMIT) {
+    await new Promise((resolve) => concurrency.queue.push(resolve));
+  }
+  concurrency.active += 1;
+
+  try {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) {
+          const t = await res.text().catch(() => '');
+          throw new Error(`fetch ${url} failed: ${res.status} ${t}`);
+        }
+        const data = await res.json();
+        try { cache.set(cacheKey, { ts: Date.now(), data }); } catch (_) {}
+        return data;
+      } catch (err) {
+        if (attempt >= maxAttempts) {
+          throw err;
+        }
+        try { console.warn(`[tcgcsv] fetch attempt ${attempt} failed for ${url}: ${err instanceof Error ? err.message : String(err)} — retrying`); } catch (_) {}
+        const wait = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        await new Promise((r) => setTimeout(r, wait));
       }
-      const data = await res.json();
-      try { cache.set(cacheKey, { ts: Date.now(), data }); } catch (_) {}
-      return data;
-    } finally {
-      concurrency.active -= 1;
+    }
+  } finally {
+    concurrency.active -= 1;
+    try {
       const next = concurrency.queue.shift();
       if (next) next();
-    }
-  } catch (err) {
-    throw err;
+    } catch (_) {}
   }
 }
 
@@ -185,6 +196,10 @@ async function getSetCards(tcg, setCode) {
       priceMarket: priceMarket ?? null,
     };
   });
+
+  try {
+    console.log(`[tcgcsv] getSetCards: tcg=${tcg} set=${setCode} groupId=${group.groupId} products=${(products||[]).length} cardLike=${cards.length}`);
+  } catch (_) {}
 
   return cards;
 }
