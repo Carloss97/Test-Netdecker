@@ -22,6 +22,22 @@ export async function onRequest(context) {
           // Ensure exchangeRate.activeRate is always a number for UI
           if (!parsed.exchangeRate) parsed.exchangeRate = { mode: 'manual', activeRate: defaultRate, source: 'env' };
           if (parsed.exchangeRate.activeRate === null || parsed.exchangeRate.activeRate === undefined) parsed.exchangeRate.activeRate = defaultRate;
+
+          // If using API mode, prefer cached exchangeRate value when present
+          try {
+            const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
+            const cacheRow = firstRow(cacheRes);
+            if (cacheRow && cacheRow.value) {
+              const cached = JSON.parse(cacheRow.value);
+              const cachedRate = Number(cached?.usdToCLP);
+              if (!isNaN(cachedRate) && parsed.exchangeRate && parsed.exchangeRate.mode === 'api') {
+                parsed.exchangeRate.activeRate = cachedRate;
+                parsed.exchangeRate.source = cached.source || parsed.exchangeRate.source || 'cache';
+                parsed.exchangeRate.fetchedAt = cached.fetchedAt || null;
+              }
+            }
+          } catch (_) {}
+
           return new Response(JSON.stringify({ config: parsed }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         } catch (_) {}
       }
