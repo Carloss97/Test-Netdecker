@@ -1,6 +1,7 @@
 import { pickDb, ensureSchema } from '../../_shared/d1.js';
 import { getSetCards } from '../../_shared/tcgcsv.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
+import { incr, startTimer } from '../../_shared/metrics.js';
 
 function estimateFallbackReferencePrice(tcgName, rarity) {
   const baseByTcg = { MAGIC: 0.5, POKEMON: 0.75, YUGIOH: 0.5, ONE_PIECE: 0.35, DIGIMON: 0.35, WEISS_SCHWARZ: 0.35 };
@@ -18,6 +19,7 @@ function estimateFallbackReferencePrice(tcgName, rarity) {
 export async function onRequest(context) {
   const { request, env } = context;
   try {
+    const stopRun = startTimer('price_sync_duration_seconds');
     const body = (request.method === 'GET')
       ? Object.fromEntries(new URL(request.url).searchParams.entries())
       : await request.json().catch(() => ({}));
@@ -81,6 +83,7 @@ export async function onRequest(context) {
                 .run();
             } catch (_) {}
             result.updated += 1;
+            incr('price_sync_updates_total', { mode: 'manual' }, 1);
             continue;
           }
 
@@ -100,16 +103,20 @@ export async function onRequest(context) {
                 .run();
             } catch (_) {}
             result.updated += 1;
+            incr('price_sync_updates_total', { mode: 'manual' }, 1);
             continue;
           }
 
           throw new Error('Update must include listingId or cardId');
         } catch (err) {
           result.failed += 1;
+          incr('price_sync_failures_total', { mode: 'manual' }, 1);
           result.errors.push({ id: u.listingId || u.cardId || 'N/A', message: (err && err.message) || String(err) });
         }
       }
 
+      try { incr('price_sync_runs_total', { mode: 'manual' }); } catch (_) {}
+      try { stopRun(); } catch (_) {}
       return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -180,6 +187,7 @@ export async function onRequest(context) {
         const setCards = await getSetCards(tcgName, editionCode).catch(() => []);
         const _t1 = Date.now() - _t0;
         try { console.log(`[sync-prices] fetched set ${tcgName}/${editionCode} in ${_t1}ms; cards=${setCards.length}`); } catch (_) {}
+        try { incr('price_sync_external_set_fetches_total', { tcg: tcgName, edition: editionCode }, 1); } catch (_) {}
         for (const s of setCards) {
           const price = s.priceMarket ?? s.priceMid ?? s.priceLow;
           if (typeof price === 'number' && Number.isFinite(price) && price > 0) {
@@ -225,12 +233,15 @@ export async function onRequest(context) {
               .bind(phId, listing.listingId, oldFinal, finalPrice, oldRef, chosenReference, 'EXTERNAL_API_SYNC', percent, body.changedBy || body.source || 'system', null, new Date().toISOString())
               .run();
             result.updated += 1;
+            incr('price_sync_updates_total', { mode: 'external' }, 1);
           } catch (err) {
             result.failed += 1;
+            incr('price_sync_failures_total', { mode: 'external' }, 1);
             result.errors.push({ listingId: listing.listingId, message: (err && err.message) || String(err) });
           }
         } catch (err) {
           result.failed += 1;
+          incr('price_sync_failures_total', { mode: 'external' }, 1);
           result.errors.push({ listingId: listing.listingId, message: (err && err.message) || String(err) });
         }
       }
@@ -246,6 +257,10 @@ export async function onRequest(context) {
       } catch (_) {}
     }
 
+    try { incr('price_sync_runs_total', { mode: 'batch' }); } catch (_) {}
+    try { incr('price_sync_updates_total', {}, result.updated); } catch (_) {}
+    try { incr('price_sync_failures_total', {}, result.failed); } catch (_) {}
+    try { stopRun(); } catch (_) {}
     return new Response(JSON.stringify({ success: true, runId, ...result }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     // mark run failed when possible

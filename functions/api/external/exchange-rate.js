@@ -1,13 +1,18 @@
 import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { incr, startTimer } from '../../_shared/metrics.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
   const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
   try {
+    const stop = startTimer('exchange_rate_request_duration_seconds');
     if (request.method === 'OPTIONS') {
+      stop();
       return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
     }
     if (request.method !== 'GET') {
+      stop();
+      incr('exchange_rate_requests_total', { result: 'method_not_allowed' });
       return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
     }
 
@@ -44,6 +49,8 @@ export async function onRequest(context) {
         manualRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
       }
       const val = Number.isFinite(manualRate) && manualRate > 0 ? manualRate : Number(env.FALLBACK_USD_TO_CLP || 950);
+      incr('exchange_rate_requests_total', { source: 'manual', result: 'success' });
+      stop();
       return jsonResponse({ success: true, usdToCLP: val, source: 'manual', fetchedAt: new Date().toISOString() });
     }
 
@@ -60,11 +67,13 @@ export async function onRequest(context) {
       try {
         const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
         const cacheRow = firstRow(cacheRes);
-        if (cacheRow && cacheRow.value) {
+          if (cacheRow && cacheRow.value) {
           const cached = JSON.parse(cacheRow.value);
           const cachedRate = Number(cached?.usdToCLP);
           const fetchedAt = cached?.fetchedAt ? new Date(cached.fetchedAt).getTime() : 0;
           if (!isNaN(cachedRate) && fetchedAt && (Date.now() - fetchedAt) < ttlSeconds * 1000) {
+            incr('exchange_rate_requests_total', { source: 'cache', result: 'success' });
+            stop();
             return jsonResponse({ success: true, usdToCLP: Number(cachedRate), source: 'cache', fetchedAt: cached.fetchedAt });
           }
         }
@@ -105,7 +114,8 @@ export async function onRequest(context) {
               // ignore cache write errors
             }
           }
-
+          incr('exchange_rate_requests_total', { source: p.name, result: 'success' });
+          stop();
           return jsonResponse({ success: true, usdToCLP: Number(rate), source: p.name, fetchedAt });
         } catch (innerErr) {
           lastErr = innerErr;
@@ -125,6 +135,8 @@ export async function onRequest(context) {
             const cached2 = JSON.parse(cacheRow2.value);
             const cachedRate2 = Number(cached2?.usdToCLP);
             if (!isNaN(cachedRate2)) {
+              incr('exchange_rate_requests_total', { source: 'cache', result: 'external_failed' });
+              stop();
               return jsonResponse({ success: true, usdToCLP: Number(cachedRate2), source: 'cache', note: 'external_failed', error: String(err), fetchedAt: cached2.fetchedAt || new Date().toISOString() });
             }
           }
@@ -134,6 +146,8 @@ export async function onRequest(context) {
       }
 
       const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      incr('exchange_rate_requests_total', { source: 'fallback', result: 'success' });
+      stop();
       return jsonResponse({ success: true, usdToCLP: fallback, source: 'fallback', note: String(err), fetchedAt: new Date().toISOString() });
     }
   } catch (err) {
@@ -149,7 +163,8 @@ export async function onRequest(context) {
     } catch (_) {
       // ignore logging failures
     }
-
+    incr('exchange_rate_requests_total', { result: 'error' });
+    stop();
     return jsonResponse({ success: false, error: String(err) }, 500);
   }
 }

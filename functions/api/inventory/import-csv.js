@@ -1,5 +1,6 @@
 import { pickDb, ensureSchema } from '../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
+import { incr, startTimer } from '../../_shared/metrics.js';
 
 function normalizeHeader(header) {
   return header.replace(/^\uFEFF/, '').trim();
@@ -80,7 +81,10 @@ function uuid() { if (globalThis.crypto && globalThis.crypto.randomUUID) return 
 
 export async function onRequest(context) {
   const { request, env } = context;
-  try {
+    const stopTimer = startTimer('import_csv_duration_seconds');
+    try {
+      try { incr('import_csv_total', {}, 1); } catch (_) {}
+      try { incr('import_csv_rows_total', {}, rows.length); } catch (_) {}
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', Allow: 'POST' } });
     }
@@ -157,9 +161,11 @@ export async function onRequest(context) {
             const q = Number(rows[i].quantity || 0) || 0;
             await db.prepare('UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END WHERE id = ?').bind(q, q, listingId).run();
             result.success += 1;
+            incr('import_csv_success_total', {}, 1);
           } catch (err) {
             result.failed += 1;
             result.errors.push({ row: rowNumber, message: (err && err.message) || String(err) });
+            incr('import_csv_failed_total', {}, 1);
           }
         } else {
           result.success += 1;
@@ -293,8 +299,11 @@ export async function onRequest(context) {
           }
 
           result.success += 1;
+          // count per-row success for imports
+          try { incr('import_csv_success_total', {}, 1); } catch (_) {}
         } catch (err) {
           result.failed += 1;
+          try { incr('import_csv_failed_total', {}, 1); } catch (_) {}
           result.errors.push({ row: rowNumber, message: (err && err.message) || String(err) });
         }
       }
@@ -331,8 +340,10 @@ export async function onRequest(context) {
       }
     }
 
+    try { stopTimer(); } catch (_) {}
     return new Response(JSON.stringify({ success: true, result }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
+    try { stopTimer(); } catch (_) {}
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
