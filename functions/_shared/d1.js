@@ -108,6 +108,230 @@ async function ensureSchema(db) {
     // ignore index creation errors
   }
 
+  // Order and POS related tables used by functions and lightweight D1 flows
+  await db.prepare(`CREATE TABLE IF NOT EXISTS "order" (
+    id TEXT PRIMARY KEY,
+    storeId TEXT,
+    orderNumber TEXT UNIQUE,
+    customerEmail TEXT,
+    status TEXT,
+    subtotal REAL,
+    tax REAL,
+    total REAL,
+    shippingAddress TEXT,
+    notes TEXT,
+    receiptUrl TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS orderItem (
+    id TEXT PRIMARY KEY,
+    cartId TEXT,
+    orderId TEXT,
+    listingId TEXT,
+    quantity INTEGER,
+    pricePerUnit REAL,
+    subtotal REAL,
+    createdAt TEXT
+  );`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS cart (
+    id TEXT PRIMARY KEY,
+    sessionId TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_cart_sessionId ON cart(sessionId);').run();
+  } catch (err) {
+    // ignore index creation errors
+  }
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS stockMovement (
+    id TEXT PRIMARY KEY,
+    listingId TEXT,
+    warehouseId TEXT,
+    fromWarehouseId TEXT,
+    toWarehouseId TEXT,
+    quantity INTEGER,
+    type TEXT,
+    reference TEXT,
+    performedBy TEXT,
+    createdAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_order_orderNumber ON "order"(orderNumber);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_orderItem_orderId ON orderItem(orderId);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_stockMovement_listingId ON stockMovement(listingId);').run();
+  } catch (err) {
+    // ignore index creation errors
+  }
+
+  // POS sessions and transactions
+  await db.prepare(`CREATE TABLE IF NOT EXISTS pOSSession (
+    id TEXT PRIMARY KEY,
+    sessionId TEXT UNIQUE,
+    storeId TEXT,
+    userId TEXT,
+    items TEXT,
+    subtotal REAL,
+    tax REAL,
+    total REAL,
+    status TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS paymentTransaction (
+    id TEXT PRIMARY KEY,
+    sessionId TEXT,
+    method TEXT,
+    amount REAL,
+    status TEXT,
+    processorResponse TEXT,
+    processorReference TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_possession_sessionId ON pOSSession(sessionId);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_paymentTransaction_sessionId ON paymentTransaction(sessionId);').run();
+  } catch (err) {
+    // ignore index creation errors
+  }
+
+  // Cash session table for register open/close operations
+  await db.prepare(`CREATE TABLE IF NOT EXISTS cashSession (
+    id TEXT PRIMARY KEY,
+    sessionId TEXT UNIQUE,
+    storeId TEXT,
+    openedBy TEXT,
+    closedBy TEXT,
+    startingCash REAL,
+    endingCash REAL,
+    status TEXT,
+    createdAt TEXT,
+    closedAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_cashSession_sessionId ON cashSession(sessionId);').run();
+  } catch (err) {}
+
+  // Invoice table
+  await db.prepare(`CREATE TABLE IF NOT EXISTS invoice (
+    id TEXT PRIMARY KEY,
+    storeId TEXT,
+    orderId TEXT,
+    journalEntryId TEXT,
+    invoiceNumber TEXT UNIQUE,
+    date TEXT,
+    total REAL,
+    currency TEXT DEFAULT 'CLP',
+    pdfUrl TEXT,
+    createdAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_invoice_orderId ON invoice(orderId);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_invoice_invoiceNumber ON invoice(invoiceNumber);').run();
+  } catch (err) {}
+
+  // Admin users and sessions for lightweight admin auth in Functions
+  await db.prepare(`CREATE TABLE IF NOT EXISTS adminUser (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE,
+    passwordHash TEXT,
+    passwordSalt TEXT,
+    role TEXT DEFAULT 'ADMIN',
+    isActive INTEGER DEFAULT 1,
+    lastLoginAt TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS adminSession (
+    id TEXT PRIMARY KEY,
+    token TEXT UNIQUE,
+    userId TEXT,
+    expiresAt TEXT,
+    createdAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_adminSession_userId ON adminSession(userId);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_adminUser_email ON adminUser(email);').run();
+  } catch (err) {}
+
+  // Inventory import history table
+  await db.prepare(`CREATE TABLE IF NOT EXISTS inventoryImport (
+    id TEXT PRIMARY KEY,
+    fileName TEXT,
+    status TEXT,
+    totalRecords INTEGER,
+    successCount INTEGER,
+    failureCount INTEGER,
+    createdAt TEXT,
+    completedAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_inventoryImport_createdAt ON inventoryImport(createdAt);').run();
+  } catch (err) {}
+
+  // Stock snapshots for periodic inventory checks
+  await db.prepare(`CREATE TABLE IF NOT EXISTS stockSnapshot (
+    id TEXT PRIMARY KEY,
+    listingId TEXT,
+    warehouseId TEXT,
+    quantity INTEGER,
+    takenAt TEXT,
+    createdAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_stockSnapshot_listingId ON stockSnapshot(listingId);').run();
+  } catch (err) {}
+
+  // Reservations for temporary holds (e.g., cart reservations)
+  await db.prepare(`CREATE TABLE IF NOT EXISTS reservation (
+    id TEXT PRIMARY KEY,
+    listingId TEXT,
+    warehouseId TEXT,
+    quantity INTEGER,
+    reservedBy TEXT,
+    expiresAt TEXT,
+    status TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_reservation_status_expiresAt ON reservation(status, expiresAt);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_reservation_listingId ON reservation(listingId);').run();
+  } catch (err) {}
+
+  // Exchange rate table for USD->CLP and other currency pairs
+  await db.prepare(`CREATE TABLE IF NOT EXISTS exchangeRate (
+    id TEXT PRIMARY KEY,
+    fromCurrency TEXT,
+    toCurrency TEXT,
+    rate REAL,
+    source TEXT,
+    fetchedAt TEXT,
+    expiresAt TEXT
+  );`).run();
+
+  try {
+    await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_exchangeRate_pair ON exchangeRate(fromCurrency, toCurrency);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_exchangeRate_from ON exchangeRate(fromCurrency);').run();
+  } catch (err) {}
+
   await db.prepare(`CREATE TABLE IF NOT EXISTS appConfig (
     key TEXT PRIMARY KEY,
     value TEXT,

@@ -193,11 +193,8 @@ export class ListingService {
       include: {
         card: {
           include: {
-            edition: {
-              select: {
-                editionCode: true,
-              },
-            },
+            tcg: true,
+            edition: true,
           },
         },
       },

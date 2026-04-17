@@ -1,3 +1,68 @@
+import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
+import { validateToken } from '../../_shared/adminAuth.js';
+
+function extractToken(request) {
+  const auth = request.headers.get('authorization') || '';
+  if (typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
+  return request.headers.get('x-admin-token') || '';
+}
+
+async function json(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+  try {
+    const token = String(extractToken(request) || '');
+    if (!token) return json({ success: false, error: 'Missing token' }, 401);
+    const user = await validateToken(env, token);
+    if (!user) return json({ success: false, error: 'Invalid token' }, 401);
+
+    const db = pickDb(env);
+    if (db) await ensureSchema(db);
+
+    const totalCards = Number(firstRow(db && (await db.prepare('SELECT COUNT(1) as cnt FROM card').all()))?.cnt || 0);
+    const totalListings = Number(firstRow(db && (await db.prepare('SELECT COUNT(1) as cnt FROM listing').all()))?.cnt || 0);
+    const activeListings = Number(firstRow(db && (await db.prepare("SELECT COUNT(1) as cnt FROM listing WHERE status IN ('active','manual') AND quantity > 0").all()))?.cnt || 0);
+    const lowStockListings = Number(firstRow(db && (await db.prepare("SELECT COUNT(1) as cnt FROM listing WHERE status IN ('active','manual') AND quantity > 0 AND quantity <= 5").all()))?.cnt || 0);
+    const outOfStockListings = Number(firstRow(db && (await db.prepare("SELECT COUNT(1) as cnt FROM listing WHERE status IN ('active','manual') AND quantity <= 0 AND everHadStock = 1").all()))?.cnt || 0);
+    const totalOrders = Number(firstRow(db && (await db.prepare('SELECT COUNT(1) as cnt FROM "order"').all()))?.cnt || 0);
+    const pendingOrders = Number(firstRow(db && (await db.prepare("SELECT COUNT(1) as cnt FROM \"order\" WHERE status = 'PENDING'").all()))?.cnt || 0);
+
+    const recentImports = db
+      ? (Array.isArray((await db.prepare('SELECT id, fileName, status, totalRecords, successCount, failureCount, createdAt FROM inventoryImport ORDER BY createdAt DESC LIMIT 5').all())?.results)
+          ? (await db.prepare('SELECT id, fileName, status, totalRecords, successCount, failureCount, createdAt FROM inventoryImport ORDER BY createdAt DESC LIMIT 5').all()).results
+          : (await db.prepare('SELECT id, fileName, status, totalRecords, successCount, failureCount, createdAt FROM inventoryImport ORDER BY createdAt DESC LIMIT 5').all()))
+      : [];
+
+    const inventoryValueRow = db ? firstRow(await db.prepare("SELECT COALESCE(SUM(finalPrice),0) as total FROM listing WHERE status IN ('active','manual') AND quantity > 0").all()) : { total: 0 };
+    const inventoryValueCLP = Number(inventoryValueRow?.total || 0);
+
+    const recentSyncRuns = db ? (Array.isArray((await db.prepare('SELECT id, source, status, total, updated, volatile, failed, startedAt, completedAt FROM priceSyncRun ORDER BY startedAt DESC LIMIT 5').all())?.results) ? (await db.prepare('SELECT id, source, status, total, updated, volatile, failed, startedAt, completedAt FROM priceSyncRun ORDER BY startedAt DESC LIMIT 5').all()).results : (await db.prepare('SELECT id, source, status, total, updated, volatile, failed, startedAt, completedAt FROM priceSyncRun ORDER BY startedAt DESC LIMIT 5').all())) : [];
+
+    const exchangeRateMeta = db ? await getUSDtoCLPRateMetaFast(env, db).catch(() => null) : null;
+
+    const responsePayload = {
+      success: true,
+      kpis: {
+        catalog: { totalCards, totalListings, activeListings, lowStockListings, outOfStockListings },
+        inventory: { totalValueCLP: inventoryValueCLP, currency: 'CLP' },
+        orders: { total: totalOrders, pending: pendingOrders },
+        exchangeRate: exchangeRateMeta ? { usdToCLP: exchangeRateMeta.usdToCLP, source: exchangeRateMeta.source, fetchedAt: exchangeRateMeta.fetchedAt } : null,
+      },
+      recentImports: Array.isArray(recentImports) ? recentImports : [],
+      recentSyncRuns: Array.isArray(recentSyncRuns) ? recentSyncRuns : [],
+    };
+
+    return json(responsePayload);
+  } catch (err) {
+    return json({ success: false, error: String(err) }, 500);
+  }
+}
+
+export default { onRequest };
 import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
 import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
 

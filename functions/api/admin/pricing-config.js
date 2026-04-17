@@ -1,10 +1,20 @@
 import { pickDb, ensureSchema, firstRow } from '../../_shared/d1.js';
+import { getUSDtoCLPRateMeta } from '../../_shared/price.js';
+import { validateToken } from '../../_shared/adminAuth.js';
+
+function extractToken(request) {
+  const auth = request.headers.get('authorization') || '';
+  if (typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
+  return request.headers.get('x-admin-token') || '';
+}
+
+async function json(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
 
 export async function onRequest(context) {
   const { request, env } = context;
   try {
-    const db = pickDb(env);
-    if (db) await ensureSchema(db);
 
     if (request.method === 'GET') {
       const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
