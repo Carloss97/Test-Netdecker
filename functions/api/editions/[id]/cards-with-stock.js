@@ -35,25 +35,29 @@ export async function onRequest(context) {
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
 
+    // Prefetch listings for all cards in this edition to avoid N+1 queries
+    const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+    const cardIds = cardsRows.map((c) => c.id);
+    const listingMap = new Map(); // cardId -> [listings]
+    for (const chunked of chunk(cardIds, 50)) {
+      const placeholders = chunked.map(() => '?').join(',');
+      try {
+        const sel = await db.prepare(`SELECT id, cardId, condition, quantity, referencePrice, marginMultiplier, finalPrice, lastSyncedAt, status FROM listing WHERE editionCode = ? AND cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();
+        const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+        for (const r of rowsRes) {
+          const key = r.cardId || r.cardID || r.cardid || r.cardId;
+          const arr = listingMap.get(key) || [];
+          arr.push(r);
+          listingMap.set(key, arr);
+        }
+      } catch (_) {
+        // ignore errors and continue
+      }
+    }
+
     const cardsOut = [];
     for (const c of cardsRows) {
-      const cardId = c.id;
-      const lres = await db.prepare('SELECT id, condition, quantity, referencePrice, marginMultiplier, finalPrice, lastSyncedAt, status FROM listing WHERE cardId = ? AND editionCode = ?').bind(cardId, editionCode).all();
-      let listings = Array.isArray(lres?.results) ? lres.results : (Array.isArray(lres) ? lres : []);
-
-      // If no listings, create a default one
-      if (!listings || listings.length === 0) {
-        const newId = uuid();
-        try {
-          await db.prepare('INSERT OR IGNORE INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .bind(newId, cardId, editionCode, 0, Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), 0, 0, 'active', null)
-            .run();
-          listings = [{ id: newId, condition: 'NM', quantity: 0, referencePrice: 0, marginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2), finalPrice: 0, lastSyncedAt: null, status: 'active' }];
-        } catch (_) {
-          listings = [];
-        }
-      }
-
+      const listings = listingMap.get(c.id) || [];
       const mapped = listings.map((l) => {
         const margin = l.marginMultiplier || defaultMargin;
         const ref = Number(l.referencePrice) || Number(c.priceMarket) || Number(c.priceMid) || Number(c.priceLow) || 0;

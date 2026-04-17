@@ -47,12 +47,14 @@ export async function onRequest(context) {
       FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE 1=1`;
     const binds = [];
     if (tcg) {
-      sql += ' AND c.tcg = ?'; binds.push(tcg);
+      // include listings even when card row is missing by matching cardId prefix
+      sql += ' AND (c.tcg = ? OR l.cardId LIKE ?)'; binds.push(tcg, `${tcg}:%`);
     }
     if (edition) {
       let ed = String(edition).toUpperCase();
       if (ed.includes(':')) ed = ed.split(':').slice(1).join(':');
-      sql += ' AND c.editionCode = ?'; binds.push(ed);
+      // match either card.editionCode or listing.editionCode fallback
+      sql += ' AND (c.editionCode = ? OR l.editionCode = ?)'; binds.push(ed, ed);
     }
     if (search) {
       sql += ' AND lower(c.cardName) LIKE ?'; binds.push(`%${search}%`);
@@ -60,8 +62,14 @@ export async function onRequest(context) {
     sql += ' ORDER BY l.quantity DESC, l.finalPrice ASC LIMIT ? OFFSET ?';
     binds.push(limit, offset);
 
-    const res = await db.prepare(sql).bind(...binds).all();
-    const rows = Array.isArray(res.results) ? res.results : (Array.isArray(res) ? res : []);
+    let res;
+    try {
+      res = await db.prepare(sql).bind(...binds).all();
+    } catch (err) {
+      try { console.error('[available] db query failed', err?.message || err, { sql, binds }); } catch (_) {}
+      return new Response(JSON.stringify({ success: false, error: 'DB query failed', message: String(err && err.message ? err.message : err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
+    const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
 
     // Prefer cached FX for on-the-fly CLP computation
     let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
@@ -74,16 +82,46 @@ export async function onRequest(context) {
     const out = [];
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    // Batch fetch missing card rows to avoid per-row fallbacks
+    const missingCardIds = Array.from(new Set(rows.filter((r) => !r.cardName && r.cardId).map((r) => r.cardId)));
+    const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+    const cardMap = new Map();
+    for (const cids of chunk(missingCardIds, 50)) {
+      try {
+        const placeholders = cids.map(() => '?').join(',');
+        const sel = await db.prepare(`SELECT id, cardName, externalId, tcg, rarity, priceMarket, priceMid, priceLow, cardCode FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
+        const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+        for (const rr of rowsRes) cardMap.set(rr.id || rr.ID || rr.Id || rr.id, rr);
+      } catch (_) {}
+    }
+
     for (const r of rows) {
       if (!r.cardName) {
-        try {
-          const fb = await findCardFallback(db, r.cardId);
-          if (fb) {
-            r.cardName = fb.cardName || r.cardName;
-            r.externalId = fb.externalId || r.externalId;
-            r.tcg = fb.tcg || r.tcg;
-          }
-        } catch (_) {}
+        const fb = cardMap.get(r.cardId) || null;
+        if (fb) {
+          r.cardName = fb.cardName || r.cardName;
+          r.externalId = fb.externalId || r.externalId;
+          r.tcg = fb.tcg || r.tcg;
+          r.rarity = fb.rarity || r.rarity;
+          r.priceMarket = fb.priceMarket || r.priceMarket;
+          r.priceMid = fb.priceMid || r.priceMid;
+          r.priceLow = fb.priceLow || r.priceLow;
+          r.cardCode = fb.cardCode || r.cardCode;
+        } else {
+          try {
+            const fallback = await findCardFallback(db, r.cardId);
+            if (fallback) {
+              r.cardName = fallback.cardName || r.cardName;
+              r.externalId = fallback.externalId || r.externalId;
+              r.tcg = fallback.tcg || r.tcg;
+              r.rarity = fallback.rarity || r.rarity;
+              r.priceMarket = fallback.priceMarket || r.priceMarket;
+              r.priceMid = fallback.priceMid || r.priceMid;
+              r.priceLow = fallback.priceLow || r.priceLow;
+              r.cardCode = fallback.cardCode || r.cardCode;
+            }
+          } catch (_) {}
+        }
       }
 
       const margin = r.marginMultiplier || defaultMargin;

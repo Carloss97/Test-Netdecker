@@ -304,7 +304,8 @@ export async function onRequest(context) {
             listingUpdates.push({ id: existingListingId, quantity, referencePrice, marginMultiplier, exchangeRate, finalPrice, editionCode });
           } else {
             const listingId = uuid();
-            listingRows.push([listingId, cardId, editionCode, condition, rarity, quantity, referencePrice, marginMultiplier, exchangeRate, finalPrice, 'CLP', 'active', new Date().toISOString(), new Date().toISOString()]);
+            // include everHadStock flag for new listing (1 if quantity > 0)
+            listingRows.push([listingId, cardId, editionCode, condition, rarity, quantity, (quantity > 0 ? 1 : 0), referencePrice, marginMultiplier, exchangeRate, finalPrice, 'CLP', 'active', new Date().toISOString(), new Date().toISOString()]);
             const phId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `ph-${Date.now()}-${Math.floor(Math.random()*10000)}`;
             priceHistoryRows.push([phId, listingId, null, finalPrice, null, referencePrice, null, exchangeRate, 'initial_import', null, importedBy, 'import', new Date().toISOString()]);
           }
@@ -332,17 +333,17 @@ export async function onRequest(context) {
           await runBatchedInsert({ table: 'card', cols: ['id','externalId','tcg','editionCode','cardCode','cardName','cardNumber','rarity','imageUrl','priceMarket'] }, cardRows, true, false);
         }
 
-        // listing updates
+        // listing updates: preserve everHadStock, set to true if quantity > 0
         for (const u of listingUpdates) {
           try {
-            await db.prepare('UPDATE listing SET quantity = ?, referencePrice = ?, marginMultiplier = ?, exchangeRate = ?, finalPrice = ?, editionCode = ?, currency = ?, status = ?, updatedAt = ? WHERE id = ?')
-              .bind(u.quantity, u.referencePrice, u.marginMultiplier, u.exchangeRate, u.finalPrice, u.editionCode, 'CLP', 'active', new Date().toISOString(), u.id).run();
+            await db.prepare('UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, referencePrice = ?, marginMultiplier = ?, exchangeRate = ?, finalPrice = ?, editionCode = ?, currency = ?, status = ?, updatedAt = ? WHERE id = ?')
+              .bind(u.quantity, u.quantity, u.referencePrice, u.marginMultiplier, u.exchangeRate, u.finalPrice, u.editionCode, 'CLP', 'active', new Date().toISOString(), u.id).run();
           } catch (_) {}
         }
 
-        // insert new listings and price history
+        // insert new listings and price history (include everHadStock column)
         if (listingRows.length > 0) {
-          await runBatchedInsert({ table: 'listing', cols: ['id','cardId','editionCode','condition','rarity','quantity','referencePrice','marginMultiplier','exchangeRate','finalPrice','currency','status','createdAt','updatedAt'] }, listingRows, false, true);
+          await runBatchedInsert({ table: 'listing', cols: ['id','cardId','editionCode','condition','rarity','quantity','everHadStock','referencePrice','marginMultiplier','exchangeRate','finalPrice','currency','status','createdAt','updatedAt'] }, listingRows, false, true);
         }
 
         if (priceHistoryRows.length > 0) {

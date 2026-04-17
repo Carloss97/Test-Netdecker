@@ -49,22 +49,37 @@ export async function onRequest(context) {
     } catch (_) {}
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
 
-    const res = await db.prepare('SELECT l.id as listingId, l.quantity, l.editionCode, l.cardId FROM listing l WHERE l.quantity <= ? ORDER BY l.quantity ASC LIMIT ?')
+    // Only consider listings that at some point had stock (everHadStock = 1) and are active/manual
+    const res = await db.prepare('SELECT l.id as listingId, l.quantity, l.editionCode, l.cardId, l.referencePrice, l.marginMultiplier, l.finalPrice FROM listing l WHERE l.quantity <= ? AND l.everHadStock = 1 AND l.status IN ("active","manual") ORDER BY l.quantity ASC LIMIT ?')
       .bind(threshold, limit).all();
     const rows = Array.isArray(res.results) ? res.results : (Array.isArray(res) ? res : []);
 
+    // Batch fetch card rows for all listings to avoid N+1
+    const cardIds = Array.from(new Set(rows.map((r) => r.cardId).filter(Boolean)));
+    const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
+    const cardMap = new Map();
+    for (const cids of chunk(cardIds, 50)) {
+      try {
+        const placeholders = cids.map(() => '?').join(',');
+        const sel = await db.prepare(`SELECT id, cardName, externalId, tcg, editionCode, cardCode, imageUrl, priceMarket, priceMid, priceLow FROM card WHERE id IN (${placeholders})`).bind(...cids).all();
+        const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+        for (const rr of rowsRes) cardMap.set(rr.id || rr.ID || rr.Id || rr.id, rr);
+      } catch (_) {}
+    }
+
     const out = [];
     for (const r of rows) {
-      let card = null;
-      try { card = await findCardFallback(db, r.cardId); } catch (_) { card = null; }
+      let card = cardMap.get(r.cardId) || null;
+      if (!card) {
+        try { card = await findCardFallback(db, r.cardId); } catch (_) { card = null; }
+      }
+
       const qty = Number(r.quantity || 0);
-      const listing = await db.prepare('SELECT referencePrice, marginMultiplier, finalPrice FROM listing WHERE id = ?').bind(r.listingId).all().catch(() => null);
-      const lrow = Array.isArray(listing?.results) ? listing.results[0] : (Array.isArray(listing) ? listing[0] : null);
-      const listingRef = lrow ? Number(lrow.referencePrice || 0) : 0;
+      const listingRef = Number(r.referencePrice || 0);
       const cardPrice = card ? (Number(card.priceMarket || card.priceMid || card.priceLow) || 0) : 0;
       const ref = listingRef || cardPrice;
-      const margin = lrow ? (lrow.marginMultiplier || defaultMargin) : defaultMargin;
-      let finalPrice = lrow ? Number(lrow.finalPrice || 0) : 0;
+      const margin = (Number(r.marginMultiplier) || defaultMargin);
+      let finalPrice = Number(r.finalPrice || 0);
       let priceComputed = false;
       if ((!finalPrice || finalPrice <= 0) && ref > 0) {
         finalPrice = Math.round(ref * margin * usdToClp);
