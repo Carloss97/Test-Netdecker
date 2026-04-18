@@ -1,8 +1,8 @@
-// Auto-generated stub for backend route backend\src\routes\pos.cash.routes.ts
-// TODO: Port implementation from backend/src/routes/pos.cash.routes.ts
+// Delegate POS cash routes to the top-level cash-sessions implementation
+import { onRequest as delegate } from '../../cash-sessions/index.js';
 
 export async function onRequest(context) {
-  return new Response(JSON.stringify({ error: 'Not implemented', route: 'pos.cash' }), { status: 501, headers: { 'Content-Type': 'application/json' } });
+  return delegate(context);
 }
 
 export default onRequest;

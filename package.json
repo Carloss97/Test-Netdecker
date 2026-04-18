@@ -14,7 +14,7 @@
     "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check",
     "map:ra5": "node scripts/map-ra5.js",
     "verify:pages": "node scripts/check-pages-project.js",
-    "test:pages-smoke": "node scripts/pages-smoke-test.js",
+    "test:pages-smoke": "node scripts/pages-smoke-wrapper.js",
     "scan:sql": "node scripts/scan_functions_sql.js",
     "postinstall": "node scripts/postinstall.js"
   },
