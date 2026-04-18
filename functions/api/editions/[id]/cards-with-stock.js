@@ -50,8 +50,27 @@ export async function onRequest(context) {
     await ensureSchema(db);
 
     const editionCols = await buildSelectColumns(db, 'edition', 'e', ['id','tcg','editionCode','editionName','releaseDate']);
-    const edRes = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();
-    const ed = firstRow(edRes);
+    let edRes = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();
+    let ed = firstRow(edRes);
+    if (!ed) {
+      try {
+        const decoded = decodeURIComponent(String(id));
+        const parts = String(decoded).split(':').filter(Boolean);
+        if (parts.length >= 2) {
+          const tcg = parts[0].toUpperCase();
+          const maybeCode = parts.slice(1).join(':').toUpperCase();
+          edRes = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.tcg = ? AND upper(e.editionCode) = ? LIMIT 1`).bind(tcg, maybeCode).all();
+          ed = firstRow(edRes);
+        }
+      } catch (_) {}
+    }
+    if (!ed) {
+      try {
+        const codeOnly = String(id).includes(':') ? String(id).split(':').pop() : String(id);
+        edRes = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE upper(e.editionCode) = ? LIMIT 1`).bind(String(codeOnly).toUpperCase()).all();
+        ed = firstRow(edRes);
+      } catch (_) {}
+    }
     if (!ed) return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
     const tcg = ed.tcg;

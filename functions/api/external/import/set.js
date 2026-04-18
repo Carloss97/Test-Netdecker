@@ -111,8 +111,9 @@ export async function onRequest(context) {
       // Preload existing cards and listings to avoid per-card SELECTs
       const cardIds = cards.map((c) => `${tcg}:${c.externalId}`);
       const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
-      const SQLITE_MAX_VARS = 900; // conservative limit for D1/SQLite
-      const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
+      const SQLITE_MAX_VARS = Number(env.EXTERNAL_SQLITE_MAX_VARS || env.SQLITE_MAX_VARS || 245);
+      // conservative chunk size to avoid hitting D1 variable limits; allow override via env
+      const safeSelectChunk = Math.max(1, Math.min(100, Math.floor((SQLITE_MAX_VARS - 20) / 1)));
 
       const rowsFrom = (res) => {
         if (!res) return [];
@@ -126,18 +127,25 @@ export async function onRequest(context) {
       const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);
       for (const cids of chunk(cardIds, safeSelectChunk)) {
         const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
-        for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.Id || r.cardId || r.cardid || r.id);
+        try {
+          const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
+          for (const r of rowsFrom(sel)) existingCardIds.add(r.id || r.ID || r.Id || r.cardId || r.cardid || r.id);
+        } catch (err) {
+          return new Response(JSON.stringify({ success: false, error: 'SQL_VARIABLES_LIMIT', phase: 'prefetch_existing_cards', chunkSize: cids.length, message: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        }
       }
 
-      // Query existing listings for this edition
+      // Query existing listings for this edition.
+      // To avoid large IN(...) queries that can exceed D1 variable limits,
+      // fetch all listings for the edition and map by cardId in-memory.
       const existingListingCardIds = new Set();
       const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId']);
       const listingColsAliasedId = aliasSelectColumn(listingCols, 'l', 'id', 'listingId');
-      for (const cids of chunk(cardIds, safeSelectChunk)) {
-        const placeholders = cids.map(() => '?').join(',');
-        const sel = await db.prepare(`SELECT ${listingColsAliasedId} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...cids).all();
-        for (const r of rowsFrom(sel)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);
+      try {
+        const selAll = await db.prepare(`SELECT ${listingColsAliasedId} FROM listing l WHERE l.editionCode = ?`).bind(editionCode).all();
+        for (const r of rowsFrom(selAll)) existingListingCardIds.add(r.cardId || r.cardid || r.cardID || r.cardId);
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: 'SQL_VARIABLES_LIMIT', phase: 'prefetch_existing_listings_full', message: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
       }
 
       // Build rows to insert in batches to reduce number of D1 calls

@@ -119,6 +119,7 @@ export async function onRequest(context) {
     }
 
     for (const r of rows) {
+      // Enrich missing card fields from pre-fetched cardMap or fallback
       if (!r.cardName) {
         const fb = cardMap.get(r.cardId) || null;
         if (fb) {
@@ -142,14 +143,14 @@ export async function onRequest(context) {
               r.priceMid = fallback.priceMid || r.priceMid;
               r.priceLow = fallback.priceLow || r.priceLow;
               r.cardCode = fallback.cardCode || r.cardCode;
+              r.imageUrl = fallback.imageUrl || r.imageUrl;
             }
           } catch (_) {}
         }
       }
 
-      const margin = r.marginMultiplier || defaultMargin;
+      const margin = Number(r.marginMultiplier || defaultMargin);
       let finalPrice = Number(r.finalPrice) || 0;
-      // prefer listing referencePrice, then card priceMarket/priceMid/priceLow
       const ref = Number(r.referencePrice) || Number(r.priceMarket) || Number(r.priceMid) || Number(r.priceLow) || 0;
       let priceComputed = false;
       if ((!finalPrice || finalPrice <= 0) && ref > 0) {
@@ -157,28 +158,40 @@ export async function onRequest(context) {
         priceComputed = true;
       }
 
-      // ensure cardName visible to UI even when join failed
       if (!r.cardName) r.cardName = r.externalId || r.cardCode || r.cardId || null;
-
       const stockAlert = Number(r.quantity || 0) <= stockAlertThreshold;
 
-      out.push({
-        listingId: r.listingId,
-        cardId: r.cardId,
-        editionCode: r.editionCode,
-        cardName: r.cardName,
-        externalId: r.externalId,
-        tcg: r.tcg,
-        rarity: r.rarity,
+      const externalId = r.externalId || (r.cardId ? String(r.cardId).split(':').pop() : null);
+      const cardObj = {
+        id: externalId || null,
+        tcgId: r.tcg || null,
+        editionId: r.editionCode ? `${r.tcg || ''}:${r.editionCode}` : null,
+        cardCode: r.cardCode || null,
+        cardName: r.cardName || null,
+        cardNumber: r.cardCode || null,
+        rarity: r.rarity || null,
+        imageUrl: r.imageUrl || null,
+      };
+
+      const listingObj = {
+        id: r.listingId || r.id || null,
+        cardId: r.cardId || null,
+        card: cardObj,
+        editionId: cardObj.editionId || (r.editionCode ? `${r.tcg || ''}:${r.editionCode}` : null),
+        condition: r.condition || 'NM',
+        quantity: Number(r.quantity) || 0,
         referencePrice: Number(r.referencePrice) || 0,
         marginMultiplier: margin,
+        exchangeRate: usdToClp,
         finalPrice,
-        priceComputed,
-        quantity: Number(r.quantity) || 0,
-        status: r.status,
+        currency: 'CLP',
+        status: r.status || 'active',
         lastSyncedAt: r.lastSyncedAt || null,
+        priceComputed,
         stockAlert,
-      });
+      };
+
+      out.push(listingObj);
     }
 
     return new Response(JSON.stringify({ success: true, total: out.length, listings: out }), { status: 200, headers: { 'Content-Type': 'application/json' } });

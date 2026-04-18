@@ -24,7 +24,45 @@ export async function onRequest(context) {
     const sql = `SELECT ${listingSelect}, ${selectCard} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE c.externalId = ? OR c.id = ? OR l.cardId = ? ORDER BY quantity DESC, finalPrice ASC`;
     const res = await db.prepare(sql).bind(cardId, cardId, cardId).all();
     const rows = Array.isArray(res.results) ? res.results : (Array.isArray(res) ? res : []);
-    return new Response(JSON.stringify({ success: true, total: rows.length, listings: rows }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const out = [];
+    for (const r of rows) {
+      const externalId = r.externalId || (r.cardId ? String(r.cardId).split(':').pop() : null);
+      const cardObj = {
+        id: externalId || null,
+        tcgId: r.tcg || null,
+        editionId: r.editionCode ? `${r.tcg || ''}:${r.editionCode}` : null,
+        cardCode: r.cardCode || null,
+        cardName: r.cardName || null,
+        cardNumber: r.cardCode || null,
+        rarity: r.rarity || null,
+      };
+      const margin = Number(r.marginMultiplier || 1.2);
+      const ref = Number(r.referencePrice) || Number(r.priceMarket) || Number(r.priceMid) || Number(r.priceLow) || 0;
+      let finalPrice = Number(r.finalPrice) || 0;
+      let priceComputed = false;
+      if ((!finalPrice || finalPrice <= 0) && ref > 0) {
+        // best-effort: use FALLBACK_USD_TO_CLP env if available
+        const usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+        finalPrice = Math.round(ref * margin * usdToClp);
+        priceComputed = true;
+      }
+      out.push({
+        id: r.listingId || r.id || null,
+        cardId: r.cardId || null,
+        card: cardObj,
+        editionId: cardObj.editionId || null,
+        condition: r.condition || 'NM',
+        quantity: Number(r.quantity) || 0,
+        referencePrice: Number(r.referencePrice) || 0,
+        marginMultiplier: Number(r.marginMultiplier) || 1.2,
+        finalPrice,
+        currency: 'CLP',
+        status: r.status || 'active',
+        lastSyncedAt: r.lastSyncedAt || null,
+        priceComputed,
+      });
+    }
+    return new Response(JSON.stringify({ success: true, total: out.length, listings: out }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

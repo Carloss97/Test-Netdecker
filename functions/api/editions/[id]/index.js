@@ -9,8 +9,29 @@ export async function onRequest(context) {
     await ensureSchema(db);
 
     const editionCols = await buildSelectColumns(db, 'edition', 'e', ['id','tcg','editionCode','editionName','releaseDate','isActive']);
-    const res = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();
-    const row = firstRow(res);
+    let res = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.id = ?`).bind(id).all();
+    let row = firstRow(res);
+    // Fallback: if no edition found by composite id, try parsing param like "TCG:CODE" and search by tcg + editionCode
+    if (!row) {
+      try {
+        const decoded = decodeURIComponent(String(id));
+        const parts = String(decoded).split(':').filter(Boolean);
+        if (parts.length >= 2) {
+          const tcg = parts[0].toUpperCase();
+          const maybeCode = parts.slice(1).join(':').toUpperCase();
+          res = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE e.tcg = ? AND upper(e.editionCode) = ? LIMIT 1`).bind(tcg, maybeCode).all();
+          row = firstRow(res);
+        }
+      } catch (_) {}
+    }
+    // Another fallback: try searching by editionCode alone (uppercased)
+    if (!row) {
+      try {
+        const codeOnly = String(id).includes(':') ? String(id).split(':').pop() : String(id);
+        res = await db.prepare(`SELECT ${editionCols} FROM edition e WHERE upper(e.editionCode) = ? LIMIT 1`).bind(String(codeOnly).toUpperCase()).all();
+        row = firstRow(res);
+      } catch (_) {}
+    }
     if (!row) return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
     const tcg = row.tcg;

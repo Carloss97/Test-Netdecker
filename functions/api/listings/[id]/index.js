@@ -81,8 +81,35 @@ export async function onRequest(context) {
     }
 
     if (!row.cardName) row.cardName = row.externalId || row.cardId || null;
-    const out = { ...row, finalPrice, priceComputed, stockAlert: Number(row.quantity || 0) <= Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2) };
-    return new Response(JSON.stringify({ success: true, listing: out }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const externalId = row.externalId || (row.cardId ? String(row.cardId).split(':').pop() : null);
+    const cardObj = {
+      id: externalId || null,
+      tcgId: row.tcg || null,
+      editionId: row.editionCode ? `${row.tcg || ''}:${row.editionCode}` : null,
+      cardCode: row.cardCode || null,
+      cardName: row.cardName || null,
+      cardNumber: row.cardCode || null,
+      rarity: row.rarity || null,
+    };
+    const out = {
+      id: row.listingId || row.id || null,
+      cardId: row.cardId || null,
+      card: cardObj,
+      editionId: cardObj.editionId || (row.editionCode ? `${row.tcg || ''}:${row.editionCode}` : null),
+      condition: row.condition || 'NM',
+      quantity: Number(row.quantity) || 0,
+      referencePrice: Number(row.referencePrice) || 0,
+      marginMultiplier: Number(row.marginMultiplier) || defaultMargin,
+      finalPrice,
+      currency: 'CLP',
+      status: row.status || 'active',
+      lastSyncedAt: row.lastSyncedAt || null,
+      priceComputed,
+      stockAlert: Number(row.quantity || 0) <= Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2),
+    };
+    // Return both wrapper and top-level fields for compatibility with clients expecting either shape
+    const payload = Object.assign({ success: true, listing: out }, out);
+    return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

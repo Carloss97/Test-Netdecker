@@ -82,7 +82,7 @@ function uuid() { if (globalThis.crypto && globalThis.crypto.randomUUID) return 
 export async function onRequest(context) {
   const { request, env } = context;
   const stopTimer = startTimer('import_csv_duration_seconds');
-  const SQLITE_MAX_VARS = 900; // global heuristic used for batching/select-chunking
+  const SQLITE_MAX_VARS = Number(env.IMPORT_SQLITE_MAX_VARS || env.SQLITE_MAX_VARS || 245); // configurable safe default for D1
   try {
     try { incr('import_csv_total', {}, 1); } catch (_) {}
     if (request.method !== 'POST') {

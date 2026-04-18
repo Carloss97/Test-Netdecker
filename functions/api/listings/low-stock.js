@@ -95,7 +95,7 @@ export async function onRequest(context) {
       const listingRef = Number(r.referencePrice || 0);
       const cardPrice = card ? (Number(card.priceMarket || card.priceMid || card.priceLow) || 0) : 0;
       const ref = listingRef || cardPrice;
-      const margin = (Number(r.marginMultiplier) || defaultMargin);
+      const margin = Number(r.marginMultiplier || defaultMargin);
       let finalPrice = Number(r.finalPrice || 0);
       let priceComputed = false;
       if ((!finalPrice || finalPrice <= 0) && ref > 0) {
@@ -103,7 +103,37 @@ export async function onRequest(context) {
         priceComputed = true;
       }
 
-      out.push({ listingId: r.id || r.ID || r.listingId || null, quantity: qty, editionCode: r.editionCode, cardName: card?.cardName || card?.externalId || r.cardId, externalId: card?.externalId || null, tcg: card?.tcg || null, cardId: r.cardId, finalPrice, priceComputed, stockAlert: (qty <= threshold) });
+      const externalId = card?.externalId || (r.cardId ? String(r.cardId).split(':').pop() : null);
+      const cardObj = {
+        id: externalId || null,
+        tcgId: card?.tcg || null,
+        editionId: r.editionCode ? `${card?.tcg || ''}:${r.editionCode}` : null,
+        cardCode: card?.cardCode || null,
+        cardName: card?.cardName || externalId || r.cardId,
+        cardNumber: card?.cardNumber || card?.cardCode || null,
+        rarity: card?.rarity || null,
+        imageUrl: card?.imageUrl || null,
+      };
+
+      const listingObj = {
+        id: r.id || r.ID || r.listingId || null,
+        cardId: r.cardId || null,
+        card: cardObj,
+        editionId: cardObj.editionId || (r.editionCode ? `${card?.tcg || ''}:${r.editionCode}` : null),
+        condition: r.condition || 'NM',
+        quantity: qty,
+        referencePrice: Number(r.referencePrice) || 0,
+        marginMultiplier: margin,
+        exchangeRate: usdToClp,
+        finalPrice,
+        currency: 'CLP',
+        status: r.status || 'active',
+        lastSyncedAt: r.lastSyncedAt || null,
+        priceComputed,
+        stockAlert: (qty <= threshold),
+      };
+
+      out.push(listingObj);
     }
 
     return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
