@@ -163,7 +163,14 @@ export function CardSearchPage() {
       name: nextPreview.cardName,
       imageUrl: nextPreview.imageUrl,
       cardCode: nextPreview.cardCode,
-      editionName: nextPreview.edition?.editionName,
+      editionName:
+        nextPreview.edition?.editionName || nextPreview.edition?.editionCode ||
+        formatInventoryIdentifier({
+          cardCode: nextPreview.cardCode,
+          cardNumber: nextPreview.cardNumber,
+          cardName: nextPreview.cardName,
+          editionCode: nextPreview.edition?.editionCode,
+        }),
       rarity: nextPreview.rarity,
     });
   }, [results]);
@@ -468,20 +475,20 @@ export function CardSearchPage() {
                 </div>
 
                 {/* Edition & code info for each variant */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {group.map((card) => (
-                    <div key={card.id} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <span>
-                        📦 {card.edition?.editionName ?? 'Edición desconocida'}
-                        {card.edition?.editionCode && (
-                          <span style={{ marginLeft: 4, opacity: 0.65 }}>({card.edition.editionCode})</span>
-                        )}
-                      </span>
-                      <span>🔖 {card.cardCode}</span>
-                      {card.cardNumber && <span>#{card.cardNumber}</span>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {group.map((card) => (
+                        <div key={card.id} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span>
+                            📦 {card.edition?.editionName || card.edition?.editionCode || formatInventoryIdentifier({ cardCode: card.cardCode, cardNumber: card.cardNumber, cardName: card.cardName, editionCode: card.edition?.editionCode })}
+                            {card.edition?.editionCode && (
+                              <span style={{ marginLeft: 4, opacity: 0.65 }}>({card.edition.editionCode})</span>
+                            )}
+                          </span>
+                          <span>🔖 {card.cardCode}</span>
+                          {card.cardNumber && <span>#{card.cardNumber}</span>}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
               </div>
 
               {/* Toggle listings button */}

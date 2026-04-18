@@ -13,7 +13,7 @@ function roundCommercialPrice(value, roundingMultiple) {
 }
 
 export async function calculateFinalPrice(env, { referencePrice, marginMultiplier, roundingMultiple }) {
-  const usdToClp = Number((env && (env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP)) || process.env.MANUAL_USD_TO_CLP || 950);
+  const usdToClp = Number((env && (env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP)) || process.env.MANUAL_USD_TO_CLP || 1000);
   const rawFinalPrice = referencePrice * marginMultiplier * usdToClp;
   const resolved = resolveRoundingMultiple(env, roundingMultiple);
   const finalPrice = roundCommercialPrice(rawFinalPrice, resolved);

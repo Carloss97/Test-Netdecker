@@ -647,7 +647,7 @@ async function onRequest(context) {
   try {
     const payload = request.method === "GET" ? Object.fromEntries(new URL(request.url).searchParams.entries()) : await request.json().catch(() => ({}));
     const createListing = payload.createListing === void 0 ? true : !!payload.createListing;
-    const marginMultiplier = typeof payload.marginMultiplier === "number" ? payload.marginMultiplier : Number(payload.marginMultiplier) || 1.2;
+    const marginMultiplier = typeof payload.marginMultiplier === "number" ? payload.marginMultiplier : Number(payload.marginMultiplier) || 1;
     const initialQuantity = Number.isFinite(Number(payload.quantity)) ? Number(payload.quantity) : 0;
     const tcg = "ONE_PIECE";
     let sets;
@@ -714,7 +714,7 @@ async function onRequest(context) {
     let createdCards = 0;
     let updatedCards = 0;
     let createdListings = 0;
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
     try {
       const pc = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind("exchangeRateCache").all();
       const first = Array.isArray(pc?.results) ? pc.results[0] : Array.isArray(pc) ? pc[0] : null;
@@ -1465,7 +1465,7 @@ function roundCommercialPrice(value, roundingMultiple) {
   return Math.round(value / roundingMultiple) * roundingMultiple;
 }
 async function calculateFinalPrice(env, { referencePrice, marginMultiplier, roundingMultiple }) {
-  const usdToClp = Number(env && (env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || process.env.MANUAL_USD_TO_CLP || 950);
+  const usdToClp = Number(env && (env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || process.env.MANUAL_USD_TO_CLP || 1e3);
   const rawFinalPrice = referencePrice * marginMultiplier * usdToClp;
   const resolved = resolveRoundingMultiple(env, roundingMultiple);
   const finalPrice = roundCommercialPrice(rawFinalPrice, resolved);
@@ -2391,7 +2391,7 @@ async function onRequest25(context) {
     const tcg = String((payload.tcg || payload.tcg || "").toUpperCase() || "").trim();
     const setCode = String(payload.setCode || payload.code || payload.set || "").trim();
     const createListing = payload.createListing === void 0 ? true : !!payload.createListing;
-    const marginMultiplier = typeof payload.marginMultiplier === "number" ? payload.marginMultiplier : Number(payload.marginMultiplier) || 1.2;
+    const marginMultiplier = typeof payload.marginMultiplier === "number" ? payload.marginMultiplier : Number(payload.marginMultiplier) || 1;
     const initialQuantity = Number.isFinite(Number(payload.initialQuantity)) ? Number(payload.initialQuantity) : 0;
     if (!tcg || !setCode) {
       return new Response(JSON.stringify({ success: false, error: "tcg and setCode are required" }), { status: 400, headers: { "Content-Type": "application/json" } });
@@ -2448,7 +2448,7 @@ async function onRequest25(context) {
       } catch (_) {
       }
     }
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
     if (db) {
       try {
         const pc = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind("exchangeRateCache").all();
@@ -3161,7 +3161,7 @@ async function onRequest38(context) {
     const tcg = String((body.tcg || "").toUpperCase()).trim();
     const cardId = String(body.cardId || body.externalId || "").trim();
     const createListing = body.createListing === void 0 ? true : !!body.createListing;
-    const marginMultiplier = typeof body.marginMultiplier === "number" ? body.marginMultiplier : Number(body.marginMultiplier) || 1.2;
+    const marginMultiplier = typeof body.marginMultiplier === "number" ? body.marginMultiplier : Number(body.marginMultiplier) || 1;
     const initialQuantity = Number.isFinite(Number(body.quantity)) ? Number(body.quantity) : 0;
     if (!tcg || !cardId) {
       return new Response(JSON.stringify({ success: false, error: "tcg and cardId are required" }), { status: 400, headers: { "Content-Type": "application/json" } });
@@ -3239,7 +3239,7 @@ async function onRequest38(context) {
         if (!has) {
           const listingId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `L-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
           const ref = best ? best.marketPrice ?? best.midPrice ?? best.lowPrice : 0.5;
-          const finalPrice = Math.round(ref * marginMultiplier * Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950));
+          const finalPrice = Math.round(ref * marginMultiplier * Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3));
           await db.prepare("INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(listingId, cardKey, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, "active", (/* @__PURE__ */ new Date()).toISOString()).run();
           createdListing = true;
         }
@@ -3268,7 +3268,7 @@ async function onRequest39(context) {
     const tcgRaw = String((body.tcg || "").toUpperCase() || "").trim();
     const query = String(body.query || body.q || "").trim();
     const createListing = body.createListing === void 0 ? true : !!body.createListing;
-    const marginMultiplier = typeof body.marginMultiplier === "number" ? body.marginMultiplier : Number(body.marginMultiplier) || 1.2;
+    const marginMultiplier = typeof body.marginMultiplier === "number" ? body.marginMultiplier : Number(body.marginMultiplier) || 1;
     const initialQuantity = Number.isFinite(Number(body.quantity)) ? Number(body.quantity) : 0;
     const limit = Math.min(200, Math.max(1, parseInt(String(body.limit || "50"), 10)));
     if (!query) {
@@ -3334,7 +3334,7 @@ async function onRequest39(context) {
                 if (!has) {
                   const listingId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `L-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
                   const ref = best ? best.marketPrice ?? best.midPrice ?? best.lowPrice : 0.5;
-                  const finalPrice = Math.round(ref * marginMultiplier * Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950));
+                  const finalPrice = Math.round(ref * marginMultiplier * Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3));
                   await db.prepare("INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(listingId, cardKey, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, "active", (/* @__PURE__ */ new Date()).toISOString()).run();
                 }
               }
@@ -3827,6 +3827,7 @@ async function onRequest50(context) {
     if (items.length === 0) return json20({ success: false, error: "items are required" }, 400);
     const db = pickDb2(env);
     if (!db) return json20({ success: false, error: "No DB binding available" }, 500);
+    if (db) await ensureSchema2(db);
     const listingIds = Array.from(new Set(items.map((it) => String(it.listingId))));
     const placeholders = listingIds.map(() => "?").join(",");
     const res = await db.prepare(`SELECT id, finalPrice FROM listing WHERE id IN (${placeholders})`).bind(...listingIds).all();
@@ -4468,12 +4469,12 @@ async function onRequest63(context) {
         cardNumber: r.cardCode || null,
         rarity: r.rarity || null
       };
-      const margin = Number(r.marginMultiplier || 1.2);
+      const margin = Number(r.marginMultiplier || 1);
       const ref = Number(r.referencePrice) || Number(r.priceMarket) || Number(r.priceMid) || Number(r.priceLow) || 0;
       let finalPrice = Number(r.finalPrice) || 0;
       let priceComputed = false;
       if ((!finalPrice || finalPrice <= 0) && ref > 0) {
-        const usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+        const usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1e3);
         finalPrice = Math.round(ref * margin * usdToClp);
         priceComputed = true;
       }
@@ -4485,7 +4486,7 @@ async function onRequest63(context) {
         condition: r.condition || "NM",
         quantity: Number(r.quantity) || 0,
         referencePrice: Number(r.referencePrice) || 0,
-        marginMultiplier: Number(r.marginMultiplier) || 1.2,
+        marginMultiplier: Number(r.marginMultiplier) || 1,
         finalPrice,
         currency: "CLP",
         status: r.status || "active",
@@ -4877,13 +4878,13 @@ async function onRequest70(context) {
     const cardSelect = await buildSelectColumns(db, "card", "c", ["id", "externalId", "tcg", "editionCode", "cardCode", "cardName", "rarity", "imageUrl", "priceMarket", "priceMid", "priceLow"]);
     const cardsRes = await db.prepare(`SELECT ${cardSelect} FROM card c WHERE c.tcg = ? AND c.editionCode = ? ORDER BY cardCode ASC, cardName ASC`).bind(tcg, editionCode).all();
     const cardsRows = Array.isArray(cardsRes?.results) ? cardsRes.results : Array.isArray(cardsRes) ? cardsRes : [];
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1e3);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
     } catch (_) {
     }
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
     const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out = [];
@@ -5144,7 +5145,7 @@ async function onRequest74(context) {
     const manualPrice = typeof body.manualPrice === "number" ? Number(body.manualPrice) : null;
     const changedBy = body.changedBy || body.source || "system";
     if (ref === null && margin === null && !mode) return new Response(JSON.stringify({ success: false, error: "nothing to update" }), { status: 400, headers: { "Content-Type": "application/json" } });
-    const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
     const db = pickDb(env);
     if (!db) return new Response(JSON.stringify({ success: false, error: "No DB binding available" }), { status: 500, headers: { "Content-Type": "application/json" } });
     await ensureSchema(db);
@@ -5155,7 +5156,7 @@ async function onRequest74(context) {
     const listing = Array.isArray(lres.results) ? lres.results[0] : Array.isArray(lres) ? lres[0] : null;
     if (!listing) return new Response(JSON.stringify({ success: false, error: "Listing not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
     let newRef = ref !== null ? ref : listing.referencePrice || null;
-    let newMargin = margin !== null ? margin : listing.marginMultiplier || 1.2;
+    let newMargin = margin !== null ? margin : listing.marginMultiplier || 1;
     if (mode === "manual") {
       if (manualPrice === null) return new Response(JSON.stringify({ success: false, error: "manualPrice required for manual mode" }), { status: 400, headers: { "Content-Type": "application/json" } });
       newRef = manualPrice;
@@ -5601,7 +5602,7 @@ async function onRequest82(context) {
   try {
     const db = pickDb(env);
     if (!db) {
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
       const dashboard2 = {
         kpis: {
           catalog: { totalCards: 0, totalListings: 0, activeListings: 0, lowStockListings: 0, outOfStockListings: 0 },
@@ -5636,7 +5637,7 @@ async function onRequest82(context) {
     const lowStockListings = (Array.isArray(lowStockRes?.results) ? lowStockRes.results[0]?.cnt : Array.isArray(lowStockRes) ? lowStockRes[0]?.cnt : 0) || 0;
     const outOfStockListings = (Array.isArray(outOfStockRes?.results) ? outOfStockRes.results[0]?.cnt : Array.isArray(outOfStockRes) ? outOfStockRes[0]?.cnt : 0) || 0;
     const cfgRes = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind("pricingConfig").all();
-    let usdToCLP = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToCLP = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
     let exchangeSource = "env";
     let fetchedAt = null;
     try {
@@ -5917,8 +5918,8 @@ async function onRequest87(context) {
     const db = pickDb(env);
     if (db) await ensureSchema(db);
     if (request.method === "GET") {
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
-      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2, exchangeRate: { mode: "manual", activeRate: defaultRate, source: "env" } };
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
+      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1, exchangeRate: { mode: "manual", activeRate: defaultRate, source: "env" } };
       if (!db) {
         return new Response(JSON.stringify({ config: defaultConfig }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
@@ -5951,10 +5952,10 @@ async function onRequest87(context) {
     }
     if (request.method === "POST") {
       const body = await request.json().catch(() => ({}));
-      const defaultMarginMultiplier = typeof body.defaultMarginMultiplier === "number" ? body.defaultMarginMultiplier : Number(body.defaultMarginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2;
+      const defaultMarginMultiplier = typeof body.defaultMarginMultiplier === "number" ? body.defaultMarginMultiplier : Number(body.defaultMarginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1;
       const exchangeRateMode = body.exchangeRateMode === "api" ? "api" : "manual";
-      const manualUsdToClp = typeof body.manualUsdToClp === "number" ? body.manualUsdToClp : Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 950;
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const manualUsdToClp = typeof body.manualUsdToClp === "number" ? body.manualUsdToClp : Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 1e3;
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
       const config = {
         defaultMarginMultiplier,
         exchangeRate: {
@@ -5965,6 +5966,12 @@ async function onRequest87(context) {
         }
       };
       if (db) {
+        if (exchangeRateMode === "api" && Number.isFinite(Number(manualUsdToClp)) && Number(manualUsdToClp) > 0) {
+          try {
+            await db.prepare("INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)").bind("exchangeRateCache", JSON.stringify({ usdToCLP: Number(manualUsdToClp), source: "manual-placeholder", fetchedAt: (/* @__PURE__ */ new Date()).toISOString() }), (/* @__PURE__ */ new Date()).toISOString()).run();
+          } catch (_) {
+          }
+        }
         await db.prepare("INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)").bind("pricingConfig", JSON.stringify(config), (/* @__PURE__ */ new Date()).toISOString()).run();
       }
       return new Response(JSON.stringify({ success: true, config }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -6430,7 +6437,7 @@ async function onRequest96(context) {
       if (!manualRate || manualRate <= 0) {
         manualRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
       }
-      const val = Number.isFinite(manualRate) && manualRate > 0 ? manualRate : Number(env.FALLBACK_USD_TO_CLP || 950);
+      const val = Number.isFinite(manualRate) && manualRate > 0 ? manualRate : Number(env.FALLBACK_USD_TO_CLP || 1e3);
       incr("exchange_rate_requests_total", { source: "manual", result: "success" });
       stop2();
       return jsonResponse({ success: true, usdToCLP: val, source: "manual", fetchedAt: (/* @__PURE__ */ new Date()).toISOString() });
@@ -6509,7 +6516,7 @@ async function onRequest96(context) {
         } catch (_) {
         }
       }
-      const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
       incr("exchange_rate_requests_total", { source: "fallback", result: "success" });
       stop2();
       return jsonResponse({ success: true, usdToCLP: fallback, source: "fallback", note: String(err), fetchedAt: (/* @__PURE__ */ new Date()).toISOString() });
@@ -31652,7 +31659,7 @@ async function onRequest106(context) {
       return new Response(JSON.stringify({ success: true, validationOnly: dryRun, result: result2 }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
     await ensureSchema(db);
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1e3);
     try {
       if (db) {
         const meta = await getUSDtoCLPRateMetaFast(env, db);
@@ -31778,7 +31785,7 @@ async function onRequest106(context) {
           const cardName = String(row.cardName || "").trim();
           const quantity = Number(row.quantity || 0) || 0;
           const referencePrice = parseNumber(row.referencePrice) || 0;
-          const marginMultiplier = parseNumber(row.marginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+          const marginMultiplier = parseNumber(row.marginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
           const condition = String(row.condition || "NM").trim() || "NM";
           const rarity = String(row.rarity || "Unknown").trim() || "Unknown";
           const cardNumber = String(row.cardNumber || row.cardCode || "").trim() || null;
@@ -32078,7 +32085,7 @@ async function onRequest111(context) {
       return new Response(JSON.stringify({ success: false, error: "DB query failed", message: String(err && err.message ? err.message : err) }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
     const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1e3);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
@@ -32086,7 +32093,7 @@ async function onRequest111(context) {
     }
     const out = [];
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
     const missingCardIds = Array.from(new Set(rows.filter((r) => (!r.cardName || !r.rarity || !r.imageUrl || !r.externalId || !r.cardCode) && r.cardId).map((r) => r.cardId)));
     const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out2 = [];
@@ -32310,13 +32317,13 @@ async function onRequest114(context) {
     const db = pickDb(env);
     if (!db) return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
     await ensureSchema(db);
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1e3);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
     } catch (_) {
     }
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
     const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "quantity", "editionCode", "cardId", "referencePrice", "marginMultiplier", "finalPrice", "everHadStock", "status"]);
     const existing = await getTableColumns(db, "listing");
     const hasEverHadStock = existing.includes("everHadStock");
@@ -32483,7 +32490,7 @@ async function onRequest116(context) {
       runId2 = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `run-${Date.now()}`;
       await db.prepare(`INSERT INTO priceSyncRun (id, source, status, notes, total, updated, volatile, failed, roundingMultiple, startedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(runId2, body.source || "manual", "running", body.notes || null, 0, 0, 0, 0, Number(body.roundingMultiple) || 1, startedAt, startedAt).run();
     }
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1e3);
     if (db) {
       try {
         const meta = await getUSDtoCLPRateMetaFast(env, db);
@@ -32532,7 +32539,7 @@ async function onRequest116(context) {
             const cardId = u.cardId;
             const listingId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `L-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
             const ref = Number(u.referencePrice) || 0;
-            const margin = typeof u.marginMultiplier === "number" ? u.marginMultiplier : 1.2;
+            const margin = typeof u.marginMultiplier === "number" ? u.marginMultiplier : 1;
             const finalPrice = Math.round(ref * margin * usdToClp);
             try {
               const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -32660,7 +32667,7 @@ async function onRequest116(context) {
           let chosenReference = fallbackRef;
           if (externalPrice && externalPrice > 0) chosenReference = externalPrice;
           else if (safeStoredRef) chosenReference = safeStoredRef;
-          const margin = listing.marginMultiplier || 1.2;
+          const margin = listing.marginMultiplier || 1;
           const finalPrice = Math.round(chosenReference * margin * usdToClp);
           try {
             const oldFinal = listing.finalPrice ?? null;
@@ -33243,13 +33250,13 @@ async function onRequest130(context) {
       } catch (_) {
       }
     }
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1e3);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
     } catch (_) {
     }
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
     const margin = row.marginMultiplier || defaultMargin;
     const ref = Number(row.referencePrice) || Number(row.priceMarket) || Number(row.priceMid) || Number(row.priceLow) || 0;
     let finalPrice = Number(row.finalPrice) || 0;
@@ -35214,10 +35221,10 @@ var init_functionsRoutes_0_421892428804746 = __esm({
   }
 });
 
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-jSXo0y/middleware-loader.entry.ts
 init_functionsRoutes_0_421892428804746();
 
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-jSXo0y/middleware-insertion-facade.js
 init_functionsRoutes_0_421892428804746();
 
 // ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/pages-template-worker.ts
@@ -35713,7 +35720,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-jSXo0y/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -35746,7 +35753,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-jSXo0y/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

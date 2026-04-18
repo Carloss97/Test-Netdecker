@@ -48,7 +48,7 @@ export async function onRequest(context) {
       if (!manualRate || manualRate <= 0) {
         manualRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 0);
       }
-      const val = Number.isFinite(manualRate) && manualRate > 0 ? manualRate : Number(env.FALLBACK_USD_TO_CLP || 950);
+      const val = Number.isFinite(manualRate) && manualRate > 0 ? manualRate : Number(env.FALLBACK_USD_TO_CLP || 1000);
       incr('exchange_rate_requests_total', { source: 'manual', result: 'success' });
       stop();
       return jsonResponse({ success: true, usdToCLP: val, source: 'manual', fetchedAt: new Date().toISOString() });
@@ -145,7 +145,7 @@ export async function onRequest(context) {
         }
       }
 
-      const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
       incr('exchange_rate_requests_total', { source: 'fallback', result: 'success' });
       stop();
       return jsonResponse({ success: true, usdToCLP: fallback, source: 'fallback', note: String(err), fetchedAt: new Date().toISOString() });

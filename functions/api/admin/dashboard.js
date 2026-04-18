@@ -7,7 +7,7 @@ export async function onRequest(context) {
     const db = pickDb(env);
     if (!db) {
       // return sensible defaults for frontend when DB not bound
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
       const dashboard = {
         kpis: {
           catalog: { totalCards: 0, totalListings: 0, activeListings: 0, lowStockListings: 0, outOfStockListings: 0 },
@@ -50,7 +50,7 @@ export async function onRequest(context) {
 
     // Exchange rate: read from appConfig pricingConfig if present
     const cfgRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('pricingConfig').all();
-    let usdToCLP = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToCLP = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
     let exchangeSource = 'env';
     let fetchedAt = null;
     try {

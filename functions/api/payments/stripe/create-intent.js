@@ -1,4 +1,4 @@
-import { pickDb } from '../../../../_shared/d1.js';
+import { pickDb, ensureSchema } from '../../../../_shared/d1.js';
 
 async function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -13,6 +13,7 @@ export async function onRequest(context) {
 
     const db = pickDb(env);
     if (!db) return json({ success: false, error: 'No DB binding available' }, 500);
+    if (db) await ensureSchema(db);
 
     // Load listings
     const listingIds = Array.from(new Set(items.map((it) => String(it.listingId))));

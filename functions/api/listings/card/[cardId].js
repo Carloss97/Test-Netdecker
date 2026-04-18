@@ -38,13 +38,13 @@ export async function onRequest(context) {
         cardNumber: r.cardCode || null,
         rarity: r.rarity || null,
       };
-      const margin = Number(r.marginMultiplier || 1.2);
+      const margin = Number(r.marginMultiplier || 1.0);
       const ref = Number(r.referencePrice) || Number(r.priceMarket) || Number(r.priceMid) || Number(r.priceLow) || 0;
       let finalPrice = Number(r.finalPrice) || 0;
       let priceComputed = false;
       if ((!finalPrice || finalPrice <= 0) && ref > 0) {
         // best-effort: use FALLBACK_USD_TO_CLP env if available
-        const usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+        const usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1000);
         finalPrice = Math.round(ref * margin * usdToClp);
         priceComputed = true;
       }
@@ -56,7 +56,7 @@ export async function onRequest(context) {
         condition: r.condition || 'NM',
         quantity: Number(r.quantity) || 0,
         referencePrice: Number(r.referencePrice) || 0,
-        marginMultiplier: Number(r.marginMultiplier) || 1.2,
+        marginMultiplier: Number(r.marginMultiplier) || 1.0,
         finalPrice,
         currency: 'CLP',
         status: r.status || 'active',

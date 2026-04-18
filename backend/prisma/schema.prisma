@@ -224,7 +224,7 @@ model Listing {
 
   // Pricing
   referencePrice Float    // Price in USD from external APIs (Scryfall, Pokemon TCG, YGOPRODeck, OPTCGAPI)
-  marginMultiplier Float  @default(1.2)  // 1.2 = 20% markup
+  marginMultiplier Float  @default(1.0)  // 1.0 = no markup (default changed to 1.0)
   exchangeRate   Float    @default(1.0)  // USD to CLP rate at time of calculation
 
   finalPrice     Float    // Computed: referencePrice * marginMultiplier * exchangeRate

@@ -92,7 +92,7 @@ export async function onRequest(context) {
     const rows = Array.isArray(res?.results) ? res.results : (Array.isArray(res) ? res : []);
 
     // Prefer cached FX for on-the-fly CLP computation
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1000);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
@@ -101,7 +101,7 @@ export async function onRequest(context) {
     // Fill missing card data when possible and compute finalPrice if missing
     const out = [];
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.0);
     // Batch fetch missing card rows to avoid per-row fallbacks
     // include rows missing important card metadata (name, rarity, image, external id, or code)
     const missingCardIds = Array.from(new Set(rows.filter((r) => ( !r.cardName || !r.rarity || !r.imageUrl || !r.externalId || !r.cardCode ) && r.cardId).map((r) => r.cardId)));

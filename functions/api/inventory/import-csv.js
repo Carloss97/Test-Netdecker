@@ -147,7 +147,7 @@ export async function onRequest(context) {
     await ensureSchema(db);
 
     // Prefer cached exchange rate from appConfig when available (fast path)
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1000);
     try {
       if (db) {
         const meta = await getUSDtoCLPRateMetaFast(env, db);
@@ -288,7 +288,7 @@ export async function onRequest(context) {
           const cardName = String(row.cardName || '').trim();
           const quantity = Number(row.quantity || 0) || 0;
           const referencePrice = parseNumber(row.referencePrice) || 0;
-          const marginMultiplier = parseNumber(row.marginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+          const marginMultiplier = parseNumber(row.marginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.0);
           const condition = String(row.condition || 'NM').trim() || 'NM';
           const rarity = String(row.rarity || 'Unknown').trim() || 'Unknown';
           const cardNumber = String(row.cardNumber || row.cardCode || '').trim() || null;

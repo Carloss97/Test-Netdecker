@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import './PosPage.css'
 import apiClient from '../services/api'
+import { getListingsByCard } from '../services/catalog'
 import * as erp from '../services/erp'
 import StripeCheckout from '../components/StripeCheckout'
 
@@ -67,8 +68,9 @@ export function PosPage() {
 
   async function loadListingsForCard(cardId: string) {
     try {
-      const { data } = await apiClient.get(`/listings/card/${cardId}`)
-      setListings(data || [])
+      // Prefer client helper which normalizes backend wrapper ({ success, listings })
+      const listingsData = await getListingsByCard(cardId)
+      setListings(Array.isArray(listingsData) ? listingsData : [])
     } catch (err) {
       console.error(err)
       setMessage('Error cargando listings')

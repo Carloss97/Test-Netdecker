@@ -17,7 +17,7 @@ export async function onRequest(context) {
 
     if (ref === null && margin === null && !mode) return new Response(JSON.stringify({ success: false, error: 'nothing to update' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
-    const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
 
     const db = pickDb(env);
     if (!db) return new Response(JSON.stringify({ success: false, error: 'No DB binding available' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
@@ -31,7 +31,7 @@ export async function onRequest(context) {
     if (!listing) return new Response(JSON.stringify({ success: false, error: 'Listing not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
     let newRef = ref !== null ? ref : listing.referencePrice || null;
-    let newMargin = margin !== null ? margin : listing.marginMultiplier || 1.2;
+    let newMargin = margin !== null ? margin : listing.marginMultiplier || 1.0;
 
     if (mode === 'manual') {
       if (manualPrice === null) return new Response(JSON.stringify({ success: false, error: 'manualPrice required for manual mode' }), { status: 400, headers: { 'Content-Type': 'application/json' } });

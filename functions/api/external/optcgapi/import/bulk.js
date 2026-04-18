@@ -13,7 +13,7 @@ export async function onRequest(context) {
       : await request.json().catch(() => ({}));
 
     const createListing = payload.createListing === undefined ? true : !!payload.createListing;
-    const marginMultiplier = typeof payload.marginMultiplier === 'number' ? payload.marginMultiplier : (Number(payload.marginMultiplier) || 1.2);
+    const marginMultiplier = typeof payload.marginMultiplier === 'number' ? payload.marginMultiplier : (Number(payload.marginMultiplier) || 1.0);
     const initialQuantity = Number.isFinite(Number(payload.quantity)) ? Number(payload.quantity) : 0;
 
     const tcg = 'ONE_PIECE';
@@ -84,7 +84,7 @@ export async function onRequest(context) {
     let createdListings = 0;
 
     // Determine usdToClp cache
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
     try {
       const pc = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
       const first = Array.isArray(pc?.results) ? pc.results[0] : (Array.isArray(pc) ? pc[0] : null);

@@ -65,12 +65,12 @@ export async function onRequest(context) {
     }
 
     // compute finalPrice on-the-fly if missing using cached FX
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1000);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
     } catch (_) {}
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.0);
     const margin = row.marginMultiplier || defaultMargin;
     const ref = Number(row.referencePrice) || Number(row.priceMarket) || Number(row.priceMid) || Number(row.priceLow) || 0;
     let finalPrice = Number(row.finalPrice) || 0;

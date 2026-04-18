@@ -8,7 +8,7 @@ export async function onRequest(context) {
     const tcg = String((body.tcg || '').toUpperCase()).trim();
     const cardId = String(body.cardId || body.externalId || '').trim();
     const createListing = body.createListing === undefined ? true : !!body.createListing;
-    const marginMultiplier = typeof body.marginMultiplier === 'number' ? body.marginMultiplier : (Number(body.marginMultiplier) || 1.2);
+    const marginMultiplier = typeof body.marginMultiplier === 'number' ? body.marginMultiplier : (Number(body.marginMultiplier) || 1.0);
     const initialQuantity = Number.isFinite(Number(body.quantity)) ? Number(body.quantity) : 0;
 
     if (!tcg || !cardId) {
@@ -92,7 +92,7 @@ export async function onRequest(context) {
         if (!has) {
           const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;
           const ref = best ? (best.marketPrice ?? best.midPrice ?? best.lowPrice) : 0.5;
-          const finalPrice = Math.round(ref * marginMultiplier * Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950));
+          const finalPrice = Math.round(ref * marginMultiplier * Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000));
           await db.prepare('INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
             .bind(listingId, cardKey, editionCode, ref, marginMultiplier, finalPrice, initialQuantity, 'active', new Date().toISOString()).run();
           createdListing = true;

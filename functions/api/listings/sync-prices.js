@@ -37,7 +37,7 @@ export async function onRequest(context) {
         .run();
     }
 
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1000);
     if (db) {
       try {
         const meta = await getUSDtoCLPRateMetaFast(env, db);
@@ -97,7 +97,7 @@ export async function onRequest(context) {
             const cardId = u.cardId;
             const listingId = (globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID()) || `L-${Date.now()}-${Math.floor(Math.random()*10000)}`;
             const ref = Number(u.referencePrice) || 0;
-            const margin = typeof u.marginMultiplier === 'number' ? u.marginMultiplier : 1.2;
+            const margin = typeof u.marginMultiplier === 'number' ? u.marginMultiplier : 1.0;
             const finalPrice = Math.round(ref * margin * usdToClp);
 
             // Ensure a minimal card row exists to avoid orphan listings. Prefer not to overwrite richer metadata.
@@ -241,7 +241,7 @@ export async function onRequest(context) {
           if (externalPrice && externalPrice > 0) chosenReference = externalPrice;
           else if (safeStoredRef) chosenReference = safeStoredRef;
 
-          const margin = listing.marginMultiplier || 1.2;
+          const margin = listing.marginMultiplier || 1.0;
           const finalPrice = Math.round(chosenReference * margin * usdToClp);
           // capture old values and update, then write history
           try {

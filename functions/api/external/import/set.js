@@ -12,7 +12,7 @@ export async function onRequest(context) {
     const tcg = String((payload.tcg || payload.tcg || '').toUpperCase() || '').trim();
     const setCode = String(payload.setCode || payload.code || payload.set || '').trim();
     const createListing = payload.createListing === undefined ? true : !!payload.createListing;
-    const marginMultiplier = typeof payload.marginMultiplier === 'number' ? payload.marginMultiplier : (Number(payload.marginMultiplier) || 1.2);
+    const marginMultiplier = typeof payload.marginMultiplier === 'number' ? payload.marginMultiplier : (Number(payload.marginMultiplier) || 1.0);
     const initialQuantity = Number.isFinite(Number(payload.initialQuantity)) ? Number(payload.initialQuantity) : 0;
 
     if (!tcg || !setCode) {
@@ -80,7 +80,7 @@ export async function onRequest(context) {
     }
 
     // Prefer cached exchange rate from appConfig when available (so imports use same rate as admin)
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
     if (db) {
       try {
         const pc = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();

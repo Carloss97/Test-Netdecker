@@ -30,7 +30,7 @@ export async function runPriceSync(db, env, input = {}) {
   for (const u of updates) {
     try {
       if (u.listingId) {
-        await PriceService.updateListingPrice(db, env, u.listingId, u.referencePrice, u.marginMultiplier || 1.2, u.source || 'sync', input.changedBy || null, input.notes || null, input.roundingMultiple);
+        await PriceService.updateListingPrice(db, env, u.listingId, u.referencePrice, u.marginMultiplier || 1.0, u.source || 'sync', input.changedBy || null, input.notes || null, input.roundingMultiple);
         updated += 1;
         continue;
       }
@@ -39,7 +39,7 @@ export async function runPriceSync(db, env, input = {}) {
         // Create a basic listing for the cardId if none exists
         const listingId = mkId('L');
         const ref = Number(u.referencePrice || 0);
-        const margin = Number(u.marginMultiplier || 1.2);
+        const margin = Number(u.marginMultiplier || 1.0);
         const calc = await PriceService.calculateFinalPrice(env, { referencePrice: ref, marginMultiplier: margin, roundingMultiple: input.roundingMultiple });
         try {
           await db.prepare('INSERT OR IGNORE INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')

@@ -20,8 +20,8 @@ export async function onRequest(context) {
     if (db) await ensureSchema(db);
 
     if (request.method === 'GET') {
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
-      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
+      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.0, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };
 
       if (!db) {
         return new Response(JSON.stringify({ config: defaultConfig }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -60,11 +60,11 @@ export async function onRequest(context) {
 
     if (request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
-      const defaultMarginMultiplier = typeof body.defaultMarginMultiplier === 'number' ? body.defaultMarginMultiplier : (Number(body.defaultMarginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2);
+      const defaultMarginMultiplier = typeof body.defaultMarginMultiplier === 'number' ? body.defaultMarginMultiplier : (Number(body.defaultMarginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.0);
       const exchangeRateMode = body.exchangeRateMode === 'api' ? 'api' : 'manual';
-      const manualUsdToClp = typeof body.manualUsdToClp === 'number' ? body.manualUsdToClp : (Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 950);
+      const manualUsdToClp = typeof body.manualUsdToClp === 'number' ? body.manualUsdToClp : (Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 1000);
 
-      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
+      const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
       const config = {
         defaultMarginMultiplier,
         exchangeRate: {
@@ -76,6 +76,14 @@ export async function onRequest(context) {
       };
 
       if (db) {
+        // If switching to API mode but a manual value was provided, persist it as a temporary cache
+        // so the UI shows the provided value until the live API overwrites it.
+        if (exchangeRateMode === 'api' && Number.isFinite(Number(manualUsdToClp)) && Number(manualUsdToClp) > 0) {
+          try {
+            await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
+              .bind('exchangeRateCache', JSON.stringify({ usdToCLP: Number(manualUsdToClp), source: 'manual-placeholder', fetchedAt: new Date().toISOString() }), new Date().toISOString()).run();
+          } catch (_) {}
+        }
         await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)').bind('pricingConfig', JSON.stringify(config), new Date().toISOString()).run();
       }
 

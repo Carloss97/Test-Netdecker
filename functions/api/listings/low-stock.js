@@ -46,12 +46,12 @@ export async function onRequest(context) {
     await ensureSchema(db);
 
     // get fast cached FX for computing CLP final price if needed
-    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 950);
+    let usdToClp = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || 1000);
     try {
       const meta = await getUSDtoCLPRateMetaFast(env, db);
       if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
     } catch (_) {}
-    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
+    const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.0);
 
     // Only consider listings that at some point had stock (everHadStock = 1) and are active/manual
     const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','quantity','editionCode','cardId','referencePrice','marginMultiplier','finalPrice','everHadStock','status']);

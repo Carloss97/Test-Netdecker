@@ -98,7 +98,7 @@ model Listing {
   rarity         String
   quantity       Int       @default(0)
   referencePrice Float
-  marginMultiplier Float  @default(1.2)
+  marginMultiplier Float  @default(1.0)
   exchangeRate   Float    @default(1.0)
   finalPrice     Float
   currency       String   @default("CLP")

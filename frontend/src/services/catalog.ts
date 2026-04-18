@@ -8,7 +8,7 @@ import * as ygoproClient from './ygopro';
 import * as optcgClient from './optcg';
 import * as localImports from './localImports';
 
-const DEFAULT_USD_TO_CLP = Number(import.meta.env.VITE_MANUAL_USD_TO_CLP || import.meta.env.VITE_USD_TO_CLP) || 950;
+const DEFAULT_USD_TO_CLP = Number(import.meta.env.VITE_MANUAL_USD_TO_CLP || import.meta.env.VITE_USD_TO_CLP) || 1000;
 
 function getUsdToClpRate(): number {
   // Priority: runtime stored manual rate -> env var -> default
