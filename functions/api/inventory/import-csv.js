@@ -1,5 +1,5 @@
 import { pickDb, ensureSchema, buildSelectColumns } from '../../_shared/d1.js';
-import { getUSDtoCLPRateMetaFast } from '../../_shared/exchange-rate.js';
+import { getUSDtoCLPRateMetaFast, refreshExchangeRate } from '../../_shared/exchange-rate.js';
 import { incr, startTimer } from '../../_shared/metrics.js';
 
 function normalizeHeader(header) {
@@ -151,7 +151,18 @@ export async function onRequest(context) {
     try {
       if (db) {
         const meta = await getUSDtoCLPRateMetaFast(env, db);
-        if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
+        if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) {
+          usdToClp = Number(meta.usdToCLP);
+        } else {
+          // Try to refresh live rate but with a short timeout to avoid long import delays
+          try {
+            const p = refreshExchangeRate(env, db);
+            const r = await Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('refresh_timeout')), 3000))]);
+            if (r && Number.isFinite(Number(r.usdToCLP)) && Number(r.usdToCLP) > 0) usdToClp = Number(r.usdToCLP);
+          } catch (_) {
+            // ignore refresh failures/timeouts and fall back to env value
+          }
+        }
       }
     } catch (_) {
       // fall back to env value

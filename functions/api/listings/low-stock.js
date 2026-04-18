@@ -103,7 +103,7 @@ export async function onRequest(context) {
         priceComputed = true;
       }
 
-      out.push({ listingId: r.listingId, quantity: qty, editionCode: r.editionCode, cardName: card?.cardName || card?.externalId || r.cardId, externalId: card?.externalId || null, tcg: card?.tcg || null, cardId: r.cardId, finalPrice, priceComputed, stockAlert: true });
+      out.push({ listingId: r.id || r.ID || r.listingId || null, quantity: qty, editionCode: r.editionCode, cardName: card?.cardName || card?.externalId || r.cardId, externalId: card?.externalId || null, tcg: card?.tcg || null, cardId: r.cardId, finalPrice, priceComputed, stockAlert: (qty <= threshold) });
     }
 
     return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });

@@ -163,7 +163,8 @@ function createD1Proxy(p = prisma) {
           if (low.includes('select sum(') && low.includes('from listing')) {
             try {
               const rows = await withConcurrency(() => prismaClient.listing.findMany({ select: { referencePrice: true, marginMultiplier: true, quantity: true } }));
-              const sumUsd = rows.reduce((acc: number, r: any) => acc + (Number(r.referencePrice || 0) * Number(r.marginMultiplier || 1) * Number(r.quantity || 0)), 0);
+              const rowsArr = rows as any[];
+              const sumUsd = rowsArr.reduce((acc: number, r: any) => acc + (Number(r.referencePrice || 0) * Number(r.marginMultiplier || 1) * Number(r.quantity || 0)), 0);
               cacheSet(cacheKey, [{ sumUsd }]);
               return { results: [{ sumUsd }] };
             } catch (_) {}
