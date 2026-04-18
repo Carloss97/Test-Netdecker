@@ -1,58 +1,3 @@
-import { pickDb, ensureSchema } from '../../_shared/d1.js';
-import { validateToken } from '../../_shared/adminAuth.js';
-
-function extractToken(request) {
-  const auth = request.headers.get('authorization') || '';
-  if (typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
-  return request.headers.get('x-admin-token') || '';
-}
-
-async function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-}
-
-export async function onRequest(context) {
-  const { request, env } = context;
-  try {
-    const token = String(extractToken(request) || '');
-    if (!token) return json({ success: false, error: 'Missing token' }, 401);
-    const user = await validateToken(env, token);
-    if (!user) return json({ success: false, error: 'Invalid token' }, 401);
-
-    const url = new URL(request.url);
-    const threshold = parseInt(String(url.searchParams.get('threshold') || '5'), 10) || 5;
-
-    const db = pickDb(env);
-    if (db) await ensureSchema(db);
-
-    if (!db) return json({ success: false, error: 'No DB configured' }, 500);
-
-    const rowsRes = await db.prepare(`SELECT l.id as listingId, l.quantity, l.condition, l.finalPrice, c.cardName, c.cardCode, c.imageUrl, e.editionCode, e.editionName
-      FROM listing l
-      LEFT JOIN card c ON c.id = l.cardId
-      LEFT JOIN edition e ON e.editionCode = l.editionCode
-      WHERE l.status IN ('active','manual') AND l.everHadStock = 1 AND l.quantity <= ?
-      ORDER BY l.quantity ASC LIMIT 100`).bind(threshold).all();
-
-    const rows = Array.isArray(rowsRes?.results) ? rowsRes.results : (Array.isArray(rowsRes) ? rowsRes : []);
-
-    return json({ success: true, threshold, total: rows.length, alerts: rows.map((a) => ({
-      listingId: a.listingId,
-      cardName: a.cardName,
-      cardCode: a.cardCode,
-      editionCode: a.editionCode,
-      editionName: a.editionName,
-      condition: a.condition,
-      quantity: a.quantity,
-      finalPrice: a.finalPrice,
-      imageUrl: a.imageUrl,
-    })) });
-  } catch (err) {
-    return json({ success: false, error: String(err) }, 500);
-  }
-}
-
-export default { onRequest };
 import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../_shared/d1.js';
 
 export async function onRequest(context) {
@@ -81,3 +26,5 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ alerts: [] , error: String(err)}), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
+
+export default onRequest;

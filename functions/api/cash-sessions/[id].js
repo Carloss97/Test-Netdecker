@@ -1,5 +1,5 @@
-import { pickDb, ensureSchema } from '../../../../_shared/d1.js';
-import CashShared from '../../../../_shared/cash.js';
+import { pickDb, ensureSchema } from '../../_shared/d1.js';
+import CashShared from '../../_shared/cash.js';
 
 export async function onRequest(context) {
   const { env, params } = context;

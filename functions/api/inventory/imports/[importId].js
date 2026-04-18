@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../../../../../_shared/d1.js';
+import { pickDb, ensureSchema } from '../../../_shared/d1.js';
 
 async function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });

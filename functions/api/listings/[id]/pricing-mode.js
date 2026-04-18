@@ -1,49 +1,3 @@
-import { pickDb, ensureSchema } from '../../../_shared/d1.js';
-import { calculateFinalPrice } from '../../../_shared/price.js';
-
-async function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-}
-
-export async function onRequest(context) {
-  const { request, env, params } = context;
-  try {
-    const { id } = params || {};
-    if (!id) return json({ success: false, error: 'id missing' }, 400);
-    const body = await request.json().catch(() => ({}));
-    const mode = body.mode;
-
-    if (mode !== 'manual' && mode !== 'api') return json({ success: false, error: 'mode must be manual or api' }, 400);
-
-    const db = pickDb(env);
-    if (!db) return json({ success: false, error: 'No DB binding' }, 500);
-    await ensureSchema(db);
-
-    const curRes = await db.prepare('SELECT * FROM listing WHERE id = ?').bind(id).all();
-    const curRow = Array.isArray(curRes?.results) ? curRes.results[0] : (Array.isArray(curRes) ? curRes[0] : null);
-    if (!curRow) return json({ success: false, error: 'Listing not found' }, 404);
-
-    if (mode === 'manual') {
-      const manualPrice = Number(body.manualPrice);
-      if (!Number.isFinite(manualPrice) || manualPrice <= 0) return json({ success: false, error: 'manualPrice must be positive' }, 400);
-      const now = new Date().toISOString();
-      await db.prepare('UPDATE listing SET finalPrice = ?, status = ?, lastSyncedAt = ?, updatedAt = ? WHERE id = ?')
-        .bind(manualPrice, 'manual', now, now, id).run();
-      return json({ success: true, listingId: id, finalPrice: manualPrice, pricingMode: 'manual' });
-    }
-
-    // API mode: recalculate using referencePrice and marginMultiplier
-    const ref = Number(curRow.referencePrice || 0);
-    const margin = Number(curRow.marginMultiplier || 1.2);
-    const calc = await calculateFinalPrice(env, { referencePrice: ref, marginMultiplier: margin });
-    const now = new Date().toISOString();
-    await db.prepare('UPDATE listing SET finalPrice = ?, exchangeRate = ?, status = ?, lastSyncedAt = ?, updatedAt = ? WHERE id = ?')
-      .bind(calc.finalPrice, calc.exchangeRate, 'active', now, now, id).run();
-    return json({ success: true, listingId: id, finalPrice: calc.finalPrice, pricingMode: 'api' });
-  } catch (err) {
-    return json({ success: false, error: String(err) }, 500);
-  }
-}
 import { pickDb, ensureSchema, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 
 export async function onRequest(context) {
@@ -109,3 +63,6 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
+
+export default onRequest;
+
