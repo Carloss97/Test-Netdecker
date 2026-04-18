@@ -80,7 +80,7 @@ function bestPrice(p) {
 }
 
 function isCardLikeProduct(product) {
-  const ext = product.extendedData || [];
+  const ext = Array.isArray(product.extendedData) ? product.extendedData : (product.extendedData ? [product.extendedData] : []);
   return ext.some((entry) => {
     const key = (entry.name || entry.displayName || '').toLowerCase();
     return key === 'rarity' || key === 'number' || key === 'cardnumber' || key === 'collectornumber';
@@ -179,7 +179,7 @@ async function getSetCards(tcg, setCode) {
   }
 
   const cards = (products || []).filter(isCardLikeProduct).map((product) => {
-    const ext = product.extendedData || [];
+    const ext = Array.isArray(product.extendedData) ? product.extendedData : (product.extendedData ? [product.extendedData] : []);
     const rarity = getExtendedValue(ext, 'Rarity') || product.subTypeName || null;
     const cardNumber = getExtendedValue(ext, 'Number') || getExtendedValue(ext, 'CardNumber') || getExtendedValue(ext, 'CollectorNumber') || null;
     const price = priceByProductId.get(product.productId);

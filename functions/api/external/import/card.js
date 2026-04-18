@@ -78,6 +78,9 @@ export async function onRequest(context) {
     const editionCode = (foundGroup.abbreviation || String(foundGroup.groupId)).toUpperCase();
     const cardKey = `${tcg}:${found.productId}`;
 
+      const ext = Array.isArray(found.extendedData) ? found.extendedData : (found.extendedData ? [found.extendedData] : []);
+      const cardNumberEntry = ext.find((e) => ['number','cardnumber','collectornumber'].includes(((e.name||e.displayName)||'').toLowerCase()));
+      const rarityEntry = ext.find((e) => ((e.name||e.displayName)||'').toLowerCase() === 'rarity');
       if (db) {
         await db.prepare(`INSERT OR REPLACE INTO card (id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`)
         .bind(cardKey, String(found.productId), tcg, editionCode, found.name, found.name, found.subTypeName || null, found.imageUrl || null, best ? (best.marketPrice ?? best.midPrice ?? best.lowPrice) : null)

@@ -32,7 +32,7 @@ export async function onRequest(context) {
           try {
             if (!p || !p.name) continue;
             if (p.name.toLowerCase().includes(lowerQ)) {
-              const ext = p.extendedData || [];
+              const ext = Array.isArray(p.extendedData) ? p.extendedData : (p.extendedData ? [p.extendedData] : []);
               const cardNumberEntry = ext.find((e) => ['number','cardnumber','collectornumber'].includes(((e.name||e.displayName)||'').toLowerCase()));
               const rarityEntry = ext.find((e) => ((e.name||e.displayName)||'').toLowerCase() === 'rarity');
 

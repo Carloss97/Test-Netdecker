@@ -23,7 +23,7 @@ export async function onRequest(context) {
         const prices = await getGroupPrices(tcg, g.groupId).catch(() => []);
         const matchingPrices = prices.filter((pr) => String(pr.productId) === String(found.productId));
         const best = matchingPrices.sort((a,b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1))[0];
-        const ext = found.extendedData || [];
+        const ext = Array.isArray(found.extendedData) ? found.extendedData : (found.extendedData ? [found.extendedData] : []);
         const cardNumberEntry = ext.find((e) => ['number','cardnumber','collectornumber'].includes(((e.name||e.displayName)||'').toLowerCase()));
         const rarityEntry = ext.find((e) => ((e.name||e.displayName)||'').toLowerCase() === 'rarity');
 

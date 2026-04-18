@@ -48,7 +48,7 @@ async function ensureSchema(db) {
     rarity TEXT,
     quantity INTEGER DEFAULT 0,
     referencePrice REAL DEFAULT 0,
-    marginMultiplier REAL DEFAULT 1.2,
+    marginMultiplier REAL DEFAULT 1.0,
     exchangeRate REAL DEFAULT 1.0,
     finalPrice REAL DEFAULT 0,
     currency TEXT DEFAULT 'CLP',

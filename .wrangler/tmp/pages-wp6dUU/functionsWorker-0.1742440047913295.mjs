@@ -97,7 +97,7 @@ function bestPrice(p) {
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : void 0;
 }
 function isCardLikeProduct(product) {
-  const ext = product.extendedData || [];
+  const ext = Array.isArray(product.extendedData) ? product.extendedData : product.extendedData ? [product.extendedData] : [];
   return ext.some((entry) => {
     const key = (entry.name || entry.displayName || "").toLowerCase();
     return key === "rarity" || key === "number" || key === "cardnumber" || key === "collectornumber";
@@ -177,7 +177,7 @@ async function getSetCards(tcg, setCode) {
     if (best) priceByProductId.set(p.productId, best);
   }
   const cards = (products || []).filter(isCardLikeProduct).map((product) => {
-    const ext = product.extendedData || [];
+    const ext = Array.isArray(product.extendedData) ? product.extendedData : product.extendedData ? [product.extendedData] : [];
     const rarity = getExtendedValue(ext, "Rarity") || product.subTypeName || null;
     const cardNumber = getExtendedValue(ext, "Number") || getExtendedValue(ext, "CardNumber") || getExtendedValue(ext, "CollectorNumber") || null;
     const price = priceByProductId.get(product.productId);
@@ -282,7 +282,7 @@ async function ensureSchema(db) {
     rarity TEXT,
     quantity INTEGER DEFAULT 0,
     referencePrice REAL DEFAULT 0,
-    marginMultiplier REAL DEFAULT 1.2,
+    marginMultiplier REAL DEFAULT 1.0,
     exchangeRate REAL DEFAULT 1.0,
     finalPrice REAL DEFAULT 0,
     currency TEXT DEFAULT 'CLP',
@@ -985,7 +985,7 @@ async function ensureSchema2(db) {
     rarity TEXT,
     quantity INTEGER DEFAULT 0,
     referencePrice REAL DEFAULT 0,
-    marginMultiplier REAL DEFAULT 1.2,
+    marginMultiplier REAL DEFAULT 1.0,
     exchangeRate REAL DEFAULT 1.0,
     finalPrice REAL DEFAULT 0,
     currency TEXT DEFAULT 'CLP',
@@ -1737,7 +1737,7 @@ async function onRequest14(context) {
         const prices = await getGroupPrices(tcg, g.groupId).catch(() => []);
         const matchingPrices = prices.filter((pr) => String(pr.productId) === String(found.productId));
         const best = matchingPrices.sort((a, b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1))[0];
-        const ext = found.extendedData || [];
+        const ext = Array.isArray(found.extendedData) ? found.extendedData : found.extendedData ? [found.extendedData] : [];
         const cardNumberEntry = ext.find((e) => ["number", "cardnumber", "collectornumber"].includes((e.name || e.displayName || "").toLowerCase()));
         const rarityEntry = ext.find((e) => (e.name || e.displayName || "").toLowerCase() === "rarity");
         const card = {
@@ -3228,6 +3228,9 @@ async function onRequest38(context) {
     const best = matchingPrices.sort((a, b) => (b.marketPrice ?? b.midPrice ?? b.lowPrice ?? -1) - (a.marketPrice ?? a.midPrice ?? a.lowPrice ?? -1))[0];
     const editionCode = (foundGroup.abbreviation || String(foundGroup.groupId)).toUpperCase();
     const cardKey = `${tcg}:${found.productId}`;
+    const ext = Array.isArray(found.extendedData) ? found.extendedData : found.extendedData ? [found.extendedData] : [];
+    const cardNumberEntry = ext.find((e) => ["number", "cardnumber", "collectornumber"].includes((e.name || e.displayName || "").toLowerCase()));
+    const rarityEntry = ext.find((e) => (e.name || e.displayName || "").toLowerCase() === "rarity");
     if (db) {
       await db.prepare(`INSERT OR REPLACE INTO card (id, externalId, tcg, editionCode, cardCode, cardName, rarity, imageUrl, priceMarket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`).bind(cardKey, String(found.productId), tcg, editionCode, found.name, found.name, found.subTypeName || null, found.imageUrl || null, best ? best.marketPrice ?? best.midPrice ?? best.lowPrice : null).run();
       let createdListing = false;
@@ -6657,7 +6660,7 @@ async function onRequest99(context) {
           try {
             if (!p || !p.name) continue;
             if (p.name.toLowerCase().includes(lowerQ)) {
-              const ext = p.extendedData || [];
+              const ext = Array.isArray(p.extendedData) ? p.extendedData : p.extendedData ? [p.extendedData] : [];
               const cardNumberEntry = ext.find((e) => ["number", "cardnumber", "collectornumber"].includes((e.name || e.displayName || "").toLowerCase()));
               const rarityEntry = ext.find((e) => (e.name || e.displayName || "").toLowerCase() === "rarity");
               results.push({
@@ -35221,10 +35224,10 @@ var init_functionsRoutes_0_421892428804746 = __esm({
   }
 });
 
-// ../.wrangler/tmp/bundle-jSXo0y/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-SCjG3Y/middleware-loader.entry.ts
 init_functionsRoutes_0_421892428804746();
 
-// ../.wrangler/tmp/bundle-jSXo0y/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-SCjG3Y/middleware-insertion-facade.js
 init_functionsRoutes_0_421892428804746();
 
 // ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/pages-template-worker.ts
@@ -35720,7 +35723,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-jSXo0y/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-SCjG3Y/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -35753,7 +35756,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-jSXo0y/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-SCjG3Y/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
