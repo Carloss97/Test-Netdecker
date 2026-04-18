@@ -38,7 +38,7 @@ const createIntentSchema = z.object({
 
 router.post('/stripe/create-intent', async (req, res) => {
   const body = parseBodyOrThrow(createIntentSchema, req.body);
-  const intent = await StripeService.createPaymentIntent({ items: body.items, storeId: body.storeId || null, currency: body.currency || 'CLP' });
+  const intent = await StripeService.createPaymentIntent({ items: body.items as any, storeId: body.storeId || null, currency: body.currency || 'CLP' });
   res.json({ success: true, clientSecret: intent.clientSecret, paymentIntentId: intent.id, amount: intent.amount, currency: intent.currency });
 });
 

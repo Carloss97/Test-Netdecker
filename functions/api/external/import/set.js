@@ -1,5 +1,6 @@
 import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode, getSetCards } from '../../../_shared/tcgcsv.js';
 import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
+import { refreshExchangeRate } from '../../../_shared/exchange-rate.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -88,6 +89,15 @@ export async function onRequest(context) {
           const parsed = JSON.parse(first.value);
           const cached = Number(parsed?.usdToCLP);
           if (!isNaN(cached) && cached > 0) usdToClp = cached;
+        } else {
+          // Try a quick live refresh if no cache found (bounded timeout)
+          try {
+            const p = refreshExchangeRate(env, db);
+            const r = await Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('refresh_timeout')), 3000))]);
+            if (r && Number.isFinite(Number(r.usdToCLP)) && Number(r.usdToCLP) > 0) usdToClp = Number(r.usdToCLP);
+          } catch (_) {
+            // ignore
+          }
         }
       } catch (_) {}
     }

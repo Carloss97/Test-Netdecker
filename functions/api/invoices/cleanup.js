@@ -1,4 +1,4 @@
-import { pickDb, ensureSchema } from '../_shared/d1.js';
+import { pickDb, ensureSchema } from '../../_shared/d1.js';
 
 export async function onRequest(context) {
   const { env } = context;

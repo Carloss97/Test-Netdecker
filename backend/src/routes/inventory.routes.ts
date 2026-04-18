@@ -557,7 +557,7 @@ router.post('/update-quantity', async (req: Request, res: Response) => {
 router.post('/bulk-update', async (req: Request, res: Response) => {
   const { updates } = parseBodyOrThrow(bulkUpdateSchema, req.body);
 
-  const results = await ListingService.bulkUpdateQuantities(updates);
+  const results = await ListingService.bulkUpdateQuantities(updates as any);
   res.json({
     success: true,
     results

@@ -168,7 +168,7 @@ export class CardService {
     console.log('[CardService.getCardsByTCG] Called with:', tcgIdentifier);
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../functions/_shared/cardService.js');
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
       return CardD1.getCardsByTCG(db, tcgIdentifier);
     }
 
@@ -211,7 +211,7 @@ export class CardService {
   static async bulkUpsertCards(cards: CreateCardInput[]) {
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../functions/_shared/cardService.js');
+      const CardD1 = await import('../../../functions/_shared/cardService.js');
       return CardD1.bulkUpsertCards(db, cards as any, {});
     }
 

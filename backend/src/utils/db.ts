@@ -300,13 +300,15 @@ if (process.env.SKIP_DB_INIT === 'true') {
 				// @ts-ignore - dynamic import of generated sqlite client; ambient types may not exist in all environments
 				const pkg = await import('@prisma/client_sqlite');
 				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-				prisma = new PrismaClientClass() as unknown as MinimalPrisma;
+				const PrismaClientCtor: any = PrismaClientClass as any;
+				prisma = new PrismaClientCtor() as MinimalPrisma;
 				console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
 			} else {
 				console.log('[DB] Loading @prisma/client (Postgres)');
 				const pkg = await import('@prisma/client');
 				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-				prisma = new PrismaClientClass() as unknown as MinimalPrisma;
+				const PrismaClientCtor: any = PrismaClientClass as any;
+				prisma = new PrismaClientCtor() as MinimalPrisma;
 				console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
 			}
 
