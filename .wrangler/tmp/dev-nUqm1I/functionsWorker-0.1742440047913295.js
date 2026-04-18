@@ -3463,18 +3463,22 @@ async function onRequest41(context) {
       totalCards: totalCardsOf(g) || 0,
       source: "tcgcsv"
     }));
-    const toFetch = sets.filter((s) => !s.totalCards || s.totalCards === 0);
-    const concurrency = 6;
-    for (let i = 0; i < toFetch.length; i += concurrency) {
-      const batch = toFetch.slice(i, i + concurrency);
-      await Promise.all(batch.map(async (s) => {
-        try {
-          const products = await getGroupProducts(tcgRaw, s.groupId).catch(() => []);
-          s.totalCards = Array.isArray(products) ? products.length : 0;
-        } catch (_) {
-          s.totalCards = 0;
-        }
-      }));
+    const includeCountsRaw = (url.searchParams.get("includeCounts") || url.searchParams.get("counts") || "").toLowerCase();
+    const includeCounts = includeCountsRaw === "1" || includeCountsRaw === "true" || includeCountsRaw === "yes";
+    if (includeCounts) {
+      const toFetch = sets.filter((s) => !s.totalCards || s.totalCards === 0);
+      const concurrency = 6;
+      for (let i = 0; i < toFetch.length; i += concurrency) {
+        const batch = toFetch.slice(i, i + concurrency);
+        await Promise.all(batch.map(async (s) => {
+          try {
+            const products = await getGroupProducts(tcgRaw, s.groupId).catch(() => []);
+            s.totalCards = Array.isArray(products) ? products.length : 0;
+          } catch (_) {
+            s.totalCards = 0;
+          }
+        }));
+      }
     }
     const out = sets.map(({ groupId, ...rest }) => rest);
     return new Response(JSON.stringify({ success: true, tcg: tcgRaw, total: out.length, sets: out }), { status: 200, headers: { "Content-Type": "application/json" } });

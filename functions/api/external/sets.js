@@ -36,19 +36,25 @@ export async function onRequest(context) {
       source: 'tcgcsv',
     }));
 
-    // For sets without a totalCards value, fetch product counts with limited concurrency
-    const toFetch = sets.filter((s) => !s.totalCards || s.totalCards === 0);
-    const concurrency = 6;
-    for (let i = 0; i < toFetch.length; i += concurrency) {
-      const batch = toFetch.slice(i, i + concurrency);
-      await Promise.all(batch.map(async (s) => {
-        try {
-          const products = await getGroupProducts(tcgRaw, s.groupId).catch(() => []);
-          s.totalCards = Array.isArray(products) ? products.length : 0;
-        } catch (_) {
-          s.totalCards = 0;
-        }
-      }));
+    // Optionally fetch product counts for sets missing `totalCards`.
+    // This is disabled by default because it may trigger many external requests
+    // (use ?includeCounts=1 to enable when needed).
+    const includeCountsRaw = (url.searchParams.get('includeCounts') || url.searchParams.get('counts') || '').toLowerCase();
+    const includeCounts = includeCountsRaw === '1' || includeCountsRaw === 'true' || includeCountsRaw === 'yes';
+    if (includeCounts) {
+      const toFetch = sets.filter((s) => !s.totalCards || s.totalCards === 0);
+      const concurrency = 6;
+      for (let i = 0; i < toFetch.length; i += concurrency) {
+        const batch = toFetch.slice(i, i + concurrency);
+        await Promise.all(batch.map(async (s) => {
+          try {
+            const products = await getGroupProducts(tcgRaw, s.groupId).catch(() => []);
+            s.totalCards = Array.isArray(products) ? products.length : 0;
+          } catch (_) {
+            s.totalCards = 0;
+          }
+        }));
+      }
     }
 
     // Cleanup: remove internal groupId before returning

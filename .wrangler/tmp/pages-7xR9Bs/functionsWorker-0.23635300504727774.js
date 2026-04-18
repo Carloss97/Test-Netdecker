@@ -206,7 +206,7 @@ async function getSetCards(tcg, setCode) {
 var BASE, API_KEY, DEFAULT_TTL, CONCURRENCY_LIMIT, TCGCSV_CATEGORY_IDS;
 var init_tcgcsv = __esm({
   "_shared/tcgcsv.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     BASE = typeof process !== "undefined" && process.env && process.env.TCGCSV_BASE || typeof globalThis !== "undefined" && globalThis.TCGCSV_BASE || "https://tcgcsv.com/tcgplayer";
     API_KEY = typeof process !== "undefined" && process.env && process.env.TCGCSV_API_KEY || typeof globalThis !== "undefined" && globalThis.TCGCSV_API_KEY || null;
     DEFAULT_TTL = Number(typeof process !== "undefined" && process.env && process.env.TCGCSV_CACHE_TTL || typeof globalThis !== "undefined" && globalThis.TCGCSV_CACHE_TTL || 3600);
@@ -628,7 +628,7 @@ function aliasSelectColumn(selectFragment, alias, column, newAlias) {
 }
 var init_d1 = __esm({
   "_shared/d1.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(pickDb, "pickDb");
     __name(ensureSchema, "ensureSchema");
     __name(firstRow, "firstRow");
@@ -781,7 +781,7 @@ async function onRequest(context) {
 }
 var init_bulk = __esm({
   "api/external/optcgapi/import/bulk.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     init_d1();
     __name(json, "json");
@@ -795,7 +795,7 @@ async function onRequest2(context) {
 }
 var init_test = __esm({
   "api/inventory/routes/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest2, "onRequest");
   }
 });
@@ -806,7 +806,7 @@ async function onRequest3(context) {
 }
 var init_test2 = __esm({
   "api/pos/routes/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest3, "onRequest");
   }
 });
@@ -832,7 +832,7 @@ async function onRequest4(context) {
 }
 var init_runId = __esm({
   "api/listings/sync-prices/runs/[runId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest4, "onRequest");
   }
@@ -875,7 +875,7 @@ async function onRequest5(context) {
 }
 var init_commit = __esm({
   "api/erp/reservations/[id]/commit.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json2, "json");
     __name(onRequest5, "onRequest");
@@ -888,7 +888,7 @@ async function onRequest6(context) {
 }
 var init_commit2 = __esm({
   "api/erp/reservation/[id]/commit.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_commit();
     __name(onRequest6, "onRequest");
   }
@@ -921,7 +921,7 @@ async function onRequest7(context) {
 }
 var init_release = __esm({
   "api/erp/reservations/[id]/release.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json3, "json");
     __name(onRequest7, "onRequest");
@@ -934,7 +934,7 @@ async function onRequest8(context) {
 }
 var init_release2 = __esm({
   "api/erp/reservation/[id]/release.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_release();
     __name(onRequest8, "onRequest");
   }
@@ -1295,7 +1295,7 @@ function firstRow2(res) {
 }
 var init_d12 = __esm({
   "../_shared/d1.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(pickDb2, "pickDb");
     __name(ensureSchema2, "ensureSchema");
     __name(firstRow2, "firstRow");
@@ -1336,7 +1336,7 @@ async function onRequest9(context) {
 }
 var init_rollback = __esm({
   "api/inventory/imports/[id]/rollback.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(json4, "json");
     __name(onRequest9, "onRequest");
@@ -1349,7 +1349,7 @@ async function onRequest10(context) {
 }
 var init_close = __esm({
   "api/pos/cash-sessions/[id]/close.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_close();
     __name(onRequest10, "onRequest");
   }
@@ -1410,7 +1410,7 @@ async function listTransactions(db, sessionPublicId) {
 var pos_default;
 var init_pos = __esm({
   "_shared/pos.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(genId, "genId");
     __name(createSession, "createSession");
@@ -1446,7 +1446,7 @@ async function onRequest11(context) {
 }
 var init_transactions = __esm({
   "api/pos/sessions/[sessionId]/transactions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_pos();
     __name(onRequest11, "onRequest");
@@ -1500,7 +1500,7 @@ async function updateListingPrice(db, env, listingId, newReferencePrice, marginM
 var priceService_default;
 var init_priceService = __esm({
   "_shared/priceService.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(resolveRoundingMultiple, "resolveRoundingMultiple");
     __name(roundCommercialPrice, "roundCommercialPrice");
@@ -1590,7 +1590,7 @@ async function resolveStoreFromRequest(request, env) {
 }
 var init_tenant = __esm({
   "_shared/tenant.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(resolveStoreFromRequest, "resolveStoreFromRequest");
   }
@@ -1658,7 +1658,7 @@ async function onRequest12(context) {
 }
 var init_approve = __esm({
   "api/pricing/approvals/[id]/approve.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_priceService();
     init_tenant();
@@ -1706,7 +1706,7 @@ async function onRequest13(context) {
 }
 var init_reject = __esm({
   "api/pricing/approvals/[id]/reject.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tenant();
     __name(json6, "json");
@@ -1764,7 +1764,7 @@ async function onRequest14(context) {
 }
 var init_cardId = __esm({
   "api/external/cards/[tcg]/[cardId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     __name(onRequest14, "onRequest");
   }
@@ -1879,7 +1879,7 @@ async function checkout(db, sessionId, customerEmail, shippingAddress, notes) {
 var cart_default;
 var init_cart = __esm({
   "../_shared/cart.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(genId2, "genId");
     __name(getOrCreateCart, "getOrCreateCart");
@@ -1918,7 +1918,7 @@ async function onRequest15(context) {
 }
 var init_itemId = __esm({
   "api/cart/[sessionId]/item/[itemId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_cart();
     __name(onRequest15, "onRequest");
@@ -2071,7 +2071,7 @@ async function logout(env, token) {
 }
 var init_adminAuth = __esm({
   "_shared/adminAuth.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(nowIso, "nowIso");
     __name(hex, "hex");
@@ -2111,7 +2111,7 @@ async function onRequest16(context) {
 }
 var init_create = __esm({
   "api/admin/create.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_adminAuth();
     __name(json7, "json");
     __name(onRequest16, "onRequest");
@@ -2124,7 +2124,7 @@ async function onRequest17(context) {
 }
 var init_create2 = __esm({
   "api/admin/auth/create.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_create();
     __name(onRequest17, "onRequest");
   }
@@ -2149,7 +2149,7 @@ async function onRequest18(context) {
 }
 var init_login = __esm({
   "api/admin/login.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_adminAuth();
     __name(json8, "json");
     __name(onRequest18, "onRequest");
@@ -2162,7 +2162,7 @@ async function onRequest19(context) {
 }
 var init_login2 = __esm({
   "api/admin/auth/login.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_login();
     __name(onRequest19, "onRequest");
   }
@@ -2190,7 +2190,7 @@ async function onRequest20(context) {
 }
 var init_logout = __esm({
   "api/admin/logout.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_adminAuth();
     __name(json9, "json");
     __name(extractToken, "extractToken");
@@ -2204,7 +2204,7 @@ async function onRequest21(context) {
 }
 var init_logout2 = __esm({
   "api/admin/auth/logout.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_logout();
     __name(onRequest21, "onRequest");
   }
@@ -2233,7 +2233,7 @@ async function onRequest22(context) {
 }
 var init_me = __esm({
   "api/admin/me.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_adminAuth();
     __name(json10, "json");
     __name(extractToken2, "extractToken");
@@ -2247,7 +2247,7 @@ async function onRequest23(context) {
 }
 var init_me2 = __esm({
   "api/admin/auth/me.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_me();
     __name(onRequest23, "onRequest");
   }
@@ -2288,7 +2288,7 @@ async function onRequest24(context) {
 }
 var init_invalidate = __esm({
   "api/admin/cache/invalidate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest24, "onRequest");
   }
@@ -2376,7 +2376,7 @@ async function refreshExchangeRate(env, db) {
 }
 var init_exchange_rate = __esm({
   "_shared/exchange-rate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(getUSDtoCLPRateMetaFast, "getUSDtoCLPRateMetaFast");
     __name(refreshExchangeRate, "refreshExchangeRate");
@@ -2576,7 +2576,7 @@ async function onRequest25(context) {
 }
 var init_set = __esm({
   "api/external/import/set.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     init_d1();
     init_exchange_rate();
@@ -2612,7 +2612,7 @@ async function onRequest26(context) {
 }
 var init_catalog_bootstrap = __esm({
   "api/admin/catalog-bootstrap.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_adminAuth();
     init_set();
     __name(extractToken3, "extractToken");
@@ -2627,7 +2627,7 @@ async function onRequest27(context) {
 }
 var init_bootstrap = __esm({
   "api/admin/catalog/bootstrap.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_catalog_bootstrap();
     __name(onRequest27, "onRequest");
   }
@@ -2662,7 +2662,7 @@ async function onRequest28(context) {
 }
 var init_reset = __esm({
   "api/admin/catalog/reset.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest28, "onRequest");
   }
@@ -2698,7 +2698,7 @@ async function onRequest29(context) {
 }
 var init_catalog_sync = __esm({
   "api/admin/catalog-sync.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_adminAuth();
     init_set();
     __name(extractToken4, "extractToken");
@@ -2713,7 +2713,7 @@ async function onRequest30(context) {
 }
 var init_sync = __esm({
   "api/admin/catalog/sync.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_catalog_sync();
     __name(onRequest30, "onRequest");
   }
@@ -2795,7 +2795,7 @@ async function calculateFinalPriceDetailed(env, input) {
 }
 var init_price = __esm({
   "_shared/price.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(resolveRoundingMultiple2, "resolveRoundingMultiple");
     __name(roundCommercialPrice2, "roundCommercialPrice");
@@ -2874,7 +2874,7 @@ async function onRequest31(context) {
 }
 var init_pricing_preview = __esm({
   "api/admin/pricing-preview.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_price();
     init_adminAuth();
@@ -2890,7 +2890,7 @@ async function onRequest32(context) {
 }
 var init_preview = __esm({
   "api/admin/pricing/preview.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_pricing_preview();
     __name(onRequest32, "onRequest");
   }
@@ -2997,7 +2997,7 @@ async function onRequest33(context) {
 }
 var init_thresholds = __esm({
   "api/admin/pricing/thresholds.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tenant();
     __name(json14, "json");
@@ -3011,7 +3011,7 @@ async function onRequest34(context) {
 }
 var init_test3 = __esm({
   "api/admin/routes/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest34, "onRequest");
   }
 });
@@ -3069,7 +3069,7 @@ async function onRequest35(context) {
 }
 var init_movement = __esm({
   "api/erp/stock/movement.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json15, "json");
     __name(onRequest35, "onRequest");
@@ -3103,7 +3103,7 @@ async function onRequest36(context) {
 }
 var init_snapshot = __esm({
   "api/erp/stock/snapshot.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json16, "json");
     __name(onRequest36, "onRequest");
@@ -3146,7 +3146,7 @@ async function onRequest37(context) {
 }
 var init_transfer = __esm({
   "api/erp/stock/transfer.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json17, "json");
     __name(onRequest37, "onRequest");
@@ -3253,7 +3253,7 @@ async function onRequest38(context) {
 }
 var init_card = __esm({
   "api/external/import/card.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     init_d1();
     __name(onRequest38, "onRequest");
@@ -3354,7 +3354,7 @@ async function onRequest39(context) {
 }
 var init_search = __esm({
   "api/external/import/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     init_d1();
     __name(onRequest39, "onRequest");
@@ -3395,7 +3395,7 @@ async function onRequest40(context) {
 }
 var init_cards = __esm({
   "api/external/optcgapi/cards.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     __name(json18, "json");
     __name(onRequest40, "onRequest");
@@ -3458,7 +3458,7 @@ async function onRequest41(context) {
 }
 var init_sets = __esm({
   "api/external/sets.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     __name(onRequest41, "onRequest");
   }
@@ -3470,7 +3470,7 @@ async function onRequest42(context) {
 }
 var init_card_sets = __esm({
   "api/external/ygoprodeck/card-sets.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_sets();
     __name(onRequest42, "onRequest");
   }
@@ -3492,7 +3492,7 @@ async function onRequest43(context) {
 }
 var init_template = __esm({
   "api/inventory/import-csv/template.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest43, "onRequest");
   }
 });
@@ -3614,7 +3614,7 @@ async function onRequest44(context) {
 }
 var init_validate = __esm({
   "api/inventory/import-csv/validate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(normalizeHeader, "normalizeHeader");
     __name(parseCsvRecords, "parseCsvRecords");
@@ -3666,7 +3666,7 @@ async function onRequest45(context) {
 }
 var init_export = __esm({
   "api/inventory/imports/export.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(parseImportQuery, "parseImportQuery");
     __name(onRequest45, "onRequest");
@@ -3712,7 +3712,7 @@ async function onRequest46(context) {
 }
 var init_export2 = __esm({
   "api/listings/price-history/export.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(parseQuery, "parseQuery");
     __name(onRequest46, "onRequest");
@@ -3738,7 +3738,7 @@ async function onRequest47(context) {
 }
 var init_runs = __esm({
   "api/listings/sync-prices/runs/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest47, "onRequest");
   }
@@ -3750,7 +3750,7 @@ async function onRequest48(context) {
 }
 var init_test4 = __esm({
   "api/orders/routes/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest48, "onRequest");
   }
 });
@@ -3809,7 +3809,7 @@ async function onRequest49(context) {
 }
 var init_create_preference = __esm({
   "api/payments/mercadopago/create-preference.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(json19, "json");
     __name(onRequest49, "onRequest");
   }
@@ -3860,7 +3860,7 @@ async function onRequest50(context) {
 }
 var init_create_intent = __esm({
   "api/payments/stripe/create-intent.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(json20, "json");
     __name(onRequest50, "onRequest");
@@ -3943,7 +3943,7 @@ async function processPosSale(db, input) {
 var orders_default;
 var init_orders = __esm({
   "../_shared/orders.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(genId3, "genId");
     __name(generateOrderNumber, "generateOrderNumber");
@@ -4054,7 +4054,7 @@ async function onRequest51(context) {
 }
 var init_webhook = __esm({
   "api/payments/stripe/webhook.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_orders();
     __name(hex2, "hex");
@@ -4071,7 +4071,7 @@ async function onRequest52(context) {
 }
 var init_test5 = __esm({
   "api/payments/webhook/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest52, "onRequest");
   }
 });
@@ -4082,7 +4082,7 @@ async function onRequest53(context) {
 }
 var init_test6 = __esm({
   "api/public-and-import-with-mapping/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest53, "onRequest");
   }
 });
@@ -4093,7 +4093,7 @@ async function onRequest54(context) {
 }
 var init_test7 = __esm({
   "api/routes/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest54, "onRequest");
   }
 });
@@ -4122,7 +4122,7 @@ async function onRequest55(context) {
 }
 var init_card2 = __esm({
   "api/card/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest55, "onRequest");
   }
 });
@@ -4133,7 +4133,7 @@ async function onRequest56(context) {
 }
 var init_editionId = __esm({
   "api/card/edition/[editionId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_card2();
     __name(onRequest56, "onRequest");
   }
@@ -4145,7 +4145,7 @@ async function onRequest57(context) {
 }
 var init_tcgId = __esm({
   "api/card/tcg/[tcgId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_card2();
     __name(onRequest57, "onRequest");
   }
@@ -4257,7 +4257,7 @@ async function bulkUpsertCards(db, cards, opts = {}) {
 var cardService_default;
 var init_cardService = __esm({
   "_shared/cardService.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(normalizeRarity, "normalizeRarity");
     __name(getCard, "getCard");
@@ -4296,7 +4296,7 @@ async function onRequest58(context) {
 }
 var init_editionId2 = __esm({
   "api/cards/edition/[editionId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_cardService();
     __name(onRequest58, "onRequest");
@@ -4320,7 +4320,7 @@ async function onRequest59(context) {
 }
 var init_tcgId2 = __esm({
   "api/cards/tcg/[tcgId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_cardService();
     __name(onRequest59, "onRequest");
@@ -4386,7 +4386,7 @@ async function onRequest60(context) {
 }
 var init_stock = __esm({
   "api/listings/[id]/stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest60, "onRequest");
   }
@@ -4401,7 +4401,7 @@ async function onRequest61(context) {
 }
 var init_listingId = __esm({
   "api/erp/stock/[listingId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_stock();
     __name(onRequest61, "onRequest");
   }
@@ -4429,7 +4429,7 @@ async function onRequest62(context) {
 }
 var init_importId = __esm({
   "api/inventory/imports/[importId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json21, "json");
     __name(onRequest62, "onRequest");
@@ -4500,7 +4500,7 @@ async function onRequest63(context) {
 }
 var init_cardId2 = __esm({
   "api/listings/card/[cardId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest63, "onRequest");
   }
@@ -4545,7 +4545,7 @@ async function getSessionById(db, sessionId) {
 var cash_default;
 var init_cash = __esm({
   "_shared/cash.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(genId4, "genId");
     __name(openSession, "openSession");
@@ -4572,7 +4572,7 @@ async function onRequest64(context) {
 }
 var init_id = __esm({
   "api/cash-sessions/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_cash();
     __name(onRequest64, "onRequest");
@@ -4585,7 +4585,7 @@ async function onRequest65(context) {
 }
 var init_id2 = __esm({
   "api/pos/cash-sessions/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_id();
     __name(onRequest65, "onRequest");
   }
@@ -4646,7 +4646,7 @@ async function listTransactions2(db, sessionPublicId) {
 var pos_default2;
 var init_pos2 = __esm({
   "../_shared/pos.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(genId5, "genId");
     __name(createSession2, "createSession");
@@ -4675,7 +4675,7 @@ async function onRequest66(context) {
 }
 var init_sessionId = __esm({
   "api/pos/sessions/[sessionId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_pos2();
     __name(onRequest66, "onRequest");
@@ -4702,7 +4702,7 @@ async function onRequest67(context) {
 }
 var init_add = __esm({
   "api/cart/[sessionId]/add.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_cart();
     __name(onRequest67, "onRequest");
@@ -4729,7 +4729,7 @@ async function onRequest68(context) {
 }
 var init_checkout = __esm({
   "api/cart/[sessionId]/checkout.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_cart();
     __name(onRequest68, "onRequest");
@@ -4775,7 +4775,7 @@ async function getSessionById2(db, sessionId) {
 var cash_default2;
 var init_cash2 = __esm({
   "../_shared/cash.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(genId6, "genId");
     __name(openSession2, "openSession");
@@ -4803,7 +4803,7 @@ async function onRequest69(context) {
 }
 var init_close2 = __esm({
   "api/cash-sessions/[id]/close.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_cash2();
     __name(onRequest69, "onRequest");
@@ -4971,7 +4971,7 @@ async function onRequest70(context) {
 }
 var init_cards_with_stock = __esm({
   "api/editions/[id]/cards-with-stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     __name(findCardFallback, "findCardFallback");
@@ -5031,7 +5031,7 @@ async function onRequest71(context) {
 }
 var init_csv_template = __esm({
   "api/editions/[id]/csv-template.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest71, "onRequest");
   }
@@ -5056,7 +5056,7 @@ async function onRequest72(context) {
 }
 var init_pdf = __esm({
   "api/invoices/[id]/pdf.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest72, "onRequest");
   }
@@ -5123,7 +5123,7 @@ async function onRequest73(context) {
 }
 var init_price_debug = __esm({
   "api/listings/[id]/price-debug.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_price();
     __name(json22, "json");
@@ -5180,7 +5180,7 @@ async function onRequest74(context) {
 }
 var init_pricing_mode = __esm({
   "api/listings/[id]/pricing-mode.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest74, "onRequest");
   }
@@ -5223,7 +5223,7 @@ async function onRequest75(context) {
 }
 var init_cancel = __esm({
   "api/orders/[id]/cancel.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_orders();
     __name(onRequest75, "onRequest");
@@ -5255,7 +5255,7 @@ async function onRequest76(context) {
 }
 var init_deliver = __esm({
   "api/orders/[id]/deliver.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_orders();
     __name(onRequest76, "onRequest");
@@ -5281,7 +5281,7 @@ async function onRequest77(context) {
 }
 var init_receipt = __esm({
   "api/orders/[id]/receipt.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_orders();
     __name(onRequest77, "onRequest");
@@ -5313,7 +5313,7 @@ async function onRequest78(context) {
 }
 var init_ship = __esm({
   "api/orders/[id]/ship.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_orders();
     __name(onRequest78, "onRequest");
@@ -5428,7 +5428,7 @@ async function onRequest79(context) {
 }
 var init_accounts = __esm({
   "api/admin/accounts.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tenant();
     __name(json23, "json");
@@ -5538,7 +5538,7 @@ async function onRequest80(context) {
 }
 var init_approvals = __esm({
   "api/admin/approvals.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tenant();
     __name(json24, "json");
@@ -5586,7 +5586,7 @@ async function onRequest81(context) {
 }
 var init_catalog_reset = __esm({
   "api/admin/catalog-reset.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_adminAuth();
     __name(extractToken6, "extractToken");
@@ -5689,7 +5689,7 @@ async function onRequest82(context) {
 }
 var init_dashboard = __esm({
   "api/admin/dashboard.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     __name(onRequest82, "onRequest");
@@ -5739,7 +5739,7 @@ async function onRequest83(context) {
 }
 var init_editions = __esm({
   "api/admin/editions.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_adminAuth();
     __name(extractToken7, "extractToken");
@@ -5778,7 +5778,7 @@ async function onRequest84(context) {
 }
 var init_migrate = __esm({
   "api/admin/migrate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest84, "onRequest");
   }
@@ -5854,7 +5854,7 @@ async function onRequest85(context) {
 }
 var init_normalize_ids = __esm({
   "api/admin/normalize-ids.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest85, "onRequest");
   }
@@ -5904,7 +5904,7 @@ async function onRequest86(context) {
 }
 var init_price_volatility = __esm({
   "api/admin/price-volatility.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest86, "onRequest");
   }
@@ -5976,7 +5976,7 @@ async function onRequest87(context) {
 }
 var init_pricing_config = __esm({
   "api/admin/pricing-config.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_price();
     init_adminAuth();
@@ -6010,7 +6010,7 @@ async function onRequest88(context) {
 }
 var init_stock_alerts = __esm({
   "api/admin/stock-alerts.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest88, "onRequest");
   }
@@ -6139,7 +6139,7 @@ async function onRequest89(context) {
 }
 var init_stores = __esm({
   "api/admin/stores.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tenant();
     __name(json27, "json");
@@ -6185,7 +6185,7 @@ async function onRequest90(context) {
 }
 var init_tcgplayer_coverage = __esm({
   "api/admin/tcgplayer-coverage.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest90, "onRequest");
   }
@@ -6197,7 +6197,7 @@ async function onRequest91(context) {
 }
 var init_thresholds2 = __esm({
   "api/admin/thresholds/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_thresholds();
     __name(onRequest91, "onRequest");
   }
@@ -6209,7 +6209,7 @@ async function onRequest92(context) {
 }
 var init_search2 = __esm({
   "api/card/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_card2();
     __name(onRequest92, "onRequest");
   }
@@ -6243,7 +6243,7 @@ async function onRequest93(context) {
 }
 var init_search3 = __esm({
   "api/cards/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_cardService();
     __name(onRequest93, "onRequest");
@@ -6289,7 +6289,7 @@ async function onRequest94(context) {
 }
 var init_reservations = __esm({
   "api/erp/reservations/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json28, "json");
     __name(onRequest94, "onRequest");
@@ -6302,7 +6302,7 @@ async function onRequest95(context) {
 }
 var init_reservation = __esm({
   "api/erp/reservation.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_reservations();
     __name(onRequest95, "onRequest");
   }
@@ -6378,7 +6378,7 @@ function getMetricsText() {
 var METRICS_KEY;
 var init_metrics = __esm({
   "_shared/metrics.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     METRICS_KEY = "__tcg_erp_metrics_v1__";
     __name(ensureStore, "ensureStore");
     __name(labelsToKey, "labelsToKey");
@@ -6530,7 +6530,7 @@ async function onRequest96(context) {
 }
 var init_exchange_rate2 = __esm({
   "api/external/exchange-rate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_metrics();
     __name(onRequest96, "onRequest");
@@ -6564,7 +6564,7 @@ async function onRequest97(context) {
 }
 var init_exchange_rate_debug = __esm({
   "api/external/exchange-rate-debug.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest97, "onRequest");
   }
@@ -6613,7 +6613,7 @@ async function onRequest98(context) {
 }
 var init_exchange_rate_refresh = __esm({
   "api/external/exchange-rate-refresh.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     init_metrics();
@@ -6682,7 +6682,7 @@ async function onRequest99(context) {
 }
 var init_search4 = __esm({
   "api/external/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_tcgcsv();
     __name(onRequest99, "onRequest");
   }
@@ -6716,7 +6716,7 @@ async function onRequest100(context) {
 }
 var init_health = __esm({
   "api/health.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest100, "onRequest");
   }
@@ -6728,7 +6728,7 @@ async function onRequest101(context) {
 }
 var init_ready = __esm({
   "api/health/ready.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_health();
     __name(onRequest101, "onRequest");
   }
@@ -6774,7 +6774,7 @@ async function onRequest102(context) {
 }
 var init_bulk_update = __esm({
   "api/inventory/bulk-update.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json29, "json");
     __name(onRequest102, "onRequest");
@@ -6811,7 +6811,7 @@ async function onRequest103(context) {
 }
 var init_decrease = __esm({
   "api/inventory/decrease.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json30, "json");
     __name(onRequest103, "onRequest");
@@ -6928,7 +6928,7 @@ async function onRequest104(context) {
 }
 var init_export_csv = __esm({
   "api/inventory/export-csv.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(csvQuote, "csvQuote");
     __name(onRequest104, "onRequest");
@@ -6938,7 +6938,7 @@ var init_export_csv = __esm({
 // ../node_modules/exceljs/dist/exceljs.min.js
 var require_exceljs_min = __commonJS({
   "../node_modules/exceljs/dist/exceljs.min.js"(exports, module) {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     !(function(e) {
       if ("object" == typeof exports && "undefined" != typeof module) module.exports = e();
       else if ("function" == typeof define && define.amd) define([], e);
@@ -31499,7 +31499,7 @@ async function onRequest105(context) {
 var import_exceljs;
 var init_export_david_xlsx = __esm({
   "api/inventory/export-david-xlsx.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     import_exceljs = __toESM(require_exceljs_min());
     init_d1();
     __name(parseScope, "parseScope");
@@ -31857,7 +31857,7 @@ async function onRequest106(context) {
 }
 var init_import_csv = __esm({
   "api/inventory/import-csv.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     init_metrics();
@@ -31877,7 +31877,7 @@ async function onRequest107(context) {
 }
 var init_import_with_mapping = __esm({
   "api/inventory/import-with-mapping.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_import_csv();
     __name(onRequest107, "onRequest");
   }
@@ -31934,7 +31934,7 @@ async function onRequest108(context) {
 }
 var init_imports = __esm({
   "api/inventory/imports/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     __name(parseImportQuery2, "parseImportQuery");
     __name(json31, "json");
@@ -31969,7 +31969,7 @@ async function onRequest109(context) {
 }
 var init_update_quantity = __esm({
   "api/inventory/update-quantity.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json32, "json");
     __name(onRequest109, "onRequest");
@@ -31993,7 +31993,7 @@ async function onRequest110(context) {
 }
 var init_cleanup = __esm({
   "api/invoices/cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest110, "onRequest");
   }
@@ -32187,7 +32187,7 @@ async function onRequest111(context) {
 }
 var init_available = __esm({
   "api/listings/available.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     __name(findCardFallback2, "findCardFallback");
@@ -32233,7 +32233,7 @@ async function onRequest112(context) {
 }
 var init_batch_stock = __esm({
   "api/listings/batch-stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest112, "onRequest");
   }
@@ -32264,7 +32264,7 @@ async function onRequest113(context) {
 }
 var init_inventory_value = __esm({
   "api/listings/inventory-value.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json33, "json");
     __name(onRequest113, "onRequest");
@@ -32407,7 +32407,7 @@ async function onRequest114(context) {
 }
 var init_low_stock = __esm({
   "api/listings/low-stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     __name(findCardFallback3, "findCardFallback");
@@ -32450,7 +32450,7 @@ async function onRequest115(context) {
 }
 var init_price_preview = __esm({
   "api/listings/price-preview.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_price();
     __name(json34, "json");
     __name(onRequest115, "onRequest");
@@ -32722,7 +32722,7 @@ async function onRequest116(context) {
 }
 var init_sync_prices = __esm({
   "api/listings/sync-prices.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tcgcsv();
     init_exchange_rate();
@@ -32808,7 +32808,7 @@ async function processPosSale2(db, input) {
 var orders_default2;
 var init_orders2 = __esm({
   "_shared/orders.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(genId7, "genId");
     __name(generateOrderNumber2, "generateOrderNumber");
@@ -32834,7 +32834,7 @@ async function onRequest117(context) {
 }
 var init_pos_sale = __esm({
   "api/payments/pos-sale.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_orders2();
     __name(onRequest117, "onRequest");
@@ -32896,7 +32896,7 @@ async function onRequest118(context) {
 }
 var init_webhook2 = __esm({
   "api/payments/webhook/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_orders2();
     __name(json35, "json");
@@ -32920,7 +32920,7 @@ async function onRequest119(context) {
 }
 var init_cash_sessions = __esm({
   "api/cash-sessions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_cash();
     __name(onRequest119, "onRequest");
@@ -32933,7 +32933,7 @@ async function onRequest120(context) {
 }
 var init_cash3 = __esm({
   "api/pos/cash/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_cash_sessions();
     __name(onRequest120, "onRequest");
   }
@@ -32945,7 +32945,7 @@ async function onRequest121(context) {
 }
 var init_cash_sessions2 = __esm({
   "api/pos/cash-sessions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_cash_sessions();
     __name(onRequest121, "onRequest");
   }
@@ -32967,7 +32967,7 @@ async function onRequest122(context) {
 }
 var init_sessions = __esm({
   "api/pos/sessions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_pos2();
     __name(onRequest122, "onRequest");
@@ -33020,7 +33020,7 @@ async function onRequest123(context) {
 }
 var init_approvals2 = __esm({
   "api/pricing/approvals/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_tenant();
     __name(json36, "json");
@@ -33034,7 +33034,7 @@ async function onRequest124(context) {
 }
 var init_test8 = __esm({
   "api/stripe-webhook/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest124, "onRequest");
   }
 });
@@ -33045,7 +33045,7 @@ async function onRequest125(context) {
 }
 var init_id3 = __esm({
   "api/card/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_card2();
     __name(onRequest125, "onRequest");
   }
@@ -33069,7 +33069,7 @@ async function onRequest126(context) {
 }
 var init_id4 = __esm({
   "api/cards/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_cardService();
     __name(onRequest126, "onRequest");
@@ -33093,7 +33093,7 @@ async function onRequest127(context) {
 }
 var init_sessionId2 = __esm({
   "api/cart/[sessionId]/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d12();
     init_cart();
     __name(onRequest127, "onRequest");
@@ -33156,7 +33156,7 @@ async function onRequest128(context) {
 }
 var init_id5 = __esm({
   "api/editions/[id]/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest128, "onRequest");
   }
@@ -33181,7 +33181,7 @@ async function onRequest129(context) {
 }
 var init_id6 = __esm({
   "api/invoices/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest129, "onRequest");
   }
@@ -33295,7 +33295,7 @@ async function onRequest130(context) {
 }
 var init_id7 = __esm({
   "api/listings/[id]/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_exchange_rate();
     __name(findCardFallback4, "findCardFallback");
@@ -33321,7 +33321,7 @@ async function onRequest131(context) {
 }
 var init_id8 = __esm({
   "api/orders/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_orders2();
     __name(onRequest131, "onRequest");
@@ -33370,7 +33370,7 @@ async function onRequest132(context) {
 }
 var init_id9 = __esm({
   "api/tcgs/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json37, "json");
     __name(onRequest132, "onRequest");
@@ -33448,7 +33448,7 @@ async function onRequest133(context) {
 }
 var init_catalogo = __esm({
   "tienda/[slug]/catalogo.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest133, "onRequest");
   }
 });
@@ -33505,7 +33505,7 @@ async function onRequest134(context) {
 }
 var init_editions2 = __esm({
   "api/editions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(onRequest134, "onRequest");
   }
@@ -33517,7 +33517,7 @@ async function onRequest135(context) {
 }
 var init_health2 = __esm({
   "api/health/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_health();
     __name(onRequest135, "onRequest");
   }
@@ -33545,7 +33545,7 @@ async function createInvoiceForOrder(db, orderId) {
 var invoice_default;
 var init_invoice = __esm({
   "_shared/invoice.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(genId8, "genId");
     __name(genInvoiceNumber, "genInvoiceNumber");
@@ -33572,7 +33572,7 @@ async function onRequest136(context) {
 }
 var init_invoices = __esm({
   "api/invoices/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_invoice();
     __name(onRequest136, "onRequest");
@@ -33619,7 +33619,7 @@ async function onRequest137(context) {
 }
 var init_listings = __esm({
   "api/listings/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json38, "json");
     __name(onRequest137, "onRequest");
@@ -33637,7 +33637,7 @@ async function onRequest138() {
 }
 var init_metrics2 = __esm({
   "api/metrics/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_metrics();
     __name(onRequest138, "onRequest");
   }
@@ -33684,7 +33684,7 @@ async function onRequest139(context) {
 }
 var init_orders3 = __esm({
   "api/orders/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     init_orders2();
     __name(onRequest139, "onRequest");
@@ -33697,7 +33697,7 @@ async function onRequest140(context) {
 }
 var init_stripe_webhook = __esm({
   "api/stripe-webhook/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_webhook2();
     __name(onRequest140, "onRequest");
   }
@@ -33744,7 +33744,7 @@ async function onRequest141(context) {
 var DEFAULT_TCGS;
 var init_tcgs = __esm({
   "api/tcgs/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     DEFAULT_TCGS = [
       { id: "MAGIC", name: "MAGIC", displayName: "Magic: The Gathering" },
@@ -33819,7 +33819,7 @@ async function onRequest142(context) {
 }
 var init_cart_cleanup = __esm({
   "cron/cart-cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json40, "json");
     __name(runCartCleanup, "runCartCleanup");
@@ -33894,7 +33894,7 @@ async function onRequest143(context) {
 }
 var init_invoice_cleanup = __esm({
   "cron/invoice-cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json41, "json");
     __name(runInvoiceCleanup, "runInvoiceCleanup");
@@ -33970,7 +33970,7 @@ async function onRequest144(context) {
 }
 var init_reservation_cleanup = __esm({
   "cron/reservation-cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     init_d1();
     __name(json42, "json");
     __name(runReservationCleanup, "runReservationCleanup");
@@ -34048,15 +34048,15 @@ async function onRequest145(context) {
 }
 var init_catalogo2 = __esm({
   "[slug]/catalogo.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_06683428855242957();
     __name(onRequest145, "onRequest");
   }
 });
 
-// ../.wrangler/tmp/pages-wp6dUU/functionsRoutes-0.421892428804746.mjs
+// ../.wrangler/tmp/pages-7xR9Bs/functionsRoutes-0.06683428855242957.mjs
 var routes;
-var init_functionsRoutes_0_421892428804746 = __esm({
-  "../.wrangler/tmp/pages-wp6dUU/functionsRoutes-0.421892428804746.mjs"() {
+var init_functionsRoutes_0_06683428855242957 = __esm({
+  "../.wrangler/tmp/pages-7xR9Bs/functionsRoutes-0.06683428855242957.mjs"() {
     init_bulk();
     init_test();
     init_test2();
@@ -35214,17 +35214,11 @@ var init_functionsRoutes_0_421892428804746 = __esm({
   }
 });
 
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-loader.entry.ts
-init_functionsRoutes_0_421892428804746();
+// ../../../../../AppData/Local/npm-cache/_npx/d77349f55c2be1c0/node_modules/wrangler/templates/pages-template-worker.ts
+init_functionsRoutes_0_06683428855242957();
 
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-insertion-facade.js
-init_functionsRoutes_0_421892428804746();
-
-// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/pages-template-worker.ts
-init_functionsRoutes_0_421892428804746();
-
-// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/path-to-regexp/dist.es2015/index.js
-init_functionsRoutes_0_421892428804746();
+// ../../../../../AppData/Local/npm-cache/_npx/d77349f55c2be1c0/node_modules/path-to-regexp/dist.es2015/index.js
+init_functionsRoutes_0_06683428855242957();
 function lexer(str) {
   var tokens = [];
   var i = 0;
@@ -35550,7 +35544,7 @@ function pathToRegexp(path, keys, options) {
 }
 __name(pathToRegexp, "pathToRegexp");
 
-// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/pages-template-worker.ts
+// ../../../../../AppData/Local/npm-cache/_npx/d77349f55c2be1c0/node_modules/wrangler/templates/pages-template-worker.ts
 var escapeRegex = /[.+?^${}()|[\]\\]/g;
 function* executeRequest(request) {
   const requestPath = new URL(request.url).pathname;
@@ -35669,182 +35663,8 @@ var cloneResponse = /* @__PURE__ */ __name((response) => (
     response
   )
 ), "cloneResponse");
-
-// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
-init_functionsRoutes_0_421892428804746();
-var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env);
-  } finally {
-    try {
-      if (request.body !== null && !request.bodyUsed) {
-        const reader = request.body.getReader();
-        while (!(await reader.read()).done) {
-        }
-      }
-    } catch (e) {
-      console.error("Failed to drain the unused request body.", e);
-    }
-  }
-}, "drainBody");
-var middleware_ensure_req_body_drained_default = drainBody;
-
-// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
-init_functionsRoutes_0_421892428804746();
-function reduceError(e) {
-  return {
-    name: e?.name,
-    message: e?.message ?? String(e),
-    stack: e?.stack,
-    cause: e?.cause === void 0 ? void 0 : reduceError(e.cause)
-  };
-}
-__name(reduceError, "reduceError");
-var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env);
-  } catch (e) {
-    const error = reduceError(e);
-    return Response.json(error, {
-      status: 500,
-      headers: { "MF-Experimental-Error-Stack": "true" }
-    });
-  }
-}, "jsonError");
-var middleware_miniflare3_json_error_default = jsonError;
-
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-insertion-facade.js
-var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
-  middleware_ensure_req_body_drained_default,
-  middleware_miniflare3_json_error_default
-];
-var middleware_insertion_facade_default = pages_template_worker_default;
-
-// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/common.ts
-init_functionsRoutes_0_421892428804746();
-var __facade_middleware__ = [];
-function __facade_register__(...args) {
-  __facade_middleware__.push(...args.flat());
-}
-__name(__facade_register__, "__facade_register__");
-function __facade_invokeChain__(request, env, ctx, dispatch, middlewareChain) {
-  const [head, ...tail] = middlewareChain;
-  const middlewareCtx = {
-    dispatch,
-    next(newRequest, newEnv) {
-      return __facade_invokeChain__(newRequest, newEnv, ctx, dispatch, tail);
-    }
-  };
-  return head(request, env, ctx, middlewareCtx);
-}
-__name(__facade_invokeChain__, "__facade_invokeChain__");
-function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
-  return __facade_invokeChain__(request, env, ctx, dispatch, [
-    ...__facade_middleware__,
-    finalMiddleware
-  ]);
-}
-__name(__facade_invoke__, "__facade_invoke__");
-
-// ../.wrangler/tmp/bundle-wQqcoA/middleware-loader.entry.ts
-var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
-  constructor(scheduledTime, cron, noRetry) {
-    this.scheduledTime = scheduledTime;
-    this.cron = cron;
-    this.#noRetry = noRetry;
-  }
-  static {
-    __name(this, "__Facade_ScheduledController__");
-  }
-  #noRetry;
-  noRetry() {
-    if (!(this instanceof ___Facade_ScheduledController__)) {
-      throw new TypeError("Illegal invocation");
-    }
-    this.#noRetry();
-  }
-};
-function wrapExportedHandler(worker) {
-  if (__INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0) {
-    return worker;
-  }
-  for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__) {
-    __facade_register__(middleware);
-  }
-  const fetchDispatcher = /* @__PURE__ */ __name(function(request, env, ctx) {
-    if (worker.fetch === void 0) {
-      throw new Error("Handler does not export a fetch() function.");
-    }
-    return worker.fetch(request, env, ctx);
-  }, "fetchDispatcher");
-  return {
-    ...worker,
-    fetch(request, env, ctx) {
-      const dispatcher = /* @__PURE__ */ __name(function(type, init) {
-        if (type === "scheduled" && worker.scheduled !== void 0) {
-          const controller = new __Facade_ScheduledController__(
-            Date.now(),
-            init.cron ?? "",
-            () => {
-            }
-          );
-          return worker.scheduled(controller, env, ctx);
-        }
-      }, "dispatcher");
-      return __facade_invoke__(request, env, ctx, dispatcher, fetchDispatcher);
-    }
-  };
-}
-__name(wrapExportedHandler, "wrapExportedHandler");
-function wrapWorkerEntrypoint(klass) {
-  if (__INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0) {
-    return klass;
-  }
-  for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__) {
-    __facade_register__(middleware);
-  }
-  return class extends klass {
-    #fetchDispatcher = /* @__PURE__ */ __name((request, env, ctx) => {
-      this.env = env;
-      this.ctx = ctx;
-      if (super.fetch === void 0) {
-        throw new Error("Entrypoint class does not define a fetch() function.");
-      }
-      return super.fetch(request);
-    }, "#fetchDispatcher");
-    #dispatcher = /* @__PURE__ */ __name((type, init) => {
-      if (type === "scheduled" && super.scheduled !== void 0) {
-        const controller = new __Facade_ScheduledController__(
-          Date.now(),
-          init.cron ?? "",
-          () => {
-          }
-        );
-        return super.scheduled(controller);
-      }
-    }, "#dispatcher");
-    fetch(request) {
-      return __facade_invoke__(
-        request,
-        this.env,
-        this.ctx,
-        this.#dispatcher,
-        this.#fetchDispatcher
-      );
-    }
-  };
-}
-__name(wrapWorkerEntrypoint, "wrapWorkerEntrypoint");
-var WRAPPED_ENTRY;
-if (typeof middleware_insertion_facade_default === "object") {
-  WRAPPED_ENTRY = wrapExportedHandler(middleware_insertion_facade_default);
-} else if (typeof middleware_insertion_facade_default === "function") {
-  WRAPPED_ENTRY = wrapWorkerEntrypoint(middleware_insertion_facade_default);
-}
-var middleware_loader_entry_default = WRAPPED_ENTRY;
 export {
-  __INTERNAL_WRANGLER_MIDDLEWARE__,
-  middleware_loader_entry_default as default
+  pages_template_worker_default as default
 };
 /*! Bundled license information:
 
@@ -35891,4 +35711,3 @@ exceljs/dist/exceljs.min.js:
    * @copyright Louis-Dominique Dubeau
    *)
 */
-//# sourceMappingURL=functionsWorker-0.1742440047913295.mjs.map
