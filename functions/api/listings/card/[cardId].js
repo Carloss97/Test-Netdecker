@@ -30,7 +30,9 @@ export async function onRequest(context) {
       const cardObj = {
         id: externalId || null,
         tcgId: r.tcg || null,
+        tcg: { id: r.tcg || null, name: r.tcg || null, displayName: r.tcg || null },
         editionId: r.editionCode ? `${r.tcg || ''}:${r.editionCode}` : null,
+        edition: r.editionCode ? { id: `${r.tcg || ''}:${r.editionCode}`, editionCode: r.editionCode || null, editionName: null, tcgId: r.tcg || null } : null,
         cardCode: r.cardCode || null,
         cardName: r.cardName || null,
         cardNumber: r.cardCode || null,

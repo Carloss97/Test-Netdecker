@@ -16,6 +16,9 @@ export async function onRequest(context) {
   const { request, env } = context;
   try {
 
+    const db = pickDb(env);
+    if (db) await ensureSchema(db);
+
     if (request.method === 'GET') {
       const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 950);
       const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.2, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };

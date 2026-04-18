@@ -28,13 +28,12 @@ export async function onRequest(context) {
             const data = await res.json();
             const container = document.getElementById('catalog');
             container.innerHTML = '';
-            const list = Array.isArray(data.listings) ? data.listings : (Array.isArray(data) ? data : []);
-            if (!list || list.length === 0) {
+            if (!Array.isArray(data) || data.length === 0) {
               container.innerHTML = '<div>No hay items disponibles</div>';
               return;
             }
 
-            list.forEach((listing) => {
+            data.forEach((listing) => {
               const div = document.createElement('div');
               div.className = 'card';
               const img = document.createElement('img');

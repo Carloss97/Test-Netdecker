@@ -103,7 +103,8 @@ export async function onRequest(context) {
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1.2);
     // Batch fetch missing card rows to avoid per-row fallbacks
-    const missingCardIds = Array.from(new Set(rows.filter((r) => !r.cardName && r.cardId).map((r) => r.cardId)));
+    // include rows missing important card metadata (name, rarity, image, external id, or code)
+    const missingCardIds = Array.from(new Set(rows.filter((r) => ( !r.cardName || !r.rarity || !r.imageUrl || !r.externalId || !r.cardCode ) && r.cardId).map((r) => r.cardId)));
     const chunk = (arr, size) => { const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; };
     const SQLITE_MAX_VARS = 900;
     const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
@@ -119,31 +120,33 @@ export async function onRequest(context) {
     }
 
     for (const r of rows) {
-      // Enrich missing card fields from pre-fetched cardMap or fallback
-      if (!r.cardName) {
+      // Enrich missing card fields from pre-fetched cardMap or fallback when important metadata is absent
+      const needsEnrich = !r.cardName || !r.rarity || !r.imageUrl || !r.externalId || !r.cardCode;
+      if (needsEnrich) {
         const fb = cardMap.get(r.cardId) || null;
         if (fb) {
-          r.cardName = fb.cardName || r.cardName;
-          r.externalId = fb.externalId || r.externalId;
-          r.tcg = fb.tcg || r.tcg;
-          r.rarity = fb.rarity || r.rarity;
-          r.priceMarket = fb.priceMarket || r.priceMarket;
-          r.priceMid = fb.priceMid || r.priceMid;
-          r.priceLow = fb.priceLow || r.priceLow;
-          r.cardCode = fb.cardCode || r.cardCode;
+          r.cardName = r.cardName || fb.cardName || r.cardName;
+          r.externalId = r.externalId || fb.externalId || r.externalId;
+          r.tcg = r.tcg || fb.tcg || r.tcg;
+          r.rarity = r.rarity || fb.rarity || r.rarity;
+          r.priceMarket = r.priceMarket || fb.priceMarket || r.priceMarket;
+          r.priceMid = r.priceMid || fb.priceMid || r.priceMid;
+          r.priceLow = r.priceLow || fb.priceLow || r.priceLow;
+          r.cardCode = r.cardCode || fb.cardCode || r.cardCode;
+          r.imageUrl = r.imageUrl || fb.imageUrl || r.imageUrl;
         } else {
           try {
             const fallback = await findCardFallback(db, r.cardId);
             if (fallback) {
-              r.cardName = fallback.cardName || r.cardName;
-              r.externalId = fallback.externalId || r.externalId;
-              r.tcg = fallback.tcg || r.tcg;
-              r.rarity = fallback.rarity || r.rarity;
-              r.priceMarket = fallback.priceMarket || r.priceMarket;
-              r.priceMid = fallback.priceMid || r.priceMid;
-              r.priceLow = fallback.priceLow || r.priceLow;
-              r.cardCode = fallback.cardCode || r.cardCode;
-              r.imageUrl = fallback.imageUrl || r.imageUrl;
+              r.cardName = r.cardName || fallback.cardName || r.cardName;
+              r.externalId = r.externalId || fallback.externalId || r.externalId;
+              r.tcg = r.tcg || fallback.tcg || r.tcg;
+              r.rarity = r.rarity || fallback.rarity || r.rarity;
+              r.priceMarket = r.priceMarket || fallback.priceMarket || r.priceMarket;
+              r.priceMid = r.priceMid || fallback.priceMid || r.priceMid;
+              r.priceLow = r.priceLow || fallback.priceLow || r.priceLow;
+              r.cardCode = r.cardCode || fallback.cardCode || r.cardCode;
+              r.imageUrl = r.imageUrl || fallback.imageUrl || r.imageUrl;
             }
           } catch (_) {}
         }
@@ -165,7 +168,9 @@ export async function onRequest(context) {
       const cardObj = {
         id: externalId || null,
         tcgId: r.tcg || null,
+        tcg: { id: r.tcg || null, name: r.tcg || null, displayName: r.tcg || null },
         editionId: r.editionCode ? `${r.tcg || ''}:${r.editionCode}` : null,
+        edition: r.editionCode ? { id: `${r.tcg || ''}:${r.editionCode}`, editionCode: r.editionCode || null, editionName: null, tcgId: r.tcg || null } : null,
         cardCode: r.cardCode || null,
         cardName: r.cardName || null,
         cardNumber: r.cardCode || null,

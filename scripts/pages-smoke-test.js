@@ -32,6 +32,11 @@ const funcPath = path.join(__dirname, '..', 'functions', 'api', 'listings', 'ava
 if (!fs.existsSync(funcPath)) fail('functions api listing endpoint not found: ' + funcPath);
 ok('functions listing endpoint found');
 
+// 3.1) Check embeddable catalog function
+const catalogFuncPath = path.join(__dirname, '..', 'functions', 'tienda', '[slug]', 'catalogo.js');
+if (!fs.existsSync(catalogFuncPath)) fail('functions embeddable catalog endpoint not found: ' + catalogFuncPath);
+ok('functions embeddable catalog endpoint found');
+
 // 4) Optional live check
 const base = process.env.PAGES_DEV_URL;
 (async () => {

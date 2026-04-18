@@ -62,7 +62,11 @@ function mapLocalToListing(l: ReturnType<typeof localImports.listLocalListings>[
 export async function getTCGs() {
   try {
     const { data } = await apiClient.get('/tcgs');
-    return data;
+    // Backend may return an object like { success, total, tcgs: [...] }
+    if (!data) return [] as any;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray((data as any).tcgs)) return (data as any).tcgs;
+    return [] as any;
   } catch (err) {
     // Offline fallback: return a minimal known TCG list
     return [
@@ -185,7 +189,19 @@ export async function getAvailableListings(tcgId?: string, editionId?: string) {
       params: { tcgId, editionId }
     });
     // Normalize: backend returns { success, total, listings } but callers expect an array of listings
-    if (data && Array.isArray(data.listings)) return data.listings;
+    if (data && Array.isArray(data.listings)) {
+      return (data.listings as any[]).map((l) => {
+        const card = l.card || {};
+        if (!card.tcg || !card.tcg.name) {
+          card.tcg = { id: card.tcgId || null, name: card.tcgId || null, displayName: card.tcgId || null };
+        }
+        if (!card.edition && card.editionId) {
+          const parts = String(card.editionId).split(':');
+          card.edition = { id: card.editionId, editionCode: parts[1] || parts[0], editionName: null, tcgId: parts[0] || null };
+        }
+        return { ...l, card };
+      });
+    }
     if (Array.isArray(data)) return data;
     return [];
   } catch (err) {
@@ -201,7 +217,19 @@ export async function getAvailableListings(tcgId?: string, editionId?: string) {
 export async function getListingsByCard(cardId: string) {
   try {
     const { data } = await apiClient.get(`/listings/card/${cardId}`);
-    if (data && Array.isArray(data.listings)) return data.listings;
+    if (data && Array.isArray(data.listings)) {
+      return (data.listings as any[]).map((l) => {
+        const card = l.card || {};
+        if (!card.tcg || !card.tcg.name) {
+          card.tcg = { id: card.tcgId || null, name: card.tcgId || null, displayName: card.tcgId || null };
+        }
+        if (!card.edition && card.editionId) {
+          const parts = String(card.editionId).split(':');
+          card.edition = { id: card.editionId, editionCode: parts[1] || parts[0], editionName: null, tcgId: parts[0] || null };
+        }
+        return { ...l, card };
+      });
+    }
     if (Array.isArray(data)) return data;
     return [];
   } catch (_) {

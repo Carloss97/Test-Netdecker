@@ -1,0 +1,97 @@
+{
+  "found": [
+    {
+      "token": "admin.accounts",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\accounts.js"
+    },
+    {
+      "token": "admin.approvals",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\approvals.js"
+    },
+    {
+      "token": "admin.stores",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\stores.js"
+    },
+    {
+      "token": "cashSessions",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\cash-sessions\\index.js"
+    },
+    {
+      "token": "edition",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\editions\\index.js"
+    },
+    {
+      "token": "health",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\health.js"
+    },
+    {
+      "token": "invoices",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\invoices\\index.js"
+    },
+    {
+      "token": "listing",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\index.js"
+    },
+    {
+      "token": "metrics",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\metrics\\index.js"
+    },
+    {
+      "token": "orders",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\orders\\index.js"
+    },
+    {
+      "token": "tcg",
+      "match": "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\tcgs\\index.js"
+    }
+  ],
+  "missing": [
+    "admin.auth",
+    "admin",
+    "admin.thresholds",
+    "card",
+    "cart",
+    "erp",
+    "external",
+    "inventory",
+    "payments",
+    "pos.cash",
+    "pos",
+    "pricing",
+    "public"
+  ],
+  "heuristics": [
+    {
+      "token": "admin.routes.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "inventory.routes.integration.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "orders.routes.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "payments.webhook.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "pos.routes.integration.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "public_and_import_with_mapping.integration.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "routes.integration.test",
+      "reason": "test-file - skip"
+    },
+    {
+      "token": "StripeWebhook.test",
+      "reason": "test-file - skip"
+    }
+  ]
+}

@@ -77,7 +77,7 @@ export async function onRequest(context) {
     for (const cids of chunk(cardIds, safeSelectChunk)) {
       try {
         const placeholders = cids.map(() => '?').join(',');
-        const batchCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow']);
+        const batchCols = await buildSelectColumns(db, 'card', 'c', ['id','cardName','externalId','tcg','editionCode','cardCode','imageUrl','priceMarket','priceMid','priceLow','rarity']);
         const sel = await db.prepare(`SELECT ${batchCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
         const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
         for (const rr of rowsRes) cardMap.set(rr.id || rr.ID || rr.Id || rr.id, rr);
@@ -107,7 +107,9 @@ export async function onRequest(context) {
       const cardObj = {
         id: externalId || null,
         tcgId: card?.tcg || null,
+        tcg: { id: card?.tcg || null, name: card?.tcg || null, displayName: card?.tcg || null },
         editionId: r.editionCode ? `${card?.tcg || ''}:${r.editionCode}` : null,
+        edition: r.editionCode ? { id: `${card?.tcg || ''}:${r.editionCode}`, editionCode: r.editionCode || null, editionName: null, tcgId: card?.tcg || null } : null,
         cardCode: card?.cardCode || null,
         cardName: card?.cardName || externalId || r.cardId,
         cardNumber: card?.cardNumber || card?.cardCode || null,
