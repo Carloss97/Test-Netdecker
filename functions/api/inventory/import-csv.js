@@ -82,6 +82,7 @@ function uuid() { if (globalThis.crypto && globalThis.crypto.randomUUID) return 
 export async function onRequest(context) {
   const { request, env } = context;
   const stopTimer = startTimer('import_csv_duration_seconds');
+  const SQLITE_MAX_VARS = 900; // global heuristic used for batching/select-chunking
   try {
     try { incr('import_csv_total', {}, 1); } catch (_) {}
     if (request.method !== 'POST') {
@@ -126,7 +127,7 @@ export async function onRequest(context) {
     // Precheck option: return recommended chunk size and estimated binds instead of performing import
     const precheckRaw = form.get('precheck') || form.get('estimate') || null;
     const precheck = String(precheckRaw || '').toLowerCase() === 'true' || String(precheckRaw || '').toLowerCase() === '1' || String(precheckRaw || '').toLowerCase() === 'yes';
-    const SQLITE_MAX_VARS = 900; // consistent with batching below
+    // SQLITE_MAX_VARS defined above
     const estimatedBindsPerRow = 12; // heuristic used elsewhere
     const recommendedChunkSize = Math.max(1, Math.floor(SQLITE_MAX_VARS / estimatedBindsPerRow));
     if (precheck) {
@@ -224,22 +225,23 @@ export async function onRequest(context) {
       const listingUpdates = [];
 
       // Build list of cardIds we need to prefetch
-      const cardIds = [];
+      // Build unique cardIds for this batch
+      const cardIdsSet = new Set();
       for (const row of rowsBatch) {
         const tcg = String(row.tcg || '').trim().toUpperCase();
         const editionCode = String(row.editionCode || '').trim();
         const cardCode = String(row.cardCode || '').trim();
         if (!tcg || !editionCode || !cardCode) continue;
         const cardId = `${tcg}:${editionCode}:${cardCode}`;
-        cardIds.push(cardId);
+        cardIdsSet.add(cardId);
       }
+      const cardIds = Array.from(cardIdsSet);
 
       // Prefetch existing cards and listings for this batch
       const existingCards = new Set();
       const cardIdCols = await buildSelectColumns(db, 'card', 'c', ['id']);
-        const SQLITE_MAX_VARS = 900;
-        const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
-        for (const cids of chunk(cardIds, safeSelectChunk)) {
+      const safeSelectChunk = Math.max(1, Math.min(800, Math.floor(SQLITE_MAX_VARS / 1)));
+      for (const cids of chunk(cardIds, safeSelectChunk)) {
         const placeholders = cids.map(() => '?').join(',');
         try {
           const sel = await db.prepare(`SELECT ${cardIdCols} FROM card c WHERE c.id IN (${placeholders})`).bind(...cids).all();
@@ -248,24 +250,19 @@ export async function onRequest(context) {
         } catch (_) {}
       }
 
-      // Prefetch listings for this edition/card combos
-      // We'll query listings by editionCode + cardId IN (...) to build lookup
+      // Prefetch listings for all cardIds in one pass (chunked)
       const listingLookup = new Map();
-      const editionCodes = new Set(rowsBatch.map((r) => String(r.editionCode || '').trim()).filter(Boolean));
-      const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','condition','rarity']);
-      for (const editionCode of Array.from(editionCodes)) {
-        const cids = cardIds.filter((id) => id.includes(`:${editionCode}:`));
-        for (const chunked of chunk(cids, safeSelectChunk)) {
-          const placeholders = chunked.map(() => '?').join(',');
-          try {
-            const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.editionCode = ? AND l.cardId IN (${placeholders})`).bind(editionCode, ...chunked).all();
-            const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
-            for (const r of rowsRes) {
-              const key = `${r.cardId}|${editionCode}|${r.condition || ''}|${r.rarity || ''}`;
-              listingLookup.set(key, r.id || r.ID || r.id);
-            }
-          } catch (_) {}
-        }
+      const listingCols = await buildSelectColumns(db, 'listing', 'l', ['id','cardId','condition','rarity','editionCode']);
+      for (const cids of chunk(cardIds, safeSelectChunk)) {
+        const placeholders = cids.map(() => '?').join(',');
+        try {
+          const sel = await db.prepare(`SELECT ${listingCols} FROM listing l WHERE l.cardId IN (${placeholders})`).bind(...cids).all();
+          const rowsRes = Array.isArray(sel?.results) ? sel.results : (Array.isArray(sel) ? sel : []);
+          for (const r of rowsRes) {
+            const key = `${r.cardId}|${r.editionCode || ''}|${r.condition || ''}|${r.rarity || ''}`;
+            listingLookup.set(key, r.id || r.ID || r.id);
+          }
+        } catch (_) {}
       }
 
       // Now generate rows for inserts/updates

@@ -1,4 +1,5 @@
 const BASE = (typeof process !== 'undefined' && process.env && process.env.TCGCSV_BASE) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_BASE) || 'https://tcgcsv.com/tcgplayer';
+const API_KEY = (typeof process !== 'undefined' && process.env && process.env.TCGCSV_API_KEY) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_API_KEY) || null;
 
 // In-memory cache and concurrency limiter (per-worker instance). TTL and concurrency
 // can be tuned via env vars: TCGCSV_CACHE_TTL (seconds) and TCGCSV_CONCURRENCY_LIMIT
@@ -33,8 +34,10 @@ async function fetchJson(url) {
   try {
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        try {
+        const headers = { Accept: 'application/json' };
+        if (API_KEY) headers['x-api-key'] = API_KEY;
+        const res = await fetch(url, { headers });
         if (!res.ok) {
           const t = await res.text().catch(() => '');
           throw new Error(`fetch ${url} failed: ${res.status} ${t}`);
