@@ -87,18 +87,30 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // Handle auth errors: clear token and trigger a single reload so
       // external auth (Cloudflare Access, etc.) can re-run its flow.
-      // Guard with a sessionStorage flag to avoid infinite reload loops.
+      // Use a localStorage timestamp guard to avoid infinite reload loops
+      // even across cross-origin redirects where sessionStorage might be
+      // unreliable.
       localStorage.removeItem('auth_token');
       try {
-        const RELOAD_KEY = 'netdecker.auth_reload_in_progress';
-        if (!sessionStorage.getItem(RELOAD_KEY)) {
-          sessionStorage.setItem(RELOAD_KEY, '1');
-          // Reload once; clear the lock after a delay to allow future attempts
-          window.location.reload();
-          setTimeout(() => sessionStorage.removeItem(RELOAD_KEY), 10_000);
+        const RELOAD_KEY = 'netdecker.auth_reload_ts';
+        const COOLDOWN_MS = 60_000; // 1 minute
+        const now = Date.now();
+        const last = Number(localStorage.getItem(RELOAD_KEY) || '0');
+        if (!last || now - last > COOLDOWN_MS) {
+          localStorage.setItem(RELOAD_KEY, String(now));
+          // Log for diagnostics and perform a single reload to trigger
+          // external auth flows.
+          // eslint-disable-next-line no-console
+          console.warn('[api] 401 received — reloading once to trigger auth flow');
+          try { window.location.reload(); } catch (_) { /* ignore */ }
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('[api] 401 received — reload suppressed by guard');
         }
-      } catch (_) {
+      } catch (err) {
         // If storage fails for any reason, fall back to a plain reload.
+        // eslint-disable-next-line no-console
+        console.warn('[api] failed to access localStorage for reload guard', err);
         try { window.location.reload(); } catch { /* ignore */ }
       }
     }
