@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react'
 import './PosPage.css'
 import apiClient from '../services/api'
@@ -12,80 +13,44 @@ type CartItem = {
   qty: number
   subtotal: number
 }
-      {showCreateModal && (
-        <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-          <div style={{ background: '#fff', padding: 16, width: 480, maxWidth: '95%', borderRadius: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3>Crear listing rápido</h3>
-              <div>
-                <button onClick={() => setShowCreateModal(false)}>Cerrar</button>
-              </div>
-            </div>
-            <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-              <label>GTIN</label>
-              <input value={newListingForm.gtin} onChange={(e) => setNewListingForm({ ...newListingForm, gtin: e.target.value })} />
-              <label>SKU</label>
-              <input value={newListingForm.sku} onChange={(e) => setNewListingForm({ ...newListingForm, sku: e.target.value })} />
-              <label>Reference price (USD)</label>
-              <input type="number" value={newListingForm.referencePrice} onChange={(e) => setNewListingForm({ ...newListingForm, referencePrice: Number(e.target.value || 0) })} />
-              <label>Margin multiplier</label>
-              <input type="number" step="0.01" value={newListingForm.marginMultiplier} onChange={(e) => setNewListingForm({ ...newListingForm, marginMultiplier: Number(e.target.value || 1.0) })} />
-              <label>Quantity</label>
-              <input type="number" value={newListingForm.quantity} onChange={(e) => setNewListingForm({ ...newListingForm, quantity: Number(e.target.value || 0) })} />
-              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                <button onClick={submitNewListing}>Crear y añadir</button>
-                <button onClick={() => setShowCreateModal(false)}>Cancelar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {showScanner && (
-type Card = {
-  id: string
-  cardName: string
-  imageUrl?: string | null
-  edition?: { editionCode?: string; editionName?: string }
-}
 
-type Listing = {
-  id: string
-  finalPrice: number
-  quantity: number
-  condition: string
-  rarity: string
-}
-
-const OFFLINE_KEY = 'pos_offline_queue'
-
-const MpLazy = React.lazy(() => import('../components/MercadoPagoCheckout'))
+// ...existing code...
 
 export function PosPage() {
-  const [query, setQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Card[]>([])
-  const [listings, setListings] = useState<Listing[]>([])
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [showScanner, setShowScanner] = useState(false)
-  const [scannerMessage, setScannerMessage] = useState('')
-  const [message, setMessage] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [showCardPayment, setShowCardPayment] = useState(false)
-  const [showMppayment, setShowMpPayment] = useState(false)
-  const [offlineQueueEntries, setOfflineQueueEntries] = useState<Array<{ createdAt: string; cart: CartItem[] }>>([])
-  const searchDebounce = useRef<any>(null)
+  // ...existing hooks and logic...
 
-  const storeId = typeof window !== 'undefined' ? (localStorage.getItem('auth_store') || null) : null;
+  // Place this inside the PosPage component, where appropriate in the return statement:
+  //
+  // {showCreateModal && (
+  //   <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+  //     <div style={{ background: '#fff', padding: 16, width: 480, maxWidth: '95%', borderRadius: 8 }}>
+  //       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  //         <h3>Crear listing rápido</h3>
+  //         <div>
+  //           <button onClick={() => setShowCreateModal(false)}>Cerrar</button>
+  //           <button style={{ marginLeft: 8 }} onClick={autoFillFromGTIN}>Auto-llenar</button>
+  //         </div>
+  //       </div>
+  //       <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+  //         <label>GTIN</label>
+  //         <input value={newListingForm.gtin} onChange={(e) => setNewListingForm({ ...newListingForm, gtin: e.target.value })} />
+  //         <label>SKU</label>
+  //         <input value={newListingForm.sku} onChange={(e) => setNewListingForm({ ...newListingForm, sku: e.target.value })} />
+  //         <label>Reference price (USD)</label>
+  //         <input type="number" value={newListingForm.referencePrice} onChange={(e) => setNewListingForm({ ...newListingForm, referencePrice: Number(e.target.value || 0) })} />
+  //         <label>Margin multiplier</label>
+  //         <input type="number" step="0.01" value={newListingForm.marginMultiplier} onChange={(e) => setNewListingForm({ ...newListingForm, marginMultiplier: Number(e.target.value || 1.0) })} />
+  //         <label>Quantity</label>
+  //         <input type="number" value={newListingForm.quantity} onChange={(e) => setNewListingForm({ ...newListingForm, quantity: Number(e.target.value || 0) })} />
+  //         <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+  //           <button onClick={submitNewListing}>Crear y añadir</button>
+  //           <button onClick={() => setShowCreateModal(false)}>Cancelar</button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   </div>
+  // )}
 
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const scannerInputRef = useRef<HTMLInputElement | null>(null)
-  const detectorRef = useRef<any>(null)
-  const scanIntervalRef = useRef<number | null>(null)
-  const lastScannedRef = useRef<string | null>(null)
-
-  const total = cart.reduce((sum, it) => sum + it.subtotal, 0)
-
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newListingForm, setNewListingForm] = useState<any>({ gtin: '', sku: '', referencePrice: 0, marginMultiplier: 1.0, quantity: 1, editionCode: '', cardId: '' })
 
   async function searchCards() {
     if (!query) return setSearchResults([])
@@ -95,26 +60,6 @@ export function PosPage() {
     } catch (err) {
       console.error(err)
       setMessage('Error buscando cartas')
-    }
-  }
-
-  useEffect(() => {
-    // Debounce search while typing
-    if (searchDebounce.current) clearTimeout(searchDebounce.current)
-    searchDebounce.current = setTimeout(() => {
-      if (query) searchCards()
-    }, 350)
-    return () => { if (searchDebounce.current) clearTimeout(searchDebounce.current) }
-  }, [query])
-
-  async function loadListingsForCard(cardId: string) {
-    try {
-      // Prefer client helper which normalizes backend wrapper ({ success, listings })
-      const listingsData = await getListingsByCard(cardId)
-      setListings(Array.isArray(listingsData) ? listingsData : [])
-    } catch (err) {
-      console.error(err)
-      setMessage('Error cargando listings')
     }
   }
 
@@ -178,7 +123,7 @@ export function PosPage() {
       videoRef.current.srcObject = stream
       await videoRef.current.play()
       // BarcodeDetector if available
-      try {
+
         const formats = ['ean_13', 'ean_8', 'code_128', 'qr_code']
         // @ts-ignore
         detectorRef.current = ('BarcodeDetector' in window) ? new (window as any).BarcodeDetector({ formats }) : null
@@ -202,22 +147,11 @@ export function PosPage() {
       } else {
         setScannerMessage('Detector no disponible en este navegador. Use la entrada de teclado.')
       }
-    } catch (err) {
-      console.error('startCameraScan failed', err)
-      setScannerMessage('No se pudo acceder a la cámara')
     }
+  } catch (err) {
+    console.error('startCameraScan failed', err)
+    setScannerMessage('No se pudo acceder a la cámara')
   }
-
-  function stopCameraScan() {
-    try {
-      if (scanIntervalRef.current) { window.clearInterval(scanIntervalRef.current); scanIntervalRef.current = null }
-      if (videoRef.current && videoRef.current.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
-        for (const t of tracks) t.stop()
-        videoRef.current.srcObject = null
-      }
-      detectorRef.current = null
-    } catch (_) {}
   }
 
   function removeItem(index: number) {
@@ -348,6 +282,36 @@ export function PosPage() {
     }
   }
 
+  async function autoFillFromGTIN() {
+    try {
+      if (!newListingForm || !newListingForm.gtin) {
+        setMessage('Ingrese GTIN para auto-llenar')
+        return
+      }
+      setMessage('Buscando datos externos...')
+      const resp = await apiClient.get('/listings/gtin-info', { params: { gtin: newListingForm.gtin } })
+      const data = resp.data
+      if (data?.success) {
+        if (data.listing) {
+          const l = data.listing
+          setNewListingForm((p: any) => ({ ...p, sku: l.sku || p.sku, referencePrice: l.referencePrice ?? p.referencePrice, quantity: l.quantity ?? p.quantity, currency: l.currency || p.currency }))
+          setMessage('Rellenado desde listing existente')
+          return
+        }
+        if (data.product) {
+          const p = data.product
+          setNewListingForm((prev: any) => ({ ...prev, sku: `${p.brand ? p.brand + ' ' : ''}${(p.title || '').slice(0, 60)}` }))
+          setMessage('Sugerencias aplicadas desde fuente externa')
+          return
+        }
+      }
+      setMessage('No se encontraron datos externos para este GTIN')
+    } catch (err) {
+      console.error('autofill failed', err)
+      setMessage('Error en auto-llenado')
+    }
+  }
+
   async function handleCheckout() {
     if (!cart.length) {
       setMessage('Carrito vacío')
@@ -375,7 +339,18 @@ export function PosPage() {
     }
   }
 
-  return (
+    function printLabelsForCart() {
+      if (!cart || !cart.length) {
+        setMessage('Carrito vacío')
+        return
+      }
+      const ids = cart.map((it) => it.id).join(',')
+      const qtys = cart.map((it) => it.qty).join(',')
+      const url = `/api/listings/labels-sheet?ids=${encodeURIComponent(ids)}&qtys=${encodeURIComponent(qtys)}`
+      window.open(url, '_blank')
+    }
+
+    return (
     <div className="pos-page">
       <h1>Punto de Venta (POS)</h1>
 
@@ -461,6 +436,7 @@ export function PosPage() {
               <button className="pos-action" onClick={handleCheckout} disabled={isProcessing}>{isProcessing ? 'Procesando...' : 'Cerrar venta'}</button>
               <button style={{ marginLeft: 8 }} onClick={() => setShowCardPayment((s) => !s)} disabled={!cart.length}>{showCardPayment ? 'Ocultar pago con tarjeta' : 'Pagar con tarjeta (Stripe)'}</button>
               <button style={{ marginLeft: 8 }} onClick={() => setShowMpPayment((s) => !s)} disabled={!cart.length}>{showMppayment ? 'Ocultar Mercado Pago' : 'Pagar con Mercado Pago'}</button>
+              <button style={{ marginLeft: 8 }} onClick={printLabelsForCart} disabled={!cart.length}>Imprimir etiquetas</button>
             </div>
             {message && <div style={{ marginTop: 8 }}>{message}</div>}
           </div>
