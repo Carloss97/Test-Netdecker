@@ -18,6 +18,9 @@
     "scan:sql": "node scripts/scan_functions_sql.js",
     "postinstall": "node scripts/postinstall.js"
   },
+  "prisma": {
+    "schema": "backend/prisma/schema.prisma"
+  },
   "devDependencies": {
     "concurrently": "^9.0.1"
   },
