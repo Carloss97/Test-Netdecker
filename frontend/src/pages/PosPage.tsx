@@ -123,7 +123,7 @@ export function PosPage() {
       videoRef.current.srcObject = stream
       await videoRef.current.play()
       // BarcodeDetector if available
-
+      try {
         const formats = ['ean_13', 'ean_8', 'code_128', 'qr_code']
         // @ts-ignore
         detectorRef.current = ('BarcodeDetector' in window) ? new (window as any).BarcodeDetector({ formats }) : null
@@ -147,11 +147,10 @@ export function PosPage() {
       } else {
         setScannerMessage('Detector no disponible en este navegador. Use la entrada de teclado.')
       }
+    } catch (err) {
+      console.error('startCameraScan failed', err)
+      setScannerMessage('No se pudo acceder a la cámara')
     }
-  } catch (err) {
-    console.error('startCameraScan failed', err)
-    setScannerMessage('No se pudo acceder a la cámara')
-  }
   }
 
   function removeItem(index: number) {
