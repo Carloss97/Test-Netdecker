@@ -314,6 +314,7 @@ model InventoryImport {
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
   changes        InventoryImportChange[]
+  batches        ImportBatch[]
 }
 
 // Tracks per-listing changes introduced by an inventory import so we can

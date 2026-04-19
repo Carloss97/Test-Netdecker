@@ -124,3 +124,19 @@ test('processPosSale creates journal entries when accounts exist', async () => {
     prisma.$transaction = originalTx;
   }
 });
+
+test('processPosSale returns existing order when externalReference provided', async () => {
+  const originalFindFirst = prisma.order.findFirst;
+  const originalFindUnique = prisma.order.findUnique;
+
+  try {
+    prisma.order.findFirst = async () => ({ id: 'ord-existing' }) as any;
+    prisma.order.findUnique = async () => ({ id: 'ord-existing', orderNumber: 'ORD-EX', items: [] }) as any;
+
+    const order: any = await PaymentService.processPosSale({ items: [{ listingId: 'L1', quantity: 1 }], externalReference: 'ext-123' } as any);
+    assert.equal(order.id, 'ord-existing');
+  } finally {
+    prisma.order.findFirst = originalFindFirst;
+    prisma.order.findUnique = originalFindUnique;
+  }
+});

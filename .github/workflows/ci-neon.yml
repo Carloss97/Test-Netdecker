@@ -1,0 +1,64 @@
+name: CI (Neon)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  neon-tests:
+    name: Neon CI (remote DB)
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd redis-cli ping
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      REDIS_URL: redis://localhost:6379
+      NPM_CONFIG_LOGLEVEL: error
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install backend deps
+        run: npm ci --prefix backend
+
+      - name: Generate Prisma client
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: npm run prisma:generate
+
+      - name: Push Prisma schema to Neon
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: npm run prisma:push -- --accept-data-loss
+
+      - name: Seed database
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: npm run prisma:seed
+
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          REDIS_URL: redis://localhost:6379
+        run: npm run test
