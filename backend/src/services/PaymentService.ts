@@ -30,6 +30,21 @@ export class PaymentService {
       throw new ValidationError('Cart items are required');
     }
 
+    // Idempotency: if externalReference provided, return existing order if present
+    if (input.externalReference) {
+      try {
+        const existing = await prisma.order.findFirst({ where: { notes: String(input.externalReference) } });
+        if (existing && existing.id) {
+          console.info('PaymentService: existing order found for externalReference', String(input.externalReference));
+          const ord = await prisma.order.findUnique({ where: { id: existing.id }, include: { items: true } });
+          return ord ?? existing;
+        }
+      } catch (err) {
+        // If lookup fails, proceed with normal flow (do not block the sale)
+        console.error('PaymentService idempotency lookup failed', err);
+      }
+    }
+
     const order = await prisma.$transaction(async (tx: any) => {
       // Fetch listings referenced by the cart
       const listingIds = input.items.map((it) => it.listingId);
