@@ -1,7 +1,7 @@
-import { onRequest as delegate } from '../../reservations/[id]/release.js';
-
 export async function onRequest(context) {
-  return delegate(context);
+  const mod = await import('../../reservations/[id]/release.js');
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error('delegate handler not available');
 }
 
 export default onRequest;

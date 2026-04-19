@@ -1,4 +1,9 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
@@ -6,43 +11,34 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
-
-// .wrangler/tmp/pages-wp6dUU/functionsWorker-0.1742440047913295.mjs
-var __create = Object.create;
-var __defProp2 = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
-var __require2 = /* @__PURE__ */ ((x) => typeof __require !== "undefined" ? __require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: /* @__PURE__ */ __name((a, b) => (typeof __require !== "undefined" ? __require : a)[b], "get")
-}) : x)(function(x) {
-  if (typeof __require !== "undefined") return __require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
-var __esm = /* @__PURE__ */ __name((fn, res) => /* @__PURE__ */ __name(function __init() {
+var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-}, "__init"), "__esm");
-var __commonJS = /* @__PURE__ */ __name((cb, mod) => /* @__PURE__ */ __name(function __require22() {
+};
+var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-}, "__require2"), "__commonJS");
-var __copyProps = /* @__PURE__ */ __name((to, from, except, desc) => {
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp2(to, key, { get: /* @__PURE__ */ __name(() => from[key], "get"), enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
   }
   return to;
-}, "__copyProps");
-var __toESM = /* @__PURE__ */ __name((mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
   // If the importer is in node compatibility mode or this is not an ESM
   // file that has been converted to a CommonJS file using a Babel-
   // compatible transform (i.e. "__esModule" has not been set), then set
   // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
-)), "__toESM");
+));
+
+// _shared/tcgcsv.js
 async function fetchJson(url) {
   const cacheKey = String(url);
   const cache = globalThis.__TCGCSV_CACHE_V1;
@@ -91,23 +87,19 @@ async function fetchJson(url) {
     }
   }
 }
-__name(fetchJson, "fetchJson");
 function normalizeSetIdentifier(value) {
   return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
-__name(normalizeSetIdentifier, "normalizeSetIdentifier");
 function getExtendedValue(extendedData, fieldName) {
   if (!Array.isArray(extendedData)) return void 0;
   const lc = fieldName.toLowerCase();
   const e = extendedData.find((x) => (x.name || x.displayName || "").toLowerCase() === lc);
   return e ? e.value : void 0;
 }
-__name(getExtendedValue, "getExtendedValue");
 function bestPrice(p) {
   const v = p && (p.marketPrice ?? p.midPrice ?? p.lowPrice);
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : void 0;
 }
-__name(bestPrice, "bestPrice");
 function isCardLikeProduct(product) {
   const ext = Array.isArray(product.extendedData) ? product.extendedData : product.extendedData ? [product.extendedData] : [];
   return ext.some((entry) => {
@@ -115,7 +107,6 @@ function isCardLikeProduct(product) {
     return key === "rarity" || key === "number" || key === "cardnumber" || key === "collectornumber";
   });
 }
-__name(isCardLikeProduct, "isCardLikeProduct");
 function pickBestPrice(prices) {
   if (!Array.isArray(prices) || prices.length === 0) return void 0;
   return prices.sort((a, b) => {
@@ -124,28 +115,24 @@ function pickBestPrice(prices) {
     return vb - va;
   })[0];
 }
-__name(pickBestPrice, "pickBestPrice");
 async function getGroups(tcg) {
   const categoryId = TCGCSV_CATEGORY_IDS[String(tcg)];
   if (!categoryId) return [];
   const data = await fetchJson(`${BASE}/${categoryId}/groups`);
   return Array.isArray(data?.results) ? data.results : [];
 }
-__name(getGroups, "getGroups");
 async function getGroupProducts(tcg, groupId) {
   const categoryId = TCGCSV_CATEGORY_IDS[String(tcg)];
   if (!categoryId) return [];
   const data = await fetchJson(`${BASE}/${categoryId}/${groupId}/products`);
   return Array.isArray(data?.results) ? data.results : [];
 }
-__name(getGroupProducts, "getGroupProducts");
 async function getGroupPrices(tcg, groupId) {
   const categoryId = TCGCSV_CATEGORY_IDS[String(tcg)];
   if (!categoryId) return [];
   const data = await fetchJson(`${BASE}/${categoryId}/${groupId}/prices`);
   return Array.isArray(data?.results) ? data.results : [];
 }
-__name(getGroupPrices, "getGroupPrices");
 function extractYgoSetCodePrefix(cardSetCode) {
   const raw = String(cardSetCode || "").trim();
   if (!raw) return "";
@@ -156,7 +143,6 @@ function extractYgoSetCodePrefix(cardSetCode) {
   if (m && m[1]) return m[1];
   return upper.replace(/[^A-Z0-9]/g, "");
 }
-__name(extractYgoSetCodePrefix, "extractYgoSetCodePrefix");
 function resolveGroupBySetCode(tcg, groups, setCode) {
   const normalizedCode = String(setCode || "").trim().toUpperCase();
   const normalizedCompactCode = normalizeSetIdentifier(setCode);
@@ -176,7 +162,6 @@ function resolveGroupBySetCode(tcg, groups, setCode) {
     return false;
   });
 }
-__name(resolveGroupBySetCode, "resolveGroupBySetCode");
 async function getSetCards(tcg, setCode) {
   const groups = await getGroups(tcg);
   const group = resolveGroupBySetCode(tcg, groups, setCode);
@@ -222,15 +207,10 @@ async function getSetCards(tcg, setCode) {
   }
   return cards;
 }
-__name(getSetCards, "getSetCards");
-var BASE;
-var API_KEY;
-var DEFAULT_TTL;
-var CONCURRENCY_LIMIT;
-var TCGCSV_CATEGORY_IDS;
+var BASE, API_KEY, DEFAULT_TTL, CONCURRENCY_LIMIT, TCGCSV_CATEGORY_IDS;
 var init_tcgcsv = __esm({
   "_shared/tcgcsv.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     BASE = typeof process !== "undefined" && process.env && process.env.TCGCSV_BASE || typeof globalThis !== "undefined" && globalThis.TCGCSV_BASE || "https://tcgcsv.com/tcgplayer";
     API_KEY = typeof process !== "undefined" && process.env && process.env.TCGCSV_API_KEY || typeof globalThis !== "undefined" && globalThis.TCGCSV_API_KEY || null;
     DEFAULT_TTL = Number(typeof process !== "undefined" && process.env && process.env.TCGCSV_CACHE_TTL || typeof globalThis !== "undefined" && globalThis.TCGCSV_CACHE_TTL || 3600);
@@ -245,24 +225,25 @@ var init_tcgcsv = __esm({
       DIGIMON: 63,
       ONE_PIECE: 68
     };
-    __name2(fetchJson, "fetchJson");
-    __name2(normalizeSetIdentifier, "normalizeSetIdentifier");
-    __name2(getExtendedValue, "getExtendedValue");
-    __name2(bestPrice, "bestPrice");
-    __name2(isCardLikeProduct, "isCardLikeProduct");
-    __name2(pickBestPrice, "pickBestPrice");
-    __name2(getGroups, "getGroups");
-    __name2(getGroupProducts, "getGroupProducts");
-    __name2(getGroupPrices, "getGroupPrices");
-    __name2(extractYgoSetCodePrefix, "extractYgoSetCodePrefix");
-    __name2(resolveGroupBySetCode, "resolveGroupBySetCode");
-    __name2(getSetCards, "getSetCards");
+    __name(fetchJson, "fetchJson");
+    __name(normalizeSetIdentifier, "normalizeSetIdentifier");
+    __name(getExtendedValue, "getExtendedValue");
+    __name(bestPrice, "bestPrice");
+    __name(isCardLikeProduct, "isCardLikeProduct");
+    __name(pickBestPrice, "pickBestPrice");
+    __name(getGroups, "getGroups");
+    __name(getGroupProducts, "getGroupProducts");
+    __name(getGroupPrices, "getGroupPrices");
+    __name(extractYgoSetCodePrefix, "extractYgoSetCodePrefix");
+    __name(resolveGroupBySetCode, "resolveGroupBySetCode");
+    __name(getSetCards, "getSetCards");
   }
 });
+
+// _shared/d1.js
 function pickDb(env) {
   return env.TCG_D1 || env.DB || env.D1 || env.TCG_ERP_DB || null;
 }
-__name(pickDb, "pickDb");
 async function ensureSchema(db) {
   if (!db) return;
   try {
@@ -474,6 +455,31 @@ async function ensureSchema(db) {
     await db.prepare("CREATE INDEX IF NOT EXISTS idx_invoice_invoiceNumber ON invoice(invoiceNumber);").run();
   } catch (err) {
   }
+  await db.prepare(`CREATE TABLE IF NOT EXISTS store (
+    id TEXT PRIMARY KEY,
+    code TEXT UNIQUE,
+    name TEXT,
+    address TEXT,
+    metadata TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS listingStock (
+    id TEXT PRIMARY KEY,
+    storeId TEXT,
+    listingId TEXT,
+    quantity INTEGER DEFAULT 0,
+    reserved INTEGER DEFAULT 0,
+    updatedAt TEXT,
+    createdAt TEXT,
+    UNIQUE(storeId, listingId)
+  );`).run();
+  try {
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_store_code ON store(code);").run();
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_listingStock_storeId ON listingStock(storeId);").run();
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_listingStock_listingId ON listingStock(listingId);").run();
+  } catch (err) {
+  }
   await db.prepare(`CREATE TABLE IF NOT EXISTS adminUser (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE,
@@ -497,6 +503,7 @@ async function ensureSchema(db) {
     await db.prepare("CREATE INDEX IF NOT EXISTS idx_adminUser_email ON adminUser(email);").run();
   } catch (err) {
   }
+  await addColumnIfMissing("adminSession", "storeId", "TEXT");
   await db.prepare(`CREATE TABLE IF NOT EXISTS inventoryImport (
     id TEXT PRIMARY KEY,
     fileName TEXT,
@@ -570,9 +577,10 @@ async function ensureSchema(db) {
     }
   }
   __name(addColumnIfMissing, "addColumnIfMissing");
-  __name2(addColumnIfMissing, "addColumnIfMissing");
   await addColumnIfMissing("listing", "condition", "TEXT DEFAULT 'NM'");
   await addColumnIfMissing("listing", "rarity", "TEXT");
+  await addColumnIfMissing("listing", "gtin", "TEXT");
+  await addColumnIfMissing("listing", "sku", "TEXT");
   await addColumnIfMissing("listing", "exchangeRate", "REAL DEFAULT 1.0");
   await addColumnIfMissing("listing", "finalPrice", "REAL DEFAULT 0");
   await addColumnIfMissing("listing", "currency", "TEXT DEFAULT 'CLP'");
@@ -581,6 +589,11 @@ async function ensureSchema(db) {
   await addColumnIfMissing("listing", "lastSyncedAt", "TEXT");
   await addColumnIfMissing("listing", "createdAt", "TEXT");
   await addColumnIfMissing("listing", "updatedAt", "TEXT");
+  try {
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_listing_gtin ON listing(gtin);").run();
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_listing_sku ON listing(sku);").run();
+  } catch (err) {
+  }
   await addColumnIfMissing("card", "cardNumber", "TEXT");
   await addColumnIfMissing("card", "tags", "TEXT");
   await addColumnIfMissing("card", "priceLow", "REAL");
@@ -608,14 +621,12 @@ async function ensureSchema(db) {
   } catch (_) {
   }
 }
-__name(ensureSchema, "ensureSchema");
 function firstRow(res) {
   if (!res) return null;
   if (Array.isArray(res.results)) return res.results[0] || null;
   if (Array.isArray(res)) return res[0] || null;
   return null;
 }
-__name(firstRow, "firstRow");
 async function getTableColumns(db, table) {
   if (!db || !table) return [];
   try {
@@ -630,7 +641,6 @@ async function getTableColumns(db, table) {
     return [];
   }
 }
-__name(getTableColumns, "getTableColumns");
 async function buildSelectColumns(db, tableName, alias, desired) {
   if (!db) return desired.map((c) => `${alias}.${c} AS ${c}`).join(", ");
   const existing = await getTableColumns(db, tableName);
@@ -640,7 +650,6 @@ async function buildSelectColumns(db, tableName, alias, desired) {
   });
   return parts.join(", ");
 }
-__name(buildSelectColumns, "buildSelectColumns");
 function aliasSelectColumn(selectFragment, alias, column, newAlias) {
   if (!selectFragment || !alias || !column || !newAlias) return selectFragment;
   try {
@@ -654,22 +663,22 @@ function aliasSelectColumn(selectFragment, alias, column, newAlias) {
   }
   return selectFragment;
 }
-__name(aliasSelectColumn, "aliasSelectColumn");
 var init_d1 = __esm({
   "_shared/d1.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(pickDb, "pickDb");
-    __name2(ensureSchema, "ensureSchema");
-    __name2(firstRow, "firstRow");
-    __name2(getTableColumns, "getTableColumns");
-    __name2(buildSelectColumns, "buildSelectColumns");
-    __name2(aliasSelectColumn, "aliasSelectColumn");
+    init_functionsRoutes_0_5723290474085267();
+    __name(pickDb, "pickDb");
+    __name(ensureSchema, "ensureSchema");
+    __name(firstRow, "firstRow");
+    __name(getTableColumns, "getTableColumns");
+    __name(buildSelectColumns, "buildSelectColumns");
+    __name(aliasSelectColumn, "aliasSelectColumn");
   }
 });
+
+// api/external/optcgapi/import/bulk.js
 async function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json, "json");
 async function onRequest(context) {
   const { request, env } = context;
   try {
@@ -702,14 +711,14 @@ async function onRequest(context) {
     }
     await ensureSchema(db);
     const SQLITE_MAX_VARS = 900;
-    const rowsFrom = /* @__PURE__ */ __name2((res) => {
+    const rowsFrom = /* @__PURE__ */ __name((res) => {
       if (!res) return [];
       if (Array.isArray(res.results)) return res.results;
       if (Array.isArray(res)) return res;
       return [];
     }, "rowsFrom");
     const cardIds = allCards.map((c) => `${tcg}:${c.externalId}`);
-    const chunk = /* @__PURE__ */ __name2((arr, size) => {
+    const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out = [];
       for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
       return out;
@@ -774,11 +783,11 @@ async function onRequest(context) {
         createdListings += 1;
       }
     }
-    const runBatchedInsert = /* @__PURE__ */ __name2(async (tableCols, rows, orReplace = false, orIgnore = false) => {
+    const runBatchedInsert = /* @__PURE__ */ __name(async (tableCols, rows, orReplace = false, orIgnore = false) => {
       if (!rows || rows.length === 0) return;
       const colCount = tableCols.cols.length;
       const safeBatch = Math.max(1, Math.floor(SQLITE_MAX_VARS / Math.max(1, colCount)));
-      const batches = /* @__PURE__ */ __name2((arr, size) => {
+      const batches = /* @__PURE__ */ __name((arr, size) => {
         const out = [];
         for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
         return out;
@@ -807,37 +816,273 @@ async function onRequest(context) {
     return json({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest, "onRequest");
 var init_bulk = __esm({
   "api/external/optcgapi/import/bulk.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
     init_d1();
-    __name2(json, "json");
-    __name2(onRequest, "onRequest");
+    __name(json, "json");
+    __name(onRequest, "onRequest");
   }
 });
+
+// api/inventory/routes/integration/test/index.js
 async function onRequest2(context) {
   return new Response(JSON.stringify({ success: true, stub: "inventory.routes.integration.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest2, "onRequest2");
 var init_test = __esm({
   "api/inventory/routes/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest2, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest2, "onRequest");
   }
 });
+
+// api/pos/routes/integration/test/index.js
 async function onRequest3(context) {
   return new Response(JSON.stringify({ success: true, stub: "pos.routes.integration.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest3, "onRequest3");
 var init_test2 = __esm({
   "api/pos/routes/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest3, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest3, "onRequest");
   }
 });
+
+// _shared/adminAuth.js
+function nowIso() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+function hex(buf) {
+  if (!buf) return "";
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(buf)) return buf.toString("hex");
+  return Array.from(buf).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function pbkdf2Hash(password, saltHex, iterations = 1e5, keyLen = 64) {
+  try {
+    const enc = new TextEncoder();
+    const passKey = enc.encode(password);
+    const salt = Uint8Array.from(saltHex.match(/.{1,2}/g).map((h) => parseInt(h, 16)));
+    const key = await (globalThis.crypto.subtle || globalThis.crypto.webkitSubtle).importKey("raw", passKey, { name: "PBKDF2" }, false, ["deriveBits"]);
+    const derived = await (globalThis.crypto.subtle || globalThis.crypto.webkitSubtle).deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, key, keyLen * 8);
+    return hex(new Uint8Array(derived));
+  } catch (err) {
+    return null;
+  }
+}
+async function hashPassword(password) {
+  try {
+    const nodeCrypto = await import("crypto").then((m) => m.default || m).catch(() => null);
+    if (nodeCrypto && nodeCrypto.scryptSync) {
+      const salt = nodeCrypto.randomBytes(16).toString("hex");
+      const derived = nodeCrypto.scryptSync(password, salt, 64);
+      return { salt, hash: `${salt}:${derived.toString("hex")}`, method: "scrypt" };
+    }
+  } catch (_) {
+  }
+  try {
+    const saltBuf = globalThis.crypto && globalThis.crypto.getRandomValues ? globalThis.crypto.getRandomValues(new Uint8Array(16)) : new Uint8Array(16);
+    const saltHex = hex(saltBuf);
+    const derivedHex = await pbkdf2Hash(password, saltHex, 1e5, 64);
+    if (!derivedHex) return { salt: saltHex, hash: `${["pbkdf2", 1e5, saltHex, derivedHex].join(":")}`, method: "pbkdf2" };
+    return { salt: saltHex, hash: `${["pbkdf2", 1e5, saltHex, derivedHex].join(":")}`, method: "pbkdf2" };
+  } catch (err) {
+    return { salt: null, hash: password, method: "plain" };
+  }
+}
+function constantTimeEqual(a, b) {
+  try {
+    if (!a || !b) return false;
+    try {
+      const nodeCrypto = __require && __require("crypto");
+      if (nodeCrypto && nodeCrypto.timingSafeEqual) {
+        const A = Buffer.from(a, "hex");
+        const B = Buffer.from(b, "hex");
+        if (A.length !== B.length) return false;
+        return nodeCrypto.timingSafeEqual(A, B);
+      }
+    } catch (_) {
+    }
+    if (a.length !== b.length) return false;
+    let res = 0;
+    for (let i = 0; i < a.length; i++) res |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return res === 0;
+  } catch (_) {
+    return false;
+  }
+}
+async function verifyPassword(password, stored) {
+  if (!stored) return false;
+  try {
+    if (String(stored).startsWith("pbkdf2:")) {
+      const parts = String(stored).split(":");
+      if (parts.length !== 4) return false;
+      const iterations = Number(parts[1]) || 1e5;
+      const saltHex = parts[2];
+      const expected = parts[3];
+      const derived = await pbkdf2Hash(password, saltHex, iterations, expected.length / 2);
+      if (!derived) return false;
+      return constantTimeEqual(derived, expected);
+    }
+    if (String(stored).includes(":")) {
+      const parts = String(stored).split(":");
+      if (parts.length !== 2) return false;
+      const [salt, hashHex] = parts;
+      try {
+        const nodeCrypto = await import("crypto").then((m) => m.default || m).catch(() => null);
+        if (nodeCrypto && nodeCrypto.scryptSync && nodeCrypto.timingSafeEqual) {
+          const derived = nodeCrypto.scryptSync(password, salt, 64);
+          const a = Buffer.from(derived.toString("hex"), "hex");
+          const b = Buffer.from(String(hashHex), "hex");
+          if (a.length === b.length && nodeCrypto.timingSafeEqual(a, b)) return true;
+        }
+      } catch (_) {
+      }
+      return false;
+    }
+    return String(stored) === String(password);
+  } catch (err) {
+    return false;
+  }
+}
+async function createUser(env, email, password, role = "ADMIN") {
+  const db = pickDb(env);
+  if (!db) throw new Error("No DB available");
+  await ensureSchema(db);
+  const now = nowIso();
+  const { salt, hash } = await hashPassword(password);
+  const id = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `admin-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+  await db.prepare("INSERT INTO adminUser (id, email, passwordHash, passwordSalt, role, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(id, String(email), String(hash), salt || null, role || "ADMIN", 1, now, now).run();
+  return { id, email, role };
+}
+async function authenticate(env, email, password, storeId = null) {
+  const db = pickDb(env);
+  if (!db) throw new Error("No DB available");
+  await ensureSchema(db);
+  const res = await db.prepare("SELECT id, email, passwordHash, role, isActive FROM adminUser WHERE email = ?").bind(String(email)).all();
+  const row = Array.isArray(res?.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
+  if (!row) throw new Error("Invalid credentials");
+  if (!row.isActive && row.isActive !== 1) throw new Error("Account disabled");
+  const ok = await verifyPassword(password, row.passwordHash);
+  if (!ok) throw new Error("Invalid credentials");
+  const token = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `tkn-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+  const days = Number(env.ADMIN_SESSION_DAYS || 7);
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1e3).toISOString();
+  const sid = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `sess-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+  try {
+    await db.prepare("INSERT INTO adminSession (id, token, userId, expiresAt, createdAt, storeId) VALUES (?, ?, ?, ?, ?, ?)").bind(sid, String(token), String(row.id || row.ID), expiresAt, nowIso(), storeId || null).run();
+  } catch (e) {
+    await db.prepare("INSERT INTO adminSession (id, token, userId, expiresAt, createdAt) VALUES (?, ?, ?, ?, ?)").bind(sid, String(token), String(row.id || row.ID), expiresAt, nowIso()).run();
+  }
+  await db.prepare("UPDATE adminUser SET lastLoginAt = ?, updatedAt = ? WHERE id = ?").bind(nowIso(), nowIso(), String(row.id || row.ID)).run();
+  return { token, user: { id: row.id || row.ID, email: row.email || row.EMAIL, role: row.role || row.ROLE, storeId: storeId || null }, expiresAt };
+}
+async function validateToken(env, token) {
+  const db = pickDb(env);
+  if (!db) return null;
+  await ensureSchema(db);
+  const res = await db.prepare("SELECT s.token, s.expiresAt, s.storeId, u.id as userId, u.email, u.role, u.isActive FROM adminSession s LEFT JOIN adminUser u ON u.id = s.userId WHERE s.token = ?").bind(String(token)).all();
+  const row = Array.isArray(res?.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
+  if (!row) return null;
+  if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) return null;
+  if (!row.isActive && row.isActive !== 1) return null;
+  return { id: row.userId, email: row.email, role: row.role, storeId: row.storeId || null };
+}
+async function logout(env, token) {
+  const db = pickDb(env);
+  if (!db) return;
+  await ensureSchema(db);
+  try {
+    await db.prepare("DELETE FROM adminSession WHERE token = ?").bind(String(token)).run();
+  } catch (_) {
+  }
+}
+var init_adminAuth = __esm({
+  "_shared/adminAuth.js"() {
+    init_functionsRoutes_0_5723290474085267();
+    init_d1();
+    __name(nowIso, "nowIso");
+    __name(hex, "hex");
+    __name(pbkdf2Hash, "pbkdf2Hash");
+    __name(hashPassword, "hashPassword");
+    __name(constantTimeEqual, "constantTimeEqual");
+    __name(verifyPassword, "verifyPassword");
+    __name(createUser, "createUser");
+    __name(authenticate, "authenticate");
+    __name(validateToken, "validateToken");
+    __name(logout, "logout");
+  }
+});
+
+// api/admin/inventory/store/[storeId].js
+function extractToken(request) {
+  const auth = request.headers.get("authorization") || "";
+  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  return request.headers.get("x-admin-token") || "";
+}
 async function onRequest4(context) {
+  const { request, env, params } = context;
+  try {
+    const { storeId } = params || {};
+    if (!storeId) return new Response(JSON.stringify({ success: false, error: "storeId missing" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    const db = pickDb(env);
+    if (!db) return new Response(JSON.stringify({ success: false, error: "No DB binding available" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    await ensureSchema(db);
+    const token = extractToken(request);
+    const user = await validateToken(env, token);
+    if (!user) return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    if (user.storeId && user.role !== "ADMIN" && String(user.storeId) !== String(storeId)) {
+      return new Response(JSON.stringify({ success: false, error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+    }
+    if (request.method === "GET") {
+      const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "cardId", "referencePrice", "marginMultiplier", "finalPrice", "quantity", "status"]);
+      const cardCols = await buildSelectColumns(db, "card", "c", ["externalId", "cardName", "rarity"]);
+      let listingSelect = listingCols;
+      listingSelect = aliasSelectColumn(listingSelect, "l", "id", "listingId");
+      const selectParts = [];
+      if (listingSelect) selectParts.push(listingSelect);
+      if (cardCols) selectParts.push(cardCols);
+      const sql = `SELECT ls.id as stockId, ls.storeId, ls.listingId, ls.quantity as storeQuantity, ${selectParts.join(", ")} FROM listingStock ls LEFT JOIN listing l ON ls.listingId = l.id LEFT JOIN card c ON l.cardId = c.id WHERE ls.storeId = ?`;
+      const res = await db.prepare(sql).bind(storeId).all();
+      const rows = Array.isArray(res.results) ? res.results : Array.isArray(res) ? res : [];
+      return new Response(JSON.stringify({ success: true, storeId, results: rows }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const listingId = body.listingId || body.listing || null;
+      const quantity = typeof body.quantity === "number" ? Math.max(0, Math.floor(body.quantity)) : null;
+      if (!listingId || quantity === null) return new Response(JSON.stringify({ success: false, error: "listingId and quantity required" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      const curRes = await db.prepare("SELECT id FROM listingStock WHERE listingId = ? AND storeId = ?").bind(listingId, storeId).all();
+      const curRow = Array.isArray(curRes.results) ? curRes.results[0] : Array.isArray(curRes) ? curRes[0] : null;
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      if (curRow) {
+        await db.prepare("UPDATE listingStock SET quantity = ?, updatedAt = ? WHERE id = ?").bind(quantity, now, curRow.id).run();
+      } else {
+        const sid = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `ls-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+        await db.prepare("INSERT INTO listingStock (id, storeId, listingId, quantity, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)").bind(sid, storeId, listingId, quantity, now, now).run();
+      }
+      const aggRes = await db.prepare("SELECT SUM(quantity) as total FROM listingStock WHERE listingId = ?").bind(listingId).all();
+      const aggRow = Array.isArray(aggRes.results) ? aggRes.results[0] : Array.isArray(aggRes) ? aggRes[0] : null;
+      const total = aggRow ? Number(aggRow.total) || 0 : 0;
+      await db.prepare("UPDATE listing SET quantity = ?, updatedAt = ? WHERE id = ?").bind(total, now, listingId).run();
+      return new Response(JSON.stringify({ success: true, listingId, storeId, storeQuantity: quantity, quantity: total }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return new Response(JSON.stringify({ success: false, error: "method_not_allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
+}
+var init_storeId = __esm({
+  "api/admin/inventory/store/[storeId].js"() {
+    init_functionsRoutes_0_5723290474085267();
+    init_d1();
+    init_adminAuth();
+    __name(extractToken, "extractToken");
+    __name(onRequest4, "onRequest");
+  }
+});
+
+// api/listings/sync-prices/runs/[runId].js
+async function onRequest5(context) {
   const { request, env, params } = context;
   try {
     const { runId: runId2 } = params || {};
@@ -855,19 +1100,24 @@ async function onRequest4(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest4, "onRequest4");
 var init_runId = __esm({
   "api/listings/sync-prices/runs/[runId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest4, "onRequest");
+    __name(onRequest5, "onRequest");
   }
+});
+
+// api/erp/reservations/[id]/commit.js
+var commit_exports = {};
+__export(commit_exports, {
+  default: () => commit_default,
+  onRequest: () => onRequest6
 });
 function json2(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json2, "json2");
-async function onRequest5(context) {
+async function onRequest6(context) {
   const { env, params, request } = context;
   try {
     const { id } = params || {};
@@ -898,31 +1148,40 @@ async function onRequest5(context) {
     return json2({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest5, "onRequest5");
+var commit_default;
 var init_commit = __esm({
   "api/erp/reservations/[id]/commit.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json2, "json");
-    __name2(onRequest5, "onRequest");
+    __name(json2, "json");
+    __name(onRequest6, "onRequest");
+    commit_default = onRequest6;
   }
 });
-async function onRequest6(context) {
-  return onRequest5(context);
+
+// api/erp/reservation/[id]/commit.js
+async function onRequest7(context) {
+  const mod = await Promise.resolve().then(() => (init_commit(), commit_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest6, "onRequest6");
 var init_commit2 = __esm({
   "api/erp/reservation/[id]/commit.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_commit();
-    __name2(onRequest6, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest7, "onRequest");
   }
+});
+
+// api/erp/reservations/[id]/release.js
+var release_exports = {};
+__export(release_exports, {
+  default: () => release_default,
+  onRequest: () => onRequest8
 });
 function json3(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json3, "json3");
-async function onRequest7(context) {
+async function onRequest8(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -943,30 +1202,34 @@ async function onRequest7(context) {
     return json3({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest7, "onRequest7");
+var release_default;
 var init_release = __esm({
   "api/erp/reservations/[id]/release.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json3, "json");
-    __name2(onRequest7, "onRequest");
+    __name(json3, "json");
+    __name(onRequest8, "onRequest");
+    release_default = onRequest8;
   }
 });
-async function onRequest8(context) {
-  return onRequest7(context);
+
+// api/erp/reservation/[id]/release.js
+async function onRequest9(context) {
+  const mod = await Promise.resolve().then(() => (init_release(), release_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest8, "onRequest8");
 var init_release2 = __esm({
   "api/erp/reservation/[id]/release.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_release();
-    __name2(onRequest8, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest9, "onRequest");
   }
 });
+
+// ../_shared/d1.js
 function pickDb2(env) {
   return env.TCG_D1 || env.DB || env.D1 || env.TCG_ERP_DB || null;
 }
-__name(pickDb2, "pickDb2");
 async function ensureSchema2(db) {
   if (!db) return;
   try {
@@ -1273,7 +1536,6 @@ async function ensureSchema2(db) {
     }
   }
   __name(addColumnIfMissing, "addColumnIfMissing");
-  __name2(addColumnIfMissing, "addColumnIfMissing");
   await addColumnIfMissing("listing", "condition", "TEXT DEFAULT 'NM'");
   await addColumnIfMissing("listing", "rarity", "TEXT");
   await addColumnIfMissing("listing", "exchangeRate", "REAL DEFAULT 1.0");
@@ -1311,27 +1573,26 @@ async function ensureSchema2(db) {
   } catch (_) {
   }
 }
-__name(ensureSchema2, "ensureSchema2");
 function firstRow2(res) {
   if (!res) return null;
   if (Array.isArray(res.results)) return res.results[0] || null;
   if (Array.isArray(res)) return res[0] || null;
   return null;
 }
-__name(firstRow2, "firstRow2");
 var init_d12 = __esm({
   "../_shared/d1.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(pickDb2, "pickDb");
-    __name2(ensureSchema2, "ensureSchema");
-    __name2(firstRow2, "firstRow");
+    init_functionsRoutes_0_5723290474085267();
+    __name(pickDb2, "pickDb");
+    __name(ensureSchema2, "ensureSchema");
+    __name(firstRow2, "firstRow");
   }
 });
+
+// api/inventory/imports/[id]/rollback.js
 async function json4(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json4, "json4");
-async function onRequest9(context) {
+async function onRequest10(context) {
   const { request, env, params } = context;
   try {
     const required = env.IMPORT_API_KEY || null;
@@ -1359,30 +1620,39 @@ async function onRequest9(context) {
     return json4({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest9, "onRequest9");
 var init_rollback = __esm({
   "api/inventory/imports/[id]/rollback.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(json4, "json");
-    __name2(onRequest9, "onRequest");
+    __name(json4, "json");
+    __name(onRequest10, "onRequest");
   }
 });
-async function onRequest10(context) {
-  return onRequest10(context);
+
+// api/pos/cash-sessions/[id]/close.js
+var close_exports = {};
+__export(close_exports, {
+  default: () => close_default,
+  onRequest: () => onRequest11
+});
+async function onRequest11(context) {
+  const mod = await Promise.resolve().then(() => (init_close(), close_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest10, "onRequest10");
+var close_default;
 var init_close = __esm({
   "api/pos/cash-sessions/[id]/close.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_close();
-    __name2(onRequest10, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest11, "onRequest");
+    close_default = onRequest11;
   }
 });
+
+// _shared/pos.js
 function genId(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId, "genId");
 async function createSession(db, input) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const id = genId("ps");
@@ -1399,7 +1669,6 @@ async function createSession(db, input) {
   }
   return session;
 }
-__name(createSession, "createSession");
 async function getSessionByPublicId(db, sessionPublicId) {
   const res = await db.prepare("SELECT id, sessionId, storeId, userId, items, subtotal, tax, total, status, createdAt, updatedAt FROM pOSSession WHERE sessionId = ? LIMIT 1").bind(sessionPublicId).all();
   const sess = firstRow(res);
@@ -1415,7 +1684,6 @@ async function getSessionByPublicId(db, sessionPublicId) {
   sess.transactions = txs;
   return sess;
 }
-__name(getSessionByPublicId, "getSessionByPublicId");
 async function createTransaction(db, sessionPublicId, input) {
   const sres = await db.prepare("SELECT id FROM pOSSession WHERE sessionId = ? LIMIT 1").bind(sessionPublicId).all();
   const session = firstRow(sres);
@@ -1426,7 +1694,6 @@ async function createTransaction(db, sessionPublicId, input) {
   const tres = await db.prepare("SELECT id, sessionId, method, amount, status, processorResponse, processorReference, createdAt, updatedAt FROM paymentTransaction WHERE id = ?").bind(id).all();
   return firstRow(tres);
 }
-__name(createTransaction, "createTransaction");
 async function listTransactions(db, sessionPublicId) {
   const sres = await db.prepare("SELECT id FROM pOSSession WHERE sessionId = ? LIMIT 1").bind(sessionPublicId).all();
   const session = firstRow(sres);
@@ -1434,21 +1701,22 @@ async function listTransactions(db, sessionPublicId) {
   const txsRes = await db.prepare("SELECT id, sessionId, method, amount, status, processorResponse, processorReference, createdAt, updatedAt FROM paymentTransaction WHERE sessionId = ? ORDER BY createdAt ASC").bind(session.id).all();
   return Array.isArray(txsRes?.results) ? txsRes.results : Array.isArray(txsRes) ? txsRes : [];
 }
-__name(listTransactions, "listTransactions");
 var pos_default;
 var init_pos = __esm({
   "_shared/pos.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(genId, "genId");
-    __name2(createSession, "createSession");
-    __name2(getSessionByPublicId, "getSessionByPublicId");
-    __name2(createTransaction, "createTransaction");
-    __name2(listTransactions, "listTransactions");
+    __name(genId, "genId");
+    __name(createSession, "createSession");
+    __name(getSessionByPublicId, "getSessionByPublicId");
+    __name(createTransaction, "createTransaction");
+    __name(listTransactions, "listTransactions");
     pos_default = { createSession, getSessionByPublicId, createTransaction, listTransactions };
   }
 });
-async function onRequest11(context) {
+
+// api/pos/sessions/[sessionId]/transactions/index.js
+async function onRequest12(context) {
   const { request, env, params } = context;
   try {
     const { sessionId } = params || {};
@@ -1470,27 +1738,26 @@ async function onRequest11(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest11, "onRequest11");
 var init_transactions = __esm({
   "api/pos/sessions/[sessionId]/transactions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_pos();
-    __name2(onRequest11, "onRequest");
+    __name(onRequest12, "onRequest");
   }
 });
+
+// _shared/priceService.js
 function resolveRoundingMultiple(env, override) {
   if (typeof override === "number" && Number.isFinite(override) && override >= 1) return Math.max(1, Math.round(override));
   const envValue = Number(env && env.PRICE_ROUNDING_MULTIPLE || process.env.PRICE_ROUNDING_MULTIPLE || "1");
   if (!Number.isFinite(envValue) || envValue < 1) return 1;
   return Math.max(1, Math.round(envValue));
 }
-__name(resolveRoundingMultiple, "resolveRoundingMultiple");
 function roundCommercialPrice(value, roundingMultiple) {
   if (roundingMultiple <= 1) return Math.round(value);
   return Math.round(value / roundingMultiple) * roundingMultiple;
 }
-__name(roundCommercialPrice, "roundCommercialPrice");
 async function calculateFinalPrice(env, { referencePrice, marginMultiplier, roundingMultiple }) {
   const usdToClp = Number(env && (env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || process.env.MANUAL_USD_TO_CLP || 1e3);
   const rawFinalPrice = referencePrice * marginMultiplier * usdToClp;
@@ -1498,7 +1765,6 @@ async function calculateFinalPrice(env, { referencePrice, marginMultiplier, roun
   const finalPrice = roundCommercialPrice(rawFinalPrice, resolved);
   return { finalPrice, rawFinalPrice, exchangeRate: usdToClp, referencePrice, roundingMultiple: resolved };
 }
-__name(calculateFinalPrice, "calculateFinalPrice");
 async function updateListingPrice(db, env, listingId, newReferencePrice, marginMultiplier, reason = "sync", changedBy = null, notes = null, roundingMultiple = void 0) {
   if (!db) throw new Error("No DB available");
   await ensureSchema(db);
@@ -1525,28 +1791,29 @@ async function updateListingPrice(db, env, listingId, newReferencePrice, marginM
     percentChange
   };
 }
-__name(updateListingPrice, "updateListingPrice");
 var priceService_default;
 var init_priceService = __esm({
   "_shared/priceService.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(resolveRoundingMultiple, "resolveRoundingMultiple");
-    __name2(roundCommercialPrice, "roundCommercialPrice");
-    __name2(calculateFinalPrice, "calculateFinalPrice");
-    __name2(updateListingPrice, "updateListingPrice");
+    __name(resolveRoundingMultiple, "resolveRoundingMultiple");
+    __name(roundCommercialPrice, "roundCommercialPrice");
+    __name(calculateFinalPrice, "calculateFinalPrice");
+    __name(updateListingPrice, "updateListingPrice");
     priceService_default = { calculateFinalPrice, updateListingPrice };
   }
 });
+
+// _shared/tenant.js
 async function resolveStoreFromRequest(request, env) {
   try {
-    let firstRow3 = /* @__PURE__ */ __name(function(res) {
+    let firstRow3 = function(res) {
       if (!res) return null;
       if (Array.isArray(res.results)) return res.results[0] || null;
       if (Array.isArray(res)) return res[0] || null;
       return null;
-    }, "firstRow3");
-    __name2(firstRow3, "firstRow");
+    };
+    __name(firstRow3, "firstRow");
     const db = pickDb(env);
     if (db) await ensureSchema(db);
     const headers = typeof request.headers?.get === "function" ? request.headers : new Map(Object.entries(request.headers || {}));
@@ -1589,7 +1856,7 @@ async function resolveStoreFromRequest(request, env) {
           try {
             let cryptoNode = null;
             try {
-              cryptoNode = __require2("crypto");
+              cryptoNode = __require("crypto");
             } catch (_) {
               cryptoNode = null;
             }
@@ -1615,19 +1882,19 @@ async function resolveStoreFromRequest(request, env) {
     return null;
   }
 }
-__name(resolveStoreFromRequest, "resolveStoreFromRequest");
 var init_tenant = __esm({
   "_shared/tenant.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(resolveStoreFromRequest, "resolveStoreFromRequest");
+    __name(resolveStoreFromRequest, "resolveStoreFromRequest");
   }
 });
+
+// api/pricing/approvals/[id]/approve.js
 async function json5(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json5, "json5");
-async function onRequest12(context) {
+async function onRequest13(context) {
   const { request, env, params } = context;
   try {
     const id = params && (params.id || params.approvalId) ? String(params.id || params.approvalId) : (() => {
@@ -1683,22 +1950,22 @@ async function onRequest12(context) {
     return json5({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest12, "onRequest12");
 var init_approve = __esm({
   "api/pricing/approvals/[id]/approve.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_priceService();
     init_tenant();
-    __name2(json5, "json");
-    __name2(onRequest12, "onRequest");
+    __name(json5, "json");
+    __name(onRequest13, "onRequest");
   }
 });
+
+// api/pricing/approvals/[id]/reject.js
 async function json6(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json6, "json6");
-async function onRequest13(context) {
+async function onRequest14(context) {
   const { request, env, params } = context;
   try {
     const id = params && (params.id || params.approvalId) ? String(params.id || params.approvalId) : (() => {
@@ -1731,17 +1998,18 @@ async function onRequest13(context) {
     return json6({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest13, "onRequest13");
 var init_reject = __esm({
   "api/pricing/approvals/[id]/reject.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_tenant();
-    __name2(json6, "json");
-    __name2(onRequest13, "onRequest");
+    __name(json6, "json");
+    __name(onRequest14, "onRequest");
   }
 });
-async function onRequest14(context) {
+
+// api/external/cards/[tcg]/[cardId].js
+async function onRequest15(context) {
   const { request, params } = context;
   try {
     const tcg = String(params.tcg || "").toUpperCase();
@@ -1788,18 +2056,18 @@ async function onRequest14(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest14, "onRequest14");
 var init_cardId = __esm({
   "api/external/cards/[tcg]/[cardId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
-    __name2(onRequest14, "onRequest");
+    __name(onRequest15, "onRequest");
   }
 });
+
+// ../_shared/cart.js
 function genId2(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId2, "genId2");
 async function getOrCreateCart(db, sessionId) {
   if (!db) throw new Error("No DB binding available");
   const res = await db.prepare("SELECT id, sessionId, createdAt, updatedAt FROM cart WHERE sessionId = ? ORDER BY updatedAt DESC LIMIT 1").bind(sessionId).all();
@@ -1823,7 +2091,6 @@ async function getOrCreateCart(db, sessionId) {
   const enriched = items.map((it) => ({ ...it, listing: listingMap.get(it.listingId) || null }));
   return { ...cart, items: enriched };
 }
-__name(getOrCreateCart, "getOrCreateCart");
 async function addToCart(db, { sessionId, listingId, quantity }) {
   if (!db) throw new Error("No DB binding available");
   if (!listingId || !sessionId) throw new Error("sessionId and listingId required");
@@ -1852,14 +2119,12 @@ async function addToCart(db, { sessionId, listingId, quantity }) {
   await db.prepare("UPDATE cart SET updatedAt = ? WHERE id = ?").bind(now, cart.id).run();
   return getOrCreateCart(db, sessionId);
 }
-__name(addToCart, "addToCart");
 async function removeFromCart(db, sessionId, itemId) {
   if (!db) throw new Error("No DB binding available");
   const cart = await getOrCreateCart(db, sessionId);
   await db.prepare("DELETE FROM orderItem WHERE id = ? AND cartId = ? AND orderId IS NULL").bind(itemId, cart.id).run();
   return getOrCreateCart(db, sessionId);
 }
-__name(removeFromCart, "removeFromCart");
 async function updateItemQuantity(db, sessionId, itemId, quantity) {
   if (!db) throw new Error("No DB binding available");
   const qty = Number(quantity || 0);
@@ -1878,7 +2143,6 @@ async function updateItemQuantity(db, sessionId, itemId, quantity) {
   await db.prepare("UPDATE cart SET updatedAt = ? WHERE id = ?").bind((/* @__PURE__ */ new Date()).toISOString(), cart.id).run();
   return getOrCreateCart(db, sessionId);
 }
-__name(updateItemQuantity, "updateItemQuantity");
 async function checkout(db, sessionId, customerEmail, shippingAddress, notes) {
   if (!db) throw new Error("No DB binding available");
   const cart = await getOrCreateCart(db, sessionId);
@@ -1906,22 +2170,23 @@ async function checkout(db, sessionId, customerEmail, shippingAddress, notes) {
   const created = firstRow2(createdRes);
   return created;
 }
-__name(checkout, "checkout");
 var cart_default;
 var init_cart = __esm({
   "../_shared/cart.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(genId2, "genId");
-    __name2(getOrCreateCart, "getOrCreateCart");
-    __name2(addToCart, "addToCart");
-    __name2(removeFromCart, "removeFromCart");
-    __name2(updateItemQuantity, "updateItemQuantity");
-    __name2(checkout, "checkout");
+    __name(genId2, "genId");
+    __name(getOrCreateCart, "getOrCreateCart");
+    __name(addToCart, "addToCart");
+    __name(removeFromCart, "removeFromCart");
+    __name(updateItemQuantity, "updateItemQuantity");
+    __name(checkout, "checkout");
     cart_default = { getOrCreateCart, addToCart, removeFromCart, updateItemQuantity, checkout };
   }
 });
-async function onRequest15(context) {
+
+// api/cart/[sessionId]/item/[itemId].js
+async function onRequest16(context) {
   const { request, env, params } = context;
   try {
     const { sessionId, itemId } = params || {};
@@ -1945,189 +2210,24 @@ async function onRequest15(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest15, "onRequest15");
 var init_itemId = __esm({
   "api/cart/[sessionId]/item/[itemId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_cart();
-    __name2(onRequest15, "onRequest");
+    __name(onRequest16, "onRequest");
   }
 });
-function nowIso() {
-  return (/* @__PURE__ */ new Date()).toISOString();
-}
-__name(nowIso, "nowIso");
-function hex(buf) {
-  if (!buf) return "";
-  if (typeof Buffer !== "undefined" && Buffer.isBuffer(buf)) return buf.toString("hex");
-  return Array.from(buf).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-__name(hex, "hex");
-async function pbkdf2Hash(password, saltHex, iterations = 1e5, keyLen = 64) {
-  try {
-    const enc = new TextEncoder();
-    const passKey = enc.encode(password);
-    const salt = Uint8Array.from(saltHex.match(/.{1,2}/g).map((h) => parseInt(h, 16)));
-    const key = await (globalThis.crypto.subtle || globalThis.crypto.webkitSubtle).importKey("raw", passKey, { name: "PBKDF2" }, false, ["deriveBits"]);
-    const derived = await (globalThis.crypto.subtle || globalThis.crypto.webkitSubtle).deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, key, keyLen * 8);
-    return hex(new Uint8Array(derived));
-  } catch (err) {
-    return null;
-  }
-}
-__name(pbkdf2Hash, "pbkdf2Hash");
-async function hashPassword(password) {
-  try {
-    const nodeCrypto = await import("crypto").then((m) => m.default || m).catch(() => null);
-    if (nodeCrypto && nodeCrypto.scryptSync) {
-      const salt = nodeCrypto.randomBytes(16).toString("hex");
-      const derived = nodeCrypto.scryptSync(password, salt, 64);
-      return { salt, hash: `${salt}:${derived.toString("hex")}`, method: "scrypt" };
-    }
-  } catch (_) {
-  }
-  try {
-    const saltBuf = globalThis.crypto && globalThis.crypto.getRandomValues ? globalThis.crypto.getRandomValues(new Uint8Array(16)) : new Uint8Array(16);
-    const saltHex = hex(saltBuf);
-    const derivedHex = await pbkdf2Hash(password, saltHex, 1e5, 64);
-    if (!derivedHex) return { salt: saltHex, hash: `${["pbkdf2", 1e5, saltHex, derivedHex].join(":")}`, method: "pbkdf2" };
-    return { salt: saltHex, hash: `${["pbkdf2", 1e5, saltHex, derivedHex].join(":")}`, method: "pbkdf2" };
-  } catch (err) {
-    return { salt: null, hash: password, method: "plain" };
-  }
-}
-__name(hashPassword, "hashPassword");
-function constantTimeEqual(a, b) {
-  try {
-    if (!a || !b) return false;
-    try {
-      const nodeCrypto = __require2 && __require2("crypto");
-      if (nodeCrypto && nodeCrypto.timingSafeEqual) {
-        const A = Buffer.from(a, "hex");
-        const B = Buffer.from(b, "hex");
-        if (A.length !== B.length) return false;
-        return nodeCrypto.timingSafeEqual(A, B);
-      }
-    } catch (_) {
-    }
-    if (a.length !== b.length) return false;
-    let res = 0;
-    for (let i = 0; i < a.length; i++) res |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return res === 0;
-  } catch (_) {
-    return false;
-  }
-}
-__name(constantTimeEqual, "constantTimeEqual");
-async function verifyPassword(password, stored) {
-  if (!stored) return false;
-  try {
-    if (String(stored).startsWith("pbkdf2:")) {
-      const parts = String(stored).split(":");
-      if (parts.length !== 4) return false;
-      const iterations = Number(parts[1]) || 1e5;
-      const saltHex = parts[2];
-      const expected = parts[3];
-      const derived = await pbkdf2Hash(password, saltHex, iterations, expected.length / 2);
-      if (!derived) return false;
-      return constantTimeEqual(derived, expected);
-    }
-    if (String(stored).includes(":")) {
-      const parts = String(stored).split(":");
-      if (parts.length !== 2) return false;
-      const [salt, hashHex] = parts;
-      try {
-        const nodeCrypto = await import("crypto").then((m) => m.default || m).catch(() => null);
-        if (nodeCrypto && nodeCrypto.scryptSync && nodeCrypto.timingSafeEqual) {
-          const derived = nodeCrypto.scryptSync(password, salt, 64);
-          const a = Buffer.from(derived.toString("hex"), "hex");
-          const b = Buffer.from(String(hashHex), "hex");
-          if (a.length === b.length && nodeCrypto.timingSafeEqual(a, b)) return true;
-        }
-      } catch (_) {
-      }
-      return false;
-    }
-    return String(stored) === String(password);
-  } catch (err) {
-    return false;
-  }
-}
-__name(verifyPassword, "verifyPassword");
-async function createUser(env, email, password, role = "ADMIN") {
-  const db = pickDb(env);
-  if (!db) throw new Error("No DB available");
-  await ensureSchema(db);
-  const now = nowIso();
-  const { salt, hash } = await hashPassword(password);
-  const id = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `admin-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-  await db.prepare("INSERT INTO adminUser (id, email, passwordHash, passwordSalt, role, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(id, String(email), String(hash), salt || null, role || "ADMIN", 1, now, now).run();
-  return { id, email, role };
-}
-__name(createUser, "createUser");
-async function authenticate(env, email, password) {
-  const db = pickDb(env);
-  if (!db) throw new Error("No DB available");
-  await ensureSchema(db);
-  const res = await db.prepare("SELECT id, email, passwordHash, role, isActive FROM adminUser WHERE email = ?").bind(String(email)).all();
-  const row = Array.isArray(res?.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
-  if (!row) throw new Error("Invalid credentials");
-  if (!row.isActive && row.isActive !== 1) throw new Error("Account disabled");
-  const ok = await verifyPassword(password, row.passwordHash);
-  if (!ok) throw new Error("Invalid credentials");
-  const token = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `tkn-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-  const days = Number(env.ADMIN_SESSION_DAYS || 7);
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1e3).toISOString();
-  const sid = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `sess-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-  await db.prepare("INSERT INTO adminSession (id, token, userId, expiresAt, createdAt) VALUES (?, ?, ?, ?, ?)").bind(sid, String(token), String(row.id || row.ID), expiresAt, nowIso()).run();
-  await db.prepare("UPDATE adminUser SET lastLoginAt = ?, updatedAt = ? WHERE id = ?").bind(nowIso(), nowIso(), String(row.id || row.ID)).run();
-  return { token, user: { id: row.id || row.ID, email: row.email || row.EMAIL, role: row.role || row.ROLE }, expiresAt };
-}
-__name(authenticate, "authenticate");
-async function validateToken(env, token) {
-  const db = pickDb(env);
-  if (!db) return null;
-  await ensureSchema(db);
-  const res = await db.prepare("SELECT s.token, s.expiresAt, u.id as userId, u.email, u.role, u.isActive FROM adminSession s LEFT JOIN adminUser u ON u.id = s.userId WHERE s.token = ?").bind(String(token)).all();
-  const row = Array.isArray(res?.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
-  if (!row) return null;
-  if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) return null;
-  if (!row.isActive && row.isActive !== 1) return null;
-  return { id: row.userId, email: row.email, role: row.role };
-}
-__name(validateToken, "validateToken");
-async function logout(env, token) {
-  const db = pickDb(env);
-  if (!db) return;
-  await ensureSchema(db);
-  try {
-    await db.prepare("DELETE FROM adminSession WHERE token = ?").bind(String(token)).run();
-  } catch (_) {
-  }
-}
-__name(logout, "logout");
-var init_adminAuth = __esm({
-  "_shared/adminAuth.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_d1();
-    __name2(nowIso, "nowIso");
-    __name2(hex, "hex");
-    __name2(pbkdf2Hash, "pbkdf2Hash");
-    __name2(hashPassword, "hashPassword");
-    __name2(constantTimeEqual, "constantTimeEqual");
-    __name2(verifyPassword, "verifyPassword");
-    __name2(createUser, "createUser");
-    __name2(authenticate, "authenticate");
-    __name2(validateToken, "validateToken");
-    __name2(logout, "logout");
-  }
+
+// api/admin/create.js
+var create_exports = {};
+__export(create_exports, {
+  onRequest: () => onRequest17
 });
 async function json7(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json7, "json7");
-async function onRequest16(context) {
+async function onRequest17(context) {
   const { request, env } = context;
   try {
     const expected = env.IMPORT_API_KEY;
@@ -2146,77 +2246,89 @@ async function onRequest16(context) {
     return json7({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest16, "onRequest16");
 var init_create = __esm({
   "api/admin/create.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_adminAuth();
-    __name2(json7, "json");
-    __name2(onRequest16, "onRequest");
+    __name(json7, "json");
+    __name(onRequest17, "onRequest");
   }
 });
-async function onRequest17(context) {
-  return onRequest16(context);
+
+// api/admin/auth/create.js
+async function onRequest18(context) {
+  const mod = await Promise.resolve().then(() => (init_create(), create_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest17, "onRequest17");
 var init_create2 = __esm({
   "api/admin/auth/create.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_create();
-    __name2(onRequest17, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest18, "onRequest");
   }
+});
+
+// api/admin/login.js
+var login_exports = {};
+__export(login_exports, {
+  onRequest: () => onRequest19
 });
 async function json8(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json8, "json8");
-async function onRequest18(context) {
+async function onRequest19(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || "").trim();
     const password = String(body.password || "").trim();
     if (!email || !password) return json8({ success: false, error: "email and password required" }, 400);
-    const result = await authenticate(env, email, password);
+    const storeId = body.storeId || null;
+    const result = await authenticate(env, email, password, storeId);
     return json8({ success: true, data: result });
   } catch (err) {
     return json8({ success: false, error: String(err) }, 401);
   }
 }
-__name(onRequest18, "onRequest18");
 var init_login = __esm({
   "api/admin/login.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_adminAuth();
-    __name2(json8, "json");
-    __name2(onRequest18, "onRequest");
+    __name(json8, "json");
+    __name(onRequest19, "onRequest");
   }
 });
-async function onRequest19(context) {
-  return onRequest18(context);
+
+// api/admin/auth/login.js
+async function onRequest20(context) {
+  const mod = await Promise.resolve().then(() => (init_login(), login_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest19, "onRequest19");
 var init_login2 = __esm({
   "api/admin/auth/login.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_login();
-    __name2(onRequest19, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest20, "onRequest");
   }
+});
+
+// api/admin/logout.js
+var logout_exports = {};
+__export(logout_exports, {
+  onRequest: () => onRequest21
 });
 async function json9(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json9, "json9");
-function extractToken(request) {
+function extractToken2(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken, "extractToken");
-async function onRequest20(context) {
+async function onRequest21(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken(request) || "");
+    const token = String(extractToken2(request) || "");
     if (!token) return json9({ success: false, error: "Missing token" }, 400);
     await logout(env, token);
     return json9({ success: true });
@@ -2224,41 +2336,46 @@ async function onRequest20(context) {
     return json9({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest20, "onRequest20");
 var init_logout = __esm({
   "api/admin/logout.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_adminAuth();
-    __name2(json9, "json");
-    __name2(extractToken, "extractToken");
-    __name2(onRequest20, "onRequest");
+    __name(json9, "json");
+    __name(extractToken2, "extractToken");
+    __name(onRequest21, "onRequest");
   }
 });
-async function onRequest21(context) {
-  return onRequest20(context);
+
+// api/admin/auth/logout.js
+async function onRequest22(context) {
+  const mod = await Promise.resolve().then(() => (init_logout(), logout_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest21, "onRequest21");
 var init_logout2 = __esm({
   "api/admin/auth/logout.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_logout();
-    __name2(onRequest21, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest22, "onRequest");
   }
+});
+
+// api/admin/me.js
+var me_exports = {};
+__export(me_exports, {
+  onRequest: () => onRequest23
 });
 async function json10(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json10, "json10");
-function extractToken2(request) {
+function extractToken3(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken2, "extractToken2");
-async function onRequest22(context) {
+async function onRequest23(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken2(request) || "");
+    const token = String(extractToken3(request) || "");
     if (!token) return json10({ success: false, error: "Missing token" }, 401);
     const user = await validateToken(env, token);
     if (!user) return json10({ success: false, error: "Invalid token" }, 401);
@@ -2267,28 +2384,31 @@ async function onRequest22(context) {
     return json10({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest22, "onRequest22");
 var init_me = __esm({
   "api/admin/me.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_adminAuth();
-    __name2(json10, "json");
-    __name2(extractToken2, "extractToken");
-    __name2(onRequest22, "onRequest");
+    __name(json10, "json");
+    __name(extractToken3, "extractToken");
+    __name(onRequest23, "onRequest");
   }
 });
-async function onRequest23(context) {
-  return onRequest22(context);
+
+// api/admin/auth/me.js
+async function onRequest24(context) {
+  const mod = await Promise.resolve().then(() => (init_me(), me_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest23, "onRequest23");
 var init_me2 = __esm({
   "api/admin/auth/me.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_me();
-    __name2(onRequest23, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest24, "onRequest");
   }
 });
-async function onRequest24(context) {
+
+// api/admin/cache/invalidate.js
+async function onRequest25(context) {
   const { request, env } = context;
   try {
     if (request.method !== "POST") return new Response(JSON.stringify({ success: false, error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
@@ -2320,14 +2440,15 @@ async function onRequest24(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest24, "onRequest24");
 var init_invalidate = __esm({
   "api/admin/cache/invalidate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest24, "onRequest");
+    __name(onRequest25, "onRequest");
   }
 });
+
+// _shared/exchange-rate.js
 async function getUSDtoCLPRateMetaFast(env, db, ttlSeconds) {
   if (!db) return null;
   ttlSeconds = Number(ttlSeconds || env.EXCHANGE_RATE_CACHE_TTL_SECONDS || env.VITE_EXCHANGE_RATE_CACHE_TTL_SECONDS || 3600);
@@ -2360,12 +2481,11 @@ async function getUSDtoCLPRateMetaFast(env, db, ttlSeconds) {
   }
   return null;
 }
-__name(getUSDtoCLPRateMetaFast, "getUSDtoCLPRateMetaFast");
 async function refreshExchangeRate(env, db) {
   const providers = [
-    { name: "exchangerate.host", url: "https://api.exchangerate.host/convert?from=USD&to=CLP", extract: /* @__PURE__ */ __name2((b) => b?.result ?? (b?.rates && b.rates.CLP), "extract") },
-    { name: "exchangerate-api.com", url: "https://api.exchangerate-api.com/v4/latest/USD", extract: /* @__PURE__ */ __name2((b) => b?.rates?.CLP, "extract") },
-    { name: "open.er-api.com", url: "https://open.er-api.com/v6/latest/USD", extract: /* @__PURE__ */ __name2((b) => b?.rates?.CLP, "extract") }
+    { name: "exchangerate.host", url: "https://api.exchangerate.host/convert?from=USD&to=CLP", extract: /* @__PURE__ */ __name((b) => b?.result ?? (b?.rates && b.rates.CLP), "extract") },
+    { name: "exchangerate-api.com", url: "https://api.exchangerate-api.com/v4/latest/USD", extract: /* @__PURE__ */ __name((b) => b?.rates?.CLP, "extract") },
+    { name: "open.er-api.com", url: "https://open.er-api.com/v6/latest/USD", extract: /* @__PURE__ */ __name((b) => b?.rates?.CLP, "extract") }
   ];
   let lastErr = null;
   for (const p of providers) {
@@ -2394,6 +2514,15 @@ async function refreshExchangeRate(env, db) {
         } catch (_) {
         }
       }
+      if (db) {
+        try {
+          const id = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `rate-usd-clp`;
+          const expiresAt = new Date(Date.now() + 1e3 * 60 * 60 * 6).toISOString();
+          await db.prepare(`INSERT INTO exchangeRate (id, fromCurrency, toCurrency, rate, source, fetchedAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(fromCurrency, toCurrency) DO UPDATE SET rate = excluded.rate, source = excluded.source, fetchedAt = excluded.fetchedAt, expiresAt = excluded.expiresAt;`).bind(id, "USD", "CLP", Number(rate), p.name, fetchedAt, expiresAt).run();
+        } catch (_) {
+        }
+      }
       return { usdToCLP: Number(rate), source: p.name, fetchedAt };
     } catch (err) {
       lastErr = err;
@@ -2408,16 +2537,378 @@ async function refreshExchangeRate(env, db) {
   }
   throw lastErr || new Error("all providers failed");
 }
-__name(refreshExchangeRate, "refreshExchangeRate");
 var init_exchange_rate = __esm({
   "_shared/exchange-rate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(getUSDtoCLPRateMetaFast, "getUSDtoCLPRateMetaFast");
-    __name2(refreshExchangeRate, "refreshExchangeRate");
+    __name(getUSDtoCLPRateMetaFast, "getUSDtoCLPRateMetaFast");
+    __name(refreshExchangeRate, "refreshExchangeRate");
   }
 });
-async function onRequest25(context) {
+
+// _shared/metrics.js
+function ensureStore() {
+  if (!globalThis[METRICS_KEY]) {
+    globalThis[METRICS_KEY] = { counters: {}, summaries: {} };
+  }
+  return globalThis[METRICS_KEY];
+}
+function labelsToKey(labels) {
+  if (!labels || Object.keys(labels).length === 0) return "";
+  return Object.keys(labels).sort().map((k) => `${k}=${String(labels[k]).replace(/"/g, '\\"')}`).join("|");
+}
+function keyToLabelObj(key) {
+  if (!key) return {};
+  const obj = {};
+  for (const part of key.split("|")) {
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    const k = part.slice(0, eq);
+    const v = part.slice(eq + 1);
+    obj[k] = v;
+  }
+  return obj;
+}
+function incr(name, labels = {}, value = 1) {
+  const s = ensureStore();
+  const key = labelsToKey(labels);
+  if (!s.counters[name]) s.counters[name] = {};
+  s.counters[name][key] = (s.counters[name][key] || 0) + value;
+}
+function observe(name, seconds, labels = {}) {
+  const s = ensureStore();
+  const key = labelsToKey(labels);
+  if (!s.summaries[name]) s.summaries[name] = {};
+  const cur = s.summaries[name][key] || { count: 0, sum: 0 };
+  cur.count += 1;
+  cur.sum += Number(seconds) || 0;
+  s.summaries[name][key] = cur;
+}
+function startTimer(name, labels = {}) {
+  const t0 = Date.now();
+  return () => {
+    const dt = (Date.now() - t0) / 1e3;
+    observe(name, dt, labels);
+  };
+}
+function getMetricsText() {
+  const s = ensureStore();
+  const lines = [];
+  for (const [name, map] of Object.entries(s.counters)) {
+    lines.push(`# TYPE ${name} counter`);
+    for (const [key, val] of Object.entries(map)) {
+      const labels = keyToLabelObj(key);
+      const labelStr = Object.keys(labels).length ? "{" + Object.entries(labels).map(([k, v]) => `${k}="${v}"`).join(",") + "}" : "";
+      lines.push(`${name}${labelStr} ${Number(val)}`);
+    }
+  }
+  for (const [name, map] of Object.entries(s.summaries)) {
+    lines.push(`# TYPE ${name} summary`);
+    for (const [key, val] of Object.entries(map)) {
+      const labels = keyToLabelObj(key);
+      const labelStr = Object.keys(labels).length ? "{" + Object.entries(labels).map(([k, v]) => `${k}="${v}"`).join(",") + "}" : "";
+      lines.push(`${name}_sum${labelStr} ${Number(val.sum)}`);
+      lines.push(`${name}_count${labelStr} ${Number(val.count)}`);
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+var METRICS_KEY;
+var init_metrics = __esm({
+  "_shared/metrics.js"() {
+    init_functionsRoutes_0_5723290474085267();
+    METRICS_KEY = "__tcg_erp_metrics_v1__";
+    __name(ensureStore, "ensureStore");
+    __name(labelsToKey, "labelsToKey");
+    __name(keyToLabelObj, "keyToLabelObj");
+    __name(incr, "incr");
+    __name(observe, "observe");
+    __name(startTimer, "startTimer");
+    __name(getMetricsText, "getMetricsText");
+  }
+});
+
+// api/listings/sync-prices.js
+function estimateFallbackReferencePrice(tcgName, rarity) {
+  const baseByTcg = { MAGIC: 0.5, POKEMON: 0.75, YUGIOH: 0.5, ONE_PIECE: 0.35, DIGIMON: 0.35, WEISS_SCHWARZ: 0.35 };
+  const base = baseByTcg[tcgName] ?? 0.5;
+  const r = (rarity || "").toLowerCase();
+  let multiplier = 0.75;
+  if (r.includes("mythic") || r.includes("secret") || r.includes("ultimate") || r.includes("legendary")) multiplier = 3;
+  else if (r.includes("ultra") || r.includes("gold") || r.includes("rainbow") || r.includes("alt")) multiplier = 2;
+  else if (r.includes("super") || r.includes("hyper") || r === "sr" || r === "ur") multiplier = 1.5;
+  else if (r.includes("rare") || r.includes("holo") || r.includes("parallel")) multiplier = 1.2;
+  else if (r.includes("uncommon")) multiplier = 1;
+  return Number((base * multiplier).toFixed(2));
+}
+async function onRequest26(context) {
+  const { request, env } = context;
+  try {
+    const stopRun = startTimer("price_sync_duration_seconds");
+    const body = request.method === "GET" ? Object.fromEntries(new URL(request.url).searchParams.entries()) : await request.json().catch(() => ({}));
+    const db = pickDb(env);
+    if (db) await ensureSchema(db);
+    let runId2 = null;
+    const startedAt = (/* @__PURE__ */ new Date()).toISOString();
+    if (db) {
+      runId2 = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `run-${Date.now()}`;
+      await db.prepare(`INSERT INTO priceSyncRun (id, source, status, notes, total, updated, volatile, failed, roundingMultiple, startedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(runId2, body.source || "manual", "running", body.notes || null, 0, 0, 0, 0, Number(body.roundingMultiple) || 1, startedAt, startedAt).run();
+    }
+    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1e3);
+    if (db) {
+      try {
+        const meta = await getUSDtoCLPRateMetaFast(env, db);
+        if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
+      } catch (_) {
+      }
+    }
+    const updates = body.updates;
+    const inventoryOnly = body.inventoryOnly === "true" || body.inventoryOnly === true;
+    const tcgNameFilter = body.tcgName || body.tcg || null;
+    let editionFilter = body.editionId || null;
+    if (editionFilter && typeof editionFilter === "string" && editionFilter.includes(":")) {
+      const parts = editionFilter.split(":");
+      editionFilter = parts.slice(1).join(":");
+    }
+    const result = { total: 0, updated: 0, failed: 0, errors: [] };
+    if (Array.isArray(updates) && updates.length > 0) {
+      result.total = updates.length;
+      for (const u of updates) {
+        try {
+          if (!db) throw new Error("No DB binding available");
+          if (u.listingId) {
+            const listingColsForUpdate = await buildSelectColumns(db, "listing", "l", ["id", "referencePrice", "marginMultiplier", "finalPrice"]);
+            let listingSelectForUpdate = listingColsForUpdate;
+            listingSelectForUpdate = aliasSelectColumn(listingSelectForUpdate, "l", "id", "listingId");
+            const lres = await db.prepare(`SELECT ${listingSelectForUpdate} FROM listing l WHERE l.id = ?`).bind(u.listingId).all();
+            const listing = Array.isArray(lres.results) ? lres.results[0] : Array.isArray(lres) ? lres[0] : null;
+            if (!listing) throw new Error("Listing not found");
+            const margin = typeof u.marginMultiplier === "number" ? u.marginMultiplier : listing.marginMultiplier || 1;
+            const ref = Number(u.referencePrice);
+            if (!Number.isFinite(ref) || ref <= 0) throw new Error("referencePrice must be a positive number");
+            const finalPrice = Math.round(ref * margin * usdToClp);
+            await db.prepare("UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?").bind(ref, margin, finalPrice, (/* @__PURE__ */ new Date()).toISOString(), u.listingId).run();
+            try {
+              const phId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `ph-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+              const percent = listing.finalPrice && listing.finalPrice > 0 ? (finalPrice - listing.finalPrice) / listing.finalPrice * 100 : null;
+              const listingIdForHistory = listing.id || listing.listingId || u.listingId;
+              await db.prepare("INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(phId, listingIdForHistory, listing.finalPrice ?? null, finalPrice, listing.referencePrice ?? null, ref, "MANUAL_SYNC", percent, body.changedBy || body.source || "system", body.notes || null, (/* @__PURE__ */ new Date()).toISOString()).run();
+            } catch (_) {
+            }
+            result.updated += 1;
+            incr("price_sync_updates_total", { mode: "manual" }, 1);
+            continue;
+          }
+          if (u.cardId) {
+            const cardId = u.cardId;
+            const listingId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `L-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+            const ref = Number(u.referencePrice) || 0;
+            const margin = typeof u.marginMultiplier === "number" ? u.marginMultiplier : 1;
+            const finalPrice = Math.round(ref * margin * usdToClp);
+            try {
+              const now = (/* @__PURE__ */ new Date()).toISOString();
+              const parts = String(cardId || "").split(":");
+              const inferredTcg = parts.length > 1 ? parts[0] : null;
+              const externalId = parts.length > 1 ? parts.slice(1).join(":") : cardId;
+              await db.prepare(`INSERT OR IGNORE INTO card (id, externalId, tcg, editionCode, cardName, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?);`).bind(cardId, externalId, inferredTcg, u.editionCode || "", null, now, now).run();
+            } catch (_) {
+            }
+            await db.prepare("INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(listingId, cardId, u.editionCode || "", ref, margin, finalPrice, u.quantity ? Number(u.quantity) : 0, "active", (/* @__PURE__ */ new Date()).toISOString()).run();
+            try {
+              const phId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `ph-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+              await db.prepare("INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(phId, listingId, null, finalPrice, null, ref, "TCGPLAYER_SYNC", null, body.changedBy || body.source || "system", "Initial listing creation", (/* @__PURE__ */ new Date()).toISOString()).run();
+            } catch (_) {
+            }
+            result.updated += 1;
+            incr("price_sync_updates_total", { mode: "manual" }, 1);
+            continue;
+          }
+          throw new Error("Update must include listingId or cardId");
+        } catch (err) {
+          result.failed += 1;
+          incr("price_sync_failures_total", { mode: "manual" }, 1);
+          result.errors.push({ id: u.listingId || u.cardId || "N/A", message: err && err.message || String(err) });
+        }
+      }
+      try {
+        incr("price_sync_runs_total", { mode: "manual" });
+      } catch (_) {
+      }
+      try {
+        stopRun();
+      } catch (_) {
+      }
+      return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (!db) return new Response(JSON.stringify({ success: false, error: "No DB binding available for sync" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "cardId", "referencePrice", "marginMultiplier", "finalPrice", "quantity", "status"]);
+    const cardCols = await buildSelectColumns(db, "card", "c", ["externalId", "cardName", "tcg", "editionCode", "rarity"]);
+    let listingSelect = listingCols;
+    listingSelect = aliasSelectColumn(listingSelect, "l", "id", "listingId");
+    const selectParts = [];
+    if (listingSelect) selectParts.push(listingSelect);
+    if (cardCols) selectParts.push(cardCols);
+    let sql = `SELECT ${selectParts.join(", ")} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
+    const binds = [];
+    if (inventoryOnly) {
+      sql += " AND l.quantity > 0";
+    }
+    if (tcgNameFilter) {
+      sql += " AND c.tcg = ?";
+      binds.push(tcgNameFilter);
+    }
+    if (editionFilter) {
+      sql += " AND c.editionCode = ?";
+      binds.push(String(editionFilter).toUpperCase());
+    }
+    const rowsRes = await db.prepare(sql).bind(...binds).all();
+    const rows = Array.isArray(rowsRes.results) ? rowsRes.results : Array.isArray(rowsRes) ? rowsRes : [];
+    result.total = rows.length;
+    const grouped = /* @__PURE__ */ new Map();
+    for (const r of rows) {
+      const inferredTcg = r.tcg || r.cardId && String(r.cardId).split(":")[0] || "LOCAL";
+      const key = `${inferredTcg}|${String(r.editionCode || "").toUpperCase()}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(r);
+    }
+    for (const [key, group] of grouped.entries()) {
+      const [tcgName, editionCode] = key.split("|");
+      const cacheKey = `setPrices:${tcgName}:${editionCode}`;
+      const ttl = Number(env.EXTERNAL_SET_CACHE_TTL_SECONDS || env.VITE_EXTERNAL_SET_CACHE_TTL_SECONDS || 3600);
+      let setPriceLookup = /* @__PURE__ */ new Map();
+      let setPriceByName = /* @__PURE__ */ new Map();
+      let usedCache = false;
+      if (db) {
+        try {
+          const cacheRes = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind(cacheKey).all();
+          const cacheRow = Array.isArray(cacheRes?.results) ? cacheRes.results[0] : Array.isArray(cacheRes) ? cacheRes[0] : null;
+          if (cacheRow && cacheRow.value) {
+            const parsed = JSON.parse(cacheRow.value);
+            const fetchedAt = parsed?.fetchedAt ? new Date(parsed.fetchedAt).getTime() : 0;
+            if (fetchedAt && Date.now() - fetchedAt < ttl * 1e3) {
+              for (const [k, v] of Object.entries(parsed.pricesById || {})) setPriceLookup.set(k, v);
+              for (const [k, v] of Object.entries(parsed.pricesByName || {})) setPriceByName.set(k, v);
+              usedCache = true;
+            }
+          }
+        } catch (_) {
+        }
+      }
+      if (!usedCache) {
+        await new Promise((res) => setTimeout(res, 120));
+        const _t0 = Date.now();
+        const setCards = await getSetCards(tcgName, editionCode).catch(() => []);
+        const _t1 = Date.now() - _t0;
+        try {
+          console.log(`[sync-prices] fetched set ${tcgName}/${editionCode} in ${_t1}ms; cards=${setCards.length}`);
+        } catch (_) {
+        }
+        try {
+          incr("price_sync_external_set_fetches_total", { tcg: tcgName, edition: editionCode }, 1);
+        } catch (_) {
+        }
+        for (const s of setCards) {
+          const price = s.priceMarket ?? s.priceMid ?? s.priceLow;
+          if (typeof price === "number" && Number.isFinite(price) && price > 0) {
+            setPriceLookup.set(s.externalId, price);
+            const nameKey = (s.cardName || "").trim().toLowerCase();
+            const existing = setPriceByName.get(nameKey);
+            if (!existing || price > existing) setPriceByName.set(nameKey, price);
+          }
+        }
+        if (db) {
+          try {
+            await db.prepare("INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)").bind(cacheKey, JSON.stringify({ pricesById: Object.fromEntries([...setPriceLookup.entries()]), pricesByName: Object.fromEntries([...setPriceByName.entries()]), fetchedAt: (/* @__PURE__ */ new Date()).toISOString() }), (/* @__PURE__ */ new Date()).toISOString()).run();
+          } catch (_) {
+          }
+        }
+      }
+      for (const listing of group) {
+        try {
+          const externalPrice = setPriceLookup.get(String(listing.externalId)) ?? setPriceByName.get(String((listing.cardName || "").trim().toLowerCase())) ?? null;
+          const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
+          const fallbackRef = estimateFallbackReferencePrice(tcgName, listing.rarity || void 0);
+          let chosenReference = fallbackRef;
+          if (externalPrice && externalPrice > 0) chosenReference = externalPrice;
+          else if (safeStoredRef) chosenReference = safeStoredRef;
+          const margin = listing.marginMultiplier || 1;
+          const finalPrice = Math.round(chosenReference * margin * usdToClp);
+          try {
+            const oldFinal = listing.finalPrice ?? null;
+            const oldRef = listing.referencePrice ?? null;
+            await db.prepare("UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?").bind(chosenReference, margin, finalPrice, (/* @__PURE__ */ new Date()).toISOString(), listing.listingId).run();
+            const phId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `ph-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+            const percent = oldFinal && oldFinal > 0 ? (finalPrice - oldFinal) / oldFinal * 100 : null;
+            await db.prepare("INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(phId, listing.listingId, oldFinal, finalPrice, oldRef, chosenReference, "EXTERNAL_API_SYNC", percent, body.changedBy || body.source || "system", null, (/* @__PURE__ */ new Date()).toISOString()).run();
+            result.updated += 1;
+            incr("price_sync_updates_total", { mode: "external" }, 1);
+          } catch (err) {
+            result.failed += 1;
+            incr("price_sync_failures_total", { mode: "external" }, 1);
+            result.errors.push({ listingId: listing.listingId, message: err && err.message || String(err) });
+          }
+        } catch (err) {
+          result.failed += 1;
+          incr("price_sync_failures_total", { mode: "external" }, 1);
+          result.errors.push({ listingId: listing.listingId, message: err && err.message || String(err) });
+        }
+      }
+    }
+    if (db && runId2) {
+      const completedAt = (/* @__PURE__ */ new Date()).toISOString();
+      try {
+        await db.prepare("UPDATE priceSyncRun SET status = ?, total = ?, updated = ?, failed = ?, errors = ?, completedAt = ? WHERE id = ?").bind(result.failed > 0 && result.updated === 0 ? "failed" : "completed", result.total, result.updated, result.failed, result.errors && result.errors.length ? JSON.stringify(result.errors) : null, completedAt, runId2).run();
+      } catch (_) {
+      }
+    }
+    try {
+      incr("price_sync_runs_total", { mode: "batch" });
+    } catch (_) {
+    }
+    try {
+      incr("price_sync_updates_total", {}, result.updated);
+    } catch (_) {
+    }
+    try {
+      incr("price_sync_failures_total", {}, result.failed);
+    } catch (_) {
+    }
+    try {
+      stopRun();
+    } catch (_) {
+    }
+    return new Response(JSON.stringify({ success: true, runId: runId2, ...result }), { status: 200, headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    if (typeof err !== "undefined" && env) {
+      const dbFail = pickDb(env);
+      if (dbFail) {
+        try {
+          await dbFail.prepare("UPDATE priceSyncRun SET status = ?, errors = ?, completedAt = ? WHERE id = ?").bind("failed", JSON.stringify([{ listingId: "N/A", message: String(err) }]), (/* @__PURE__ */ new Date()).toISOString(), runId || "unknown").run();
+        } catch (_) {
+        }
+      }
+    }
+    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
+}
+var init_sync_prices = __esm({
+  "api/listings/sync-prices.js"() {
+    init_functionsRoutes_0_5723290474085267();
+    init_d1();
+    init_tcgcsv();
+    init_exchange_rate();
+    init_metrics();
+    __name(estimateFallbackReferencePrice, "estimateFallbackReferencePrice");
+    __name(onRequest26, "onRequest");
+  }
+});
+
+// api/external/import/set.js
+var set_exports = {};
+__export(set_exports, {
+  onRequest: () => onRequest27
+});
+async function onRequest27(context) {
   const { request, env } = context;
   try {
     const payload = request.method === "GET" ? Object.fromEntries(new URL(request.url).searchParams.entries()) : await request.json().catch(() => ({}));
@@ -2507,14 +2998,14 @@ async function onRequest25(context) {
     let createdListings = 0;
     if (db && cards.length > 0) {
       const cardIds = cards.map((c) => `${tcg}:${c.externalId}`);
-      const chunk = /* @__PURE__ */ __name2((arr, size) => {
+      const chunk = /* @__PURE__ */ __name((arr, size) => {
         const out = [];
         for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
         return out;
       }, "chunk");
       const SQLITE_MAX_VARS = Number(env.EXTERNAL_SQLITE_MAX_VARS || env.SQLITE_MAX_VARS || 245);
       const safeSelectChunk = Math.max(1, Math.min(100, Math.floor((SQLITE_MAX_VARS - 20) / 1)));
-      const rowsFrom = /* @__PURE__ */ __name2((res) => {
+      const rowsFrom = /* @__PURE__ */ __name((res) => {
         if (!res) return [];
         if (Array.isArray(res.results)) return res.results;
         if (Array.isArray(res)) return res;
@@ -2564,11 +3055,11 @@ async function onRequest25(context) {
         }
         results.push({ externalId: c.externalId, cardName: c.cardName, priceMarket: c.priceMarket });
       }
-      const runBatchedInsert = /* @__PURE__ */ __name2(async (tableCols, rows, orReplace = false, orIgnore = false) => {
+      const runBatchedInsert = /* @__PURE__ */ __name(async (tableCols, rows, orReplace = false, orIgnore = false) => {
         if (!rows || rows.length === 0) return;
         const colCount = tableCols.cols.length;
         const safeBatch = Math.max(1, Math.floor(SQLITE_MAX_VARS / Math.max(1, colCount)));
-        const insertOne = /* @__PURE__ */ __name2(async (row) => {
+        const insertOne = /* @__PURE__ */ __name(async (row) => {
           const placeholders = `(${new Array(colCount).fill("?").join(",")})`;
           const sql = `INSERT ${orReplace ? "OR REPLACE" : orIgnore ? "OR IGNORE" : ""} INTO ${tableCols.table} (${tableCols.cols.join(",")}) VALUES ${placeholders};`;
           try {
@@ -2578,7 +3069,7 @@ async function onRequest25(context) {
             return false;
           }
         }, "insertOne");
-        const batches = /* @__PURE__ */ __name2((arr, size) => {
+        const batches = /* @__PURE__ */ __name((arr, size) => {
           const out = [];
           for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
           return out;
@@ -2602,35 +3093,61 @@ async function onRequest25(context) {
     } else {
       for (const p of cards) results.push({ externalId: p.externalId, cardName: p.cardName, priceMarket: p.priceMarket });
     }
+    let shouldSyncPrices = false;
+    if (typeof payload.syncPrices === "boolean") {
+      shouldSyncPrices = payload.syncPrices;
+    } else if (db) {
+      try {
+        const pcRes = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind("pricingConfig").all();
+        const pcRow = Array.isArray(pcRes?.results) ? pcRes.results[0] : Array.isArray(pcRes) ? pcRes[0] : null;
+        if (pcRow && pcRow.value) {
+          const parsed = JSON.parse(pcRow.value);
+          if (parsed && parsed.importSetSyncPricesDefault === true) shouldSyncPrices = true;
+        }
+      } catch (_) {
+      }
+    }
+    if (shouldSyncPrices && db && createdListings > 0) {
+      try {
+        const fakeReq = { method: "POST", json: /* @__PURE__ */ __name(async () => ({ tcg, editionId: `${tcg}:${editionCode}`, source: "import:set", notes: `post-import sync for ${tcg}:${editionCode}` }), "json") };
+        await onRequest26({ request: fakeReq, env });
+      } catch (_) {
+      }
+    }
     return new Response(JSON.stringify({ success: true, total: cards.length, createdCards, updatedCards, createdListings, results }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest25, "onRequest25");
 var init_set = __esm({
   "api/external/import/set.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
     init_d1();
     init_exchange_rate();
-    __name2(onRequest25, "onRequest");
+    init_sync_prices();
+    __name(onRequest27, "onRequest");
   }
 });
-function extractToken3(request) {
+
+// api/admin/catalog-bootstrap.js
+var catalog_bootstrap_exports = {};
+__export(catalog_bootstrap_exports, {
+  default: () => catalog_bootstrap_default,
+  onRequest: () => onRequest28
+});
+function extractToken4(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken3, "extractToken3");
 async function json11(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json11, "json11");
-async function onRequest26(context) {
+async function onRequest28(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken3(request) || "");
+    const token = String(extractToken4(request) || "");
     if (!token) return json11({ success: false, error: "Missing token" }, 401);
     const user = await validateToken(env, token);
     if (!user || user.role !== "ADMIN") return json11({ success: false, error: "Forbidden" }, 403);
@@ -2638,35 +3155,43 @@ async function onRequest26(context) {
     const setCode = String(body.setCode || body.code || body.set || "").trim();
     if (!setCode) return json11({ success: false, error: "Provide setCode for bootstrap (single-set mode)" }, 400);
     const fakeReq = new Request("https://internal/import-set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const resp = await onRequest25({ request: fakeReq, env });
-    return resp;
+    try {
+      const mod = await Promise.resolve().then(() => (init_set(), set_exports));
+      if (mod && mod.onRequest) return await mod.onRequest({ request: fakeReq, env });
+    } catch (err) {
+      return json11({ success: false, error: String(err) }, 500);
+    }
   } catch (err) {
     return json11({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest26, "onRequest26");
+var catalog_bootstrap_default;
 var init_catalog_bootstrap = __esm({
   "api/admin/catalog-bootstrap.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_adminAuth();
-    init_set();
-    __name2(extractToken3, "extractToken");
-    __name2(json11, "json");
-    __name2(onRequest26, "onRequest");
+    __name(extractToken4, "extractToken");
+    __name(json11, "json");
+    __name(onRequest28, "onRequest");
+    catalog_bootstrap_default = { onRequest: onRequest28 };
   }
 });
-async function onRequest27(context) {
-  return onRequest26(context);
+
+// api/admin/catalog/bootstrap.js
+async function onRequest29(context) {
+  const mod = await Promise.resolve().then(() => (init_catalog_bootstrap(), catalog_bootstrap_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest27, "onRequest27");
 var init_bootstrap = __esm({
   "api/admin/catalog/bootstrap.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_catalog_bootstrap();
-    __name2(onRequest27, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest29, "onRequest");
   }
 });
-async function onRequest28(context) {
+
+// api/admin/catalog/reset.js
+async function onRequest30(context) {
   const { request, env } = context;
   try {
     if (request.method !== "POST") {
@@ -2692,28 +3217,32 @@ async function onRequest28(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest28, "onRequest28");
 var init_reset = __esm({
   "api/admin/catalog/reset.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest28, "onRequest");
+    __name(onRequest30, "onRequest");
   }
 });
-function extractToken4(request) {
+
+// api/admin/catalog-sync.js
+var catalog_sync_exports = {};
+__export(catalog_sync_exports, {
+  default: () => catalog_sync_default,
+  onRequest: () => onRequest31
+});
+function extractToken5(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken4, "extractToken4");
 async function json12(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json12, "json12");
-async function onRequest29(context) {
+async function onRequest31(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken4(request) || "");
+    const token = String(extractToken5(request) || "");
     if (!token) return json12({ success: false, error: "Missing token" }, 401);
     const user = await validateToken(env, token);
     if (!user || user.role !== "ADMIN") return json12({ success: false, error: "Forbidden" }, 403);
@@ -2721,48 +3250,54 @@ async function onRequest29(context) {
     const setCode = String(body.setCode || body.code || body.set || "").trim();
     if (setCode) {
       const fakeReq = new Request("https://internal/import-set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const resp = await onRequest25({ request: fakeReq, env });
-      return resp;
+      try {
+        const mod = await Promise.resolve().then(() => (init_set(), set_exports));
+        if (mod && mod.onRequest) return await mod.onRequest({ request: fakeReq, env });
+      } catch (err) {
+        return json12({ success: false, error: String(err) }, 500);
+      }
     }
     return json12({ success: false, error: "Catalog sync for all sets is not implemented in Functions; provide setCode to sync a single set" }, 501);
   } catch (err) {
     return json12({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest29, "onRequest29");
+var catalog_sync_default;
 var init_catalog_sync = __esm({
   "api/admin/catalog-sync.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_adminAuth();
-    init_set();
-    __name2(extractToken4, "extractToken");
-    __name2(json12, "json");
-    __name2(onRequest29, "onRequest");
+    __name(extractToken5, "extractToken");
+    __name(json12, "json");
+    __name(onRequest31, "onRequest");
+    catalog_sync_default = { onRequest: onRequest31 };
   }
 });
-async function onRequest30(context) {
-  return onRequest29(context);
+
+// api/admin/catalog/sync.js
+async function onRequest32(context) {
+  const mod = await Promise.resolve().then(() => (init_catalog_sync(), catalog_sync_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest30, "onRequest30");
 var init_sync = __esm({
   "api/admin/catalog/sync.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_catalog_sync();
-    __name2(onRequest30, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest32, "onRequest");
   }
 });
+
+// _shared/price.js
 function resolveRoundingMultiple2(env, override) {
   if (typeof override === "number" && Number.isFinite(override) && override >= 1) return Math.max(1, Math.round(override));
   const envValue = Number(env.PRICE_ROUNDING_MULTIPLE || "1");
   if (!Number.isFinite(envValue) || envValue < 1) return 1;
   return Math.max(1, Math.round(envValue));
 }
-__name(resolveRoundingMultiple2, "resolveRoundingMultiple2");
 function roundCommercialPrice2(value, roundingMultiple) {
   if (roundingMultiple <= 1) return Math.round(value);
   return Math.round(value / roundingMultiple) * roundingMultiple;
 }
-__name(roundCommercialPrice2, "roundCommercialPrice2");
 async function getUSDtoCLPRateMeta(env, dbParam) {
   const db = dbParam || pickDb(env);
   if (db) await ensureSchema(db);
@@ -2771,6 +3306,13 @@ async function getUSDtoCLPRateMeta(env, dbParam) {
     return { rate: envRate, retrievalSource: "env", provider: "env", fetchedAt: /* @__PURE__ */ new Date(), expiresAt: null };
   }
   if (db) {
+    try {
+      const meta = await getUSDtoCLPRateMetaFast(env, db);
+      if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) {
+        return { rate: Number(meta.usdToCLP), retrievalSource: "cache", provider: meta.source || null, fetchedAt: meta.fetchedAt ? new Date(meta.fetchedAt) : void 0, expiresAt: null };
+      }
+    } catch (_) {
+    }
     try {
       const res = await db.prepare("SELECT id, fromCurrency, toCurrency, rate, source, fetchedAt, expiresAt FROM exchangeRate WHERE fromCurrency = ? AND toCurrency = ? LIMIT 1").bind("USD", "CLP").all();
       const row = Array.isArray(res?.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
@@ -2786,8 +3328,8 @@ async function getUSDtoCLPRateMeta(env, dbParam) {
     const apiUrl = env.EXCHANGE_RATE_API_URL || "https://api.exchangerate-api.com/v4/latest";
     const resp = await fetch(`${apiUrl}/USD`);
     if (resp && resp.ok) {
-      const json43 = await resp.json();
-      const rate = json43?.rates?.CLP || json43?.rates?.CLP || null;
+      const json44 = await resp.json();
+      const rate = json44?.rates?.CLP || json44?.rates?.CLP || null;
       if (rate) {
         if (db) {
           try {
@@ -2806,7 +3348,6 @@ async function getUSDtoCLPRateMeta(env, dbParam) {
   }
   return { rate: Number(env.EXCHANGE_RATE_FALLBACK || 850), retrievalSource: "fallback", provider: null, fetchedAt: /* @__PURE__ */ new Date(), expiresAt: null };
 }
-__name(getUSDtoCLPRateMeta, "getUSDtoCLPRateMeta");
 async function calculateFinalPriceDetailed(env, input) {
   const { referencePrice, marginMultiplier, roundingMultiple } = input;
   const rateMeta = await getUSDtoCLPRateMeta(env);
@@ -2827,31 +3368,36 @@ async function calculateFinalPriceDetailed(env, input) {
     formula: `${referencePrice} * ${marginMultiplier} * ${rateMeta.rate}`
   };
 }
-__name(calculateFinalPriceDetailed, "calculateFinalPriceDetailed");
 var init_price = __esm({
   "_shared/price.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(resolveRoundingMultiple2, "resolveRoundingMultiple");
-    __name2(roundCommercialPrice2, "roundCommercialPrice");
-    __name2(getUSDtoCLPRateMeta, "getUSDtoCLPRateMeta");
-    __name2(calculateFinalPriceDetailed, "calculateFinalPriceDetailed");
+    init_exchange_rate();
+    __name(resolveRoundingMultiple2, "resolveRoundingMultiple");
+    __name(roundCommercialPrice2, "roundCommercialPrice");
+    __name(getUSDtoCLPRateMeta, "getUSDtoCLPRateMeta");
+    __name(calculateFinalPriceDetailed, "calculateFinalPriceDetailed");
   }
 });
-function extractToken5(request) {
+
+// api/admin/pricing-preview.js
+var pricing_preview_exports = {};
+__export(pricing_preview_exports, {
+  default: () => pricing_preview_default,
+  onRequest: () => onRequest33
+});
+function extractToken6(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken5, "extractToken5");
 async function json13(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json13, "json13");
-async function onRequest31(context) {
+async function onRequest33(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken5(request) || "");
+    const token = String(extractToken6(request) || "");
     if (!token) return json13({ success: false, error: "Missing token" }, 401);
     const user = await validateToken(env, token);
     if (!user) return json13({ success: false, error: "Invalid token" }, 401);
@@ -2907,34 +3453,42 @@ async function onRequest31(context) {
     return json13({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest31, "onRequest31");
+var pricing_preview_default;
 var init_pricing_preview = __esm({
   "api/admin/pricing-preview.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_price();
     init_adminAuth();
-    __name2(extractToken5, "extractToken");
-    __name2(json13, "json");
-    __name2(onRequest31, "onRequest");
+    __name(extractToken6, "extractToken");
+    __name(json13, "json");
+    __name(onRequest33, "onRequest");
+    pricing_preview_default = { onRequest: onRequest33 };
   }
 });
-async function onRequest32(context) {
-  return onRequest31(context);
+
+// api/admin/pricing/preview.js
+async function onRequest34(context) {
+  const mod = await Promise.resolve().then(() => (init_pricing_preview(), pricing_preview_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest32, "onRequest32");
 var init_preview = __esm({
   "api/admin/pricing/preview.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_pricing_preview();
-    __name2(onRequest32, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest34, "onRequest");
   }
+});
+
+// api/admin/pricing/thresholds.js
+var thresholds_exports = {};
+__export(thresholds_exports, {
+  onRequest: () => onRequest35
 });
 async function json14(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json14, "json14");
-async function onRequest33(context) {
+async function onRequest35(context) {
   const { request, env } = context;
   const db = pickDb(env);
   if (db) await ensureSchema(db);
@@ -3029,31 +3583,32 @@ async function onRequest33(context) {
     return json14({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest33, "onRequest33");
 var init_thresholds = __esm({
   "api/admin/pricing/thresholds.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_tenant();
-    __name2(json14, "json");
-    __name2(onRequest33, "onRequest");
+    __name(json14, "json");
+    __name(onRequest35, "onRequest");
   }
 });
-async function onRequest34(context) {
+
+// api/admin/routes/test/index.js
+async function onRequest36(context) {
   return new Response(JSON.stringify({ success: true, stub: "admin.routes.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest34, "onRequest34");
 var init_test3 = __esm({
   "api/admin/routes/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest34, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest36, "onRequest");
   }
 });
+
+// api/erp/stock/movement.js
 function json15(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json15, "json15");
-async function onRequest35(context) {
+async function onRequest37(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -3100,20 +3655,20 @@ async function onRequest35(context) {
     return json15({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest35, "onRequest35");
 var init_movement = __esm({
   "api/erp/stock/movement.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json15, "json");
-    __name2(onRequest35, "onRequest");
+    __name(json15, "json");
+    __name(onRequest37, "onRequest");
   }
 });
+
+// api/erp/stock/snapshot.js
 function json16(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json16, "json16");
-async function onRequest36(context) {
+async function onRequest38(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -3134,20 +3689,20 @@ async function onRequest36(context) {
     return json16({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest36, "onRequest36");
 var init_snapshot = __esm({
   "api/erp/stock/snapshot.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json16, "json");
-    __name2(onRequest36, "onRequest");
+    __name(json16, "json");
+    __name(onRequest38, "onRequest");
   }
 });
+
+// api/erp/stock/transfer.js
 function json17(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json17, "json17");
-async function onRequest37(context) {
+async function onRequest39(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -3177,16 +3732,17 @@ async function onRequest37(context) {
     return json17({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest37, "onRequest37");
 var init_transfer = __esm({
   "api/erp/stock/transfer.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json17, "json");
-    __name2(onRequest37, "onRequest");
+    __name(json17, "json");
+    __name(onRequest39, "onRequest");
   }
 });
-async function onRequest38(context) {
+
+// api/external/import/card.js
+async function onRequest40(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -3286,16 +3842,17 @@ async function onRequest38(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest38, "onRequest38");
 var init_card = __esm({
   "api/external/import/card.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
     init_d1();
-    __name2(onRequest38, "onRequest");
+    __name(onRequest40, "onRequest");
   }
 });
-async function onRequest39(context) {
+
+// api/external/import/search.js
+async function onRequest41(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -3386,20 +3943,20 @@ async function onRequest39(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest39, "onRequest39");
 var init_search = __esm({
   "api/external/import/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
     init_d1();
-    __name2(onRequest39, "onRequest");
+    __name(onRequest41, "onRequest");
   }
 });
+
+// api/external/optcgapi/cards.js
 async function json18(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json18, "json18");
-async function onRequest40(context) {
+async function onRequest42(context) {
   const { request } = context;
   try {
     const url = new URL(request.url);
@@ -3427,16 +3984,21 @@ async function onRequest40(context) {
     return json18({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest40, "onRequest40");
 var init_cards = __esm({
   "api/external/optcgapi/cards.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
-    __name2(json18, "json");
-    __name2(onRequest40, "onRequest");
+    __name(json18, "json");
+    __name(onRequest42, "onRequest");
   }
 });
-async function onRequest41(context) {
+
+// api/external/sets.js
+var sets_exports = {};
+__export(sets_exports, {
+  onRequest: () => onRequest43
+});
+async function onRequest43(context) {
   const { request } = context;
   try {
     const url = new URL(request.url);
@@ -3451,7 +4013,7 @@ async function onRequest41(context) {
     } catch (e) {
       return new Response(JSON.stringify({ success: false, error: "TCGCSV getGroups failed", detail: String(e) }), { status: 502, headers: { "Content-Type": "application/json" } });
     }
-    const totalCardsOf = /* @__PURE__ */ __name2((g) => {
+    const totalCardsOf = /* @__PURE__ */ __name((g) => {
       const candidates = [g.totalCards, g.cardCount, g.totalItems, g.productCount, g.numOfCards];
       for (const v of candidates) {
         if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
@@ -3489,26 +4051,29 @@ async function onRequest41(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest41, "onRequest41");
 var init_sets = __esm({
   "api/external/sets.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
-    __name2(onRequest41, "onRequest");
+    __name(onRequest43, "onRequest");
   }
 });
-async function onRequest42(context) {
-  return onRequest41(context);
+
+// api/external/ygoprodeck/card-sets.js
+async function onRequest44(context) {
+  const mod = await Promise.resolve().then(() => (init_sets(), sets_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest42, "onRequest42");
 var init_card_sets = __esm({
   "api/external/ygoprodeck/card-sets.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_sets();
-    __name2(onRequest42, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest44, "onRequest");
   }
 });
-async function onRequest43(context) {
+
+// api/inventory/import-csv/template.js
+async function onRequest45(context) {
   const { request } = context;
   try {
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405 });
@@ -3521,17 +4086,17 @@ async function onRequest43(context) {
     return new Response("Error", { status: 500 });
   }
 }
-__name(onRequest43, "onRequest43");
 var init_template = __esm({
   "api/inventory/import-csv/template.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest43, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest45, "onRequest");
   }
 });
+
+// api/inventory/import-csv/validate.js
 function normalizeHeader(header) {
   return header.replace(/^\uFEFF/, "").trim();
 }
-__name(normalizeHeader, "normalizeHeader");
 function parseCsvRecords(content) {
   const records = [];
   let currentRow = [];
@@ -3570,7 +4135,6 @@ function parseCsvRecords(content) {
   }
   return records;
 }
-__name(parseCsvRecords, "parseCsvRecords");
 function parseCsv(content) {
   const recs = parseCsvRecords(content);
   if (recs.length < 2) return [];
@@ -3581,7 +4145,6 @@ function parseCsv(content) {
     return r;
   });
 }
-__name(parseCsv, "parseCsv");
 function detectMode(rows) {
   if (!rows.length) throw new Error("CSV has no data rows");
   const headers = Object.keys(rows[0]);
@@ -3589,8 +4152,7 @@ function detectMode(rows) {
   if (["tcg", "editionCode", "cardCode", "cardName", "quantity", "referencePrice"].every((h) => headers.includes(h))) return "full-upsert";
   throw new Error("Invalid CSV headers");
 }
-__name(detectMode, "detectMode");
-async function onRequest44(context) {
+async function onRequest46(context) {
   const { request, env } = context;
   try {
     if (request.method !== "POST") return new Response(JSON.stringify({ success: false, error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
@@ -3646,18 +4208,19 @@ async function onRequest44(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest44, "onRequest44");
 var init_validate = __esm({
   "api/inventory/import-csv/validate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(normalizeHeader, "normalizeHeader");
-    __name2(parseCsvRecords, "parseCsvRecords");
-    __name2(parseCsv, "parseCsv");
-    __name2(detectMode, "detectMode");
-    __name2(onRequest44, "onRequest");
+    __name(normalizeHeader, "normalizeHeader");
+    __name(parseCsvRecords, "parseCsvRecords");
+    __name(parseCsv, "parseCsv");
+    __name(detectMode, "detectMode");
+    __name(onRequest46, "onRequest");
   }
 });
+
+// api/inventory/imports/export.js
 function parseImportQuery(url) {
   const q = new URL(url).searchParams;
   const status = q.get("status") || void 0;
@@ -3665,8 +4228,7 @@ function parseImportQuery(url) {
   const dateTo = q.get("dateTo") ? new Date(String(q.get("dateTo"))) : void 0;
   return { status, dateFrom, dateTo };
 }
-__name(parseImportQuery, "parseImportQuery");
-async function onRequest45(context) {
+async function onRequest47(context) {
   const { request, env } = context;
   try {
     const db = pickDb2(env);
@@ -3691,28 +4253,28 @@ async function onRequest45(context) {
     const rowsRes = await db.prepare(`SELECT id, fileName, status, totalRecords, successCount, failureCount, importedBy, createdAt, completedAt FROM inventoryImport ${whereSql} ORDER BY createdAt DESC`).bind(...binds).all();
     const items = Array.isArray(rowsRes?.results) ? rowsRes.results : Array.isArray(rowsRes) ? rowsRes : [];
     const header = ["id", "fileName", "status", "totalRecords", "successCount", "failureCount", "importedBy", "createdAt", "completedAt"];
-    const quote = /* @__PURE__ */ __name2((v) => `"${String(v ?? "").replace(/"/g, '""')}"`, "quote");
+    const quote = /* @__PURE__ */ __name((v) => `"${String(v ?? "").replace(/"/g, '""')}"`, "quote");
     const csv = [header.join(",")].concat(items.map((it) => header.map((h) => quote(it[h])).join(","))).join("\r\n");
     return new Response(csv, { status: 200, headers: { "Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="inventory-import-history.csv"' } });
   } catch (err) {
     return new Response(String(err), { status: 500 });
   }
 }
-__name(onRequest45, "onRequest45");
 var init_export = __esm({
   "api/inventory/imports/export.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(parseImportQuery, "parseImportQuery");
-    __name2(onRequest45, "onRequest");
+    __name(parseImportQuery, "parseImportQuery");
+    __name(onRequest47, "onRequest");
   }
 });
+
+// api/listings/price-history/export.js
 function parseQuery(url) {
   const q = new URL(url).searchParams;
   return { listingId: q.get("listingId") || void 0, from: q.get("from") ? new Date(String(q.get("from"))) : void 0, to: q.get("to") ? new Date(String(q.get("to"))) : void 0 };
 }
-__name(parseQuery, "parseQuery");
-async function onRequest46(context) {
+async function onRequest48(context) {
   const { request, env } = context;
   try {
     const db = pickDb2(env);
@@ -3737,23 +4299,24 @@ async function onRequest46(context) {
     const rowsRes = await db.prepare(`SELECT id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, oldExchangeRate, newExchangeRate, percentChange, reason, changedBy, notes, createdAt FROM priceHistory ${whereSql} ORDER BY createdAt DESC`).bind(...binds).all();
     const rows = Array.isArray(rowsRes?.results) ? rowsRes.results : Array.isArray(rowsRes) ? rowsRes : [];
     const header = ["id", "listingId", "oldPrice", "newPrice", "oldReferencePrice", "newReferencePrice", "oldExchangeRate", "newExchangeRate", "percentChange", "reason", "changedBy", "notes", "createdAt"];
-    const quote = /* @__PURE__ */ __name2((v) => `"${String(v ?? "").replace(/"/g, '""')}"`, "quote");
+    const quote = /* @__PURE__ */ __name((v) => `"${String(v ?? "").replace(/"/g, '""')}"`, "quote");
     const csv = [header.join(",")].concat(rows.map((r) => header.map((h) => quote(r[h])).join(","))).join("\r\n");
     return new Response(csv, { status: 200, headers: { "Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="price-history.csv"' } });
   } catch (err) {
     return new Response(String(err), { status: 500 });
   }
 }
-__name(onRequest46, "onRequest46");
 var init_export2 = __esm({
   "api/listings/price-history/export.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(parseQuery, "parseQuery");
-    __name2(onRequest46, "onRequest");
+    __name(parseQuery, "parseQuery");
+    __name(onRequest48, "onRequest");
   }
 });
-async function onRequest47(context) {
+
+// api/listings/sync-prices/runs/index.js
+async function onRequest49(context) {
   const { request, env } = context;
   try {
     const params = Object.fromEntries(new URL(request.url).searchParams.entries());
@@ -3769,29 +4332,30 @@ async function onRequest47(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest47, "onRequest47");
 var init_runs = __esm({
   "api/listings/sync-prices/runs/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest47, "onRequest");
+    __name(onRequest49, "onRequest");
   }
 });
-async function onRequest48(context) {
+
+// api/orders/routes/test/index.js
+async function onRequest50(context) {
   return new Response(JSON.stringify({ success: true, stub: "orders.routes.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest48, "onRequest48");
 var init_test4 = __esm({
   "api/orders/routes/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest48, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest50, "onRequest");
   }
 });
+
+// api/payments/mercadopago/create-preference.js
 async function json19(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json19, "json19");
-async function onRequest49(context) {
+async function onRequest51(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -3839,19 +4403,19 @@ async function onRequest49(context) {
     return json19({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest49, "onRequest49");
 var init_create_preference = __esm({
   "api/payments/mercadopago/create-preference.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(json19, "json");
-    __name2(onRequest49, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(json19, "json");
+    __name(onRequest51, "onRequest");
   }
 });
+
+// api/payments/stripe/create-intent.js
 async function json20(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json20, "json20");
-async function onRequest50(context) {
+async function onRequest52(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -3891,23 +4455,22 @@ async function onRequest50(context) {
     return json20({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest50, "onRequest50");
 var init_create_intent = __esm({
   "api/payments/stripe/create-intent.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(json20, "json");
-    __name2(onRequest50, "onRequest");
+    __name(json20, "json");
+    __name(onRequest52, "onRequest");
   }
 });
+
+// ../_shared/orders.js
 function genId3(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId3, "genId3");
 function generateOrderNumber() {
   return `ORD-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(generateOrderNumber, "generateOrderNumber");
 async function getOrderById(db, id) {
   if (!db) return null;
   const ordRes = await db.prepare('SELECT id, storeId, orderNumber, customerEmail, status, subtotal, tax, total, notes, receiptUrl, createdAt, updatedAt FROM "order" WHERE id = ?').bind(id).all();
@@ -3918,7 +4481,6 @@ async function getOrderById(db, id) {
   order.items = items;
   return order;
 }
-__name(getOrderById, "getOrderById");
 async function processPosSale(db, input) {
   if (!db) throw new Error("No DB binding available");
   const items = Array.isArray(input?.items) ? input.items : [];
@@ -3975,24 +4537,24 @@ async function processPosSale(db, input) {
   const created = await getOrderById(db, orderId);
   return created;
 }
-__name(processPosSale, "processPosSale");
 var orders_default;
 var init_orders = __esm({
   "../_shared/orders.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(genId3, "genId");
-    __name2(generateOrderNumber, "generateOrderNumber");
-    __name2(getOrderById, "getOrderById");
-    __name2(processPosSale, "processPosSale");
+    __name(genId3, "genId");
+    __name(generateOrderNumber, "generateOrderNumber");
+    __name(getOrderById, "getOrderById");
+    __name(processPosSale, "processPosSale");
     orders_default = { processPosSale, getOrderById };
   }
 });
+
+// api/payments/stripe/webhook.js
 function hex2(buf) {
   if (!buf) return "";
   return Array.from(buf).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-__name(hex2, "hex2");
 async function computeHmacSha256(secret, payload) {
   try {
     const nodeCrypto = await import("crypto").then((m) => m.default || m).catch(() => null);
@@ -4011,12 +4573,11 @@ async function computeHmacSha256(secret, payload) {
     return null;
   }
 }
-__name(computeHmacSha256, "computeHmacSha256");
 function constantTimeEqual2(a, b) {
   try {
     if (!a || !b) return false;
     try {
-      const nodeCrypto = __require2 && __require2("crypto");
+      const nodeCrypto = __require && __require("crypto");
       if (nodeCrypto && nodeCrypto.timingSafeEqual) {
         const A = Buffer.from(a, "hex");
         const B = Buffer.from(b, "hex");
@@ -4033,7 +4594,6 @@ function constantTimeEqual2(a, b) {
     return false;
   }
 }
-__name(constantTimeEqual2, "constantTimeEqual2");
 async function verifyStripeSignature(header, payload, secret, toleranceSeconds = 300) {
   if (!header || !secret) return false;
   const parts = header.split(",").map((p) => p.trim());
@@ -4056,8 +4616,7 @@ async function verifyStripeSignature(header, payload, secret, toleranceSeconds =
   }
   return false;
 }
-__name(verifyStripeSignature, "verifyStripeSignature");
-async function onRequest51(context) {
+async function onRequest53(context) {
   const { request, env } = context;
   try {
     const raw = await request.text().catch(() => "");
@@ -4090,50 +4649,152 @@ async function onRequest51(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest51, "onRequest51");
 var init_webhook = __esm({
   "api/payments/stripe/webhook.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_orders();
-    __name2(hex2, "hex");
-    __name2(computeHmacSha256, "computeHmacSha256");
-    __name2(constantTimeEqual2, "constantTimeEqual");
-    __name2(verifyStripeSignature, "verifyStripeSignature");
-    __name2(onRequest51, "onRequest");
+    __name(hex2, "hex");
+    __name(computeHmacSha256, "computeHmacSha256");
+    __name(constantTimeEqual2, "constantTimeEqual");
+    __name(verifyStripeSignature, "verifyStripeSignature");
+    __name(onRequest53, "onRequest");
   }
 });
-async function onRequest52(context) {
+
+// api/payments/webhook/test/index.js
+async function onRequest54(context) {
   return new Response(JSON.stringify({ success: true, stub: "payments.webhook.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest52, "onRequest52");
 var init_test5 = __esm({
   "api/payments/webhook/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest52, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest54, "onRequest");
   }
 });
-async function onRequest53(context) {
+
+// api/public-and-import-with-mapping/integration/test/index.js
+async function onRequest55(context) {
   return new Response(JSON.stringify({ success: true, stub: "public_and_import_with_mapping.integration.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest53, "onRequest53");
 var init_test6 = __esm({
   "api/public-and-import-with-mapping/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest53, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest55, "onRequest");
   }
 });
-async function onRequest54(context) {
+
+// api/routes/integration/test/index.js
+async function onRequest56(context) {
   return new Response(JSON.stringify({ success: true, stub: "routes.integration.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest54, "onRequest54");
 var init_test7 = __esm({
   "api/routes/integration/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest54, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest56, "onRequest");
   }
 });
-async function onRequest55(context) {
+
+// ../_shared/adminAuth.js
+async function validateToken2(env, token) {
+  const db = pickDb2(env);
+  if (!db) return null;
+  await ensureSchema2(db);
+  const res = await db.prepare("SELECT s.token, s.expiresAt, u.id as userId, u.email, u.role, u.isActive FROM adminSession s LEFT JOIN adminUser u ON u.id = s.userId WHERE s.token = ?").bind(String(token)).all();
+  const row = Array.isArray(res?.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
+  if (!row) return null;
+  if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) return null;
+  if (!row.isActive && row.isActive !== 1) return null;
+  return { id: row.userId, email: row.email, role: row.role };
+}
+var init_adminAuth2 = __esm({
+  "../_shared/adminAuth.js"() {
+    init_functionsRoutes_0_5723290474085267();
+    init_d12();
+    __name(validateToken2, "validateToken");
+  }
+});
+
+// api/admin/stores/[id].js
+function extractToken7(request) {
+  const auth = request.headers.get("authorization") || "";
+  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  return request.headers.get("x-admin-token") || "";
+}
+async function onRequest57(context) {
+  const { request, env, params } = context;
+  try {
+    const { id } = params || {};
+    if (!id) return new Response(JSON.stringify({ success: false, error: "id missing" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    const token = extractToken7(request);
+    const user = await validateToken2(env, token);
+    if (!user) return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    const db = pickDb2(env);
+    if (!db) return new Response(JSON.stringify({ success: false, error: "No DB binding available" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    await ensureSchema2(db);
+    if (request.method === "GET") {
+      const res = await db.prepare("SELECT id, code, name, address, metadata, createdAt, updatedAt FROM store WHERE id = ?").bind(id).all();
+      const row = Array.isArray(res.results) ? res.results[0] : Array.isArray(res) ? res[0] : null;
+      if (!row) return new Response(JSON.stringify({ success: false, error: "not_found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, store: row }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (request.method === "PATCH") {
+      const body = await request.json().catch(() => ({}));
+      const parts = [];
+      const binds = [];
+      if (body.code !== void 0) {
+        parts.push("code = ?");
+        binds.push(body.code);
+      }
+      if (body.name !== void 0) {
+        parts.push("name = ?");
+        binds.push(body.name);
+      }
+      if (body.address !== void 0) {
+        parts.push("address = ?");
+        binds.push(body.address);
+      }
+      if (body.metadata !== void 0) {
+        parts.push("metadata = ?");
+        binds.push(typeof body.metadata === "string" ? body.metadata : JSON.stringify(body.metadata));
+      }
+      if (parts.length === 0) return new Response(JSON.stringify({ success: false, error: "nothing_to_update" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      parts.push("updatedAt = ?");
+      binds.push((/* @__PURE__ */ new Date()).toISOString());
+      binds.push(id);
+      const sql = `UPDATE store SET ${parts.join(", ")} WHERE id = ?`;
+      await db.prepare(sql).bind(...binds).run();
+      const fres = await db.prepare("SELECT id, code, name, address, metadata, createdAt, updatedAt FROM store WHERE id = ?").bind(id).all();
+      const row = Array.isArray(fres.results) ? fres.results[0] : Array.isArray(fres) ? fres[0] : null;
+      return new Response(JSON.stringify({ success: true, store: row }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (request.method === "DELETE") {
+      await db.prepare("DELETE FROM listingStock WHERE storeId = ?").bind(id).run();
+      await db.prepare("DELETE FROM store WHERE id = ?").bind(id).run();
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return new Response(JSON.stringify({ success: false, error: "method_not_allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
+}
+var init_id = __esm({
+  "api/admin/stores/[id].js"() {
+    init_functionsRoutes_0_5723290474085267();
+    init_d12();
+    init_adminAuth2();
+    __name(extractToken7, "extractToken");
+    __name(onRequest57, "onRequest");
+  }
+});
+
+// api/card/index.js
+var card_exports = {};
+__export(card_exports, {
+  default: () => card_default,
+  onRequest: () => onRequest58
+});
+async function onRequest58(context) {
   const { request } = context;
   try {
     const url = new URL(request.url);
@@ -4154,46 +4815,51 @@ async function onRequest55(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest55, "onRequest55");
+var card_default;
 var init_card2 = __esm({
   "api/card/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest55, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest58, "onRequest");
+    card_default = onRequest58;
   }
 });
-async function onRequest56(context) {
-  return onRequest55(context);
+
+// api/card/edition/[editionId].js
+async function onRequest59(context) {
+  const mod = await Promise.resolve().then(() => (init_card2(), card_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest56, "onRequest56");
 var init_editionId = __esm({
   "api/card/edition/[editionId].js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_card2();
-    __name2(onRequest56, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest59, "onRequest");
   }
 });
-async function onRequest57(context) {
-  return onRequest55(context);
+
+// api/card/tcg/[tcgId].js
+async function onRequest60(context) {
+  const mod = await Promise.resolve().then(() => (init_card2(), card_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest57, "onRequest57");
 var init_tcgId = __esm({
   "api/card/tcg/[tcgId].js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_card2();
-    __name2(onRequest57, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest60, "onRequest");
   }
 });
+
+// _shared/cardService.js
 function normalizeRarity(rarity) {
   return (rarity || "Unknown").trim() || "Unknown";
 }
-__name(normalizeRarity, "normalizeRarity");
 async function getCard(db, id) {
   if (!db) return null;
   await ensureSchema(db);
   const res = await db.prepare("SELECT * FROM card WHERE id = ?").bind(id).all();
   return firstRow(res);
 }
-__name(getCard, "getCard");
 async function findCardByCode(db, tcgId, editionCode, cardCode, rarity) {
   if (!db) return null;
   await ensureSchema(db);
@@ -4206,7 +4872,6 @@ async function findCardByCode(db, tcgId, editionCode, cardCode, rarity) {
   const res = await db.prepare(sql).bind(...params).all();
   return firstRow(res);
 }
-__name(findCardByCode, "findCardByCode");
 async function searchByName(db, name, tcgId, limit = 20) {
   if (!db) return [];
   await ensureSchema(db);
@@ -4223,7 +4888,6 @@ async function searchByName(db, name, tcgId, limit = 20) {
   const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
   return rows;
 }
-__name(searchByName, "searchByName");
 async function getCardsByEdition(db, editionCode) {
   if (!db) return [];
   await ensureSchema(db);
@@ -4231,7 +4895,6 @@ async function getCardsByEdition(db, editionCode) {
   const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
   return rows;
 }
-__name(getCardsByEdition, "getCardsByEdition");
 async function searchByCode(db, code, tcgId, limit = 50) {
   if (!db) return [];
   await ensureSchema(db);
@@ -4249,7 +4912,6 @@ async function searchByCode(db, code, tcgId, limit = 50) {
   const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
   return rows.slice(0, limit);
 }
-__name(searchByCode, "searchByCode");
 async function getCardsByTCG(db, tcgIdentifier) {
   if (!db) return [];
   await ensureSchema(db);
@@ -4257,7 +4919,6 @@ async function getCardsByTCG(db, tcgIdentifier) {
   const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
   return rows;
 }
-__name(getCardsByTCG, "getCardsByTCG");
 async function bulkUpsertCards(db, cards, opts = {}) {
   if (!db || !Array.isArray(cards) || cards.length === 0) return { created: 0, updated: 0 };
   await ensureSchema(db);
@@ -4270,7 +4931,7 @@ async function bulkUpsertCards(db, cards, opts = {}) {
   });
   const colCount = tableCols.cols.length;
   const safeBatch = Math.max(1, Math.floor(SQLITE_MAX_VARS / Math.max(1, colCount)));
-  const batches = /* @__PURE__ */ __name2((arr, size) => {
+  const batches = /* @__PURE__ */ __name((arr, size) => {
     const out = [];
     for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
     return out;
@@ -4292,20 +4953,19 @@ async function bulkUpsertCards(db, cards, opts = {}) {
   }
   return { created: cards.length, updated: 0 };
 }
-__name(bulkUpsertCards, "bulkUpsertCards");
 var cardService_default;
 var init_cardService = __esm({
   "_shared/cardService.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(normalizeRarity, "normalizeRarity");
-    __name2(getCard, "getCard");
-    __name2(findCardByCode, "findCardByCode");
-    __name2(searchByName, "searchByName");
-    __name2(getCardsByEdition, "getCardsByEdition");
-    __name2(searchByCode, "searchByCode");
-    __name2(getCardsByTCG, "getCardsByTCG");
-    __name2(bulkUpsertCards, "bulkUpsertCards");
+    __name(normalizeRarity, "normalizeRarity");
+    __name(getCard, "getCard");
+    __name(findCardByCode, "findCardByCode");
+    __name(searchByName, "searchByName");
+    __name(getCardsByEdition, "getCardsByEdition");
+    __name(searchByCode, "searchByCode");
+    __name(getCardsByTCG, "getCardsByTCG");
+    __name(bulkUpsertCards, "bulkUpsertCards");
     cardService_default = {
       getCard,
       findCardByCode,
@@ -4317,7 +4977,9 @@ var init_cardService = __esm({
     };
   }
 });
-async function onRequest58(context) {
+
+// api/cards/edition/[editionId].js
+async function onRequest61(context) {
   const { request, env, params } = context;
   try {
     const { editionId } = params || {};
@@ -4331,16 +4993,17 @@ async function onRequest58(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest58, "onRequest58");
 var init_editionId2 = __esm({
   "api/cards/edition/[editionId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_cardService();
-    __name2(onRequest58, "onRequest");
+    __name(onRequest61, "onRequest");
   }
 });
-async function onRequest59(context) {
+
+// api/cards/tcg/[tcgId].js
+async function onRequest62(context) {
   const { request, env, params } = context;
   try {
     const { tcgId } = params || {};
@@ -4354,16 +5017,22 @@ async function onRequest59(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest59, "onRequest59");
 var init_tcgId2 = __esm({
   "api/cards/tcg/[tcgId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_cardService();
-    __name2(onRequest59, "onRequest");
+    __name(onRequest62, "onRequest");
   }
 });
-async function onRequest60(context) {
+
+// api/listings/[id]/stock.js
+var stock_exports = {};
+__export(stock_exports, {
+  default: () => stock_default,
+  onRequest: () => onRequest63
+});
+async function onRequest63(context) {
   const { request, env, params } = context;
   try {
     const { id } = params || {};
@@ -4376,6 +5045,42 @@ async function onRequest60(context) {
     const db = pickDb(env);
     if (!db) return new Response(JSON.stringify({ success: false, error: "No DB binding available" }), { status: 500, headers: { "Content-Type": "application/json" } });
     await ensureSchema(db);
+    const storeId = body.storeId || null;
+    if (storeId) {
+      const curRes = await db.prepare("SELECT id, quantity FROM listingStock WHERE listingId = ? AND storeId = ?").bind(id, storeId).all();
+      const curRow = Array.isArray(curRes.results) ? curRes.results[0] : Array.isArray(curRes) ? curRes[0] : null;
+      const curQty = curRow ? Number(curRow.quantity) || 0 : 0;
+      let nextQty = curQty;
+      if (op) {
+        if (op === "set") {
+          if (value === null) return new Response(JSON.stringify({ success: false, error: "value required for set" }), { status: 400, headers: { "Content-Type": "application/json" } });
+          nextQty = value;
+        } else if (op === "inc") {
+          nextQty = curQty + (value || 1);
+        } else if (op === "dec") {
+          nextQty = Math.max(0, curQty - (value || 1));
+        } else {
+          return new Response(JSON.stringify({ success: false, error: "unknown op" }), { status: 400, headers: { "Content-Type": "application/json" } });
+        }
+      }
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      if (curRow) {
+        await db.prepare("UPDATE listingStock SET quantity = ?, updatedAt = ? WHERE id = ?").bind(nextQty, now, curRow.id).run();
+      } else {
+        const sid = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `ls-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+        await db.prepare("INSERT INTO listingStock (id, storeId, listingId, quantity, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)").bind(sid, storeId, id, nextQty, now, now).run();
+      }
+      const aggRes = await db.prepare("SELECT SUM(quantity) as total FROM listingStock WHERE listingId = ?").bind(id).all();
+      const aggRow = Array.isArray(aggRes.results) ? aggRes.results[0] : Array.isArray(aggRes) ? aggRes[0] : null;
+      const total = aggRow ? Number(aggRow.total) || 0 : 0;
+      await db.prepare("UPDATE listing SET quantity = ?, lastSyncedAt = ? WHERE id = ?").bind(total, (/* @__PURE__ */ new Date()).toISOString(), id).run();
+      const listingCols2 = await buildSelectColumns(db, "listing", "l", ["id", "quantity", "status"]);
+      let listingSelect2 = listingCols2;
+      listingSelect2 = aliasSelectColumn(listingSelect2, "l", "id", "listingId");
+      const res2 = await db.prepare(`SELECT ${listingSelect2} FROM listing l WHERE l.id = ?`).bind(id).all();
+      const row2 = Array.isArray(res2.results) ? res2.results[0] : Array.isArray(res2) ? res2[0] : null;
+      return new Response(JSON.stringify({ success: true, listing: row2, storeId, storeQuantity: nextQty }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
     let newQuantity = null;
     if (op) {
       const curCols = await buildSelectColumns(db, "listing", "l", ["quantity"]);
@@ -4419,33 +5124,37 @@ async function onRequest60(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest60, "onRequest60");
+var stock_default;
 var init_stock = __esm({
   "api/listings/[id]/stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest60, "onRequest");
+    __name(onRequest63, "onRequest");
+    stock_default = onRequest63;
   }
 });
-async function onRequest61(context) {
+
+// api/erp/stock/[listingId].js
+async function onRequest64(context) {
   if (context && context.params && context.params.listingId && !context.params.id) {
     context.params.id = context.params.listingId;
   }
-  return onRequest60(context);
+  const mod = await Promise.resolve().then(() => (init_stock(), stock_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest61, "onRequest61");
 var init_listingId = __esm({
   "api/erp/stock/[listingId].js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_stock();
-    __name2(onRequest61, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest64, "onRequest");
   }
 });
+
+// api/inventory/imports/[importId].js
 async function json21(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json21, "json21");
-async function onRequest62(context) {
+async function onRequest65(context) {
   const { params, env } = context;
   try {
     const importId = params && (params.importId || params.id) ? String(params.importId || params.id) : "";
@@ -4461,16 +5170,17 @@ async function onRequest62(context) {
     return json21({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest62, "onRequest62");
 var init_importId = __esm({
   "api/inventory/imports/[importId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json21, "json");
-    __name2(onRequest62, "onRequest");
+    __name(json21, "json");
+    __name(onRequest65, "onRequest");
   }
 });
-async function onRequest63(context) {
+
+// api/listings/card/[cardId].js
+async function onRequest66(context) {
   const { request, env, params } = context;
   try {
     const { cardId } = params || {};
@@ -4531,18 +5241,18 @@ async function onRequest63(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest63, "onRequest63");
 var init_cardId2 = __esm({
   "api/listings/card/[cardId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest63, "onRequest");
+    __name(onRequest66, "onRequest");
   }
 });
+
+// _shared/cash.js
 function genId4(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId4, "genId4");
 async function openSession(db, params) {
   const { storeId = null, openedBy = null, startingCash = 0 } = params || {};
   if (typeof startingCash !== "number" || Number.isNaN(startingCash) || startingCash < 0) throw new Error("Invalid startingCash");
@@ -4553,7 +5263,6 @@ async function openSession(db, params) {
   const res = await db.prepare("SELECT id, sessionId, storeId, openedBy, closedBy, startingCash, endingCash, status, createdAt, closedAt, updatedAt FROM cashSession WHERE id = ?").bind(id).all();
   return firstRow(res);
 }
-__name(openSession, "openSession");
 async function closeSession(db, sessionId, params) {
   if (!sessionId) throw new Error("sessionId required");
   const { closedBy = null, endingCash = null } = params || {};
@@ -4569,7 +5278,6 @@ async function closeSession(db, sessionId, params) {
   const res = await db.prepare("SELECT id, sessionId, storeId, openedBy, closedBy, startingCash, endingCash, status, createdAt, closedAt, updatedAt FROM cashSession WHERE sessionId = ? LIMIT 1").bind(sessionId).all();
   return firstRow(res);
 }
-__name(closeSession, "closeSession");
 async function getSessionById(db, sessionId) {
   if (!sessionId) throw new Error("sessionId required");
   const res = await db.prepare("SELECT id, sessionId, storeId, openedBy, closedBy, startingCash, endingCash, status, createdAt, closedAt, updatedAt FROM cashSession WHERE sessionId = ? LIMIT 1").bind(sessionId).all();
@@ -4577,20 +5285,25 @@ async function getSessionById(db, sessionId) {
   if (!s) throw new Error("CashSession not found");
   return s;
 }
-__name(getSessionById, "getSessionById");
 var cash_default;
 var init_cash = __esm({
   "_shared/cash.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(genId4, "genId");
-    __name2(openSession, "openSession");
-    __name2(closeSession, "closeSession");
-    __name2(getSessionById, "getSessionById");
+    __name(genId4, "genId");
+    __name(openSession, "openSession");
+    __name(closeSession, "closeSession");
+    __name(getSessionById, "getSessionById");
     cash_default = { openSession, closeSession, getSessionById };
   }
 });
-async function onRequest64(context) {
+
+// api/cash-sessions/[id].js
+var id_exports = {};
+__export(id_exports, {
+  onRequest: () => onRequest67
+});
+async function onRequest67(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -4604,30 +5317,32 @@ async function onRequest64(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest64, "onRequest64");
-var init_id = __esm({
+var init_id2 = __esm({
   "api/cash-sessions/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_cash();
-    __name2(onRequest64, "onRequest");
+    __name(onRequest67, "onRequest");
   }
 });
-async function onRequest65(context) {
-  return onRequest64(context);
+
+// api/pos/cash-sessions/[id].js
+async function onRequest68(context) {
+  const mod = await Promise.resolve().then(() => (init_id2(), id_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest65, "onRequest65");
-var init_id2 = __esm({
+var init_id3 = __esm({
   "api/pos/cash-sessions/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_id();
-    __name2(onRequest65, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest68, "onRequest");
   }
 });
+
+// ../_shared/pos.js
 function genId5(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId5, "genId5");
 async function createSession2(db, input) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const id = genId5("ps");
@@ -4644,7 +5359,6 @@ async function createSession2(db, input) {
   }
   return session;
 }
-__name(createSession2, "createSession2");
 async function getSessionByPublicId2(db, sessionPublicId) {
   const res = await db.prepare("SELECT id, sessionId, storeId, userId, items, subtotal, tax, total, status, createdAt, updatedAt FROM pOSSession WHERE sessionId = ? LIMIT 1").bind(sessionPublicId).all();
   const sess = firstRow2(res);
@@ -4660,7 +5374,6 @@ async function getSessionByPublicId2(db, sessionPublicId) {
   sess.transactions = txs;
   return sess;
 }
-__name(getSessionByPublicId2, "getSessionByPublicId2");
 async function createTransaction2(db, sessionPublicId, input) {
   const sres = await db.prepare("SELECT id FROM pOSSession WHERE sessionId = ? LIMIT 1").bind(sessionPublicId).all();
   const session = firstRow2(sres);
@@ -4671,7 +5384,6 @@ async function createTransaction2(db, sessionPublicId, input) {
   const tres = await db.prepare("SELECT id, sessionId, method, amount, status, processorResponse, processorReference, createdAt, updatedAt FROM paymentTransaction WHERE id = ?").bind(id).all();
   return firstRow2(tres);
 }
-__name(createTransaction2, "createTransaction2");
 async function listTransactions2(db, sessionPublicId) {
   const sres = await db.prepare("SELECT id FROM pOSSession WHERE sessionId = ? LIMIT 1").bind(sessionPublicId).all();
   const session = firstRow2(sres);
@@ -4679,21 +5391,22 @@ async function listTransactions2(db, sessionPublicId) {
   const txsRes = await db.prepare("SELECT id, sessionId, method, amount, status, processorResponse, processorReference, createdAt, updatedAt FROM paymentTransaction WHERE sessionId = ? ORDER BY createdAt ASC").bind(session.id).all();
   return Array.isArray(txsRes?.results) ? txsRes.results : Array.isArray(txsRes) ? txsRes : [];
 }
-__name(listTransactions2, "listTransactions2");
 var pos_default2;
 var init_pos2 = __esm({
   "../_shared/pos.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(genId5, "genId");
-    __name2(createSession2, "createSession");
-    __name2(getSessionByPublicId2, "getSessionByPublicId");
-    __name2(createTransaction2, "createTransaction");
-    __name2(listTransactions2, "listTransactions");
+    __name(genId5, "genId");
+    __name(createSession2, "createSession");
+    __name(getSessionByPublicId2, "getSessionByPublicId");
+    __name(createTransaction2, "createTransaction");
+    __name(listTransactions2, "listTransactions");
     pos_default2 = { createSession: createSession2, getSessionByPublicId: getSessionByPublicId2, createTransaction: createTransaction2, listTransactions: listTransactions2 };
   }
 });
-async function onRequest66(context) {
+
+// api/pos/sessions/[sessionId].js
+async function onRequest69(context) {
   const { env, params } = context;
   try {
     const { sessionId } = params || {};
@@ -4708,16 +5421,17 @@ async function onRequest66(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest66, "onRequest66");
 var init_sessionId = __esm({
   "api/pos/sessions/[sessionId].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_pos2();
-    __name2(onRequest66, "onRequest");
+    __name(onRequest69, "onRequest");
   }
 });
-async function onRequest67(context) {
+
+// api/cart/[sessionId]/add.js
+async function onRequest70(context) {
   const { request, env, params } = context;
   try {
     const { sessionId } = params || {};
@@ -4734,16 +5448,17 @@ async function onRequest67(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest67, "onRequest67");
 var init_add = __esm({
   "api/cart/[sessionId]/add.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_cart();
-    __name2(onRequest67, "onRequest");
+    __name(onRequest70, "onRequest");
   }
 });
-async function onRequest68(context) {
+
+// api/cart/[sessionId]/checkout.js
+async function onRequest71(context) {
   const { request, env, params } = context;
   try {
     const { sessionId } = params || {};
@@ -4760,19 +5475,19 @@ async function onRequest68(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest68, "onRequest68");
 var init_checkout = __esm({
   "api/cart/[sessionId]/checkout.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_cart();
-    __name2(onRequest68, "onRequest");
+    __name(onRequest71, "onRequest");
   }
 });
+
+// ../_shared/cash.js
 function genId6(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId6, "genId6");
 async function openSession2(db, params) {
   const { storeId = null, openedBy = null, startingCash = 0 } = params || {};
   if (typeof startingCash !== "number" || Number.isNaN(startingCash) || startingCash < 0) throw new Error("Invalid startingCash");
@@ -4783,7 +5498,6 @@ async function openSession2(db, params) {
   const res = await db.prepare("SELECT id, sessionId, storeId, openedBy, closedBy, startingCash, endingCash, status, createdAt, closedAt, updatedAt FROM cashSession WHERE id = ?").bind(id).all();
   return firstRow2(res);
 }
-__name(openSession2, "openSession2");
 async function closeSession2(db, sessionId, params) {
   if (!sessionId) throw new Error("sessionId required");
   const { closedBy = null, endingCash = null } = params || {};
@@ -4799,7 +5513,6 @@ async function closeSession2(db, sessionId, params) {
   const res = await db.prepare("SELECT id, sessionId, storeId, openedBy, closedBy, startingCash, endingCash, status, createdAt, closedAt, updatedAt FROM cashSession WHERE sessionId = ? LIMIT 1").bind(sessionId).all();
   return firstRow2(res);
 }
-__name(closeSession2, "closeSession2");
 async function getSessionById2(db, sessionId) {
   if (!sessionId) throw new Error("sessionId required");
   const res = await db.prepare("SELECT id, sessionId, storeId, openedBy, closedBy, startingCash, endingCash, status, createdAt, closedAt, updatedAt FROM cashSession WHERE sessionId = ? LIMIT 1").bind(sessionId).all();
@@ -4807,20 +5520,21 @@ async function getSessionById2(db, sessionId) {
   if (!s) throw new Error("CashSession not found");
   return s;
 }
-__name(getSessionById2, "getSessionById2");
 var cash_default2;
 var init_cash2 = __esm({
   "../_shared/cash.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(genId6, "genId");
-    __name2(openSession2, "openSession");
-    __name2(closeSession2, "closeSession");
-    __name2(getSessionById2, "getSessionById");
+    __name(genId6, "genId");
+    __name(openSession2, "openSession");
+    __name(closeSession2, "closeSession");
+    __name(getSessionById2, "getSessionById");
     cash_default2 = { openSession: openSession2, closeSession: closeSession2, getSessionById: getSessionById2 };
   }
 });
-async function onRequest69(context) {
+
+// api/cash-sessions/[id]/close.js
+async function onRequest72(context) {
   const { request, env, params } = context;
   try {
     const { id } = params || {};
@@ -4835,15 +5549,16 @@ async function onRequest69(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest69, "onRequest69");
 var init_close2 = __esm({
   "api/cash-sessions/[id]/close.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_cash2();
-    __name2(onRequest69, "onRequest");
+    __name(onRequest72, "onRequest");
   }
 });
+
+// api/editions/[id]/cards-with-stock.js
 async function findCardFallback(db, cardId) {
   if (!cardId) return null;
   try {
@@ -4873,8 +5588,7 @@ async function findCardFallback(db, cardId) {
     return null;
   }
 }
-__name(findCardFallback, "findCardFallback");
-async function onRequest70(context) {
+async function onRequest73(context) {
   const { request, env, params } = context;
   try {
     const id = params.id;
@@ -4919,7 +5633,7 @@ async function onRequest70(context) {
     }
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
-    const chunk = /* @__PURE__ */ __name2((arr, size) => {
+    const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out = [];
       for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
       return out;
@@ -5003,17 +5717,18 @@ async function onRequest70(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest70, "onRequest70");
 var init_cards_with_stock = __esm({
   "api/editions/[id]/cards-with-stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
-    __name2(findCardFallback, "findCardFallback");
-    __name2(onRequest70, "onRequest");
+    __name(findCardFallback, "findCardFallback");
+    __name(onRequest73, "onRequest");
   }
 });
-async function onRequest71(context) {
+
+// api/editions/[id]/csv-template.js
+async function onRequest74(context) {
   const { request, env, params } = context;
   try {
     const id = params && (params.id || params.editionId) ? String(params.id || params.editionId) : null;
@@ -5062,15 +5777,16 @@ async function onRequest71(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest71, "onRequest71");
 var init_csv_template = __esm({
   "api/editions/[id]/csv-template.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest71, "onRequest");
+    __name(onRequest74, "onRequest");
   }
 });
-async function onRequest72(context) {
+
+// api/invoices/[id]/pdf.js
+async function onRequest75(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -5086,19 +5802,19 @@ async function onRequest72(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest72, "onRequest72");
 var init_pdf = __esm({
   "api/invoices/[id]/pdf.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest72, "onRequest");
+    __name(onRequest75, "onRequest");
   }
 });
+
+// api/listings/[id]/price-debug.js
 async function json22(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json22, "json22");
-async function onRequest73(context) {
+async function onRequest76(context) {
   const { env, params } = context;
   try {
     const id = params && (params.id || params.listingId) ? String(params.id || params.listingId) : null;
@@ -5153,17 +5869,18 @@ async function onRequest73(context) {
     return json22({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest73, "onRequest73");
 var init_price_debug = __esm({
   "api/listings/[id]/price-debug.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_price();
-    __name2(json22, "json");
-    __name2(onRequest73, "onRequest");
+    __name(json22, "json");
+    __name(onRequest76, "onRequest");
   }
 });
-async function onRequest74(context) {
+
+// api/listings/[id]/pricing-mode.js
+async function onRequest77(context) {
   const { request, env, params } = context;
   try {
     const { id } = params || {};
@@ -5209,15 +5926,16 @@ async function onRequest74(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest74, "onRequest74");
 var init_pricing_mode = __esm({
   "api/listings/[id]/pricing-mode.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest74, "onRequest");
+    __name(onRequest77, "onRequest");
   }
 });
-async function onRequest75(context) {
+
+// api/orders/[id]/cancel.js
+async function onRequest78(context) {
   const { env, params, request } = context;
   try {
     const { id } = params || {};
@@ -5251,16 +5969,17 @@ async function onRequest75(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest75, "onRequest75");
 var init_cancel = __esm({
   "api/orders/[id]/cancel.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_orders();
-    __name2(onRequest75, "onRequest");
+    __name(onRequest78, "onRequest");
   }
 });
-async function onRequest76(context) {
+
+// api/orders/[id]/deliver.js
+async function onRequest79(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -5282,16 +6001,17 @@ async function onRequest76(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest76, "onRequest76");
 var init_deliver = __esm({
   "api/orders/[id]/deliver.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_orders();
-    __name2(onRequest76, "onRequest");
+    __name(onRequest79, "onRequest");
   }
 });
-async function onRequest77(context) {
+
+// api/orders/[id]/receipt.js
+async function onRequest80(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -5307,16 +6027,17 @@ async function onRequest77(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest77, "onRequest77");
 var init_receipt = __esm({
   "api/orders/[id]/receipt.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_orders();
-    __name2(onRequest77, "onRequest");
+    __name(onRequest80, "onRequest");
   }
 });
-async function onRequest78(context) {
+
+// api/orders/[id]/ship.js
+async function onRequest81(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -5338,20 +6059,20 @@ async function onRequest78(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest78, "onRequest78");
 var init_ship = __esm({
   "api/orders/[id]/ship.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_orders();
-    __name2(onRequest78, "onRequest");
+    __name(onRequest81, "onRequest");
   }
 });
+
+// api/admin/accounts.js
 async function json23(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json23, "json23");
-async function onRequest79(context) {
+async function onRequest82(context) {
   const { request, env } = context;
   const db = pickDb(env);
   if (db) await ensureSchema(db);
@@ -5453,21 +6174,21 @@ async function onRequest79(context) {
     return json23({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest79, "onRequest79");
 var init_accounts = __esm({
   "api/admin/accounts.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_tenant();
-    __name2(json23, "json");
-    __name2(onRequest79, "onRequest");
+    __name(json23, "json");
+    __name(onRequest82, "onRequest");
   }
 });
+
+// api/admin/approvals.js
 async function json24(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json24, "json24");
-async function onRequest80(context) {
+async function onRequest83(context) {
   const { request, env } = context;
   const db = pickDb(env);
   if (db) await ensureSchema(db);
@@ -5563,30 +6284,29 @@ async function onRequest80(context) {
     return json24({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest80, "onRequest80");
 var init_approvals = __esm({
   "api/admin/approvals.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_tenant();
-    __name2(json24, "json");
-    __name2(onRequest80, "onRequest");
+    __name(json24, "json");
+    __name(onRequest83, "onRequest");
   }
 });
-function extractToken6(request) {
+
+// api/admin/catalog-reset.js
+function extractToken8(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken6, "extractToken6");
 async function json25(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json25, "json25");
-async function onRequest81(context) {
+async function onRequest84(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken6(request) || "");
+    const token = String(extractToken8(request) || "");
     if (!token) return json25({ success: false, error: "Missing token" }, 401);
     const user = await validateToken(env, token);
     if (!user) return json25({ success: false, error: "Invalid token" }, 401);
@@ -5612,18 +6332,19 @@ async function onRequest81(context) {
     return json25({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest81, "onRequest81");
 var init_catalog_reset = __esm({
   "api/admin/catalog-reset.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_adminAuth();
-    __name2(extractToken6, "extractToken");
-    __name2(json25, "json");
-    __name2(onRequest81, "onRequest");
+    __name(extractToken8, "extractToken");
+    __name(json25, "json");
+    __name(onRequest84, "onRequest");
   }
 });
-async function onRequest82(context) {
+
+// api/admin/dashboard.js
+async function onRequest85(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -5714,29 +6435,28 @@ async function onRequest82(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest82, "onRequest82");
 var init_dashboard = __esm({
   "api/admin/dashboard.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
-    __name2(onRequest82, "onRequest");
+    __name(onRequest85, "onRequest");
   }
 });
-function extractToken7(request) {
+
+// api/admin/editions.js
+function extractToken9(request) {
   const auth = request.headers.get("authorization") || "";
   if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
   return request.headers.get("x-admin-token") || "";
 }
-__name(extractToken7, "extractToken7");
 async function json26(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json26, "json26");
-async function onRequest83(context) {
+async function onRequest86(context) {
   const { request, env } = context;
   try {
-    const token = String(extractToken7(request) || "");
+    const token = String(extractToken9(request) || "");
     if (!token) return json26({ success: false, error: "Missing token" }, 401);
     const user = await validateToken(env, token);
     if (!user) return json26({ success: false, error: "Invalid token" }, 401);
@@ -5765,18 +6485,19 @@ async function onRequest83(context) {
     return json26({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest83, "onRequest83");
 var init_editions = __esm({
   "api/admin/editions.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_adminAuth();
-    __name2(extractToken7, "extractToken");
-    __name2(json26, "json");
-    __name2(onRequest83, "onRequest");
+    __name(extractToken9, "extractToken");
+    __name(json26, "json");
+    __name(onRequest86, "onRequest");
   }
 });
-async function onRequest84(context) {
+
+// api/admin/migrate.js
+async function onRequest87(context) {
   const { request, env } = context;
   try {
     const token = env.ADMIN_MIGRATE_TOKEN || null;
@@ -5803,23 +6524,24 @@ async function onRequest84(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest84, "onRequest84");
 var init_migrate = __esm({
   "api/admin/migrate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest84, "onRequest");
+    __name(onRequest87, "onRequest");
   }
 });
-async function onRequest85(context) {
+
+// api/admin/normalize-ids.js
+async function onRequest88(context) {
   const { request, env } = context;
-  const json43 = /* @__PURE__ */ __name2((d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } }), "json");
+  const json44 = /* @__PURE__ */ __name((d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } }), "json");
   try {
-    if (request.method !== "POST") return json43({ success: false, error: "Method not allowed" }, 405);
+    if (request.method !== "POST") return json44({ success: false, error: "Method not allowed" }, 405);
     const body = await request.json().catch(() => ({}));
     const doRun = body && (body.confirm === true || String(body.confirm).toLowerCase() === "yes" || String(body.confirm).toLowerCase() === "run");
     const db = pickDb(env);
-    if (!db) return json43({ success: false, error: "No DB binding available" }, 500);
+    if (!db) return json44({ success: false, error: "No DB binding available" }, 500);
     await ensureSchema(db);
     const cardIdSelect = await buildSelectColumns(db, "card", "c", ["id"]);
     const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "cardId", "editionCode"]);
@@ -5862,7 +6584,7 @@ async function onRequest85(context) {
       }
     }
     const report = { totalOrphans: orphanRows.length, plans: plans.slice(0, 200) };
-    if (!doRun) return json43({ success: true, report, note: "Dry run. POST { confirm: true } to apply changes." });
+    if (!doRun) return json44({ success: true, report, note: "Dry run. POST { confirm: true } to apply changes." });
     const applied = [];
     for (const p of plans) {
       if (p.found) {
@@ -5873,20 +6595,21 @@ async function onRequest85(context) {
         }
       }
     }
-    return json43({ success: true, report: { ...report, applied }, appliedCount: applied.length });
+    return json44({ success: true, report: { ...report, applied }, appliedCount: applied.length });
   } catch (err) {
-    return json43({ success: false, error: String(err) }, 500);
+    return json44({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest85, "onRequest85");
 var init_normalize_ids = __esm({
   "api/admin/normalize-ids.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest85, "onRequest");
+    __name(onRequest88, "onRequest");
   }
 });
-async function onRequest86(context) {
+
+// api/admin/price-volatility.js
+async function onRequest89(context) {
   const { request, env } = context;
   try {
     const url = new URL(request.url);
@@ -5927,22 +6650,23 @@ async function onRequest86(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest86, "onRequest86");
 var init_price_volatility = __esm({
   "api/admin/price-volatility.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest86, "onRequest");
+    __name(onRequest89, "onRequest");
   }
 });
-async function onRequest87(context) {
+
+// api/admin/pricing-config.js
+async function onRequest90(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
     if (db) await ensureSchema(db);
     if (request.method === "GET") {
       const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
-      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1, exchangeRate: { mode: "manual", activeRate: defaultRate, source: "env" } };
+      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1, exchangeRate: { mode: "manual", activeRate: defaultRate, source: "env" }, importSetSyncPricesDefault: false };
       if (!db) {
         return new Response(JSON.stringify({ config: defaultConfig }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
@@ -5953,6 +6677,7 @@ async function onRequest87(context) {
           const parsed = JSON.parse(row.value);
           if (!parsed.exchangeRate) parsed.exchangeRate = { mode: "manual", activeRate: defaultRate, source: "env" };
           if (parsed.exchangeRate.activeRate === null || parsed.exchangeRate.activeRate === void 0) parsed.exchangeRate.activeRate = defaultRate;
+          if (parsed.importSetSyncPricesDefault === null || parsed.importSetSyncPricesDefault === void 0) parsed.importSetSyncPricesDefault = false;
           try {
             const cacheRes = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind("exchangeRateCache").all();
             const cacheRow = firstRow(cacheRes);
@@ -5978,6 +6703,7 @@ async function onRequest87(context) {
       const defaultMarginMultiplier = typeof body.defaultMarginMultiplier === "number" ? body.defaultMarginMultiplier : Number(body.defaultMarginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1;
       const exchangeRateMode = body.exchangeRateMode === "api" ? "api" : "manual";
       const manualUsdToClp = typeof body.manualUsdToClp === "number" ? body.manualUsdToClp : Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 1e3;
+      const importSetSyncPricesDefault = body.importSetSyncPricesDefault === true;
       const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1e3);
       const config = {
         defaultMarginMultiplier,
@@ -5986,7 +6712,8 @@ async function onRequest87(context) {
           // always provide a numeric activeRate for the UI; when using 'api' mode, keep env/default as placeholder
           activeRate: exchangeRateMode === "manual" ? manualUsdToClp : defaultRate,
           source: exchangeRateMode === "manual" ? "manual" : "api"
-        }
+        },
+        importSetSyncPricesDefault: !!importSetSyncPricesDefault
       };
       if (db) {
         if (exchangeRateMode === "api" && Number.isFinite(Number(manualUsdToClp)) && Number(manualUsdToClp) > 0) {
@@ -5996,6 +6723,23 @@ async function onRequest87(context) {
           }
         }
         await db.prepare("INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)").bind("pricingConfig", JSON.stringify(config), (/* @__PURE__ */ new Date()).toISOString()).run();
+        if (exchangeRateMode === "api") {
+          try {
+            const meta = await getUSDtoCLPRateMeta(env, db);
+            const liveRate = meta && Number.isFinite(Number(meta.rate)) ? Number(meta.rate) : null;
+            if (liveRate && liveRate > 0) {
+              const fetchedAtIso = meta.fetchedAt && meta.fetchedAt.toISOString ? meta.fetchedAt.toISOString() : meta.fetchedAt ? new Date(meta.fetchedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString();
+              try {
+                await db.prepare("INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)").bind("exchangeRateCache", JSON.stringify({ usdToCLP: liveRate, source: meta.provider || "api", fetchedAt: fetchedAtIso }), fetchedAtIso).run();
+              } catch (_) {
+              }
+              config.exchangeRate.activeRate = liveRate;
+              config.exchangeRate.source = meta.provider || "api";
+              config.exchangeRate.fetchedAt = fetchedAtIso;
+            }
+          } catch (_) {
+          }
+        }
       }
       return new Response(JSON.stringify({ success: true, config }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
@@ -6004,17 +6748,18 @@ async function onRequest87(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest87, "onRequest87");
 var init_pricing_config = __esm({
   "api/admin/pricing-config.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_price();
     init_adminAuth();
-    __name2(onRequest87, "onRequest");
+    __name(onRequest90, "onRequest");
   }
 });
-async function onRequest88(context) {
+
+// api/admin/stock-alerts.js
+async function onRequest91(context) {
   const { request, env } = context;
   try {
     const url = new URL(request.url);
@@ -6037,146 +6782,73 @@ async function onRequest88(context) {
     return new Response(JSON.stringify({ alerts: [], error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest88, "onRequest88");
 var init_stock_alerts = __esm({
   "api/admin/stock-alerts.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest88, "onRequest");
+    __name(onRequest91, "onRequest");
   }
 });
+
+// api/admin/stores/index.js
+function extractToken10(request) {
+  const auth = request.headers.get("authorization") || "";
+  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  return request.headers.get("x-admin-token") || "";
+}
 async function json27(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json27, "json27");
-async function onRequest89(context) {
+async function onRequest92(context) {
   const { request, env } = context;
-  const db = pickDb(env);
-  if (db) await ensureSchema(db);
-  const url = new URL(request.url);
-  const path = url.pathname.replace(/\/+?/g, "/").replace(/\/$/, "");
-  const method = request.method.toUpperCase();
   try {
-    const store = await resolveStoreFromRequest(request, env);
-    if (!store) return json27({ success: false, error: "Unauthorized" }, 401);
-    if (method === "GET" && path.endsWith("/api/admin/stores")) {
-      if (!db) return json27({ success: false, error: "No DB binding" }, 500);
-      const res = await db.prepare("SELECT id, slug, name, currency, taxRate, settings, createdAt FROM store ORDER BY createdAt DESC").all();
+    const token = extractToken10(request);
+    const user = await validateToken(env, token);
+    if (!user) return json27({ success: false, error: "Unauthorized" }, 401);
+    const db = pickDb(env);
+    if (db) await ensureSchema(db);
+    if (request.method === "GET") {
+      if (!db) return json27({ success: true, stores: [] });
+      const res = await db.prepare("SELECT id, code, name, address, metadata, createdAt, updatedAt FROM store ORDER BY name ASC").all();
       const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
       return json27({ success: true, stores: rows });
     }
-    if (method === "POST" && path.endsWith("/api/admin/stores")) {
-      if (!db) return json27({ success: false, error: "No DB binding" }, 500);
+    if (request.method === "POST") {
       const body = await request.json().catch(() => ({}));
-      const slug = String(body.slug || "").trim().toLowerCase();
-      const name = String(body.name || "").trim();
-      if (!slug || !name) return json27({ success: false, error: "slug and name required" }, 400);
-      let apiKey = null;
-      let apiKeyHash = null;
-      try {
-        apiKey = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `key-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-        const nodeCrypto = await import("crypto").then((m) => m.default || m).catch(() => null);
-        if (nodeCrypto && nodeCrypto.randomBytes) apiKey = nodeCrypto.randomBytes(24).toString("hex");
-        if (nodeCrypto && nodeCrypto.scryptSync) {
-          const salt = nodeCrypto.randomBytes(16).toString("hex");
-          const derived = nodeCrypto.scryptSync(apiKey, salt, 64);
-          apiKeyHash = `${salt}:${derived.toString("hex")}`;
-        } else {
-          apiKeyHash = apiKey;
-        }
-      } catch (_) {
-        apiKey = apiKey || `key-${Date.now()}`;
-        apiKeyHash = apiKey;
-      }
+      const code = (body.code || "").toString().trim();
+      const name = (body.name || "").toString().trim();
+      const address = (body.address || "").toString().trim();
+      const metadata = body.metadata ? JSON.stringify(body.metadata) : null;
+      if (!name) return json27({ success: false, error: "name required" }, 400);
+      const id = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `store-${Date.now()}`;
       const now = (/* @__PURE__ */ new Date()).toISOString();
-      try {
-        await db.prepare("INSERT INTO store (id, slug, name, description, currency, taxRate, settings, apiKeyHash, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(`store-${Date.now()}-${Math.floor(Math.random() * 1e4)}`, slug, name, body.description || null, body.currency || null, body.taxRate ?? null, body.settings ? JSON.stringify(body.settings) : null, apiKeyHash, now, now).run();
-      } catch (err) {
-        return json27({ success: false, error: "Create failed" }, 500);
+      if (db) {
+        try {
+          await db.prepare("INSERT INTO store (id, code, name, address, metadata, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(id, code || null, name, address || null, metadata, now, now).run();
+        } catch (err) {
+          return json27({ success: false, error: String(err) }, 500);
+        }
       }
-      return json27({ success: true, store: { slug, name }, apiKey });
+      return json27({ success: true, store: { id, code, name, address, metadata, createdAt: now, updatedAt: now } }, 201);
     }
-    if (method === "POST" && path.match(/\/api\/admin\/stores\/[^\/]+\/rotate$/)) {
-      if (!db) return json27({ success: false, error: "No DB binding" }, 500);
-      const m = path.match(/\/api\/admin\/stores\/([^\/]+)\/rotate$/);
-      const storeId = m && m[1];
-      if (!storeId) return json27({ success: false, error: "store id required" }, 400);
-      let apiKey = null;
-      let apiKeyHash = null;
-      try {
-        const nodeCrypto = await import("crypto").then((m2) => m2.default || m2).catch(() => null);
-        apiKey = nodeCrypto && nodeCrypto.randomBytes ? nodeCrypto.randomBytes(24).toString("hex") : `key-${Date.now()}`;
-        if (nodeCrypto && nodeCrypto.scryptSync) {
-          const salt = nodeCrypto.randomBytes(16).toString("hex");
-          const derived = nodeCrypto.scryptSync(apiKey, salt, 64);
-          apiKeyHash = `${salt}:${derived.toString("hex")}`;
-        } else apiKeyHash = apiKey;
-      } catch (_) {
-        apiKey = apiKey || `key-${Date.now()}`;
-        apiKeyHash = apiKey;
-      }
-      try {
-        await db.prepare("UPDATE store SET apiKeyHash = ?, updatedAt = ? WHERE id = ?").bind(apiKeyHash, (/* @__PURE__ */ new Date()).toISOString(), storeId).run();
-        return json27({ success: true, apiKey });
-      } catch (err) {
-        return json27({ success: false, error: "rotate failed" }, 500);
-      }
-    }
-    if ((method === "PATCH" || method === "PUT") && path.match(/\/api\/admin\/stores\/[^\/]+$/)) {
-      if (!db) return json27({ success: false, error: "No DB binding" }, 500);
-      const m = path.match(/\/api\/admin\/stores\/([^\/]+)$/);
-      const storeId = m && m[1];
-      if (!storeId) return json27({ success: false, error: "store id required" }, 400);
-      const body = await request.json().catch(() => ({}));
-      const updates = [];
-      const binds = [];
-      if (body.name !== void 0) {
-        updates.push("name = ?");
-        binds.push(body.name);
-      }
-      if (body.description !== void 0) {
-        updates.push("description = ?");
-        binds.push(body.description);
-      }
-      if (body.currency !== void 0) {
-        updates.push("currency = ?");
-        binds.push(body.currency);
-      }
-      if (body.taxRate !== void 0) {
-        updates.push("taxRate = ?");
-        binds.push(body.taxRate);
-      }
-      if (body.settings !== void 0) {
-        updates.push("settings = ?");
-        binds.push(typeof body.settings === "string" ? body.settings : JSON.stringify(body.settings));
-      }
-      if (updates.length === 0) return json27({ success: false, error: "no updates" }, 400);
-      binds.push((/* @__PURE__ */ new Date()).toISOString());
-      binds.push(storeId);
-      const sql = `UPDATE store SET ${updates.join(", ")}, updatedAt = ? WHERE id = ?`;
-      try {
-        await db.prepare(sql).bind(...binds).run();
-        return json27({ success: true });
-      } catch (err) {
-        return json27({ success: false, error: "update failed" }, 500);
-      }
-    }
-    return json27({ success: false, error: "Not found" }, 404);
+    return json27({ success: false, error: "Method not allowed" }, 405);
   } catch (err) {
     return json27({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest89, "onRequest89");
 var init_stores = __esm({
-  "api/admin/stores.js"() {
-    init_functionsRoutes_0_421892428804746();
+  "api/admin/stores/index.js"() {
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    init_tenant();
-    __name2(json27, "json");
-    __name2(onRequest89, "onRequest");
+    init_adminAuth();
+    __name(extractToken10, "extractToken");
+    __name(json27, "json");
+    __name(onRequest92, "onRequest");
   }
 });
-async function onRequest90(context) {
+
+// api/admin/tcgplayer-coverage.js
+async function onRequest93(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -6211,37 +6883,42 @@ async function onRequest90(context) {
     return new Response(JSON.stringify({ global: { totalCards: 0, coveredCards: 0, uncoveredCards: 0, coveragePercent: 0 }, byTcg: [], error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest90, "onRequest90");
 var init_tcgplayer_coverage = __esm({
   "api/admin/tcgplayer-coverage.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest90, "onRequest");
+    __name(onRequest93, "onRequest");
   }
 });
-async function onRequest91(context) {
-  return onRequest33(context);
+
+// api/admin/thresholds/index.js
+async function onRequest94(context) {
+  const mod = await Promise.resolve().then(() => (init_thresholds(), thresholds_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest91, "onRequest91");
 var init_thresholds2 = __esm({
   "api/admin/thresholds/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_thresholds();
-    __name2(onRequest91, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest94, "onRequest");
   }
 });
-async function onRequest92(context) {
-  return onRequest55(context);
+
+// api/card/search.js
+async function onRequest95(context) {
+  const mod = await Promise.resolve().then(() => (init_card2(), card_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest92, "onRequest92");
 var init_search2 = __esm({
   "api/card/search.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_card2();
-    __name2(onRequest92, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest95, "onRequest");
   }
 });
-async function onRequest93(context) {
+
+// api/cards/search.js
+async function onRequest96(context) {
   const { request, env } = context;
   try {
     const params = request.method === "GET" ? Object.fromEntries(new URL(request.url).searchParams.entries()) : await request.json().catch(() => ({}));
@@ -6266,20 +6943,25 @@ async function onRequest93(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest93, "onRequest93");
 var init_search3 = __esm({
   "api/cards/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_cardService();
-    __name2(onRequest93, "onRequest");
+    __name(onRequest96, "onRequest");
   }
+});
+
+// api/erp/reservations/index.js
+var reservations_exports = {};
+__export(reservations_exports, {
+  default: () => reservations_default,
+  onRequest: () => onRequest97
 });
 function json28(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json28, "json28");
-async function onRequest94(context) {
+async function onRequest97(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -6312,116 +6994,34 @@ async function onRequest94(context) {
     return json28({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest94, "onRequest94");
+var reservations_default;
 var init_reservations = __esm({
   "api/erp/reservations/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json28, "json");
-    __name2(onRequest94, "onRequest");
+    __name(json28, "json");
+    __name(onRequest97, "onRequest");
+    reservations_default = onRequest97;
   }
 });
-async function onRequest95(context) {
-  return onRequest94(context);
+
+// api/erp/reservation.js
+async function onRequest98(context) {
+  const mod = await Promise.resolve().then(() => (init_reservations(), reservations_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest95, "onRequest95");
 var init_reservation = __esm({
   "api/erp/reservation.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_reservations();
-    __name2(onRequest95, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest98, "onRequest");
   }
 });
-function ensureStore() {
-  if (!globalThis[METRICS_KEY]) {
-    globalThis[METRICS_KEY] = { counters: {}, summaries: {} };
-  }
-  return globalThis[METRICS_KEY];
-}
-__name(ensureStore, "ensureStore");
-function labelsToKey(labels) {
-  if (!labels || Object.keys(labels).length === 0) return "";
-  return Object.keys(labels).sort().map((k) => `${k}=${String(labels[k]).replace(/"/g, '\\"')}`).join("|");
-}
-__name(labelsToKey, "labelsToKey");
-function keyToLabelObj(key) {
-  if (!key) return {};
-  const obj = {};
-  for (const part of key.split("|")) {
-    const eq = part.indexOf("=");
-    if (eq === -1) continue;
-    const k = part.slice(0, eq);
-    const v = part.slice(eq + 1);
-    obj[k] = v;
-  }
-  return obj;
-}
-__name(keyToLabelObj, "keyToLabelObj");
-function incr(name, labels = {}, value = 1) {
-  const s = ensureStore();
-  const key = labelsToKey(labels);
-  if (!s.counters[name]) s.counters[name] = {};
-  s.counters[name][key] = (s.counters[name][key] || 0) + value;
-}
-__name(incr, "incr");
-function observe(name, seconds, labels = {}) {
-  const s = ensureStore();
-  const key = labelsToKey(labels);
-  if (!s.summaries[name]) s.summaries[name] = {};
-  const cur = s.summaries[name][key] || { count: 0, sum: 0 };
-  cur.count += 1;
-  cur.sum += Number(seconds) || 0;
-  s.summaries[name][key] = cur;
-}
-__name(observe, "observe");
-function startTimer(name, labels = {}) {
-  const t0 = Date.now();
-  return () => {
-    const dt = (Date.now() - t0) / 1e3;
-    observe(name, dt, labels);
-  };
-}
-__name(startTimer, "startTimer");
-function getMetricsText() {
-  const s = ensureStore();
-  const lines = [];
-  for (const [name, map] of Object.entries(s.counters)) {
-    lines.push(`# TYPE ${name} counter`);
-    for (const [key, val] of Object.entries(map)) {
-      const labels = keyToLabelObj(key);
-      const labelStr = Object.keys(labels).length ? "{" + Object.entries(labels).map(([k, v]) => `${k}="${v}"`).join(",") + "}" : "";
-      lines.push(`${name}${labelStr} ${Number(val)}`);
-    }
-  }
-  for (const [name, map] of Object.entries(s.summaries)) {
-    lines.push(`# TYPE ${name} summary`);
-    for (const [key, val] of Object.entries(map)) {
-      const labels = keyToLabelObj(key);
-      const labelStr = Object.keys(labels).length ? "{" + Object.entries(labels).map(([k, v]) => `${k}="${v}"`).join(",") + "}" : "";
-      lines.push(`${name}_sum${labelStr} ${Number(val.sum)}`);
-      lines.push(`${name}_count${labelStr} ${Number(val.count)}`);
-    }
-  }
-  return lines.join("\n") + "\n";
-}
-__name(getMetricsText, "getMetricsText");
-var METRICS_KEY;
-var init_metrics = __esm({
-  "_shared/metrics.js"() {
-    init_functionsRoutes_0_421892428804746();
-    METRICS_KEY = "__tcg_erp_metrics_v1__";
-    __name2(ensureStore, "ensureStore");
-    __name2(labelsToKey, "labelsToKey");
-    __name2(keyToLabelObj, "keyToLabelObj");
-    __name2(incr, "incr");
-    __name2(observe, "observe");
-    __name2(startTimer, "startTimer");
-    __name2(getMetricsText, "getMetricsText");
-  }
-});
-async function onRequest96(context) {
+
+// api/external/exchange-rate.js
+async function onRequest99(context) {
   const { request, env } = context;
-  const jsonResponse = /* @__PURE__ */ __name2((data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "jsonResponse");
+  const jsonResponse = /* @__PURE__ */ __name((data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "jsonResponse");
   try {
     const stop2 = startTimer("exchange_rate_request_duration_seconds");
     if (request.method === "OPTIONS") {
@@ -6488,9 +7088,9 @@ async function onRequest96(context) {
     }
     try {
       const providers = [
-        { name: "exchangerate.host", url: "https://api.exchangerate.host/convert?from=USD&to=CLP", extract: /* @__PURE__ */ __name2((b) => b?.result ?? (b?.rates && b.rates.CLP), "extract") },
-        { name: "exchangerate-api.com", url: "https://api.exchangerate-api.com/v4/latest/USD", extract: /* @__PURE__ */ __name2((b) => b?.rates?.CLP, "extract") },
-        { name: "open.er-api.com", url: "https://open.er-api.com/v6/latest/USD", extract: /* @__PURE__ */ __name2((b) => b?.rates?.CLP, "extract") }
+        { name: "exchangerate.host", url: "https://api.exchangerate.host/convert?from=USD&to=CLP", extract: /* @__PURE__ */ __name((b) => b?.result ?? (b?.rates && b.rates.CLP), "extract") },
+        { name: "exchangerate-api.com", url: "https://api.exchangerate-api.com/v4/latest/USD", extract: /* @__PURE__ */ __name((b) => b?.rates?.CLP, "extract") },
+        { name: "open.er-api.com", url: "https://open.er-api.com/v6/latest/USD", extract: /* @__PURE__ */ __name((b) => b?.rates?.CLP, "extract") }
       ];
       let lastErr = null;
       for (const p of providers) {
@@ -6556,50 +7156,52 @@ async function onRequest96(context) {
     return jsonResponse({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest96, "onRequest96");
 var init_exchange_rate2 = __esm({
   "api/external/exchange-rate.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_metrics();
-    __name2(onRequest96, "onRequest");
+    __name(onRequest99, "onRequest");
   }
 });
-async function onRequest97(context) {
+
+// api/external/exchange-rate-debug.js
+async function onRequest100(context) {
   const { request, env } = context;
-  const json43 = /* @__PURE__ */ __name2((obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "json");
+  const json44 = /* @__PURE__ */ __name((obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "json");
   try {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
     }
-    if (request.method !== "GET") return json43({ success: false, error: "Method not allowed" }, 405);
+    if (request.method !== "GET") return json44({ success: false, error: "Method not allowed" }, 405);
     const db = pickDb(env);
-    if (!db) return json43({ success: false, error: "No DB binding available" }, 500);
+    if (!db) return json44({ success: false, error: "No DB binding available" }, 500);
     await ensureSchema(db);
     const res = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind("exchangeRateLastError").all();
     const row = firstRow(res);
-    if (!row || !row.value) return json43({ success: true, found: false });
+    if (!row || !row.value) return json44({ success: true, found: false });
     try {
       const parsed = JSON.parse(row.value);
-      return json43({ success: true, found: true, lastError: parsed });
+      return json44({ success: true, found: true, lastError: parsed });
     } catch (err) {
-      return json43({ success: true, found: true, lastErrorRaw: row.value });
+      return json44({ success: true, found: true, lastErrorRaw: row.value });
     }
   } catch (err) {
-    return json43({ success: false, error: String(err) }, 500);
+    return json44({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest97, "onRequest97");
 var init_exchange_rate_debug = __esm({
   "api/external/exchange-rate-debug.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest97, "onRequest");
+    __name(onRequest100, "onRequest");
   }
 });
-async function onRequest98(context) {
+
+// api/external/exchange-rate-refresh.js
+async function onRequest101(context) {
   const { request, env } = context;
-  const jsonResponse = /* @__PURE__ */ __name2((data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "jsonResponse");
+  const jsonResponse = /* @__PURE__ */ __name((data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "jsonResponse");
   try {
     const stop2 = startTimer("exchange_rate_refresh_duration_seconds");
     if (request.method === "OPTIONS") {
@@ -6637,17 +7239,18 @@ async function onRequest98(context) {
     return jsonResponse({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest98, "onRequest98");
 var init_exchange_rate_refresh = __esm({
   "api/external/exchange-rate-refresh.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
     init_metrics();
-    __name2(onRequest98, "onRequest");
+    __name(onRequest101, "onRequest");
   }
 });
-async function onRequest99(context) {
+
+// api/external/search.js
+async function onRequest102(context) {
   const { request } = context;
   try {
     const url = new URL(request.url);
@@ -6705,17 +7308,22 @@ async function onRequest99(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest99, "onRequest99");
 var init_search4 = __esm({
   "api/external/search.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_tcgcsv();
-    __name2(onRequest99, "onRequest");
+    __name(onRequest102, "onRequest");
   }
 });
-async function onRequest100(context) {
+
+// api/health.js
+var health_exports = {};
+__export(health_exports, {
+  onRequest: () => onRequest103
+});
+async function onRequest103(context) {
   const { request, env } = context;
-  const json43 = /* @__PURE__ */ __name2((data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "json");
+  const json44 = /* @__PURE__ */ __name((data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "json");
   try {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
@@ -6733,35 +7341,37 @@ async function onRequest100(context) {
     } else {
       out.db = { ok: false, available: false };
     }
-    return json43(out);
+    return json44(out);
   } catch (err) {
-    return json43({ success: false, error: String(err) }, 500);
+    return json44({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest100, "onRequest100");
 var init_health = __esm({
   "api/health.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest100, "onRequest");
+    __name(onRequest103, "onRequest");
   }
 });
-async function onRequest101(context) {
-  return onRequest100(context);
+
+// api/health/ready.js
+async function onRequest104(context) {
+  const mod = await Promise.resolve().then(() => (init_health(), health_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest101, "onRequest101");
 var init_ready = __esm({
   "api/health/ready.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_health();
-    __name2(onRequest101, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest104, "onRequest");
   }
 });
+
+// api/inventory/bulk-update.js
 async function json29(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json29, "json29");
-async function onRequest102(context) {
+async function onRequest105(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -6795,20 +7405,20 @@ async function onRequest102(context) {
     return json29({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest102, "onRequest102");
 var init_bulk_update = __esm({
   "api/inventory/bulk-update.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json29, "json");
-    __name2(onRequest102, "onRequest");
+    __name(json29, "json");
+    __name(onRequest105, "onRequest");
   }
 });
+
+// api/inventory/decrease.js
 async function json30(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json30, "json30");
-async function onRequest103(context) {
+async function onRequest106(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -6832,20 +7442,20 @@ async function onRequest103(context) {
     return json30({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest103, "onRequest103");
 var init_decrease = __esm({
   "api/inventory/decrease.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json30, "json");
-    __name2(onRequest103, "onRequest");
+    __name(json30, "json");
+    __name(onRequest106, "onRequest");
   }
 });
+
+// api/inventory/export-csv.js
 function csvQuote(v) {
   return `"${String(v ?? "").replace(/"/g, '""')}"`;
 }
-__name(csvQuote, "csvQuote");
-async function onRequest104(context) {
+async function onRequest107(context) {
   const { request, env } = context;
   try {
     const params = Object.fromEntries(new URL(request.url).searchParams.entries());
@@ -6900,7 +7510,7 @@ async function onRequest104(context) {
     const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
     const cardMap = /* @__PURE__ */ new Map();
     const missingCardIds = Array.from(new Set(rows.filter((r) => !r.cardName && r.cardId).map((r) => r.cardId)));
-    const chunk = /* @__PURE__ */ __name2((arr, size) => {
+    const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out = [];
       for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
       return out;
@@ -6949,18 +7559,19 @@ async function onRequest104(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest104, "onRequest104");
 var init_export_csv = __esm({
   "api/inventory/export-csv.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(csvQuote, "csvQuote");
-    __name2(onRequest104, "onRequest");
+    __name(csvQuote, "csvQuote");
+    __name(onRequest107, "onRequest");
   }
 });
+
+// ../node_modules/exceljs/dist/exceljs.min.js
 var require_exceljs_min = __commonJS({
   "../node_modules/exceljs/dist/exceljs.min.js"(exports, module) {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     !(function(e) {
       if ("object" == typeof exports && "undefined" != typeof module) module.exports = e();
       else if ("function" == typeof define && define.amd) define([], e);
@@ -6968,11 +7579,11 @@ var require_exceljs_min = __commonJS({
         ("undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof self ? self : this).ExcelJS = e();
       }
     })((function() {
-      return (/* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e(t, r, n) {
+      return (/* @__PURE__ */ __name(function e(t, r, n) {
         function i(o2, a) {
           if (!r[o2]) {
             if (!t[o2]) {
-              var l = "function" == typeof __require2 && __require2;
+              var l = "function" == typeof __require && __require;
               if (!a && l) return l(o2, true);
               if (s) return s(o2, true);
               var c = new Error("Cannot find module '" + o2 + "'");
@@ -6986,10 +7597,9 @@ var require_exceljs_min = __commonJS({
           return r[o2].exports;
         }
         __name(i, "i");
-        __name2(i, "i");
-        for (var s = "function" == typeof __require2 && __require2, o = 0; o < n.length; o++) i(n[o]);
+        for (var s = "function" == typeof __require && __require, o = 0; o < n.length; o++) i(n[o]);
         return i;
-      }, "e"), "e"))({ 1: [function(e, t, r) {
+      }, "e"))({ 1: [function(e, t, r) {
         "use strict";
         const n = e("fs"), i = e("fast-csv"), s = e("dayjs/plugin/customParseFormat"), o = e("dayjs/plugin/utc"), a = e("dayjs").extend(s).extend(o), l = e("../utils/stream-buf"), { fs: { exists: c } } = e("../utils/utils"), u = { true: true, false: false, "#N/A": { error: "#N/A" }, "#REF!": { error: "#REF!" }, "#NAME?": { error: "#NAME?" }, "#DIV/0!": { error: "#DIV/0!" }, "#NULL!": { error: "#NULL!" }, "#VALUE!": { error: "#VALUE!" }, "#NUM!": { error: "#NUM!" } };
         t.exports = class {
@@ -7067,9 +7677,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "i");
           }
-          static {
-            __name2(this, "i");
-          }
           constructor(e2, t2) {
             let r2 = arguments.length > 2 && void 0 !== arguments[2] ? arguments[2] : 0;
             if (this.worksheet = e2, t2) if ("string" == typeof t2) {
@@ -7113,9 +7720,6 @@ var require_exceljs_min = __commonJS({
         class l {
           static {
             __name(this, "l");
-          }
-          static {
-            __name2(this, "l");
           }
           constructor(e2, t2, r2) {
             if (!e2 || !t2) throw new Error("A Cell needs a Row");
@@ -7311,12 +7915,9 @@ var require_exceljs_min = __commonJS({
           }
         }
         l.Types = s.ValueType;
-        const c = { getType: /* @__PURE__ */ __name2((e2) => null == e2 ? l.Types.Null : e2 instanceof String || "string" == typeof e2 ? l.Types.String : "number" == typeof e2 ? l.Types.Number : "boolean" == typeof e2 ? l.Types.Boolean : e2 instanceof Date ? l.Types.Date : e2.text && e2.hyperlink ? l.Types.Hyperlink : e2.formula || e2.sharedFormula ? l.Types.Formula : e2.richText ? l.Types.RichText : e2.sharedString ? l.Types.SharedString : e2.error ? l.Types.Error : l.Types.JSON, "getType"), types: [{ t: l.Types.Null, f: class {
+        const c = { getType: /* @__PURE__ */ __name((e2) => null == e2 ? l.Types.Null : e2 instanceof String || "string" == typeof e2 ? l.Types.String : "number" == typeof e2 ? l.Types.Number : "boolean" == typeof e2 ? l.Types.Boolean : e2 instanceof Date ? l.Types.Date : e2.text && e2.hyperlink ? l.Types.Hyperlink : e2.formula || e2.sharedFormula ? l.Types.Formula : e2.richText ? l.Types.RichText : e2.sharedString ? l.Types.SharedString : e2.error ? l.Types.Error : l.Types.JSON, "getType"), types: [{ t: l.Types.Null, f: class {
           static {
             __name(this, "f");
-          }
-          static {
-            __name2(this, "f");
           }
           constructor(e2) {
             this.model = { address: e2.address, type: l.Types.Null };
@@ -7349,9 +7950,6 @@ var require_exceljs_min = __commonJS({
         } }, { t: l.Types.Number, f: class {
           static {
             __name(this, "f");
-          }
-          static {
-            __name2(this, "f");
           }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.Number, value: t2 };
@@ -7386,9 +7984,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.String, value: t2 };
           }
@@ -7422,9 +8017,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.Date, value: t2 };
           }
@@ -7457,9 +8049,6 @@ var require_exceljs_min = __commonJS({
         } }, { t: l.Types.Hyperlink, f: class {
           static {
             __name(this, "f");
-          }
-          static {
-            __name2(this, "f");
           }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.Hyperlink, text: t2 ? t2.text : void 0, hyperlink: t2 ? t2.hyperlink : void 0 }, t2 && t2.tooltip && (this.model.tooltip = t2.tooltip);
@@ -7507,14 +8096,11 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.cell = e2, this.model = { address: e2.address, type: l.Types.Formula, shareType: t2 ? t2.shareType : void 0, ref: t2 ? t2.ref : void 0, formula: t2 ? t2.formula : void 0, sharedFormula: t2 ? t2.sharedFormula : void 0, result: t2 ? t2.result : void 0 };
           }
           _copyModel(e2) {
-            const t2 = {}, r2 = /* @__PURE__ */ __name2((r3) => {
+            const t2 = {}, r2 = /* @__PURE__ */ __name((r3) => {
               const n2 = e2[r3];
               n2 && (t2[r3] = n2);
             }, "r");
@@ -7589,9 +8175,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.Merge, master: t2 ? t2.address : void 0 }, this._master = t2, t2 && t2.addMergeRef();
           }
@@ -7632,9 +8215,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.String, value: JSON.stringify(t2), rawValue: t2 };
           }
@@ -7667,9 +8247,6 @@ var require_exceljs_min = __commonJS({
         } }, { t: l.Types.SharedString, f: class {
           static {
             __name(this, "f");
-          }
-          static {
-            __name2(this, "f");
           }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.SharedString, value: t2 };
@@ -7704,9 +8281,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.String, value: t2 };
           }
@@ -7740,9 +8314,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "f");
           }
-          static {
-            __name2(this, "f");
-          }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.Boolean, value: t2 };
           }
@@ -7775,9 +8346,6 @@ var require_exceljs_min = __commonJS({
         } }, { t: l.Types.Error, f: class {
           static {
             __name(this, "f");
-          }
-          static {
-            __name2(this, "f");
           }
           constructor(e2, t2) {
             this.model = { address: e2.address, type: l.Types.Error, value: t2 };
@@ -7820,9 +8388,6 @@ var require_exceljs_min = __commonJS({
         class o {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor(e2, t2, r2) {
             this._worksheet = e2, this._number = t2, false !== r2 && (this.defn = r2);
@@ -8046,8 +8611,7 @@ var require_exceljs_min = __commonJS({
               const o2 = e2.findCellAt(r2, i3, t2.col);
               return !(!o2 || !o2.mark) && (n2[s3] = i3, o2.mark = false, true);
             }
-            __name(a2, "a2");
-            __name2(a2, "a");
+            __name(a2, "a");
             for (s2 = t2.row - 1; a2(s2, "top"); s2--) ;
             for (s2 = t2.row + 1; a2(s2, "bottom"); s2++) ;
             function l(t3, i3) {
@@ -8062,7 +8626,6 @@ var require_exceljs_min = __commonJS({
               return true;
             }
             __name(l, "l");
-            __name2(l, "l");
             for (i2 = t2.col - 1; l(i2, "left"); i2--) ;
             for (i2 = t2.col + 1; l(i2, "right"); i2++) ;
             return n2;
@@ -8137,9 +8700,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "i");
           }
-          static {
-            __name2(this, "i");
-          }
           constructor(e2) {
             this.note = e2;
           }
@@ -8170,9 +8730,6 @@ var require_exceljs_min = __commonJS({
         class i {
           static {
             __name(this, "i");
-          }
-          static {
-            __name2(this, "i");
           }
           constructor() {
             this.decode(arguments);
@@ -8495,9 +9052,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "i");
           }
-          static {
-            __name2(this, "i");
-          }
           constructor(e2, t2, r2) {
             this.table = e2, this.column = t2, this.index = r2;
           }
@@ -8590,11 +9144,11 @@ var require_exceljs_min = __commonJS({
             return this.filterHeight + (this.table.totalsRow ? 1 : 0);
           }
           validate() {
-            const { table: e2 } = this, t2 = /* @__PURE__ */ __name2((e3, t3, r3) => {
+            const { table: e2 } = this, t2 = /* @__PURE__ */ __name((e3, t3, r3) => {
               void 0 === e3[t3] && (e3[t3] = r3);
             }, "t");
             t2(e2, "headerRow", true), t2(e2, "totalsRow", false), t2(e2, "style", {}), t2(e2.style, "theme", "TableStyleMedium2"), t2(e2.style, "showFirstColumn", false), t2(e2.style, "showLastColumn", false), t2(e2.style, "showRowStripes", false), t2(e2.style, "showColumnStripes", false);
-            const r2 = /* @__PURE__ */ __name2((e3, t3) => {
+            const r2 = /* @__PURE__ */ __name((e3, t3) => {
               if (!e3) throw new Error(t3);
             }, "r");
             r2(e2.ref, "Table must have ref"), r2(e2.columns, "Table must have column definitions"), r2(e2.rows, "Table must have row definitions"), e2.tl = n.decodeAddress(e2.ref);
@@ -8606,7 +9160,7 @@ var require_exceljs_min = __commonJS({
             });
           }
           store() {
-            const e2 = /* @__PURE__ */ __name2((e3, t3) => {
+            const e2 = /* @__PURE__ */ __name((e3, t3) => {
               t3 && Object.keys(t3).forEach((r3) => {
                 e3[r3] = t3[r3];
               });
@@ -9328,7 +9882,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "./col-cache": 19, "./under-dash": 26 }], 19: [function(e, t, r) {
         "use strict";
-        const n = /^[A-Z]+\d+$/, i = { _dictionary: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"], _l2nFill: 0, _l2n: {}, _n2l: [], _level: /* @__PURE__ */ __name2((e2) => e2 <= 26 ? 1 : e2 <= 676 ? 2 : 3, "_level"), _fill(e2) {
+        const n = /^[A-Z]+\d+$/, i = { _dictionary: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"], _l2nFill: 0, _l2n: {}, _n2l: [], _level: /* @__PURE__ */ __name((e2) => e2 <= 26 ? 1 : e2 <= 676 ? 2 : 3, "_level"), _fill(e2) {
           let t2, r2, n2, i2, s, o = 1;
           if (e2 >= 4) throw new Error("Out of bounds. Excel supports columns from 1 to 16384");
           if (this._l2nFill < 1 && e2 >= 1) {
@@ -9388,7 +9942,7 @@ var require_exceljs_min = __commonJS({
           if (n2.startsWith("#")) return r2 ? { sheetName: r2, error: n2 } : { error: n2 };
           const s = this.decodeAddress(n2);
           return r2 ? { sheetName: r2, ...s } : s;
-        }, encodeAddress: /* @__PURE__ */ __name2((e2, t2) => i.n2l(t2) + e2, "encodeAddress"), encode() {
+        }, encodeAddress: /* @__PURE__ */ __name((e2, t2) => i.n2l(t2) + e2, "encodeAddress"), encode() {
           switch (arguments.length) {
             case 2:
               return i.encodeAddress(arguments[0], arguments[1]);
@@ -9404,7 +9958,7 @@ var require_exceljs_min = __commonJS({
         t.exports = i;
       }, {}], 20: [function(e, t, r) {
         "use strict";
-        const n = /* @__PURE__ */ __name2((e2, t2) => ({ ...e2, ...t2.reduce((t3, r2) => (e2[r2] && (t3[r2] = { ...e2[r2] }), t3), {}) }), "n"), i = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        const n = /* @__PURE__ */ __name((e2, t2) => ({ ...e2, ...t2.reduce((t3, r2) => (e2[r2] && (t3[r2] = { ...e2[r2] }), t3), {}) }), "n"), i = /* @__PURE__ */ __name(function(e2, t2, r2) {
           let i2 = arguments.length > 3 && void 0 !== arguments[3] ? arguments[3] : [];
           e2[r2] && (t2[r2] = n(e2[r2], i2));
         }, "i");
@@ -9433,7 +9987,7 @@ var require_exceljs_min = __commonJS({
                 n2.writeUInt32LE(e3, 0), a = this.hash(t2, a, n2);
               }
               return a.toString("base64");
-            }, randomBytes: /* @__PURE__ */ __name2((e2) => n.randomBytes(e2), "randomBytes") };
+            }, randomBytes: /* @__PURE__ */ __name((e2) => n.randomBytes(e2), "randomBytes") };
             t.exports = i;
           }).call(this);
         }).call(this, e("buffer").Buffer);
@@ -9457,7 +10011,7 @@ var require_exceljs_min = __commonJS({
       }, { "./browser-buffer-decode": 16, "readable-stream": 491, saxes: 496 }], 23: [function(e, t, r) {
         "use strict";
         const n = e("./col-cache"), i = /(([a-z_\-0-9]*)!)?([a-z0-9_$]{2,})([(])?/gi, s = /^([$])?([a-z]+)([$])?([1-9][0-9]*)$/i;
-        t.exports = { slideFormula: /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        t.exports = { slideFormula: /* @__PURE__ */ __name(function(e2, t2, r2) {
           const o = n.decode(t2), a = n.decode(r2);
           return e2.replace(i, (e3, t3, r3, i2, l) => {
             if (l) return e3;
@@ -9481,9 +10035,6 @@ var require_exceljs_min = __commonJS({
               static {
                 __name(this, "a");
               }
-              static {
-                __name2(this, "a");
-              }
               constructor(e2, t2) {
                 this._data = e2, this._encoding = t2;
               }
@@ -9500,9 +10051,6 @@ var require_exceljs_min = __commonJS({
             class l {
               static {
                 __name(this, "l");
-              }
-              static {
-                __name2(this, "l");
               }
               constructor(e2) {
                 this._data = e2;
@@ -9521,9 +10069,6 @@ var require_exceljs_min = __commonJS({
               static {
                 __name(this, "c");
               }
-              static {
-                __name2(this, "c");
-              }
               constructor(e2) {
                 this._data = e2;
               }
@@ -9540,9 +10085,6 @@ var require_exceljs_min = __commonJS({
             class u {
               static {
                 __name(this, "u");
-              }
-              static {
-                __name2(this, "u");
               }
               constructor(e2) {
                 this.size = e2, this.buffer = n.alloc(e2), this.iRead = 0, this.iWrite = 0;
@@ -9570,7 +10112,7 @@ var require_exceljs_min = __commonJS({
                 return e2.copy(this.buffer, this.iWrite, t2, t2 + n2), this.iWrite += n2, n2;
               }
             }
-            const h = /* @__PURE__ */ __name2(function(e2) {
+            const h = /* @__PURE__ */ __name(function(e2) {
               e2 = e2 || {}, this.bufSize = e2.bufSize || 1048576, this.buffers = [], this.batch = e2.batch || false, this.corked = false, this.inPos = 0, this.outPos = 0, this.pipes = [], this.paused = false, this.encoding = null;
             }, "h");
             s.inherits(h, i.Duplex, { toBuffer() {
@@ -9622,7 +10164,7 @@ var require_exceljs_min = __commonJS({
             }, uncork() {
               this.corked = false, this._flush();
             }, end(e2, t2, r3) {
-              const n2 = /* @__PURE__ */ __name2((e3) => {
+              const n2 = /* @__PURE__ */ __name((e3) => {
                 e3 ? r3(e3) : (this._flush(), this.pipes.forEach((e4) => {
                   e4.end();
                 }), this.emit("finish"));
@@ -9700,17 +10242,17 @@ var require_exceljs_min = __commonJS({
         }).call(this, e("buffer").Buffer);
       }, { buffer: 220 }], 26: [function(e, t, r) {
         "use strict";
-        const { toString: n } = Object.prototype, i = /["&<>]/, s = { each: /* @__PURE__ */ __name2(function(e2, t2) {
+        const { toString: n } = Object.prototype, i = /["&<>]/, s = { each: /* @__PURE__ */ __name(function(e2, t2) {
           e2 && (Array.isArray(e2) ? e2.forEach(t2) : Object.keys(e2).forEach((r2) => {
             t2(e2[r2], r2);
           }));
-        }, "each"), some: /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "each"), some: /* @__PURE__ */ __name(function(e2, t2) {
           return !!e2 && (Array.isArray(e2) ? e2.some(t2) : Object.keys(e2).some((r2) => t2(e2[r2], r2)));
-        }, "some"), every: /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "some"), every: /* @__PURE__ */ __name(function(e2, t2) {
           return !e2 || (Array.isArray(e2) ? e2.every(t2) : Object.keys(e2).every((r2) => t2(e2[r2], r2)));
-        }, "every"), map: /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "every"), map: /* @__PURE__ */ __name(function(e2, t2) {
           return e2 ? Array.isArray(e2) ? e2.map(t2) : Object.keys(e2).map((r2) => t2(e2[r2], r2)) : [];
-        }, "map"), keyBy: /* @__PURE__ */ __name2((e2, t2) => e2.reduce((e3, r2) => (e3[r2[t2]] = r2, e3), {}), "keyBy"), isEqual: /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "map"), keyBy: /* @__PURE__ */ __name((e2, t2) => e2.reduce((e3, r2) => (e3[r2[t2]] = r2, e3), {}), "keyBy"), isEqual: /* @__PURE__ */ __name(function(e2, t2) {
           const r2 = typeof e2, n2 = typeof t2, i2 = Array.isArray(e2), o = Array.isArray(t2);
           let a;
           if (r2 !== n2) return false;
@@ -9757,14 +10299,13 @@ var require_exceljs_min = __commonJS({
             s2 !== o && (r2 += e2.substring(s2, o)), s2 = o + 1, r2 += n2;
           }
           return s2 !== o ? r2 + e2.substring(s2, o) : r2;
-        }, strcmp: /* @__PURE__ */ __name2((e2, t2) => e2 < t2 ? -1 : e2 > t2 ? 1 : 0, "strcmp"), isUndefined: /* @__PURE__ */ __name2((e2) => "[object Undefined]" === n.call(e2), "isUndefined"), isObject: /* @__PURE__ */ __name2((e2) => "[object Object]" === n.call(e2), "isObject"), deepMerge() {
+        }, strcmp: /* @__PURE__ */ __name((e2, t2) => e2 < t2 ? -1 : e2 > t2 ? 1 : 0, "strcmp"), isUndefined: /* @__PURE__ */ __name((e2) => "[object Undefined]" === n.call(e2), "isUndefined"), isObject: /* @__PURE__ */ __name((e2) => "[object Object]" === n.call(e2), "isObject"), deepMerge() {
           const e2 = arguments[0] || {}, { length: t2 } = arguments;
           let r2, n2, i2;
           function o(t3, o2) {
             r2 = e2[o2], i2 = Array.isArray(t3), s.isObject(t3) || i2 ? (i2 ? (i2 = false, n2 = r2 && Array.isArray(r2) ? r2 : []) : n2 = r2 && s.isObject(r2) ? r2 : {}, e2[o2] = s.deepMerge(n2, t3)) : s.isUndefined(t3) || (e2[o2] = t3);
           }
           __name(o, "o");
-          __name2(o, "o");
           for (let e3 = 0; e3 < t2; e3++) s.each(arguments[e3], o);
           return e2;
         } };
@@ -9774,13 +10315,13 @@ var require_exceljs_min = __commonJS({
           (function() {
             "use strict";
             const i = e("fs"), s = /[<>&'"\x7F\x00-\x08\x0B-\x0C\x0E-\x1F]/, o = { nop() {
-            }, promiseImmediate: /* @__PURE__ */ __name2((e2) => new Promise((t2) => {
+            }, promiseImmediate: /* @__PURE__ */ __name((e2) => new Promise((t2) => {
               r2.setImmediate ? n(() => {
                 t2(e2);
               }) : setTimeout(() => {
                 t2(e2);
               }, 1);
-            }), "promiseImmediate"), inherits: /* @__PURE__ */ __name2(function(e2, t2, r3, n2) {
+            }), "promiseImmediate"), inherits: /* @__PURE__ */ __name(function(e2, t2, r3, n2) {
               e2.super_ = t2, n2 || (n2 = r3, r3 = null), r3 && Object.keys(r3).forEach((t3) => {
                 Object.defineProperty(e2, t3, Object.getOwnPropertyDescriptor(r3, t3));
               });
@@ -9788,7 +10329,7 @@ var require_exceljs_min = __commonJS({
               n2 && Object.keys(n2).forEach((e3) => {
                 i2[e3] = Object.getOwnPropertyDescriptor(n2, e3);
               }), e2.prototype = Object.create(t2.prototype, i2);
-            }, "inherits"), dateToExcel: /* @__PURE__ */ __name2((e2, t2) => 25569 + e2.getTime() / 864e5 - (t2 ? 1462 : 0), "dateToExcel"), excelToDate(e2, t2) {
+            }, "inherits"), dateToExcel: /* @__PURE__ */ __name((e2, t2) => 25569 + e2.getTime() / 864e5 - (t2 ? 1462 : 0), "dateToExcel"), excelToDate(e2, t2) {
               const r3 = Math.round(24 * (e2 - 25569 + (t2 ? 1462 : 0)) * 3600 * 1e3);
               return new Date(r3);
             }, parsePath(e2) {
@@ -9832,7 +10373,7 @@ var require_exceljs_min = __commonJS({
                 i2 !== o2 && (r3 += e2.substring(i2, o2)), i2 = o2 + 1, n2 && (r3 += n2);
               }
               return i2 !== o2 ? r3 + e2.substring(i2, o2) : r3;
-            }, xmlDecode: /* @__PURE__ */ __name2((e2) => e2.replace(/&([a-z]*);/g, (e3) => {
+            }, xmlDecode: /* @__PURE__ */ __name((e2) => e2.replace(/&([a-z]*);/g, (e3) => {
               switch (e3) {
                 case "&lt;":
                   return "<";
@@ -9853,11 +10394,11 @@ var require_exceljs_min = __commonJS({
             }, isDateFmt(e2) {
               if (!e2) return false;
               return null !== (e2 = (e2 = e2.replace(/\[[^\]]*]/g, "")).replace(/"[^"]*"/g, "")).match(/[ymdhMsb]+/);
-            }, fs: { exists: /* @__PURE__ */ __name2((e2) => new Promise((t2) => {
+            }, fs: { exists: /* @__PURE__ */ __name((e2) => new Promise((t2) => {
               i.access(e2, i.constants.F_OK, (e3) => {
                 t2(!e3);
               });
-            }), "exists") }, toIsoDateString: /* @__PURE__ */ __name2((e2) => e2.toIsoString().subsstr(0, 10), "toIsoDateString"), parseBoolean: /* @__PURE__ */ __name2((e2) => true === e2 || "true" === e2 || 1 === e2 || "1" === e2, "parseBoolean") };
+            }), "exists") }, toIsoDateString: /* @__PURE__ */ __name((e2) => e2.toIsoString().subsstr(0, 10), "toIsoDateString"), parseBoolean: /* @__PURE__ */ __name((e2) => true === e2 || "true" === e2 || 1 === e2 || "1" === e2, "parseBoolean") };
             t.exports = o;
           }).call(this);
         }).call(this, "undefined" != typeof global ? global : "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e("timers").setImmediate);
@@ -9868,7 +10409,6 @@ var require_exceljs_min = __commonJS({
           e2.push(` ${t2}="${i.xmlEncode(r2.toString())}"`);
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2) {
           if (t2) {
             const r2 = [];
@@ -9878,13 +10418,9 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(o, "o");
-        __name2(o, "o");
         class a {
           static {
             __name(this, "a");
-          }
-          static {
-            __name2(this, "a");
           }
           constructor() {
             this._xml = [], this._stack = [], this._rollbacks = [];
@@ -9952,9 +10488,6 @@ var require_exceljs_min = __commonJS({
               static {
                 __name(this, "a");
               }
-              static {
-                __name2(this, "a");
-              }
               constructor(e2) {
                 super(), this.options = Object.assign({ type: "nodebuffer", compression: "DEFLATE" }, e2), this.zip = new i(), this.stream = new s();
               }
@@ -10008,9 +10541,6 @@ var require_exceljs_min = __commonJS({
         class s {
           static {
             __name(this, "s");
-          }
-          static {
-            __name2(this, "s");
           }
           prepare() {
           }
@@ -10097,7 +10627,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2) {
           const t2 = [];
           let r2 = false, n2 = "";
@@ -10110,7 +10639,6 @@ var require_exceljs_min = __commonJS({
           }), t2;
         }
         __name(o, "o");
-        __name2(o, "o");
         t.exports = class extends n {
           render(e2, t2) {
             e2.openNode("definedName", { name: t2.name, localSheetId: t2.localSheetId }), e2.writeText(t2.ranges.join(",")), e2.closeNode();
@@ -10188,10 +10716,10 @@ var require_exceljs_min = __commonJS({
           }
           parseOpen(e2) {
             if ("workbookView" === e2.name) {
-              const t2 = this.model = {}, r2 = /* @__PURE__ */ __name2(function(e3, r3, n3) {
+              const t2 = this.model = {}, r2 = /* @__PURE__ */ __name(function(e3, r3, n3) {
                 const i = void 0 !== r3 ? t2[e3] = r3 : n3;
                 void 0 !== i && (t2[e3] = i);
-              }, "r"), n2 = /* @__PURE__ */ __name2(function(e3, r3, n3) {
+              }, "r"), n2 = /* @__PURE__ */ __name(function(e3, r3, n3) {
                 const i = void 0 !== r3 ? t2[e3] = parseInt(r3, 10) : n3;
                 void 0 !== i && (t2[e3] = i);
               }, "n");
@@ -10211,9 +10739,6 @@ var require_exceljs_min = __commonJS({
         class p extends o {
           static {
             __name(this, "p");
-          }
-          static {
-            __name2(this, "p");
           }
           constructor() {
             super(), this.map = { fileVersion: p.STATIC_XFORMS.fileVersion, workbookPr: new f(), bookViews: new l({ tag: "bookViews", count: false, childXform: new h() }), sheets: new l({ tag: "sheets", count: false, childXform: new u() }), definedNames: new l({ tag: "definedNames", count: false, childXform: new c() }), calcPr: new d() };
@@ -10507,9 +11032,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "o");
           }
-          static {
-            __name2(this, "o");
-          }
           constructor() {
             super(), this.map = { "v:shape": new s() };
           }
@@ -10557,9 +11079,6 @@ var require_exceljs_min = __commonJS({
         class o extends n {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor() {
             super(), this.map = { "v:textbox": new i(), "x:ClientData": new s() };
@@ -10696,9 +11215,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "l");
           }
-          static {
-            __name2(this, "l");
-          }
           constructor() {
             super(), this.map = { Company: new s({ tag: "Company" }), Manager: new s({ tag: "Manager" }), HeadingPairs: new o(), TitleOfParts: new a() };
           }
@@ -10737,9 +11253,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "s");
           }
-          static {
-            __name2(this, "s");
-          }
           render(e2, t2) {
             e2.openXml(n.StdDocAttributes), e2.openNode("Types", s.PROPERTY_ATTRIBUTES);
             const r2 = {};
@@ -10777,9 +11290,6 @@ var require_exceljs_min = __commonJS({
         class l extends i {
           static {
             __name(this, "l");
-          }
-          static {
-            __name2(this, "l");
           }
           constructor() {
             super(), this.map = { "dc:creator": new o({ tag: "dc:creator" }), "dc:title": new o({ tag: "dc:title" }), "dc:subject": new o({ tag: "dc:subject" }), "dc:description": new o({ tag: "dc:description" }), "dc:identifier": new o({ tag: "dc:identifier" }), "dc:language": new o({ tag: "dc:language" }), "cp:keywords": new o({ tag: "cp:keywords" }), "cp:category": new o({ tag: "cp:category" }), "cp:lastModifiedBy": new o({ tag: "cp:lastModifiedBy" }), "cp:lastPrinted": new s({ tag: "cp:lastPrinted", format: l.DateFormat }), "cp:revision": new a({ tag: "cp:revision" }), "cp:version": new o({ tag: "cp:version" }), "cp:contentStatus": new o({ tag: "cp:contentStatus" }), "cp:contentType": new o({ tag: "cp:contentType" }), "dcterms:created": new s({ tag: "dcterms:created", attrs: l.DateAttrs, format: l.DateFormat }), "dcterms:modified": new s({ tag: "dcterms:modified", attrs: l.DateAttrs, format: l.DateFormat }) };
@@ -10842,9 +11352,6 @@ var require_exceljs_min = __commonJS({
         class o extends i {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor() {
             super(), this.map = { Relationship: new s() };
@@ -11075,9 +11582,6 @@ var require_exceljs_min = __commonJS({
         class l extends s {
           static {
             __name(this, "l");
-          }
-          static {
-            __name2(this, "l");
           }
           constructor() {
             super(), this.map = { "xdr:twoCellAnchor": new o(), "xdr:oneCellAnchor": new a() };
@@ -11397,7 +11901,7 @@ var require_exceljs_min = __commonJS({
           render(e2, t2) {
             if (t2) if ("string" == typeof t2) e2.leafNode("autoFilter", { ref: t2 });
             else {
-              const r2 = /* @__PURE__ */ __name2(function(e3) {
+              const r2 = /* @__PURE__ */ __name(function(e3) {
                 return "string" == typeof e3 ? e3 : n.getAddress(e3.row, e3.column).address;
               }, "r"), i2 = r2(t2.from), s = r2(t2.to);
               i2 && s && e2.leafNode("autoFilter", { ref: `${i2}:${s}` });
@@ -11422,7 +11926,6 @@ var require_exceljs_min = __commonJS({
           throw new Error("I could not understand type of value");
         }
         __name(l, "l");
-        __name2(l, "l");
         t.exports = class extends i {
           constructor() {
             super(), this.richTextXForm = new a();
@@ -11640,9 +12143,6 @@ var require_exceljs_min = __commonJS({
         class c extends s {
           static {
             __name(this, "c");
-          }
-          static {
-            __name2(this, "c");
           }
           constructor() {
             super(), this.map = { "x14:dataBar": this.databarXform = new o(), "x14:iconSet": this.iconSetXform = new a() };
@@ -11872,7 +12372,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../../base-xform": 32 }], 83: [function(e, t, r) {
         "use strict";
-        const n = e("../../base-xform"), i = e("../../composite-xform"), s = e("../../../../doc/range"), o = e("./databar-xform"), a = e("./ext-lst-ref-xform"), l = e("./formula-xform"), c = e("./color-scale-xform"), u = e("./icon-set-xform"), h = { "3Triangles": true, "3Stars": true, "5Boxes": true }, f = /* @__PURE__ */ __name2((e2) => {
+        const n = e("../../base-xform"), i = e("../../composite-xform"), s = e("../../../../doc/range"), o = e("./databar-xform"), a = e("./ext-lst-ref-xform"), l = e("./formula-xform"), c = e("./color-scale-xform"), u = e("./icon-set-xform"), h = { "3Triangles": true, "3Stars": true, "5Boxes": true }, f = /* @__PURE__ */ __name((e2) => {
           const { type: t2, operator: r2 } = e2;
           switch (t2) {
             case "containsText":
@@ -11888,9 +12388,6 @@ var require_exceljs_min = __commonJS({
         class d extends i {
           static {
             __name(this, "d");
-          }
-          static {
-            __name2(this, "d");
           }
           constructor() {
             super(), this.map = { dataBar: this.databarXform = new o(), extLst: this.extLstRefXform = new a(), formula: this.formulaXform = new l(), colorScale: this.colorScaleXform = new c(), iconSet: this.iconSetXform = new u() };
@@ -12174,9 +12671,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "s");
           }
-          static {
-            __name2(this, "s");
-          }
           get tag() {
             return "x14:id";
           }
@@ -12196,9 +12690,6 @@ var require_exceljs_min = __commonJS({
         class o extends i {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor() {
             super(), this.map = { "x14:id": this.idXform = new s() };
@@ -12314,20 +12805,18 @@ var require_exceljs_min = __commonJS({
           void 0 !== i2 ? e2[r2] = i2 : void 0 !== n2 && (e2[r2] = n2);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2, n2) {
           const s2 = t2[r2];
           void 0 !== s2 ? e2[r2] = i.parseBoolean(s2) : void 0 !== n2 && (e2[r2] = n2);
         }
         __name(c, "c");
-        __name2(c, "c");
         t.exports = class extends o {
           get tag() {
             return "dataValidations";
           }
           render(e2, t2) {
             const r2 = (function(e3) {
-              const t3 = n.map(e3, (e4, t4) => ({ address: t4, dataValidation: e4, marked: false })).sort((e4, t4) => n.strcmp(e4.address, t4.address)), r3 = n.keyBy(t3, "address"), i2 = /* @__PURE__ */ __name2((t4, r4, i3) => {
+              const t3 = n.map(e3, (e4, t4) => ({ address: t4, dataValidation: e4, marked: false })).sort((e4, t4) => n.strcmp(e4.address, t4.address)), r3 = n.keyBy(t3, "address"), i2 = /* @__PURE__ */ __name((t4, r4, i3) => {
                 for (let o2 = 0; o2 < r4; o2++) {
                   const r5 = s.encodeAddress(t4.row + o2, i3);
                   if (!e3[r5] || !n.isEqual(e3[t4.address], e3[r5])) return false;
@@ -12468,9 +12957,6 @@ var require_exceljs_min = __commonJS({
         class s extends n {
           static {
             __name(this, "s");
-          }
-          static {
-            __name2(this, "s");
           }
           constructor() {
             super(), this.map = { "x14:conditionalFormattings": this.conditionalFormattings = new i() };
@@ -12663,7 +13149,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../../../doc/enums": 7, "../../../doc/range": 10, "../../../utils/col-cache": 19, "../../../utils/under-dash": 26 }], 101: [function(e, t, r) {
         "use strict";
-        const n = e("../base-xform"), i = /* @__PURE__ */ __name2((e2) => void 0 !== e2, "i");
+        const n = e("../base-xform"), i = /* @__PURE__ */ __name((e2) => void 0 !== e2, "i");
         t.exports = class extends n {
           get tag() {
             return "outlinePr";
@@ -12752,7 +13238,6 @@ var require_exceljs_min = __commonJS({
           return e2 ? "1" : void 0;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2) {
           switch (e2) {
             case "overThenDown":
@@ -12762,7 +13247,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(o, "o");
-        __name2(o, "o");
         function a(e2) {
           switch (e2) {
             case "atEnd":
@@ -12773,7 +13257,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2) {
           switch (e2) {
             case "dash":
@@ -12785,7 +13268,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(l, "l");
-        __name2(l, "l");
         t.exports = class extends i {
           get tag() {
             return "pageSetup";
@@ -12842,7 +13324,6 @@ var require_exceljs_min = __commonJS({
           return e2 ? "1" : void 0;
         }
         __name(s, "s");
-        __name2(s, "s");
         t.exports = class extends i {
           get tag() {
             return "printOptions";
@@ -12995,12 +13476,10 @@ var require_exceljs_min = __commonJS({
           return e2 ? t2 : void 0;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2) {
           return e2 === t2 || void 0;
         }
         __name(o, "o");
-        __name2(o, "o");
         t.exports = class extends i {
           get tag() {
             return "sheetProtection";
@@ -13043,7 +13522,7 @@ var require_exceljs_min = __commonJS({
           }
           render(e2, t2) {
             e2.openNode("sheetView", { workbookViewId: t2.workbookViewId || 0 });
-            const r2 = /* @__PURE__ */ __name2(function(t3, r3, n2) {
+            const r2 = /* @__PURE__ */ __name(function(t3, r3, n2) {
               n2 && e2.addAttribute(t3, r3);
             }, "r");
             let i2, s2, o, a;
@@ -13113,7 +13592,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../base-xform": 32 }], 115: [function(e, t, r) {
         "use strict";
-        const n = e("../../../utils/under-dash"), i = e("../../../utils/col-cache"), s = e("../../../utils/xml-stream"), o = e("../../rel-type"), a = e("./merges"), l = e("../base-xform"), c = e("../list-xform"), u = e("./row-xform"), h = e("./col-xform"), f = e("./dimension-xform"), d = e("./hyperlink-xform"), p = e("./merge-cell-xform"), m = e("./data-validations-xform"), b = e("./sheet-properties-xform"), g = e("./sheet-format-properties-xform"), y = e("./sheet-view-xform"), v = e("./sheet-protection-xform"), w = e("./page-margins-xform"), _ = e("./page-setup-xform"), x = e("./print-options-xform"), k = e("./auto-filter-xform"), S = e("./picture-xform"), M = e("./drawing-xform"), C = e("./table-part-xform"), T = e("./row-breaks-xform"), E = e("./header-footer-xform"), A = e("./cf/conditional-formattings-xform"), R = e("./ext-lst-xform"), O = /* @__PURE__ */ __name2((e2, t2) => {
+        const n = e("../../../utils/under-dash"), i = e("../../../utils/col-cache"), s = e("../../../utils/xml-stream"), o = e("../../rel-type"), a = e("./merges"), l = e("../base-xform"), c = e("../list-xform"), u = e("./row-xform"), h = e("./col-xform"), f = e("./dimension-xform"), d = e("./hyperlink-xform"), p = e("./merge-cell-xform"), m = e("./data-validations-xform"), b = e("./sheet-properties-xform"), g = e("./sheet-format-properties-xform"), y = e("./sheet-view-xform"), v = e("./sheet-protection-xform"), w = e("./page-margins-xform"), _ = e("./page-setup-xform"), x = e("./print-options-xform"), k = e("./auto-filter-xform"), S = e("./picture-xform"), M = e("./drawing-xform"), C = e("./table-part-xform"), T = e("./row-breaks-xform"), E = e("./header-footer-xform"), A = e("./cf/conditional-formattings-xform"), R = e("./ext-lst-xform"), O = /* @__PURE__ */ __name((e2, t2) => {
           if (!t2 || !t2.length) return e2;
           if (!e2 || !e2.length) return t2;
           const r2 = {}, n2 = {};
@@ -13138,9 +13617,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "j");
           }
-          static {
-            __name2(this, "j");
-          }
           constructor(e2) {
             super();
             const { maxRows: t2, maxCols: r2, ignoreNodes: n2 } = e2 || {};
@@ -13152,8 +13628,7 @@ var require_exceljs_min = __commonJS({
             function n2(e3) {
               return "rId" + (e3.length + 1);
             }
-            __name(n2, "n2");
-            __name2(n2, "n");
+            __name(n2, "n");
             if (e2.hyperlinks.forEach((e3) => {
               const t3 = n2(r2);
               e3.rId = t3, r2.push({ Id: t3, Type: o.Hyperlink, Target: e3.target, TargetMode: "External" });
@@ -13354,11 +13829,11 @@ var require_exceljs_min = __commonJS({
           render(e2) {
             if (!this._xml) {
               const e3 = new i();
-              !(/* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e4(t2, r2) {
+              !(/* @__PURE__ */ __name(function e4(t2, r2) {
                 t2.openNode(r2.tag, r2.$), r2.c && r2.c.forEach((r3) => {
                   e4(t2, r3);
                 }), r2.t && t2.writeText(r2.t), t2.closeNode();
-              }, "e4"), "e"))(e3, this._model), this._xml = e3.xml;
+              }, "e"))(e3, this._model), this._xml = e3.xml;
             }
             e2.writeXml(this._xml);
           }
@@ -13432,9 +13907,6 @@ var require_exceljs_min = __commonJS({
         class o extends s {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor(e2) {
             super(), this.model = e2;
@@ -13626,14 +14098,14 @@ var require_exceljs_min = __commonJS({
           return this.horizontalValues[e2] ? e2 : void 0;
         }, verticalValues: ["top", "middle", "bottom", "distributed", "justify"].reduce((e2, t2) => (e2[t2] = true, e2), {}), vertical(e2) {
           return "middle" === e2 ? "center" : this.verticalValues[e2] ? e2 : void 0;
-        }, wrapText: /* @__PURE__ */ __name2((e2) => !!e2 || void 0, "wrapText"), shrinkToFit: /* @__PURE__ */ __name2((e2) => !!e2 || void 0, "shrinkToFit"), textRotation(e2) {
+        }, wrapText: /* @__PURE__ */ __name((e2) => !!e2 || void 0, "wrapText"), shrinkToFit: /* @__PURE__ */ __name((e2) => !!e2 || void 0, "shrinkToFit"), textRotation(e2) {
           switch (e2) {
             case "vertical":
               return e2;
             default:
               return (e2 = i.validInt(e2)) >= -90 && e2 <= 90 ? e2 : void 0;
           }
-        }, indent: /* @__PURE__ */ __name2((e2) => (e2 = i.validInt(e2), Math.max(0, e2)), "indent"), readingOrder(e2) {
+        }, indent: /* @__PURE__ */ __name((e2) => (e2 = i.validInt(e2), Math.max(0, e2)), "indent"), readingOrder(e2) {
           switch (e2) {
             case "ltr":
               return n.ReadingOrder.LeftToRight;
@@ -13667,8 +14139,7 @@ var require_exceljs_min = __commonJS({
             function n2(t3, n3) {
               n3 && (e2.addAttribute(t3, n3), r2 = true);
             }
-            __name(n2, "n2");
-            __name2(n2, "n");
+            __name(n2, "n");
             n2("horizontal", o.horizontal(t2.horizontal)), n2("vertical", o.vertical(t2.vertical)), n2("wrapText", !!o.wrapText(t2.wrapText) && "1"), n2("shrinkToFit", !!o.shrinkToFit(t2.shrinkToFit) && "1"), n2("indent", o.indent(t2.indent)), n2("textRotation", a.toXml(t2.textRotation)), n2("readingOrder", o.readingOrder(t2.readingOrder)), e2.closeNode(), r2 ? e2.commit() : e2.rollback();
           }
           parseOpen(e2) {
@@ -13677,8 +14148,7 @@ var require_exceljs_min = __commonJS({
             function n2(e3, n3, i2) {
               e3 && (t2[n3] = i2, r2 = true);
             }
-            __name(n2, "n2");
-            __name2(n2, "n");
+            __name(n2, "n");
             n2(e2.attributes.horizontal, "horizontal", e2.attributes.horizontal), n2(e2.attributes.vertical, "vertical", "center" === e2.attributes.vertical ? "middle" : e2.attributes.vertical), n2(e2.attributes.wrapText, "wrapText", i.parseBoolean(e2.attributes.wrapText)), n2(e2.attributes.shrinkToFit, "shrinkToFit", i.parseBoolean(e2.attributes.shrinkToFit)), n2(e2.attributes.indent, "indent", parseInt(e2.attributes.indent, 10)), n2(e2.attributes.textRotation, "textRotation", a.toModel(e2.attributes.textRotation)), n2(e2.attributes.readingOrder, "readingOrder", "2" === e2.attributes.readingOrder ? "rtl" : "ltr"), this.model = r2 ? t2 : null;
           }
           parseText() {
@@ -13693,9 +14163,6 @@ var require_exceljs_min = __commonJS({
         class o extends n {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor(e2) {
             super(), this.name = e2, this.map = { color: new s() };
@@ -13740,8 +14207,7 @@ var require_exceljs_min = __commonJS({
             function n2(n3, i2) {
               n3 && !n3.color && t2.color && (n3 = { ...n3, color: t2.color }), i2.render(e2, n3, r2);
             }
-            __name(n2, "n2");
-            __name2(n2, "n");
+            __name(n2, "n");
             e2.openNode("border"), t2.diagonal && t2.diagonal.style && (t2.diagonal.up && e2.addAttribute("diagonalUp", "1"), t2.diagonal.down && e2.addAttribute("diagonalDown", "1")), n2(t2.left, this.map.left), n2(t2.right, this.map.right), n2(t2.top, this.map.top), n2(t2.bottom, this.map.bottom), n2(t2.diagonal, this.map.diagonal), e2.closeNode();
           }
           parseOpen(e2) {
@@ -13759,7 +14225,7 @@ var require_exceljs_min = __commonJS({
           parseClose(e2) {
             if (this.parser) return this.parser.parseClose(e2) || (this.parser = void 0), true;
             if ("border" === e2) {
-              const e3 = this.model = {}, t2 = /* @__PURE__ */ __name2(function(t3, r2, n2) {
+              const e3 = this.model = {}, t2 = /* @__PURE__ */ __name(function(t3, r2, n2) {
                 r2 && (n2 && Object.assign(r2, n2), e3[t3] = r2);
               }, "t");
               t2("left", this.map.left.model), t2("right", this.map.right.model), t2("top", this.map.top.model), t2("bottom", this.map.bottom.model), t2("diagonal", this.map.diagonal.model, { up: this.diagonalUp, down: this.diagonalDown });
@@ -13829,9 +14295,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "s");
           }
-          static {
-            __name2(this, "s");
-          }
           constructor() {
             super(), this.map = { color: new i() };
           }
@@ -13861,9 +14324,6 @@ var require_exceljs_min = __commonJS({
         class o extends n {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor() {
             super(), this.map = { fgColor: new i("fgColor"), bgColor: new i("bgColor") };
@@ -13896,9 +14356,6 @@ var require_exceljs_min = __commonJS({
         class a extends n {
           static {
             __name(this, "a");
-          }
-          static {
-            __name2(this, "a");
           }
           constructor() {
             super(), this.map = { stop: new s() };
@@ -13946,9 +14403,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "l");
           }
-          static {
-            __name2(this, "l");
-          }
           constructor() {
             super(), this.map = { patternFill: new o(), gradientFill: new a() };
           }
@@ -13994,9 +14448,6 @@ var require_exceljs_min = __commonJS({
         class u extends c {
           static {
             __name(this, "u");
-          }
-          static {
-            __name2(this, "u");
           }
           constructor(e2) {
             super(), this.options = e2 || u.OPTIONS, this.map = { b: { prop: "bold", xform: new i({ tag: "b", attr: "val" }) }, i: { prop: "italic", xform: new i({ tag: "i", attr: "val" }) }, u: { prop: "underline", xform: new a() }, charset: { prop: "charset", xform: new s({ tag: "charset", attr: "val" }) }, color: { prop: "color", xform: new n() }, condense: { prop: "condense", xform: new i({ tag: "condense", attr: "val" }) }, extend: { prop: "extend", xform: new i({ tag: "extend", attr: "val" }) }, family: { prop: "family", xform: new s({ tag: "family", attr: "val" }) }, outline: { prop: "outline", xform: new i({ tag: "outline", attr: "val" }) }, vertAlign: { prop: "vertAlign", xform: new o({ tag: "vertAlign", attr: "val" }) }, scheme: { prop: "scheme", xform: new o({ tag: "scheme", attr: "val" }) }, shadow: { prop: "shadow", xform: new i({ tag: "shadow", attr: "val" }) }, strike: { prop: "strike", xform: new i({ tag: "strike", attr: "val" }) }, sz: { prop: "size", xform: new s({ tag: "sz", attr: "val" }) } }, this.map[this.options.fontNameTag] = { prop: "name", xform: new o({ tag: this.options.fontNameTag, attr: "val" }) };
@@ -14050,9 +14501,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "a");
           }
-          static {
-            __name2(this, "a");
-          }
           constructor(e2, t2) {
             super(), this.id = e2, this.formatCode = t2;
           }
@@ -14083,7 +14531,7 @@ var require_exceljs_min = __commonJS({
         }, t.exports = a;
       }, { "../../../utils/under-dash": 26, "../../defaultnumformats": 30, "../base-xform": 32 }], 133: [function(e, t, r) {
         "use strict";
-        const n = e("../base-xform"), i = { boolean: /* @__PURE__ */ __name2((e2, t2) => void 0 === e2 ? t2 : e2, "boolean") };
+        const n = e("../base-xform"), i = { boolean: /* @__PURE__ */ __name((e2, t2) => void 0 === e2 ? t2 : e2, "boolean") };
         t.exports = class extends n {
           get tag() {
             return "protection";
@@ -14094,8 +14542,7 @@ var require_exceljs_min = __commonJS({
             function n2(t3, n3) {
               void 0 !== n3 && (e2.addAttribute(t3, n3), r2 = true);
             }
-            __name(n2, "n2");
-            __name2(n2, "n");
+            __name(n2, "n");
             n2("locked", i.boolean(t2.locked, true) ? void 0 : "0"), n2("hidden", i.boolean(t2.hidden, false) ? "1" : void 0), e2.closeNode(), r2 ? e2.commit() : e2.rollback();
           }
           parseOpen(e2) {
@@ -14148,9 +14595,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "p");
           }
-          static {
-            __name2(this, "p");
-          }
           constructor(e2) {
             super(), this.map = { numFmts: new a({ tag: "numFmts", count: true, childXform: new h() }), fonts: new a({ tag: "fonts", count: true, childXform: new l(), $: { "x14ac:knownFonts": 1 } }), fills: new a({ tag: "fills", count: true, childXform: new c() }), borders: new a({ tag: "borders", count: true, childXform: new u() }), cellStyleXfs: new a({ tag: "cellStyleXfs", count: true, childXform: new f() }), cellXfs: new a({ tag: "cellXfs", count: true, childXform: new f({ xfId: true }) }), dxfs: new a({ tag: "dxfs", always: true, count: true, childXform: new d() }), numFmt: new h(), font: new l(), fill: new c(), border: new u(), style: new f({ xfId: true }), cellStyles: p.STATIC_XFORMS.cellStyles, tableStyles: p.STATIC_XFORMS.tableStyles, extLst: p.STATIC_XFORMS.extLst }, e2 && this.init();
           }
@@ -14190,7 +14634,7 @@ var require_exceljs_min = __commonJS({
             switch (e2) {
               case "styleSheet": {
                 this.model = {};
-                const e3 = /* @__PURE__ */ __name2((e4, t2) => {
+                const e3 = /* @__PURE__ */ __name((e4, t2) => {
                   t2.model && t2.model.length && (this.model[e4] = t2.model);
                 }, "e");
                 if (e3("numFmts", this.map.numFmts), e3("fonts", this.map.fonts), e3("fills", this.map.fills), e3("borders", this.map.borders), e3("styles", this.map.cellXfs), e3("dxfs", this.map.dxfs), this.index = { model: [], numFmt: [] }, this.model.numFmts) {
@@ -14236,8 +14680,7 @@ var require_exceljs_min = __commonJS({
                 i2 && (r2[e3] = i2);
               }
             }
-            __name(n2, "n2");
-            __name2(n2, "n");
+            __name(n2, "n");
             return n2("font", this.model.fonts, t2.fontId), n2("border", this.model.borders, t2.borderId), n2("fill", this.model.fills, t2.fillId), t2.alignment && (r2.alignment = t2.alignment), t2.protection && (r2.protection = t2.protection), r2;
           }
           addDxfStyle(e2) {
@@ -14308,9 +14751,6 @@ var require_exceljs_min = __commonJS({
         class i extends n {
           static {
             __name(this, "i");
-          }
-          static {
-            __name2(this, "i");
           }
           constructor(e2) {
             super(), this.model = e2;
@@ -14511,9 +14951,6 @@ var require_exceljs_min = __commonJS({
           static {
             __name(this, "c");
           }
-          static {
-            __name2(this, "c");
-          }
           constructor() {
             super(), this.map = { autoFilter: new o(), tableColumns: new s({ tag: "tableColumns", count: true, empty: true, childXform: new a() }), tableStyleInfo: new l() };
           }
@@ -14567,9 +15004,6 @@ var require_exceljs_min = __commonJS({
             class M {
               static {
                 __name(this, "M");
-              }
-              static {
-                __name2(this, "M");
               }
               constructor(e2) {
                 this.workbook = e2;
@@ -14913,9 +15347,6 @@ var require_exceljs_min = __commonJS({
               static {
                 __name(this, "s");
               }
-              static {
-                __name2(this, "s");
-              }
               constructor(e2) {
                 super({ writableObjectMode: e2.objectMode }), this.hasWrittenBOM = false, this.formatterOptions = e2, this.rowFormatter = new i.RowFormatter(e2), this.hasWrittenBOM = !e2.writeBOM;
               }
@@ -14954,7 +15385,7 @@ var require_exceljs_min = __commonJS({
         };
       }, {}], 148: [function(e, t, r) {
         "use strict";
-        var n = /* @__PURE__ */ __name2(function(e2) {
+        var n = /* @__PURE__ */ __name(function(e2) {
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }, "n");
         Object.defineProperty(r, "__esModule", { value: true }), r.FieldFormatter = void 0;
@@ -14987,7 +15418,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "lodash.escaperegexp": 442, "lodash.isboolean": 444, "lodash.isnil": 447 }], 149: [function(e, t, r) {
         "use strict";
-        var n = /* @__PURE__ */ __name2(function(e2) {
+        var n = /* @__PURE__ */ __name(function(e2) {
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }, "n");
         Object.defineProperty(r, "__esModule", { value: true }), r.RowFormatter = void 0;
@@ -14995,9 +15426,6 @@ var require_exceljs_min = __commonJS({
         class l {
           static {
             __name(this, "l");
-          }
-          static {
-            __name2(this, "l");
           }
           constructor(e2) {
             this.rowCount = 0, this.formatterOptions = e2, this.fieldFormatter = new o.FieldFormatter(e2), this.headers = e2.headers, this.shouldWriteHeaders = e2.shouldWriteHeaders, this.hasWrittenHeaders = false, null !== this.headers && (this.fieldFormatter.headers = this.headers), e2.transform && (this.rowTransform = e2.transform);
@@ -15076,11 +15504,11 @@ var require_exceljs_min = __commonJS({
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.FieldFormatter = r.RowFormatter = void 0;
         var n = e("./RowFormatter");
-        Object.defineProperty(r, "RowFormatter", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "RowFormatter", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.RowFormatter;
         }, "get") });
         var i = e("./FieldFormatter");
-        Object.defineProperty(r, "FieldFormatter", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "FieldFormatter", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.FieldFormatter;
         }, "get") });
       }, { "./FieldFormatter": 148, "./RowFormatter": 149 }], 151: [function(e, t, r) {
@@ -15088,7 +15516,7 @@ var require_exceljs_min = __commonJS({
           (function() {
             "use strict";
             var n = Object.create ? function(e2, t3, r2, n2) {
-              void 0 === n2 && (n2 = r2), Object.defineProperty(e2, n2, { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+              void 0 === n2 && (n2 = r2), Object.defineProperty(e2, n2, { enumerable: true, get: /* @__PURE__ */ __name(function() {
                 return t3[r2];
               }, "get") });
             } : function(e2, t3, r2, n2) {
@@ -15097,23 +15525,23 @@ var require_exceljs_min = __commonJS({
               Object.defineProperty(e2, "default", { enumerable: true, value: t3 });
             } : function(e2, t3) {
               e2.default = t3;
-            }, s = /* @__PURE__ */ __name2(function(e2) {
+            }, s = /* @__PURE__ */ __name(function(e2) {
               if (e2 && e2.__esModule) return e2;
               var t3 = {};
               if (null != e2) for (var r2 in e2) "default" !== r2 && Object.prototype.hasOwnProperty.call(e2, r2) && n(t3, e2, r2);
               return i(t3, e2), t3;
-            }, "s"), o = /* @__PURE__ */ __name2(function(e2, t3) {
+            }, "s"), o = /* @__PURE__ */ __name(function(e2, t3) {
               for (var r2 in e2) "default" === r2 || Object.prototype.hasOwnProperty.call(t3, r2) || n(t3, e2, r2);
             }, "o");
             Object.defineProperty(r, "__esModule", { value: true }), r.writeToPath = r.writeToString = r.writeToBuffer = r.writeToStream = r.write = r.format = r.FormatterOptions = r.CsvFormatterStream = void 0;
             const a = e("util"), l = e("stream"), c = s(e("fs")), u = e("./FormatterOptions"), h = e("./CsvFormatterStream");
             o(e("./types"), r);
             var f = e("./CsvFormatterStream");
-            Object.defineProperty(r, "CsvFormatterStream", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+            Object.defineProperty(r, "CsvFormatterStream", { enumerable: true, get: /* @__PURE__ */ __name(function() {
               return f.CsvFormatterStream;
             }, "get") });
             var d = e("./FormatterOptions");
-            Object.defineProperty(r, "FormatterOptions", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+            Object.defineProperty(r, "FormatterOptions", { enumerable: true, get: /* @__PURE__ */ __name(function() {
               return d.FormatterOptions;
             }, "get") }), r.format = (e2) => new h.CsvFormatterStream(new u.FormatterOptions(e2)), r.write = (e2, t3) => {
               const n2 = r.format(t3), i2 = a.promisify((e3, t4) => {
@@ -15148,9 +15576,6 @@ var require_exceljs_min = __commonJS({
             class a extends i.Transform {
               static {
                 __name(this, "a");
-              }
-              static {
-                __name2(this, "a");
               }
               constructor(e2) {
                 super({ objectMode: e2.objectMode }), this.lines = "", this.rowCount = 0, this.parsedRowCount = 0, this.parsedLineCount = 0, this.endEmitted = false, this.headersEmitted = false, this.parserOptions = e2, this.parser = new o.Parser(e2), this.headerTransformer = new s.HeaderTransformer(e2), this.decoder = new n.StringDecoder(e2.encoding), this.rowTransformerValidator = new s.RowTransformerValidator();
@@ -15201,8 +15626,8 @@ var require_exceljs_min = __commonJS({
                 return this.lines = r2, n2;
               }
               processRows(e2, r2) {
-                const n2 = e2.length, i2 = /* @__PURE__ */ __name2((s2) => {
-                  const o2 = /* @__PURE__ */ __name2((e3) => e3 ? r2(e3) : s2 % 100 != 0 ? i2(s2 + 1) : void t2(() => i2(s2 + 1)), "o");
+                const n2 = e2.length, i2 = /* @__PURE__ */ __name((s2) => {
+                  const o2 = /* @__PURE__ */ __name((e3) => e3 ? r2(e3) : s2 % 100 != 0 ? i2(s2 + 1) : void t2(() => i2(s2 + 1)), "o");
                   if (this.checkAndEmitHeaders(), s2 >= n2 || this.hasHitRowLimit) return r2();
                   if (this.parsedLineCount += 1, this.shouldSkipLine) return o2();
                   const a2 = e2[s2];
@@ -15256,7 +15681,7 @@ var require_exceljs_min = __commonJS({
         }).call(this, e("timers").setImmediate);
       }, { "./parser": 165, "./transforms": 168, stream: 505, string_decoder: 218, timers: 523 }], 154: [function(e, t, r) {
         "use strict";
-        var n = /* @__PURE__ */ __name2(function(e2) {
+        var n = /* @__PURE__ */ __name(function(e2) {
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }, "n");
         Object.defineProperty(r, "__esModule", { value: true }), r.ParserOptions = void 0;
@@ -15271,7 +15696,7 @@ var require_exceljs_min = __commonJS({
       }, { "lodash.escaperegexp": 442, "lodash.isnil": 447 }], 155: [function(e, t, r) {
         "use strict";
         var n = Object.create ? function(e2, t2, r2, n2) {
-          void 0 === n2 && (n2 = r2), Object.defineProperty(e2, n2, { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+          void 0 === n2 && (n2 = r2), Object.defineProperty(e2, n2, { enumerable: true, get: /* @__PURE__ */ __name(function() {
             return t2[r2];
           }, "get") });
         } : function(e2, t2, r2, n2) {
@@ -15280,23 +15705,23 @@ var require_exceljs_min = __commonJS({
           Object.defineProperty(e2, "default", { enumerable: true, value: t2 });
         } : function(e2, t2) {
           e2.default = t2;
-        }, s = /* @__PURE__ */ __name2(function(e2) {
+        }, s = /* @__PURE__ */ __name(function(e2) {
           if (e2 && e2.__esModule) return e2;
           var t2 = {};
           if (null != e2) for (var r2 in e2) "default" !== r2 && Object.prototype.hasOwnProperty.call(e2, r2) && n(t2, e2, r2);
           return i(t2, e2), t2;
-        }, "s"), o = /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "s"), o = /* @__PURE__ */ __name(function(e2, t2) {
           for (var r2 in e2) "default" === r2 || Object.prototype.hasOwnProperty.call(t2, r2) || n(t2, e2, r2);
         }, "o");
         Object.defineProperty(r, "__esModule", { value: true }), r.parseString = r.parseFile = r.parseStream = r.parse = r.ParserOptions = r.CsvParserStream = void 0;
         const a = s(e("fs")), l = e("stream"), c = e("./ParserOptions"), u = e("./CsvParserStream");
         o(e("./types"), r);
         var h = e("./CsvParserStream");
-        Object.defineProperty(r, "CsvParserStream", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "CsvParserStream", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return h.CsvParserStream;
         }, "get") });
         var f = e("./ParserOptions");
-        Object.defineProperty(r, "ParserOptions", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "ParserOptions", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return f.ParserOptions;
         }, "get") }), r.parse = (e2) => new u.CsvParserStream(new c.ParserOptions(e2)), r.parseStream = (e2, t2) => e2.pipe(new u.CsvParserStream(new c.ParserOptions(t2))), r.parseFile = function(e2) {
           let t2 = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : {};
@@ -15312,9 +15737,6 @@ var require_exceljs_min = __commonJS({
         class o {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor(e2) {
             this.parserOptions = e2, this.rowParser = new i.RowParser(this.parserOptions);
@@ -15545,51 +15967,51 @@ var require_exceljs_min = __commonJS({
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.ColumnFormatter = r.QuotedColumnParser = r.NonQuotedColumnParser = r.ColumnParser = void 0;
         var n = e("./ColumnParser");
-        Object.defineProperty(r, "ColumnParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "ColumnParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.ColumnParser;
         }, "get") });
         var i = e("./NonQuotedColumnParser");
-        Object.defineProperty(r, "NonQuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "NonQuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.NonQuotedColumnParser;
         }, "get") });
         var s = e("./QuotedColumnParser");
-        Object.defineProperty(r, "QuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "QuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return s.QuotedColumnParser;
         }, "get") });
         var o = e("./ColumnFormatter");
-        Object.defineProperty(r, "ColumnFormatter", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "ColumnFormatter", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return o.ColumnFormatter;
         }, "get") });
       }, { "./ColumnFormatter": 160, "./ColumnParser": 161, "./NonQuotedColumnParser": 162, "./QuotedColumnParser": 163 }], 165: [function(e, t, r) {
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.QuotedColumnParser = r.NonQuotedColumnParser = r.ColumnParser = r.Token = r.Scanner = r.RowParser = r.Parser = void 0;
         var n = e("./Parser");
-        Object.defineProperty(r, "Parser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "Parser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.Parser;
         }, "get") });
         var i = e("./RowParser");
-        Object.defineProperty(r, "RowParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "RowParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.RowParser;
         }, "get") });
         var s = e("./Scanner");
-        Object.defineProperty(r, "Scanner", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "Scanner", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return s.Scanner;
         }, "get") });
         var o = e("./Token");
-        Object.defineProperty(r, "Token", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "Token", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return o.Token;
         }, "get") });
         var a = e("./column");
-        Object.defineProperty(r, "ColumnParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "ColumnParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return a.ColumnParser;
-        }, "get") }), Object.defineProperty(r, "NonQuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "NonQuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return a.NonQuotedColumnParser;
-        }, "get") }), Object.defineProperty(r, "QuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "QuotedColumnParser", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return a.QuotedColumnParser;
         }, "get") });
       }, { "./Parser": 156, "./RowParser": 157, "./Scanner": 158, "./Token": 159, "./column": 164 }], 166: [function(e, t, r) {
         "use strict";
-        var n = /* @__PURE__ */ __name2(function(e2) {
+        var n = /* @__PURE__ */ __name(function(e2) {
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }, "n");
         Object.defineProperty(r, "__esModule", { value: true }), r.HeaderTransformer = void 0;
@@ -15649,7 +16071,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "lodash.groupby": 443, "lodash.isfunction": 446, "lodash.isundefined": 448, "lodash.uniq": 449 }], 167: [function(e, t, r) {
         "use strict";
-        var n = /* @__PURE__ */ __name2(function(e2) {
+        var n = /* @__PURE__ */ __name(function(e2) {
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }, "n");
         Object.defineProperty(r, "__esModule", { value: true }), r.RowTransformerValidator = void 0;
@@ -15657,9 +16079,6 @@ var require_exceljs_min = __commonJS({
         class o {
           static {
             __name(this, "o");
-          }
-          static {
-            __name2(this, "o");
           }
           constructor() {
             this._rowTransform = null, this._rowValidator = null;
@@ -15705,11 +16124,11 @@ var require_exceljs_min = __commonJS({
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.HeaderTransformer = r.RowTransformerValidator = void 0;
         var n = e("./RowTransformerValidator");
-        Object.defineProperty(r, "RowTransformerValidator", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "RowTransformerValidator", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.RowTransformerValidator;
         }, "get") });
         var i = e("./HeaderTransformer");
-        Object.defineProperty(r, "HeaderTransformer", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "HeaderTransformer", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.HeaderTransformer;
         }, "get") });
       }, { "./HeaderTransformer": 166, "./RowTransformerValidator": 167 }], 169: [function(e, t, r) {
@@ -15726,7 +16145,6 @@ var require_exceljs_min = __commonJS({
           this.name = e2, this.body = t2, this.decoders = {}, this.encoders = {};
         }
         __name(o, "o");
-        __name2(o, "o");
         r.define = function(e2, t2) {
           return new o(e2, t2);
         }, o.prototype._createNamed = function(e2) {
@@ -15734,8 +16152,7 @@ var require_exceljs_min = __commonJS({
           function r2(e3) {
             this._initNamed(e3, t2);
           }
-          __name(r2, "r2");
-          __name2(r2, "r");
+          __name(r2, "r");
           return s(r2, e2), r2.prototype._initNamed = function(t3, r3) {
             e2.call(this, t3, r3);
           }, new r2(this);
@@ -15755,7 +16172,6 @@ var require_exceljs_min = __commonJS({
           i.call(this, t2), s.isBuffer(e2) ? (this.base = e2, this.offset = 0, this.length = e2.length) : this.error("Input not Buffer");
         }
         __name(o, "o");
-        __name2(o, "o");
         function a(e2, t2) {
           if (Array.isArray(e2)) this.length = 0, this.value = e2.map((function(e3) {
             return a.isEncoderBuffer(e3) || (e3 = new a(e3, t2)), this.length += e3.length, e3;
@@ -15770,7 +16186,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(a, "a");
-        __name2(a, "a");
         n(o, i), r.DecoderBuffer = o, o.isDecoderBuffer = function(e2) {
           if (e2 instanceof o) return true;
           return "object" == typeof e2 && s.isBuffer(e2.base) && "DecoderBuffer" === e2.constructor.name && "number" == typeof e2.offset && "number" == typeof e2.length && "function" == typeof e2.save && "function" == typeof e2.restore && "function" == typeof e2.isEmpty && "function" == typeof e2.readUInt8 && "function" == typeof e2.skip && "function" == typeof e2.raw;
@@ -15809,7 +16224,6 @@ var require_exceljs_min = __commonJS({
           this._baseState = n2, n2.name = r2, n2.enc = e2, n2.parent = t2 || null, n2.children = null, n2.tag = null, n2.args = null, n2.reverseArgs = null, n2.choice = null, n2.optional = false, n2.any = false, n2.obj = false, n2.use = null, n2.useDecoder = null, n2.key = null, n2.default = null, n2.explicit = null, n2.implicit = null, n2.contains = null, n2.parent || (n2.children = [], this._wrap());
         }
         __name(c, "c");
-        __name2(c, "c");
         t.exports = c;
         const u = ["enc", "parent", "children", "tag", "args", "reverseArgs", "choice", "optional", "any", "obj", "use", "alteredUse", "key", "default", "explicit", "implicit", "contains"];
         c.prototype.clone = function() {
@@ -16020,12 +16434,10 @@ var require_exceljs_min = __commonJS({
           this._reporterState = { obj: null, path: [], options: e2 || {}, errors: [] };
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2, t2) {
           this.path = e2, this.rethrow(t2);
         }
         __name(s, "s");
-        __name2(s, "s");
         r.Reporter = i, i.prototype.isError = function(e2) {
           return e2 instanceof s;
         }, i.prototype.save = function() {
@@ -16079,7 +16491,6 @@ var require_exceljs_min = __commonJS({
           })), t2;
         }
         __name(n, "n");
-        __name2(n, "n");
         r.tagClass = { 0: "universal", 1: "application", 2: "context", 3: "private" }, r.tagClassByName = n(r.tagClass), r.tag = { 0: "end", 1: "bool", 2: "int", 3: "bitstr", 4: "octstr", 5: "null_", 6: "objid", 7: "objDesc", 8: "external", 9: "real", 10: "enum", 11: "embed", 12: "utf8str", 13: "relativeOid", 16: "seq", 17: "set", 18: "numstr", 19: "printstr", 20: "t61str", 21: "videostr", 22: "ia5str", 23: "utctime", 24: "gentime", 25: "graphstr", 26: "iso646str", 27: "genstr", 28: "unistr", 29: "charstr", 30: "bmpstr" }, r.tagByName = n(r.tag);
       }, {}], 177: [function(e, t, r) {
         "use strict";
@@ -16099,12 +16510,10 @@ var require_exceljs_min = __commonJS({
           this.enc = "der", this.name = e2.name, this.entity = e2, this.tree = new c(), this.tree._init(e2.body);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           o.call(this, "der", e2);
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2) {
           let r2 = e2.readUInt8(t2);
           if (e2.isError(r2)) return r2;
@@ -16119,7 +16528,6 @@ var require_exceljs_min = __commonJS({
           return { cls: n2, primitive: i2, tag: r2, tagStr: a.tag[r2] };
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2, r2) {
           let n2 = e2.readUInt8(r2);
           if (e2.isError(n2)) return n2;
@@ -16137,7 +16545,6 @@ var require_exceljs_min = __commonJS({
           return n2;
         }
         __name(h, "h");
-        __name2(h, "h");
         t.exports = l, l.prototype.decode = function(e2, t2) {
           return s.isDecoderBuffer(e2) || (e2 = new s(e2, t2)), this.tree._decode(e2, t2);
         }, n(c, o), c.prototype._peekTag = function(e2, t2, r2) {
@@ -16240,7 +16647,6 @@ var require_exceljs_min = __commonJS({
           s.call(this, e2), this.enc = "pem";
         }
         __name(o, "o");
-        __name2(o, "o");
         n(o, s), t.exports = o, o.prototype.decode = function(e2, t2) {
           const r2 = e2.toString().split(/[\r\n]+/g), n2 = t2.label.toUpperCase(), o2 = /^-----(BEGIN|END) ([^-]+)-----$/;
           let a = -1, l = -1;
@@ -16269,17 +16675,14 @@ var require_exceljs_min = __commonJS({
           this.enc = "der", this.name = e2.name, this.entity = e2, this.tree = new l(), this.tree._init(e2.body);
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2) {
           s.call(this, "der", e2);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           return e2 < 10 ? "0" + e2 : e2;
         }
         __name(c, "c");
-        __name2(c, "c");
         t.exports = a, a.prototype.encode = function(e2, t2) {
           return this.tree._encode(e2, t2).join();
         }, n(l, s), l.prototype._encodeComposite = function(e2, t2, r2, n2) {
@@ -16393,7 +16796,6 @@ var require_exceljs_min = __commonJS({
           i.call(this, e2), this.enc = "pem";
         }
         __name(s, "s");
-        __name2(s, "s");
         n(s, i), t.exports = s, s.prototype.encode = function(e2, t2) {
           const r2 = i.prototype.encode.call(this, e2).toString("base64"), n2 = ["-----BEGIN " + t2.label + "-----"];
           for (let e3 = 0; e3 < r2.length; e3 += 64) n2.push(r2.slice(e3, e3 + 64));
@@ -16406,21 +16808,18 @@ var require_exceljs_min = __commonJS({
             if (!e2) throw new Error(t3 || "Assertion failed");
           }
           __name(n, "n");
-          __name2(n, "n");
           function i(e2, t3) {
             e2.super_ = t3;
-            var r3 = /* @__PURE__ */ __name2(function() {
+            var r3 = /* @__PURE__ */ __name(function() {
             }, "r");
             r3.prototype = t3.prototype, e2.prototype = new r3(), e2.prototype.constructor = e2;
           }
           __name(i, "i");
-          __name2(i, "i");
           function s(e2, t3, r3) {
             if (s.isBN(e2)) return e2;
             this.negative = 0, this.words = null, this.length = 0, this.red = null, null !== e2 && ("le" !== t3 && "be" !== t3 || (r3 = t3, t3 = 10), this._init(e2 || 0, t3 || 10, r3 || "be"));
           }
           __name(s, "s");
-          __name2(s, "s");
           var o;
           "object" == typeof t2 ? t2.exports = s : (void 0).BN = s, s.BN = s, s.wordSize = 26;
           try {
@@ -16432,13 +16831,11 @@ var require_exceljs_min = __commonJS({
             return r3 >= 65 && r3 <= 70 ? r3 - 55 : r3 >= 97 && r3 <= 102 ? r3 - 87 : r3 - 48 & 15;
           }
           __name(a, "a");
-          __name2(a, "a");
           function l(e2, t3, r3) {
             var n2 = a(e2, r3);
             return r3 - 1 >= t3 && (n2 |= a(e2, r3 - 1) << 4), n2;
           }
           __name(l, "l");
-          __name2(l, "l");
           function c(e2, t3, r3, n2) {
             for (var i2 = 0, s2 = Math.min(e2.length, r3), o2 = t3; o2 < s2; o2++) {
               var a2 = e2.charCodeAt(o2) - 48;
@@ -16447,7 +16844,6 @@ var require_exceljs_min = __commonJS({
             return i2;
           }
           __name(c, "c");
-          __name2(c, "c");
           s.isBN = function(e2) {
             return e2 instanceof s || null !== e2 && "object" == typeof e2 && e2.constructor.wordSize === s.wordSize && Array.isArray(e2.words);
           }, s.max = function(e2, t3) {
@@ -16523,7 +16919,6 @@ var require_exceljs_min = __commonJS({
             return 0 !== l2 ? r3.words[c2] = 0 | l2 : r3.length--, r3.strip();
           }
           __name(d, "d");
-          __name2(d, "d");
           s.prototype.toString = function(e2, t3) {
             var r3;
             if (t3 = 0 | t3 || 1, 16 === (e2 = e2 || 10) || "hex" === e2) {
@@ -16674,7 +17069,7 @@ var require_exceljs_min = __commonJS({
           }, s.prototype.sub = function(e2) {
             return this.clone().isub(e2);
           };
-          var p = /* @__PURE__ */ __name2(function(e2, t3, r3) {
+          var p = /* @__PURE__ */ __name(function(e2, t3, r3) {
             var n2, i2, s2, o2 = e2.words, a2 = t3.words, l2 = r3.words, c2 = 0, u2 = 0 | o2[0], h2 = 8191 & u2, f2 = u2 >>> 13, d2 = 0 | o2[1], p2 = 8191 & d2, m2 = d2 >>> 13, b2 = 0 | o2[2], g2 = 8191 & b2, y2 = b2 >>> 13, v2 = 0 | o2[3], w2 = 8191 & v2, _2 = v2 >>> 13, x2 = 0 | o2[4], k2 = 8191 & x2, S2 = x2 >>> 13, M = 0 | o2[5], C = 8191 & M, T = M >>> 13, E = 0 | o2[6], A = 8191 & E, R = E >>> 13, O = 0 | o2[7], j = 8191 & O, I = O >>> 13, N = 0 | o2[8], P = 8191 & N, B = N >>> 13, D = 0 | o2[9], F = 8191 & D, L = D >>> 13, z = 0 | a2[0], U = 8191 & z, $ = z >>> 13, H = 0 | a2[1], V = 8191 & H, q = H >>> 13, W = 0 | a2[2], X = 8191 & W, K = W >>> 13, Y = 0 | a2[3], Z = 8191 & Y, G = Y >>> 13, J = 0 | a2[4], Q = 8191 & J, ee = J >>> 13, te = 0 | a2[5], re = 8191 & te, ne = te >>> 13, ie = 0 | a2[6], se = 8191 & ie, oe = ie >>> 13, ae = 0 | a2[7], le = 8191 & ae, ce = ae >>> 13, ue = 0 | a2[8], he = 8191 & ue, fe = ue >>> 13, de = 0 | a2[9], pe = 8191 & de, me = de >>> 13;
             r3.negative = e2.negative ^ t3.negative, r3.length = 19;
             var be = (c2 + (n2 = Math.imul(h2, U)) | 0) + ((8191 & (i2 = (i2 = Math.imul(h2, $)) + Math.imul(f2, U) | 0)) << 13) | 0;
@@ -16720,12 +17115,10 @@ var require_exceljs_min = __commonJS({
             return new b().mulp(e2, t3, r3);
           }
           __name(m, "m");
-          __name2(m, "m");
           function b(e2, t3) {
             this.x = e2, this.y = t3;
           }
           __name(b, "b");
-          __name2(b, "b");
           Math.imul || (p = d), s.prototype.mulTo = function(e2, t3) {
             var r3 = this.length + e2.length;
             return 10 === this.length && 10 === e2.length ? p(this, e2, t3) : r3 < 63 ? d(this, e2, t3) : r3 < 1024 ? (function(e3, t4, r4) {
@@ -17106,27 +17499,22 @@ var require_exceljs_min = __commonJS({
             this.name = e2, this.p = new s(t3, 16), this.n = this.p.bitLength(), this.k = new s(1).iushln(this.n).isub(this.p), this.tmp = this._tmp();
           }
           __name(y, "y");
-          __name2(y, "y");
           function v() {
             y.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
           }
           __name(v, "v");
-          __name2(v, "v");
           function w() {
             y.call(this, "p224", "ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001");
           }
           __name(w, "w");
-          __name2(w, "w");
           function _() {
             y.call(this, "p192", "ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff");
           }
           __name(_, "_");
-          __name2(_, "_");
           function x() {
             y.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
           }
           __name(x, "x");
-          __name2(x, "x");
           function k(e2) {
             if ("string" == typeof e2) {
               var t3 = s._prime(e2);
@@ -17134,12 +17522,10 @@ var require_exceljs_min = __commonJS({
             } else n(e2.gtn(1), "modulus must be greater than 1"), this.m = e2, this.prime = null;
           }
           __name(k, "k");
-          __name2(k, "k");
           function S(e2) {
             k.call(this, e2), this.shift = this.m.bitLength(), this.shift % 26 != 0 && (this.shift += 26 - this.shift % 26), this.r = new s(1).iushln(this.shift), this.r2 = this.imod(this.r.sqr()), this.rinv = this.r._invmp(this.m), this.minv = this.rinv.mul(this.r).isubn(1).div(this.m), this.minv = this.minv.umod(this.r), this.minv = this.r.sub(this.minv);
           }
           __name(S, "S");
-          __name2(S, "S");
           y.prototype._tmp = function() {
             var e2 = new s(null);
             return e2.words = new Array(Math.ceil(this.n / 13)), e2;
@@ -17308,13 +17694,11 @@ var require_exceljs_min = __commonJS({
           return -1 === r2 && (r2 = t2), [r2, r2 === t2 ? 0 : 4 - r2 % 4];
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2, r2) {
           for (var i2, s2, o2 = [], a2 = t2; a2 < r2; a2 += 3) i2 = (e2[a2] << 16 & 16711680) + (e2[a2 + 1] << 8 & 65280) + (255 & e2[a2 + 2]), o2.push(n[(s2 = i2) >> 18 & 63] + n[s2 >> 12 & 63] + n[s2 >> 6 & 63] + n[63 & s2]);
           return o2.join("");
         }
         __name(u, "u");
-        __name2(u, "u");
         i["-".charCodeAt(0)] = 62, i["_".charCodeAt(0)] = 63;
       }, {}], 186: [function(e, t, r) {
         "use strict";
@@ -17323,21 +17707,18 @@ var require_exceljs_min = __commonJS({
             if (!e2) throw new Error(t3 || "Assertion failed");
           }
           __name(n, "n");
-          __name2(n, "n");
           function i(e2, t3) {
             e2.super_ = t3;
-            var r3 = /* @__PURE__ */ __name2(function() {
+            var r3 = /* @__PURE__ */ __name(function() {
             }, "r");
             r3.prototype = t3.prototype, e2.prototype = new r3(), e2.prototype.constructor = e2;
           }
           __name(i, "i");
-          __name2(i, "i");
           function s(e2, t3, r3) {
             if (s.isBN(e2)) return e2;
             this.negative = 0, this.words = null, this.length = 0, this.red = null, null !== e2 && ("le" !== t3 && "be" !== t3 || (r3 = t3, t3 = 10), this._init(e2 || 0, t3 || 10, r3 || "be"));
           }
           __name(s, "s");
-          __name2(s, "s");
           var o;
           "object" == typeof t2 ? t2.exports = s : (void 0).BN = s, s.BN = s, s.wordSize = 26;
           try {
@@ -17349,13 +17730,11 @@ var require_exceljs_min = __commonJS({
             return r3 >= 48 && r3 <= 57 ? r3 - 48 : r3 >= 65 && r3 <= 70 ? r3 - 55 : r3 >= 97 && r3 <= 102 ? r3 - 87 : void n(false, "Invalid character in " + e2);
           }
           __name(a, "a");
-          __name2(a, "a");
           function l(e2, t3, r3) {
             var n2 = a(e2, r3);
             return r3 - 1 >= t3 && (n2 |= a(e2, r3 - 1) << 4), n2;
           }
           __name(l, "l");
-          __name2(l, "l");
           function c(e2, t3, r3, i2) {
             for (var s2 = 0, o2 = 0, a2 = Math.min(e2.length, r3), l2 = t3; l2 < a2; l2++) {
               var c2 = e2.charCodeAt(l2) - 48;
@@ -17364,12 +17743,10 @@ var require_exceljs_min = __commonJS({
             return s2;
           }
           __name(c, "c");
-          __name2(c, "c");
           function u(e2, t3) {
             e2.words = t3.words, e2.length = t3.length, e2.negative = t3.negative, e2.red = t3.red;
           }
           __name(u, "u");
-          __name2(u, "u");
           if (s.isBN = function(e2) {
             return e2 instanceof s || null !== e2 && "object" == typeof e2 && e2.constructor.wordSize === s.wordSize && Array.isArray(e2.words);
           }, s.max = function(e2, t3) {
@@ -17437,7 +17814,6 @@ var require_exceljs_min = __commonJS({
             return (this.red ? "<BN-R: " : "<BN: ") + this.toString(16) + ">";
           }
           __name(h, "h");
-          __name2(h, "h");
           var f = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], d = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], p = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64e6, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 243e5, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
           s.prototype.toString = function(e2, t3) {
             var r3;
@@ -17488,7 +17864,6 @@ var require_exceljs_min = __commonJS({
             return 0 !== l2 ? r3.words[c2] = 0 | l2 : r3.length--, r3._strip();
           }
           __name(m, "m");
-          __name2(m, "m");
           s.prototype.toArrayLike = function(e2, t3, r3) {
             this._strip();
             var i2 = this.byteLength(), s2 = r3 || Math.max(1, i2);
@@ -17615,7 +17990,7 @@ var require_exceljs_min = __commonJS({
           }, s.prototype.sub = function(e2) {
             return this.clone().isub(e2);
           };
-          var b = /* @__PURE__ */ __name2(function(e2, t3, r3) {
+          var b = /* @__PURE__ */ __name(function(e2, t3, r3) {
             var n2, i2, s2, o2 = e2.words, a2 = t3.words, l2 = r3.words, c2 = 0, u2 = 0 | o2[0], h2 = 8191 & u2, f2 = u2 >>> 13, d2 = 0 | o2[1], p2 = 8191 & d2, m2 = d2 >>> 13, b2 = 0 | o2[2], g2 = 8191 & b2, y2 = b2 >>> 13, v2 = 0 | o2[3], w2 = 8191 & v2, _2 = v2 >>> 13, x2 = 0 | o2[4], k2 = 8191 & x2, S2 = x2 >>> 13, M2 = 0 | o2[5], C2 = 8191 & M2, T2 = M2 >>> 13, E = 0 | o2[6], A = 8191 & E, R = E >>> 13, O = 0 | o2[7], j = 8191 & O, I = O >>> 13, N = 0 | o2[8], P = 8191 & N, B = N >>> 13, D = 0 | o2[9], F = 8191 & D, L = D >>> 13, z = 0 | a2[0], U = 8191 & z, $ = z >>> 13, H = 0 | a2[1], V = 8191 & H, q = H >>> 13, W = 0 | a2[2], X = 8191 & W, K = W >>> 13, Y = 0 | a2[3], Z = 8191 & Y, G = Y >>> 13, J = 0 | a2[4], Q = 8191 & J, ee = J >>> 13, te = 0 | a2[5], re = 8191 & te, ne = te >>> 13, ie = 0 | a2[6], se = 8191 & ie, oe = ie >>> 13, ae = 0 | a2[7], le = 8191 & ae, ce = ae >>> 13, ue = 0 | a2[8], he = 8191 & ue, fe = ue >>> 13, de = 0 | a2[9], pe = 8191 & de, me = de >>> 13;
             r3.negative = e2.negative ^ t3.negative, r3.length = 19;
             var be = (c2 + (n2 = Math.imul(h2, U)) | 0) + ((8191 & (i2 = (i2 = Math.imul(h2, $)) + Math.imul(f2, U) | 0)) << 13) | 0;
@@ -17671,17 +18046,14 @@ var require_exceljs_min = __commonJS({
             return 0 !== n2 ? r3.words[s2] = n2 : r3.length--, r3._strip();
           }
           __name(g, "g");
-          __name2(g, "g");
           function y(e2, t3, r3) {
             return g(e2, t3, r3);
           }
           __name(y, "y");
-          __name2(y, "y");
           function v(e2, t3) {
             this.x = e2, this.y = t3;
           }
           __name(v, "v");
-          __name2(v, "v");
           Math.imul || (b = m), s.prototype.mulTo = function(e2, t3) {
             var r3 = this.length + e2.length;
             return 10 === this.length && 10 === e2.length ? b(this, e2, t3) : r3 < 63 ? m(this, e2, t3) : r3 < 1024 ? g(this, e2, t3) : y(this, e2, t3);
@@ -18055,27 +18427,22 @@ var require_exceljs_min = __commonJS({
             this.name = e2, this.p = new s(t3, 16), this.n = this.p.bitLength(), this.k = new s(1).iushln(this.n).isub(this.p), this.tmp = this._tmp();
           }
           __name(_, "_");
-          __name2(_, "_");
           function x() {
             _.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
           }
           __name(x, "x");
-          __name2(x, "x");
           function k() {
             _.call(this, "p224", "ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001");
           }
           __name(k, "k");
-          __name2(k, "k");
           function S() {
             _.call(this, "p192", "ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff");
           }
           __name(S, "S");
-          __name2(S, "S");
           function M() {
             _.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
           }
           __name(M, "M");
-          __name2(M, "M");
           function C(e2) {
             if ("string" == typeof e2) {
               var t3 = s._prime(e2);
@@ -18083,12 +18450,10 @@ var require_exceljs_min = __commonJS({
             } else n(e2.gtn(1), "modulus must be greater than 1"), this.m = e2, this.prime = null;
           }
           __name(C, "C");
-          __name2(C, "C");
           function T(e2) {
             C.call(this, e2), this.shift = this.m.bitLength(), this.shift % 26 != 0 && (this.shift += 26 - this.shift % 26), this.r = new s(1).iushln(this.shift), this.r2 = this.imod(this.r.sqr()), this.rinv = this.r._invmp(this.m), this.minv = this.rinv.mul(this.r).isubn(1).div(this.m), this.minv = this.minv.umod(this.r), this.minv = this.r.sub(this.minv);
           }
           __name(T, "T");
-          __name2(T, "T");
           _.prototype._tmp = function() {
             var e2 = new s(null);
             return e2.words = new Array(Math.ceil(this.n / 13)), e2;
@@ -18238,7 +18603,6 @@ var require_exceljs_min = __commonJS({
           this.rand = e2;
         }
         __name(i, "i");
-        __name2(i, "i");
         if (t.exports = function(e2) {
           return n || (n = new i(null)), n.generate(e2);
         }, t.exports.Rand = i, i.prototype.generate = function(e2) {
@@ -18274,18 +18638,15 @@ var require_exceljs_min = __commonJS({
           return r2;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2) {
           for (; 0 < e2.length; e2++) e2[0] = 0;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2, r2, n2, i2) {
           for (var s2, o2, a2, l2, c2 = r2[0], u = r2[1], h = r2[2], f = r2[3], d = e2[0] ^ t2[0], p = e2[1] ^ t2[1], m = e2[2] ^ t2[2], b = e2[3] ^ t2[3], g = 4, y = 1; y < i2; y++) s2 = c2[d >>> 24] ^ u[p >>> 16 & 255] ^ h[m >>> 8 & 255] ^ f[255 & b] ^ t2[g++], o2 = c2[p >>> 24] ^ u[m >>> 16 & 255] ^ h[b >>> 8 & 255] ^ f[255 & d] ^ t2[g++], a2 = c2[m >>> 24] ^ u[b >>> 16 & 255] ^ h[d >>> 8 & 255] ^ f[255 & p] ^ t2[g++], l2 = c2[b >>> 24] ^ u[d >>> 16 & 255] ^ h[p >>> 8 & 255] ^ f[255 & m] ^ t2[g++], d = s2, p = o2, m = a2, b = l2;
           return s2 = (n2[d >>> 24] << 24 | n2[p >>> 16 & 255] << 16 | n2[m >>> 8 & 255] << 8 | n2[255 & b]) ^ t2[g++], o2 = (n2[p >>> 24] << 24 | n2[m >>> 16 & 255] << 16 | n2[b >>> 8 & 255] << 8 | n2[255 & d]) ^ t2[g++], a2 = (n2[m >>> 24] << 24 | n2[b >>> 16 & 255] << 16 | n2[d >>> 8 & 255] << 8 | n2[255 & p]) ^ t2[g++], l2 = (n2[b >>> 24] << 24 | n2[d >>> 16 & 255] << 16 | n2[p >>> 8 & 255] << 8 | n2[255 & m]) ^ t2[g++], [s2 >>>= 0, o2 >>>= 0, a2 >>>= 0, l2 >>>= 0];
         }
         __name(o, "o");
-        __name2(o, "o");
         var a = [0, 1, 2, 4, 8, 16, 32, 64, 128, 27, 54], l = (function() {
           for (var e2 = new Array(256), t2 = 0; t2 < 256; t2++) e2[t2] = t2 < 128 ? t2 << 1 : t2 << 1 ^ 283;
           for (var r2 = [], n2 = [], i2 = [[], [], [], []], s2 = [[], [], [], []], o2 = 0, a2 = 0, l2 = 0; l2 < 256; ++l2) {
@@ -18300,7 +18661,6 @@ var require_exceljs_min = __commonJS({
           this._key = i(e2), this._reset();
         }
         __name(c, "c");
-        __name2(c, "c");
         c.blockSize = 16, c.keySize = 32, c.prototype.blockSize = c.blockSize, c.prototype.keySize = c.keySize, c.prototype._reset = function() {
           for (var e2 = this._key, t2 = e2.length, r2 = t2 + 6, n2 = 4 * (r2 + 1), i2 = [], s2 = 0; s2 < t2; s2++) i2[s2] = e2[s2];
           for (s2 = t2; s2 < n2; s2++) {
@@ -18344,7 +18704,6 @@ var require_exceljs_min = __commonJS({
           })(this, r2, u2), this._prev = i.from(r2), this._cache = i.allocUnsafe(0), this._secCache = i.allocUnsafe(0), this._decrypt = o2, this._alen = 0, this._len = 0, this._mode = e2, this._authTag = null, this._called = false;
         }
         __name(u, "u");
-        __name2(u, "u");
         o(u, s), u.prototype._update = function(e2) {
           if (!this._called && this._alen) {
             var t2 = 16 - this._alen % 16;
@@ -18386,12 +18745,10 @@ var require_exceljs_min = __commonJS({
           a.call(this), this._cache = new h(), this._last = void 0, this._cipher = new l.AES(t2), this._prev = i.from(r2), this._mode = e2, this._autopadding = true;
         }
         __name(u, "u");
-        __name2(u, "u");
         function h() {
           this.cache = i.allocUnsafe(0);
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2, t2, r2) {
           var a2 = s[e2.toLowerCase()];
           if (!a2) throw new TypeError("invalid suite type");
@@ -18400,7 +18757,6 @@ var require_exceljs_min = __commonJS({
           return "stream" === a2.type ? new o(a2.module, t2, r2, true) : "auth" === a2.type ? new n(a2.module, t2, r2, true) : new u(a2.module, t2, r2);
         }
         __name(f, "f");
-        __name2(f, "f");
         e("inherits")(u, a), u.prototype._update = function(e2) {
           var t2, r2;
           this._cache.add(e2);
@@ -18442,7 +18798,6 @@ var require_exceljs_min = __commonJS({
           a.call(this), this._cache = new f(), this._cipher = new l.AES(t2), this._prev = s.from(r2), this._mode = e2, this._autopadding = true;
         }
         __name(u, "u");
-        __name2(u, "u");
         e("inherits")(u, a), u.prototype._update = function(e2) {
           var t2, r2;
           this._cache.add(e2);
@@ -18454,7 +18809,6 @@ var require_exceljs_min = __commonJS({
           this.cache = s.allocUnsafe(0);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2, t2, r2) {
           var a2 = n[e2.toLowerCase()];
           if (!a2) throw new TypeError("invalid suite type");
@@ -18463,7 +18817,6 @@ var require_exceljs_min = __commonJS({
           return "stream" === a2.type ? new o(a2.module, t2, r2) : "auth" === a2.type ? new i(a2.module, t2, r2) : new u(a2.module, t2, r2);
         }
         __name(d, "d");
-        __name2(d, "d");
         u.prototype._final = function() {
           var e2 = this._cache.flush();
           if (this._autopadding) return e2 = this._mode.encrypt(this, e2), this._cipher.scrub(), e2;
@@ -18495,12 +18848,10 @@ var require_exceljs_min = __commonJS({
           return t2.writeUInt32BE(e2[0] >>> 0, 0), t2.writeUInt32BE(e2[1] >>> 0, 4), t2.writeUInt32BE(e2[2] >>> 0, 8), t2.writeUInt32BE(e2[3] >>> 0, 12), t2;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2) {
           this.h = e2, this.state = n.alloc(16, 0), this.cache = n.allocUnsafe(0);
         }
         __name(o, "o");
-        __name2(o, "o");
         o.prototype.ghash = function(e2) {
           for (var t2 = -1; ++t2 < e2.length; ) this.state[t2] ^= e2[t2];
           this._multiply();
@@ -18547,7 +18898,6 @@ var require_exceljs_min = __commonJS({
           return e2._cache = e2._cache.slice(s2), e2._prev = n.concat([e2._prev, r2 ? t2 : o]), o;
         }
         __name(s, "s");
-        __name2(s, "s");
         r.encrypt = function(e2, t2, r2) {
           for (var i2, o = n.allocUnsafe(0); t2.length; ) {
             if (0 === e2._cache.length && (e2._cache = e2._cipher.encryptBlock(e2._prev), e2._prev = n.allocUnsafe(0)), !(e2._cache.length <= t2.length)) {
@@ -18566,14 +18916,12 @@ var require_exceljs_min = __commonJS({
           return a;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2, t2) {
           var r2 = e2.length, i2 = -1, s2 = n.allocUnsafe(e2.length);
           for (e2 = n.concat([e2, n.from([t2])]); ++i2 < r2; ) s2[i2] = e2[i2] << 1 | e2[i2 + 1] >> 7;
           return s2;
         }
         __name(s, "s");
-        __name2(s, "s");
         r.encrypt = function(e2, t2, r2) {
           for (var s2 = t2.length, o = n.allocUnsafe(s2), a = -1; ++a < s2; ) o[a] = i(e2, t2[a], r2);
           return o;
@@ -18586,7 +18934,6 @@ var require_exceljs_min = __commonJS({
           return e2._prev = n.concat([e2._prev.slice(1), n.from([r2 ? t2 : i2])]), i2;
         }
         __name(i, "i");
-        __name2(i, "i");
         r.encrypt = function(e2, t2, r2) {
           for (var s = t2.length, o = n.allocUnsafe(s), a = -1; ++a < s; ) o[a] = i(e2, t2[a], r2);
           return o;
@@ -18599,7 +18946,6 @@ var require_exceljs_min = __commonJS({
           return s(e2._prev), t2;
         }
         __name(o, "o");
-        __name2(o, "o");
         r.encrypt = function(e2, t2) {
           var r2 = Math.ceil(t2.length / 16), s2 = e2._cache.length;
           e2._cache = i.concat([e2._cache, i.allocUnsafe(16 * r2)]);
@@ -18633,7 +18979,6 @@ var require_exceljs_min = __commonJS({
               return e2._prev = e2._cipher.encryptBlock(e2._prev), e2._prev;
             }
             __name(i, "i");
-            __name2(i, "i");
             r.encrypt = function(e2, r2) {
               for (; e2._cache.length < r2.length; ) e2._cache = t2.concat([e2._cache, i(e2)]);
               var s = e2._cache.slice(0, r2.length);
@@ -18648,7 +18993,6 @@ var require_exceljs_min = __commonJS({
           s.call(this), this._cipher = new n.AES(t2), this._prev = i.from(r2), this._cache = i.allocUnsafe(0), this._secCache = i.allocUnsafe(0), this._decrypt = o2, this._mode = e2;
         }
         __name(o, "o");
-        __name2(o, "o");
         e("inherits")(o, s), o.prototype._update = function(e2) {
           return this._mode.encrypt(this, e2, this._decrypt);
         }, o.prototype._final = function() {
@@ -18663,14 +19007,12 @@ var require_exceljs_min = __commonJS({
           throw new TypeError("invalid suite type");
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2) {
           if (e2 = e2.toLowerCase(), s[e2]) return i.createDecipheriv(e2, t2, r2);
           if (o[e2]) return new n({ key: t2, iv: r2, mode: e2, decrypt: true });
           throw new TypeError("invalid suite type");
         }
         __name(c, "c");
-        __name2(c, "c");
         r.createCipher = r.Cipher = function(e2, t2) {
           var r2, n2;
           if (e2 = e2.toLowerCase(), s[e2]) r2 = s[e2].key, n2 = s[e2].iv;
@@ -18705,7 +19047,6 @@ var require_exceljs_min = __commonJS({
           o.isBuffer(l2) || (l2 = o.from(l2)), this._des = i2.create({ key: s2, iv: l2, type: t2 });
         }
         __name(l, "l");
-        __name2(l, "l");
         a.des = a["des-cbc"], a.des3 = a["des-ede3-cbc"], t.exports = l, s(l, n), l.prototype._update = function(e2) {
           return o.from(this._des.update(e2));
         }, l.prototype._final = function() {
@@ -18727,7 +19068,6 @@ var require_exceljs_min = __commonJS({
               return t2;
             }
             __name(s, "s");
-            __name2(s, "s");
             function o(e2, t2) {
               var i2 = (function(e3) {
                 var t3 = s(e3);
@@ -18736,7 +19076,6 @@ var require_exceljs_min = __commonJS({
               return p.iadd(m).imul(i2.unblinder).umod(t2.modulus).toArrayLike(r2, "be", o2);
             }
             __name(o, "o");
-            __name2(o, "o");
             o.getr = s, t.exports = o;
           }).call(this);
         }).call(this, e("buffer").Buffer);
@@ -18757,7 +19096,6 @@ var require_exceljs_min = __commonJS({
           this._hashType = t2.hash, this._hash = i(t2.hash), this._tag = t2.id, this._signType = t2.sign;
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2) {
           s.Writable.call(this);
           var t2 = c[e2];
@@ -18765,17 +19103,14 @@ var require_exceljs_min = __commonJS({
           this._hash = i(t2.hash), this._tag = t2.id, this._signType = t2.sign;
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2) {
           return new u(e2);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2) {
           return new h(e2);
         }
         __name(d, "d");
-        __name2(d, "d");
         Object.keys(c).forEach((function(e2) {
           c[e2].id = n.from(c[e2].id, "hex"), c[e2.toLowerCase()] = c[e2];
         })), o(u, s.Writable), u.prototype._write = function(e2, t2, r2) {
@@ -18817,13 +19152,11 @@ var require_exceljs_min = __commonJS({
           return u2 = i(s2, u2).update(c2).update(n.from([0])).update(e2).update(l2).digest(), c2 = i(s2, u2).update(c2).digest(), { k: u2 = i(s2, u2).update(c2).update(n.from([1])).update(e2).update(l2).digest(), v: c2 = i(s2, u2).update(c2).digest() };
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2) {
           var r2 = new a(e2), n2 = (e2.length << 3) - t2.bitLength();
           return n2 > 0 && r2.ishrn(n2), r2;
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2, t2, r2) {
           var s2, o2;
           do {
@@ -18833,12 +19166,10 @@ var require_exceljs_min = __commonJS({
           return o2;
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2, t2, r2, n2) {
           return e2.toRed(a.mont(r2)).redPow(t2).fromRed().mod(n2);
         }
         __name(d, "d");
-        __name2(d, "d");
         t.exports = function(e2, t2, r2, i2, p) {
           var m = l(t2);
           if (m.curve) {
@@ -18878,7 +19209,6 @@ var require_exceljs_min = __commonJS({
           if (e2.cmp(t2) >= t2) throw new Error("invalid sig");
         }
         __name(l, "l");
-        __name2(l, "l");
         t.exports = function(e2, t2, r2, c, u) {
           var h = o(r2);
           if ("ec" === h.type) {
@@ -18919,12 +19249,10 @@ var require_exceljs_min = __commonJS({
           for (var r2 in e2) t2[r2] = e2[r2];
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2, r2) {
           return i(e2, t2, r2);
         }
         __name(o, "o");
-        __name2(o, "o");
         i.from && i.alloc && i.allocUnsafe && i.allocUnsafeSlow ? t.exports = n : (s(n, r), r.Buffer = o), s(i, o), o.from = function(e2, t2, r2) {
           if ("number" == typeof e2) throw new TypeError("Argument must not be a number");
           return i(e2, t2, r2);
@@ -19003,12 +19331,10 @@ var require_exceljs_min = __commonJS({
           this.lastNeed = 0, this.lastTotal = 0, this.lastChar = n.allocUnsafe(t2);
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2) {
           return e2 <= 127 ? 0 : e2 >> 5 == 6 ? 2 : e2 >> 4 == 14 ? 3 : e2 >> 3 == 30 ? 4 : e2 >> 6 == 2 ? -1 : -2;
         }
         __name(o, "o");
-        __name2(o, "o");
         function a(e2) {
           var t2 = this.lastTotal - this.lastNeed, r2 = (function(e3, t3, r3) {
             if (128 != (192 & t3[0])) return e3.lastNeed = 0, "\uFFFD";
@@ -19020,7 +19346,6 @@ var require_exceljs_min = __commonJS({
           return void 0 !== r2 ? r2 : this.lastNeed <= e2.length ? (e2.copy(this.lastChar, t2, 0, this.lastNeed), this.lastChar.toString(this.encoding, 0, this.lastTotal)) : (e2.copy(this.lastChar, t2, 0, e2.length), void (this.lastNeed -= e2.length));
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2, t2) {
           if ((e2.length - t2) % 2 == 0) {
             var r2 = e2.toString("utf16le", t2);
@@ -19033,7 +19358,6 @@ var require_exceljs_min = __commonJS({
           return this.lastNeed = 1, this.lastTotal = 2, this.lastChar[0] = e2[e2.length - 1], e2.toString("utf16le", t2, e2.length - 1);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           var t2 = e2 && e2.length ? this.write(e2) : "";
           if (this.lastNeed) {
@@ -19043,29 +19367,24 @@ var require_exceljs_min = __commonJS({
           return t2;
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2) {
           var r2 = (e2.length - t2) % 3;
           return 0 === r2 ? e2.toString("base64", t2) : (this.lastNeed = 3 - r2, this.lastTotal = 3, 1 === r2 ? this.lastChar[0] = e2[e2.length - 1] : (this.lastChar[0] = e2[e2.length - 2], this.lastChar[1] = e2[e2.length - 1]), e2.toString("base64", t2, e2.length - r2));
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2) {
           var t2 = e2 && e2.length ? this.write(e2) : "";
           return this.lastNeed ? t2 + this.lastChar.toString("base64", 0, 3 - this.lastNeed) : t2;
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2) {
           return e2.toString(this.encoding);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2) {
           return e2 && e2.length ? this.write(e2) : "";
         }
         __name(d, "d");
-        __name2(d, "d");
         r.StringDecoder = s, s.prototype.write = function(e2) {
           if (0 === e2.length) return "";
           var t2, r2;
@@ -19122,7 +19441,6 @@ var require_exceljs_min = __commonJS({
               return t4.__proto__ = s.prototype, t4;
             }
             __name(i, "i");
-            __name2(i, "i");
             function s(e2, t4, r2) {
               if ("number" == typeof e2) {
                 if ("string" == typeof t4) throw new TypeError('The "string" argument must be of type string. Received type number');
@@ -19131,7 +19449,6 @@ var require_exceljs_min = __commonJS({
               return o(e2, t4, r2);
             }
             __name(s, "s");
-            __name2(s, "s");
             function o(e2, t4, r2) {
               if ("string" == typeof e2) return (function(e3, t5) {
                 "string" == typeof t5 && "" !== t5 || (t5 = "utf8");
@@ -19165,30 +19482,25 @@ var require_exceljs_min = __commonJS({
               throw new TypeError("The first argument must be one of type string, Buffer, ArrayBuffer, Array, or Array-like Object. Received type " + typeof e2);
             }
             __name(o, "o");
-            __name2(o, "o");
             function a(e2) {
               if ("number" != typeof e2) throw new TypeError('"size" argument must be of type number');
               if (e2 < 0) throw new RangeError('The value "' + e2 + '" is invalid for option "size"');
             }
             __name(a, "a");
-            __name2(a, "a");
             function l(e2) {
               return a(e2), i(e2 < 0 ? 0 : 0 | u(e2));
             }
             __name(l, "l");
-            __name2(l, "l");
             function c(e2) {
               for (var t4 = e2.length < 0 ? 0 : 0 | u(e2.length), r2 = i(t4), n2 = 0; n2 < t4; n2 += 1) r2[n2] = 255 & e2[n2];
               return r2;
             }
             __name(c, "c");
-            __name2(c, "c");
             function u(e2) {
               if (e2 >= 2147483647) throw new RangeError("Attempt to allocate Buffer larger than maximum size: 0x" + 2147483647 .toString(16) + " bytes");
               return 0 | e2;
             }
             __name(u, "u");
-            __name2(u, "u");
             function h(e2, t4) {
               if (s.isBuffer(e2)) return e2.length;
               if (ArrayBuffer.isView(e2) || F(e2, ArrayBuffer)) return e2.byteLength;
@@ -19218,7 +19530,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(h, "h");
-            __name2(h, "h");
             function f(e2, t4, r2) {
               var n2 = false;
               if ((void 0 === t4 || t4 < 0) && (t4 = 0), t4 > this.length) return "";
@@ -19248,13 +19559,11 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(f, "f");
-            __name2(f, "f");
             function d(e2, t4, r2) {
               var n2 = e2[t4];
               e2[t4] = e2[r2], e2[r2] = n2;
             }
             __name(d, "d");
-            __name2(d, "d");
             function p(e2, t4, r2, n2, i2) {
               if (0 === e2.length) return -1;
               if ("string" == typeof r2 ? (n2 = r2, r2 = 0) : r2 > 2147483647 ? r2 = 2147483647 : r2 < -2147483648 && (r2 = -2147483648), L(r2 = +r2) && (r2 = i2 ? 0 : e2.length - 1), r2 < 0 && (r2 = e2.length + r2), r2 >= e2.length) {
@@ -19269,7 +19578,6 @@ var require_exceljs_min = __commonJS({
               throw new TypeError("val must be string, number or Buffer");
             }
             __name(p, "p");
-            __name2(p, "p");
             function m(e2, t4, r2, n2, i2) {
               var s2, o2 = 1, a2 = e2.length, l2 = t4.length;
               if (void 0 !== n2 && ("ucs2" === (n2 = String(n2).toLowerCase()) || "ucs-2" === n2 || "utf16le" === n2 || "utf-16le" === n2)) {
@@ -19279,8 +19587,7 @@ var require_exceljs_min = __commonJS({
               function c2(e3, t5) {
                 return 1 === o2 ? e3[t5] : e3.readUInt16BE(t5 * o2);
               }
-              __name(c2, "c2");
-              __name2(c2, "c");
+              __name(c2, "c");
               if (i2) {
                 var u2 = -1;
                 for (s2 = r2; s2 < a2; s2++) if (c2(e2, s2) === c2(t4, -1 === u2 ? 0 : s2 - u2)) {
@@ -19296,7 +19603,6 @@ var require_exceljs_min = __commonJS({
               return -1;
             }
             __name(m, "m");
-            __name2(m, "m");
             function b(e2, t4, r2, n2) {
               r2 = Number(r2) || 0;
               var i2 = e2.length - r2;
@@ -19311,12 +19617,10 @@ var require_exceljs_min = __commonJS({
               return o2;
             }
             __name(b, "b");
-            __name2(b, "b");
             function g(e2, t4, r2, n2) {
               return D(P(t4, e2.length - r2), e2, r2, n2);
             }
             __name(g, "g");
-            __name2(g, "g");
             function y(e2, t4, r2, n2) {
               return D((function(e3) {
                 for (var t5 = [], r3 = 0; r3 < e3.length; ++r3) t5.push(255 & e3.charCodeAt(r3));
@@ -19324,17 +19628,14 @@ var require_exceljs_min = __commonJS({
               })(t4), e2, r2, n2);
             }
             __name(y, "y");
-            __name2(y, "y");
             function v(e2, t4, r2, n2) {
               return y(e2, t4, r2, n2);
             }
             __name(v, "v");
-            __name2(v, "v");
             function w(e2, t4, r2, n2) {
               return D(B(t4), e2, r2, n2);
             }
             __name(w, "w");
-            __name2(w, "w");
             function _(e2, t4, r2, n2) {
               return D((function(e3, t5) {
                 for (var r3, n3, i2, s2 = [], o2 = 0; o2 < e3.length && !((t5 -= 2) < 0); ++o2) r3 = e3.charCodeAt(o2), n3 = r3 >> 8, i2 = r3 % 256, s2.push(i2), s2.push(n3);
@@ -19342,12 +19643,10 @@ var require_exceljs_min = __commonJS({
               })(t4, e2.length - r2), e2, r2, n2);
             }
             __name(_, "_");
-            __name2(_, "_");
             function x(e2, r2, n2) {
               return 0 === r2 && n2 === e2.length ? t3.fromByteArray(e2) : t3.fromByteArray(e2.slice(r2, n2));
             }
             __name(x, "x");
-            __name2(x, "x");
             function k(e2, t4, r2) {
               r2 = Math.min(e2.length, r2);
               for (var n2 = [], i2 = t4; i2 < r2; ) {
@@ -19376,19 +19675,18 @@ var require_exceljs_min = __commonJS({
               })(n2);
             }
             __name(k, "k");
-            __name2(k, "k");
             r.kMaxLength = 2147483647, s.TYPED_ARRAY_SUPPORT = (function() {
               try {
                 var e2 = new Uint8Array(1);
-                return e2.__proto__ = { __proto__: Uint8Array.prototype, foo: /* @__PURE__ */ __name2(function() {
+                return e2.__proto__ = { __proto__: Uint8Array.prototype, foo: /* @__PURE__ */ __name(function() {
                   return 42;
                 }, "foo") }, 42 === e2.foo();
               } catch (e3) {
                 return false;
               }
-            })(), s.TYPED_ARRAY_SUPPORT || "undefined" == typeof console || "function" != typeof console.error || console.error("This browser lacks typed array (Uint8Array) support which is required by `buffer` v5.x. Use `buffer` v4.x if you require old browser support."), Object.defineProperty(s.prototype, "parent", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+            })(), s.TYPED_ARRAY_SUPPORT || "undefined" == typeof console || "function" != typeof console.error || console.error("This browser lacks typed array (Uint8Array) support which is required by `buffer` v5.x. Use `buffer` v4.x if you require old browser support."), Object.defineProperty(s.prototype, "parent", { enumerable: true, get: /* @__PURE__ */ __name(function() {
               if (s.isBuffer(this)) return this.buffer;
-            }, "get") }), Object.defineProperty(s.prototype, "offset", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(s.prototype, "offset", { enumerable: true, get: /* @__PURE__ */ __name(function() {
               if (s.isBuffer(this)) return this.byteOffset;
             }, "get") }), "undefined" != typeof Symbol && null != Symbol.species && s[Symbol.species] === s && Object.defineProperty(s, Symbol.species, { value: null, configurable: true, enumerable: false, writable: false }), s.poolSize = 8192, s.from = function(e2, t4, r2) {
               return o(e2, t4, r2);
@@ -19523,7 +19821,6 @@ var require_exceljs_min = __commonJS({
               return n2;
             }
             __name(S, "S");
-            __name2(S, "S");
             function M(e2, t4, r2) {
               var n2 = "";
               r2 = Math.min(e2.length, r2);
@@ -19531,7 +19828,6 @@ var require_exceljs_min = __commonJS({
               return n2;
             }
             __name(M, "M");
-            __name2(M, "M");
             function C(e2, t4, r2) {
               var n2 = e2.length;
               (!t4 || t4 < 0) && (t4 = 0), (!r2 || r2 < 0 || r2 > n2) && (r2 = n2);
@@ -19539,42 +19835,35 @@ var require_exceljs_min = __commonJS({
               return i2;
             }
             __name(C, "C");
-            __name2(C, "C");
             function T(e2, t4, r2) {
               for (var n2 = e2.slice(t4, r2), i2 = "", s2 = 0; s2 < n2.length; s2 += 2) i2 += String.fromCharCode(n2[s2] + 256 * n2[s2 + 1]);
               return i2;
             }
             __name(T, "T");
-            __name2(T, "T");
             function E(e2, t4, r2) {
               if (e2 % 1 != 0 || e2 < 0) throw new RangeError("offset is not uint");
               if (e2 + t4 > r2) throw new RangeError("Trying to access beyond buffer length");
             }
             __name(E, "E");
-            __name2(E, "E");
             function A(e2, t4, r2, n2, i2, o2) {
               if (!s.isBuffer(e2)) throw new TypeError('"buffer" argument must be a Buffer instance');
               if (t4 > i2 || t4 < o2) throw new RangeError('"value" argument is out of bounds');
               if (r2 + n2 > e2.length) throw new RangeError("Index out of range");
             }
             __name(A, "A");
-            __name2(A, "A");
             function R(e2, t4, r2, n2, i2, s2) {
               if (r2 + n2 > e2.length) throw new RangeError("Index out of range");
               if (r2 < 0) throw new RangeError("Index out of range");
             }
             __name(R, "R");
-            __name2(R, "R");
             function O(e2, t4, r2, i2, s2) {
               return t4 = +t4, r2 >>>= 0, s2 || R(e2, 0, r2, 4), n.write(e2, t4, r2, i2, 23, 4), r2 + 4;
             }
             __name(O, "O");
-            __name2(O, "O");
             function j(e2, t4, r2, i2, s2) {
               return t4 = +t4, r2 >>>= 0, s2 || R(e2, 0, r2, 8), n.write(e2, t4, r2, i2, 52, 8), r2 + 8;
             }
             __name(j, "j");
-            __name2(j, "j");
             s.prototype.slice = function(e2, t4) {
               var r2 = this.length;
               (e2 = ~~e2) < 0 ? (e2 += r2) < 0 && (e2 = 0) : e2 > r2 && (e2 = r2), (t4 = void 0 === t4 ? r2 : ~~t4) < 0 ? (t4 += r2) < 0 && (t4 = 0) : t4 > r2 && (t4 = r2), t4 < e2 && (t4 = e2);
@@ -19720,7 +20009,6 @@ var require_exceljs_min = __commonJS({
               return e2 < 16 ? "0" + e2.toString(16) : e2.toString(16);
             }
             __name(N, "N");
-            __name2(N, "N");
             function P(e2, t4) {
               var r2;
               t4 = t4 || 1 / 0;
@@ -19762,7 +20050,6 @@ var require_exceljs_min = __commonJS({
               return s2;
             }
             __name(P, "P");
-            __name2(P, "P");
             function B(e2) {
               return t3.toByteArray((function(e3) {
                 if ((e3 = (e3 = e3.split("=")[0]).trim().replace(I, "")).length < 2) return "";
@@ -19771,23 +20058,19 @@ var require_exceljs_min = __commonJS({
               })(e2));
             }
             __name(B, "B");
-            __name2(B, "B");
             function D(e2, t4, r2, n2) {
               for (var i2 = 0; i2 < n2 && !(i2 + r2 >= t4.length || i2 >= e2.length); ++i2) t4[i2 + r2] = e2[i2];
               return i2;
             }
             __name(D, "D");
-            __name2(D, "D");
             function F(e2, t4) {
               return e2 instanceof t4 || null != e2 && null != e2.constructor && null != e2.constructor.name && e2.constructor.name === t4.name;
             }
             __name(F, "F");
-            __name2(F, "F");
             function L(e2) {
               return e2 != e2;
             }
             __name(L, "L");
-            __name2(L, "L");
           }).call(this);
         }).call(this, e("buffer").Buffer);
       }, { "base64-js": 185, buffer: 220, ieee754: 439 }], 221: [function(e, t, r) {
@@ -19797,7 +20080,6 @@ var require_exceljs_min = __commonJS({
           i.call(this), this.hashMode = "string" == typeof e2, this.hashMode ? this[e2] = this._finalOrDigest : this.final = this._finalOrDigest, this._final && (this.__final = this._final, this._final = null), this._decoder = null, this._encoding = null;
         }
         __name(o, "o");
-        __name2(o, "o");
         e("inherits")(o, i), o.prototype.update = function(e2, t2, r2) {
           "string" == typeof e2 && (e2 = n.from(e2, t2));
           var i2 = this._update(e2);
@@ -19877,7 +20159,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../internals/is-object": 289 }], 228: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/to-indexed-object"), i = e("../internals/to-absolute-index"), s = e("../internals/length-of-array-like"), o = /* @__PURE__ */ __name2(function(e2) {
+        var n = e("../internals/to-indexed-object"), i = e("../internals/to-absolute-index"), s = e("../internals/length-of-array-like"), o = /* @__PURE__ */ __name(function(e2) {
           return function(t2, r2, o2) {
             var a, l = n(t2), c = s(l), u = i(o2, c);
             if (e2 && r2 != r2) {
@@ -19889,7 +20171,7 @@ var require_exceljs_min = __commonJS({
         t.exports = { includes: o(true), indexOf: o(false) };
       }, { "../internals/length-of-array-like": 299, "../internals/to-absolute-index": 340, "../internals/to-indexed-object": 341 }], 229: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/function-bind-context"), i = e("../internals/function-uncurry-this"), s = e("../internals/indexed-object"), o = e("../internals/to-object"), a = e("../internals/length-of-array-like"), l = e("../internals/array-species-create"), c = i([].push), u = /* @__PURE__ */ __name2(function(e2) {
+        var n = e("../internals/function-bind-context"), i = e("../internals/function-uncurry-this"), s = e("../internals/indexed-object"), o = e("../internals/to-object"), a = e("../internals/length-of-array-like"), l = e("../internals/array-species-create"), c = i([].push), u = /* @__PURE__ */ __name(function(e2) {
           var t2 = 1 === e2, r2 = 2 === e2, i2 = 3 === e2, u2 = 4 === e2, h = 6 === e2, f = 7 === e2, d = 5 === e2 || h;
           return function(p, m, b, g) {
             for (var y, v, w = o(p), _ = s(w), x = n(m, b), k = a(_), S = 0, M = g || l, C = t2 ? M(p, k) : r2 || f ? M(p, 0) : void 0; k > S; S++) if ((d || S in _) && (v = x(y = _[S], S, w), e2)) if (t2) C[S] = v;
@@ -19941,9 +20223,9 @@ var require_exceljs_min = __commonJS({
         "use strict";
         var n = e("../internals/well-known-symbol")("iterator"), i = false;
         try {
-          var s = 0, o = { next: /* @__PURE__ */ __name2(function() {
+          var s = 0, o = { next: /* @__PURE__ */ __name(function() {
             return { done: !!s++ };
-          }, "next"), return: /* @__PURE__ */ __name2(function() {
+          }, "next"), return: /* @__PURE__ */ __name(function() {
             i = true;
           }, "return") };
           o[n] = function() {
@@ -19963,7 +20245,7 @@ var require_exceljs_min = __commonJS({
           try {
             var s2 = {};
             s2[n] = function() {
-              return { next: /* @__PURE__ */ __name2(function() {
+              return { next: /* @__PURE__ */ __name(function() {
                 return { done: r2 = true };
               }, "next") };
             }, e2(s2);
@@ -20021,8 +20303,7 @@ var require_exceljs_min = __commonJS({
         t.exports = !n((function() {
           function e2() {
           }
-          __name(e2, "e2");
-          __name2(e2, "e");
+          __name(e2, "e");
           return e2.prototype.constructor = null, Object.getPrototypeOf(new e2()) !== e2.prototype;
         }));
       }, { "../internals/fails": 260 }], 240: [function(e, t, r) {
@@ -20087,7 +20368,7 @@ var require_exceljs_min = __commonJS({
         "use strict";
         var n = e("../internals/fails");
         t.exports = !n((function() {
-          return 7 !== Object.defineProperty({}, 1, { get: /* @__PURE__ */ __name2(function() {
+          return 7 !== Object.defineProperty({}, 1, { get: /* @__PURE__ */ __name(function() {
             return 7;
           }, "get") })[1];
         }));
@@ -20214,7 +20495,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../internals/function-bind-native": 263 }], 269: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/global"), i = e("../internals/is-callable"), s = /* @__PURE__ */ __name2(function(e2) {
+        var n = e("../internals/global"), i = e("../internals/is-callable"), s = /* @__PURE__ */ __name(function(e2) {
           return i(e2) ? e2 : void 0;
         }, "s");
         t.exports = function(e2, t2) {
@@ -20263,7 +20544,7 @@ var require_exceljs_min = __commonJS({
         (function(e2) {
           (function() {
             "use strict";
-            var r2 = /* @__PURE__ */ __name2(function(e3) {
+            var r2 = /* @__PURE__ */ __name(function(e3) {
               return e3 && e3.Math === Math && e3;
             }, "r");
             t.exports = r2("object" == typeof globalThis && globalThis) || r2("object" == typeof window && window) || r2("object" == typeof self && self) || r2("object" == typeof e2 && e2) || /* @__PURE__ */ (function() {
@@ -20296,7 +20577,7 @@ var require_exceljs_min = __commonJS({
         "use strict";
         var n = e("../internals/descriptors"), i = e("../internals/fails"), s = e("../internals/document-create-element");
         t.exports = !n && !i((function() {
-          return 7 !== Object.defineProperty(s("div"), "a", { get: /* @__PURE__ */ __name2(function() {
+          return 7 !== Object.defineProperty(s("div"), "a", { get: /* @__PURE__ */ __name(function() {
             return 7;
           }, "get") }).a;
         }));
@@ -20319,28 +20600,28 @@ var require_exceljs_min = __commonJS({
         var n, i, s, o = e("../internals/weak-map-basic-detection"), a = e("../internals/global"), l = e("../internals/is-object"), c = e("../internals/create-non-enumerable-property"), u = e("../internals/has-own-property"), h = e("../internals/shared-store"), f = e("../internals/shared-key"), d = e("../internals/hidden-keys"), p = a.TypeError, m = a.WeakMap;
         if (o || h.state) {
           var b = h.state || (h.state = new m());
-          b.get = b.get, b.has = b.has, b.set = b.set, n = /* @__PURE__ */ __name2(function(e2, t2) {
+          b.get = b.get, b.has = b.has, b.set = b.set, n = /* @__PURE__ */ __name(function(e2, t2) {
             if (b.has(e2)) throw new p("Object already initialized");
             return t2.facade = e2, b.set(e2, t2), t2;
-          }, "n"), i = /* @__PURE__ */ __name2(function(e2) {
+          }, "n"), i = /* @__PURE__ */ __name(function(e2) {
             return b.get(e2) || {};
-          }, "i"), s = /* @__PURE__ */ __name2(function(e2) {
+          }, "i"), s = /* @__PURE__ */ __name(function(e2) {
             return b.has(e2);
           }, "s");
         } else {
           var g = f("state");
-          d[g] = true, n = /* @__PURE__ */ __name2(function(e2, t2) {
+          d[g] = true, n = /* @__PURE__ */ __name(function(e2, t2) {
             if (u(e2, g)) throw new p("Object already initialized");
             return t2.facade = e2, c(e2, g, t2), t2;
-          }, "n"), i = /* @__PURE__ */ __name2(function(e2) {
+          }, "n"), i = /* @__PURE__ */ __name(function(e2) {
             return u(e2, g) ? e2[g] : {};
-          }, "i"), s = /* @__PURE__ */ __name2(function(e2) {
+          }, "i"), s = /* @__PURE__ */ __name(function(e2) {
             return u(e2, g);
           }, "s");
         }
-        t.exports = { set: n, get: i, has: s, enforce: /* @__PURE__ */ __name2(function(e2) {
+        t.exports = { set: n, get: i, has: s, enforce: /* @__PURE__ */ __name(function(e2) {
           return s(e2) ? i(e2) : n(e2, {});
-        }, "enforce"), getterFor: /* @__PURE__ */ __name2(function(e2) {
+        }, "enforce"), getterFor: /* @__PURE__ */ __name(function(e2) {
           return function(t2) {
             var r2;
             if (!l(t2) || (r2 = i(t2)).type !== e2) throw new p("Incompatible receiver, " + e2 + " required");
@@ -20369,15 +20650,15 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../internals/document-all": 248 }], 286: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/function-uncurry-this"), i = e("../internals/fails"), s = e("../internals/is-callable"), o = e("../internals/classof"), a = e("../internals/get-built-in"), l = e("../internals/inspect-source"), c = /* @__PURE__ */ __name2(function() {
-        }, "c"), u = [], h = a("Reflect", "construct"), f = /^\s*(?:class|function)\b/, d = n(f.exec), p = !f.test(c), m = /* @__PURE__ */ __name2(function(e2) {
+        var n = e("../internals/function-uncurry-this"), i = e("../internals/fails"), s = e("../internals/is-callable"), o = e("../internals/classof"), a = e("../internals/get-built-in"), l = e("../internals/inspect-source"), c = /* @__PURE__ */ __name(function() {
+        }, "c"), u = [], h = a("Reflect", "construct"), f = /^\s*(?:class|function)\b/, d = n(f.exec), p = !f.test(c), m = /* @__PURE__ */ __name(function(e2) {
           if (!s(e2)) return false;
           try {
             return h(c, u, e2), true;
           } catch (e3) {
             return false;
           }
-        }, "m"), b = /* @__PURE__ */ __name2(function(e2) {
+        }, "m"), b = /* @__PURE__ */ __name(function(e2) {
           if (!s(e2)) return false;
           switch (o(e2)) {
             case "AsyncFunction":
@@ -20399,7 +20680,7 @@ var require_exceljs_min = __commonJS({
         })) ? b : m;
       }, { "../internals/classof": 236, "../internals/fails": 260, "../internals/function-uncurry-this": 268, "../internals/get-built-in": 269, "../internals/inspect-source": 281, "../internals/is-callable": 285 }], 287: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/fails"), i = e("../internals/is-callable"), s = /#|\.prototype\./, o = /* @__PURE__ */ __name2(function(e2, t2) {
+        var n = e("../internals/fails"), i = e("../internals/is-callable"), s = /#|\.prototype\./, o = /* @__PURE__ */ __name(function(e2, t2) {
           var r2 = l[a(e2)];
           return r2 === u || r2 !== c && (i(t2) ? n(t2) : !!t2);
         }, "o"), a = o.normalize = function(e2) {
@@ -20440,13 +20721,13 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../internals/get-built-in": 269, "../internals/is-callable": 285, "../internals/object-is-prototype-of": 314, "../internals/use-symbol-as-uid": 351 }], 293: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/function-bind-context"), i = e("../internals/function-call"), s = e("../internals/an-object"), o = e("../internals/try-to-string"), a = e("../internals/is-array-iterator-method"), l = e("../internals/length-of-array-like"), c = e("../internals/object-is-prototype-of"), u = e("../internals/get-iterator"), h = e("../internals/get-iterator-method"), f = e("../internals/iterator-close"), d = TypeError, p = /* @__PURE__ */ __name2(function(e2, t2) {
+        var n = e("../internals/function-bind-context"), i = e("../internals/function-call"), s = e("../internals/an-object"), o = e("../internals/try-to-string"), a = e("../internals/is-array-iterator-method"), l = e("../internals/length-of-array-like"), c = e("../internals/object-is-prototype-of"), u = e("../internals/get-iterator"), h = e("../internals/get-iterator-method"), f = e("../internals/iterator-close"), d = TypeError, p = /* @__PURE__ */ __name(function(e2, t2) {
           this.stopped = e2, this.result = t2;
         }, "p"), m = p.prototype;
         t.exports = function(e2, t2, r2) {
-          var b, g, y, v, w, _, x, k = r2 && r2.that, S = !(!r2 || !r2.AS_ENTRIES), M = !(!r2 || !r2.IS_RECORD), C = !(!r2 || !r2.IS_ITERATOR), T = !(!r2 || !r2.INTERRUPTED), E = n(t2, k), A = /* @__PURE__ */ __name2(function(e3) {
+          var b, g, y, v, w, _, x, k = r2 && r2.that, S = !(!r2 || !r2.AS_ENTRIES), M = !(!r2 || !r2.IS_RECORD), C = !(!r2 || !r2.IS_ITERATOR), T = !(!r2 || !r2.INTERRUPTED), E = n(t2, k), A = /* @__PURE__ */ __name(function(e3) {
             return b && f(b, "normal", e3), new p(true, e3);
-          }, "A"), R = /* @__PURE__ */ __name2(function(e3) {
+          }, "A"), R = /* @__PURE__ */ __name(function(e3) {
             return S ? (s(e3), T ? E(e3[0], e3[1], A) : E(e3[0], e3[1])) : T ? E(e3, A) : E(e3);
           }, "R");
           if (M) b = e2.iterator;
@@ -20490,7 +20771,7 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../internals/an-object": 227, "../internals/function-call": 264, "../internals/get-method": 273 }], 295: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/iterators-core").IteratorPrototype, i = e("../internals/object-create"), s = e("../internals/create-property-descriptor"), o = e("../internals/set-to-string-tag"), a = e("../internals/iterators"), l = /* @__PURE__ */ __name2(function() {
+        var n = e("../internals/iterators-core").IteratorPrototype, i = e("../internals/object-create"), s = e("../internals/create-property-descriptor"), o = e("../internals/set-to-string-tag"), a = e("../internals/iterators"), l = /* @__PURE__ */ __name(function() {
           return this;
         }, "l");
         t.exports = function(e2, t2, r2, c) {
@@ -20499,12 +20780,12 @@ var require_exceljs_min = __commonJS({
         };
       }, { "../internals/create-property-descriptor": 242, "../internals/iterators": 298, "../internals/iterators-core": 297, "../internals/object-create": 306, "../internals/set-to-string-tag": 331 }], 296: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/export"), i = e("../internals/function-call"), s = e("../internals/is-pure"), o = e("../internals/function-name"), a = e("../internals/is-callable"), l = e("../internals/iterator-create-constructor"), c = e("../internals/object-get-prototype-of"), u = e("../internals/object-set-prototype-of"), h = e("../internals/set-to-string-tag"), f = e("../internals/create-non-enumerable-property"), d = e("../internals/define-built-in"), p = e("../internals/well-known-symbol"), m = e("../internals/iterators"), b = e("../internals/iterators-core"), g = o.PROPER, y = o.CONFIGURABLE, v = b.IteratorPrototype, w = b.BUGGY_SAFARI_ITERATORS, _ = p("iterator"), x = /* @__PURE__ */ __name2(function() {
+        var n = e("../internals/export"), i = e("../internals/function-call"), s = e("../internals/is-pure"), o = e("../internals/function-name"), a = e("../internals/is-callable"), l = e("../internals/iterator-create-constructor"), c = e("../internals/object-get-prototype-of"), u = e("../internals/object-set-prototype-of"), h = e("../internals/set-to-string-tag"), f = e("../internals/create-non-enumerable-property"), d = e("../internals/define-built-in"), p = e("../internals/well-known-symbol"), m = e("../internals/iterators"), b = e("../internals/iterators-core"), g = o.PROPER, y = o.CONFIGURABLE, v = b.IteratorPrototype, w = b.BUGGY_SAFARI_ITERATORS, _ = p("iterator"), x = /* @__PURE__ */ __name(function() {
           return this;
         }, "x");
         t.exports = function(e2, t2, r2, o2, p2, b2, k) {
           l(r2, t2, o2);
-          var S, M, C, T = /* @__PURE__ */ __name2(function(e3) {
+          var S, M, C, T = /* @__PURE__ */ __name(function(e3) {
             if (e3 === p2 && j) return j;
             if (!w && e3 && e3 in R) return R[e3];
             switch (e3) {
@@ -20519,7 +20800,7 @@ var require_exceljs_min = __commonJS({
               return new r2(this);
             };
           }, "T"), E = t2 + " Iterator", A = false, R = e2.prototype, O = R[_] || R["@@iterator"] || p2 && R[p2], j = !w && O || T(p2), I = "Array" === t2 && R.entries || O;
-          if (I && (S = c(I.call(new e2()))) !== Object.prototype && S.next && (s || c(S) === v || (u ? u(S, v) : a(S[_]) || d(S, _, x)), h(S, E, true, true), s && (m[E] = x)), g && "values" === p2 && O && "values" !== O.name && (!s && y ? f(R, "name", "values") : (A = true, j = /* @__PURE__ */ __name2(function() {
+          if (I && (S = c(I.call(new e2()))) !== Object.prototype && S.next && (s || c(S) === v || (u ? u(S, v) : a(S[_]) || d(S, _, x)), h(S, E, true, true), s && (m[E] = x)), g && "values" === p2 && O && "values" !== O.name && (!s && y ? f(R, "name", "values") : (A = true, j = /* @__PURE__ */ __name(function() {
             return i(O, this);
           }, "j"))), p2) if (M = { values: T("values"), keys: b2 ? j : T("keys"), entries: T("entries") }, k) for (C in M) (w || A || !(C in R)) && d(R, C, M[C]);
           else n({ target: t2, proto: true, forced: w || A }, M);
@@ -20570,7 +20851,7 @@ var require_exceljs_min = __commonJS({
         "use strict";
         var n, i, s, o, a, l = e("../internals/global"), c = e("../internals/function-bind-context"), u = e("../internals/object-get-own-property-descriptor").f, h = e("../internals/task").set, f = e("../internals/queue"), d = e("../internals/engine-is-ios"), p = e("../internals/engine-is-ios-pebble"), m = e("../internals/engine-is-webos-webkit"), b = e("../internals/engine-is-node"), g = l.MutationObserver || l.WebKitMutationObserver, y = l.document, v = l.process, w = l.Promise, _ = u(l, "queueMicrotask"), x = _ && _.value;
         if (!x) {
-          var k = new f(), S = /* @__PURE__ */ __name2(function() {
+          var k = new f(), S = /* @__PURE__ */ __name(function() {
             var e2, t2;
             for (b && (e2 = v.domain) && e2.exit(); t2 = k.get(); ) try {
               t2();
@@ -20579,22 +20860,22 @@ var require_exceljs_min = __commonJS({
             }
             e2 && e2.enter();
           }, "S");
-          d || b || m || !g || !y ? !p && w && w.resolve ? ((o = w.resolve(void 0)).constructor = w, a = c(o.then, o), n = /* @__PURE__ */ __name2(function() {
+          d || b || m || !g || !y ? !p && w && w.resolve ? ((o = w.resolve(void 0)).constructor = w, a = c(o.then, o), n = /* @__PURE__ */ __name(function() {
             a(S);
-          }, "n")) : b ? n = /* @__PURE__ */ __name2(function() {
+          }, "n")) : b ? n = /* @__PURE__ */ __name(function() {
             v.nextTick(S);
-          }, "n") : (h = c(h, l), n = /* @__PURE__ */ __name2(function() {
+          }, "n") : (h = c(h, l), n = /* @__PURE__ */ __name(function() {
             h(S);
-          }, "n")) : (i = true, s = y.createTextNode(""), new g(S).observe(s, { characterData: true }), n = /* @__PURE__ */ __name2(function() {
+          }, "n")) : (i = true, s = y.createTextNode(""), new g(S).observe(s, { characterData: true }), n = /* @__PURE__ */ __name(function() {
             s.data = i = !i;
-          }, "n")), x = /* @__PURE__ */ __name2(function(e2) {
+          }, "n")), x = /* @__PURE__ */ __name(function(e2) {
             k.head || n(), k.add(e2);
           }, "x");
         }
         t.exports = x;
       }, { "../internals/engine-is-ios": 253, "../internals/engine-is-ios-pebble": 252, "../internals/engine-is-node": 254, "../internals/engine-is-webos-webkit": 255, "../internals/function-bind-context": 262, "../internals/global": 274, "../internals/object-get-own-property-descriptor": 309, "../internals/queue": 328, "../internals/task": 339 }], 303: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/a-callable"), i = TypeError, s = /* @__PURE__ */ __name2(function(e2) {
+        var n = e("../internals/a-callable"), i = TypeError, s = /* @__PURE__ */ __name(function(e2) {
           var t2, r2;
           this.promise = new e2((function(e3, n2) {
             if (void 0 !== t2 || void 0 !== r2) throw new i("Bad Promise constructor");
@@ -20615,7 +20896,7 @@ var require_exceljs_min = __commonJS({
         "use strict";
         var n = e("../internals/descriptors"), i = e("../internals/function-uncurry-this"), s = e("../internals/function-call"), o = e("../internals/fails"), a = e("../internals/object-keys"), l = e("../internals/object-get-own-property-symbols"), c = e("../internals/object-property-is-enumerable"), u = e("../internals/to-object"), h = e("../internals/indexed-object"), f = Object.assign, d = Object.defineProperty, p = i([].concat);
         t.exports = !f || o((function() {
-          if (n && 1 !== f({ b: 1 }, f(d({}, "a", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+          if (n && 1 !== f({ b: 1 }, f(d({}, "a", { enumerable: true, get: /* @__PURE__ */ __name(function() {
             d(this, "b", { value: 3, enumerable: false });
           }, "get") }), { b: 2 })).b) return true;
           var e2 = {}, t2 = {}, r2 = /* @__PURE__ */ Symbol("assign detection");
@@ -20628,14 +20909,14 @@ var require_exceljs_min = __commonJS({
         } : f;
       }, { "../internals/descriptors": 247, "../internals/fails": 260, "../internals/function-call": 264, "../internals/function-uncurry-this": 268, "../internals/indexed-object": 280, "../internals/object-get-own-property-symbols": 312, "../internals/object-keys": 316, "../internals/object-property-is-enumerable": 317, "../internals/to-object": 344 }], 306: [function(e, t, r) {
         "use strict";
-        var n, i = e("../internals/an-object"), s = e("../internals/object-define-properties"), o = e("../internals/enum-bug-keys"), a = e("../internals/hidden-keys"), l = e("../internals/html"), c = e("../internals/document-create-element"), u = e("../internals/shared-key"), h = u("IE_PROTO"), f = /* @__PURE__ */ __name2(function() {
-        }, "f"), d = /* @__PURE__ */ __name2(function(e2) {
+        var n, i = e("../internals/an-object"), s = e("../internals/object-define-properties"), o = e("../internals/enum-bug-keys"), a = e("../internals/hidden-keys"), l = e("../internals/html"), c = e("../internals/document-create-element"), u = e("../internals/shared-key"), h = u("IE_PROTO"), f = /* @__PURE__ */ __name(function() {
+        }, "f"), d = /* @__PURE__ */ __name(function(e2) {
           return "<script>" + e2 + "<\/script>";
-        }, "d"), p = /* @__PURE__ */ __name2(function(e2) {
+        }, "d"), p = /* @__PURE__ */ __name(function(e2) {
           e2.write(d("")), e2.close();
           var t2 = e2.parentWindow.Object;
           return e2 = null, t2;
-        }, "p"), m = /* @__PURE__ */ __name2(function() {
+        }, "p"), m = /* @__PURE__ */ __name(function() {
           try {
             n = new ActiveXObject("htmlfile");
           } catch (e3) {
@@ -20758,7 +21039,7 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/descriptors"), i = e("../internals/fails"), s = e("../internals/function-uncurry-this"), o = e("../internals/object-get-prototype-of"), a = e("../internals/object-keys"), l = e("../internals/to-indexed-object"), c = s(e("../internals/object-property-is-enumerable").f), u = s([].push), h = n && i((function() {
           var e2 = /* @__PURE__ */ Object.create(null);
           return e2[2] = 2, !c(e2, 2);
-        })), f = /* @__PURE__ */ __name2(function(e2) {
+        })), f = /* @__PURE__ */ __name(function(e2) {
           return function(t2) {
             for (var r2, i2 = l(t2), s2 = a(i2), f2 = h && null === o(i2), d = s2.length, p = 0, m = []; d > p; ) r2 = s2[p++], n && !(f2 ? r2 in i2 : c(i2, r2)) || u(m, e2 ? [r2, i2[r2]] : i2[r2]);
             return m;
@@ -20804,7 +21085,7 @@ var require_exceljs_min = __commonJS({
           if (!f || f < 51 || !/native code/.test(e2)) {
             var r2 = new i((function(e3) {
               e3(1);
-            })), n2 = /* @__PURE__ */ __name2(function(e3) {
+            })), n2 = /* @__PURE__ */ __name(function(e3) {
               e3((function() {
               }), (function() {
               }));
@@ -20836,13 +21117,13 @@ var require_exceljs_min = __commonJS({
         }));
       }, { "../internals/check-correctness-of-iteration": 234, "../internals/promise-constructor-detection": 324, "../internals/promise-native-constructor": 325 }], 328: [function(e, t, r) {
         "use strict";
-        var n = /* @__PURE__ */ __name2(function() {
+        var n = /* @__PURE__ */ __name(function() {
           this.head = null, this.tail = null;
         }, "n");
-        n.prototype = { add: /* @__PURE__ */ __name2(function(e2) {
+        n.prototype = { add: /* @__PURE__ */ __name(function(e2) {
           var t2 = { item: e2, next: null }, r2 = this.tail;
           r2 ? r2.next = t2 : this.head = t2, this.tail = t2;
-        }, "add"), get: /* @__PURE__ */ __name2(function() {
+        }, "add"), get: /* @__PURE__ */ __name(function() {
           var e2 = this.head;
           if (e2) return null === (this.head = e2.next) && (this.tail = null), e2.item;
         }, "get") }, t.exports = n;
@@ -20858,7 +21139,7 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/get-built-in"), i = e("../internals/define-built-in-accessor"), s = e("../internals/well-known-symbol"), o = e("../internals/descriptors"), a = s("species");
         t.exports = function(e2) {
           var t2 = n(e2);
-          o && t2 && !t2[a] && i(t2, a, { configurable: true, get: /* @__PURE__ */ __name2(function() {
+          o && t2 && !t2[a] && i(t2, a, { configurable: true, get: /* @__PURE__ */ __name(function() {
             return this;
           }, "get") });
         };
@@ -20917,31 +21198,31 @@ var require_exceljs_min = __commonJS({
         f((function() {
           n = a.location;
         }));
-        var E = /* @__PURE__ */ __name2(function(e2) {
+        var E = /* @__PURE__ */ __name(function(e2) {
           if (h(T, e2)) {
             var t2 = T[e2];
             delete T[e2], t2();
           }
-        }, "E"), A = /* @__PURE__ */ __name2(function(e2) {
+        }, "E"), A = /* @__PURE__ */ __name(function(e2) {
           return function() {
             E(e2);
           };
-        }, "A"), R = /* @__PURE__ */ __name2(function(e2) {
+        }, "A"), R = /* @__PURE__ */ __name(function(e2) {
           E(e2.data);
-        }, "R"), O = /* @__PURE__ */ __name2(function(e2) {
+        }, "R"), O = /* @__PURE__ */ __name(function(e2) {
           a.postMessage(M(e2), n.protocol + "//" + n.host);
         }, "O");
-        v && w || (v = /* @__PURE__ */ __name2(function(e2) {
+        v && w || (v = /* @__PURE__ */ __name(function(e2) {
           b(arguments.length, 1);
           var t2 = u(e2) ? e2 : k(e2), r2 = p(arguments, 1);
           return T[++C] = function() {
             l(t2, void 0, r2);
           }, i(C), C;
-        }, "v"), w = /* @__PURE__ */ __name2(function(e2) {
+        }, "v"), w = /* @__PURE__ */ __name(function(e2) {
           delete T[e2];
-        }, "w"), y ? i = /* @__PURE__ */ __name2(function(e2) {
+        }, "w"), y ? i = /* @__PURE__ */ __name(function(e2) {
           _.nextTick(A(e2));
-        }, "i") : x && x.now ? i = /* @__PURE__ */ __name2(function(e2) {
+        }, "i") : x && x.now ? i = /* @__PURE__ */ __name(function(e2) {
           x.now(A(e2));
         }, "i") : S && !g ? (o = (s = new S()).port2, s.port1.onmessage = R, i = c(o.postMessage, o)) : a.addEventListener && u(a.postMessage) && !a.importScripts && n && "file:" !== n.protocol && !f(O) ? (i = O, a.addEventListener("message", R, false)) : i = "onreadystatechange" in m("script") ? function(e2) {
           d.appendChild(m("script")).onreadystatechange = function() {
@@ -21072,7 +21353,7 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/export"), i = e("../internals/array-iteration").findIndex, s = e("../internals/add-to-unscopables"), o = true;
         "findIndex" in [] && Array(1).findIndex((function() {
           o = false;
-        })), n({ target: "Array", proto: true, forced: o }, { findIndex: /* @__PURE__ */ __name2(function(e2) {
+        })), n({ target: "Array", proto: true, forced: o }, { findIndex: /* @__PURE__ */ __name(function(e2) {
           return i(this, e2, arguments.length > 1 ? arguments[1] : void 0);
         }, "findIndex") }), s("findIndex");
       }, { "../internals/add-to-unscopables": 225, "../internals/array-iteration": 229, "../internals/export": 259 }], 359: [function(e, t, r) {
@@ -21080,7 +21361,7 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/export"), i = e("../internals/array-iteration").find, s = e("../internals/add-to-unscopables"), o = true;
         "find" in [] && Array(1).find((function() {
           o = false;
-        })), n({ target: "Array", proto: true, forced: o }, { find: /* @__PURE__ */ __name2(function(e2) {
+        })), n({ target: "Array", proto: true, forced: o }, { find: /* @__PURE__ */ __name(function(e2) {
           return i(this, e2, arguments.length > 1 ? arguments[1] : void 0);
         }, "find") }), s("find");
       }, { "../internals/add-to-unscopables": 225, "../internals/array-iteration": 229, "../internals/export": 259 }], 360: [function(e, t, r) {
@@ -21088,7 +21369,7 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/export"), i = e("../internals/array-includes").includes, s = e("../internals/fails"), o = e("../internals/add-to-unscopables");
         n({ target: "Array", proto: true, forced: s((function() {
           return !Array(1).includes();
-        })) }, { includes: /* @__PURE__ */ __name2(function(e2) {
+        })) }, { includes: /* @__PURE__ */ __name(function(e2) {
           return i(this, e2, arguments.length > 1 ? arguments[1] : void 0);
         }, "includes") }), o("includes");
       }, { "../internals/add-to-unscopables": 225, "../internals/array-includes": 228, "../internals/export": 259, "../internals/fails": 260 }], 361: [function(e, t, r) {
@@ -21119,22 +21400,22 @@ var require_exceljs_min = __commonJS({
           return "[null]" !== m([e2]) || "{}" !== m({ a: e2 }) || "{}" !== m(Object(e2));
         })), M = l((function() {
           return '"\\udf06\\ud834"' !== m("\uDF06\uD834") || '"\\udead"' !== m("\uDEAD");
-        })), C = /* @__PURE__ */ __name2(function(e2, t2) {
+        })), C = /* @__PURE__ */ __name(function(e2, t2) {
           var r2 = h(arguments), n2 = f(t2);
           if (c(n2) || void 0 !== e2 && !u(e2)) return r2[1] = function(e3, t3) {
             if (c(n2) && (t3 = o(n2, this, p(e3), t3)), !u(t3)) return t3;
           }, s(m, null, r2);
-        }, "C"), T = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        }, "C"), T = /* @__PURE__ */ __name(function(e2, t2, r2) {
           var n2 = g(r2, t2 - 1), i2 = g(r2, t2 + 1);
           return b(x, e2) && !b(k, i2) || b(k, e2) && !b(x, n2) ? "\\u" + w(y(e2, 0), 16) : e2;
         }, "T");
-        m && n({ target: "JSON", stat: true, arity: 3, forced: S || M }, { stringify: /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        m && n({ target: "JSON", stat: true, arity: 3, forced: S || M }, { stringify: /* @__PURE__ */ __name(function(e2, t2, r2) {
           var n2 = h(arguments), i2 = s(S ? C : m, null, n2);
           return M && "string" == typeof i2 ? v(i2, _, T) : i2;
         }, "stringify") });
       }, { "../internals/array-slice": 231, "../internals/export": 259, "../internals/fails": 260, "../internals/function-apply": 261, "../internals/function-call": 264, "../internals/function-uncurry-this": 268, "../internals/get-built-in": 269, "../internals/get-json-replacer-function": 272, "../internals/is-callable": 285, "../internals/is-symbol": 292, "../internals/symbol-constructor-detection": 336 }], 363: [function(e, t, r) {
         "use strict";
-        e("../internals/export")({ target: "Number", stat: true }, { isNaN: /* @__PURE__ */ __name2(function(e2) {
+        e("../internals/export")({ target: "Number", stat: true }, { isNaN: /* @__PURE__ */ __name(function(e2) {
           return e2 != e2;
         }, "isNaN") });
       }, { "../internals/export": 259 }], 364: [function(e, t, r) {
@@ -21146,7 +21427,7 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/export"), i = e("../internals/symbol-constructor-detection"), s = e("../internals/fails"), o = e("../internals/object-get-own-property-symbols"), a = e("../internals/to-object");
         n({ target: "Object", stat: true, forced: !i || s((function() {
           o.f(1);
-        })) }, { getOwnPropertySymbols: /* @__PURE__ */ __name2(function(e2) {
+        })) }, { getOwnPropertySymbols: /* @__PURE__ */ __name(function(e2) {
           var t2 = o.f;
           return t2 ? t2(a(e2)) : [];
         }, "getOwnPropertySymbols") });
@@ -21155,19 +21436,19 @@ var require_exceljs_min = __commonJS({
         var n = e("../internals/export"), i = e("../internals/to-object"), s = e("../internals/object-keys");
         n({ target: "Object", stat: true, forced: e("../internals/fails")((function() {
           s(1);
-        })) }, { keys: /* @__PURE__ */ __name2(function(e2) {
+        })) }, { keys: /* @__PURE__ */ __name(function(e2) {
           return s(i(e2));
         }, "keys") });
       }, { "../internals/export": 259, "../internals/fails": 260, "../internals/object-keys": 316, "../internals/to-object": 344 }], 367: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/object-to-array").values;
-        n({ target: "Object", stat: true }, { values: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Object", stat: true }, { values: /* @__PURE__ */ __name(function(e2) {
           return i(e2);
         }, "values") });
       }, { "../internals/export": 259, "../internals/object-to-array": 319 }], 368: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/function-call"), s = e("../internals/a-callable"), o = e("../internals/new-promise-capability"), a = e("../internals/perform"), l = e("../internals/iterate");
-        n({ target: "Promise", stat: true, forced: e("../internals/promise-statics-incorrect-iteration") }, { all: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Promise", stat: true, forced: e("../internals/promise-statics-incorrect-iteration") }, { all: /* @__PURE__ */ __name(function(e2) {
           var t2 = this, r2 = o.f(t2), n2 = r2.resolve, c = r2.reject, u = a((function() {
             var r3 = s(t2.resolve), o2 = [], a2 = 0, u2 = 1;
             l(e2, (function(e3) {
@@ -21182,7 +21463,7 @@ var require_exceljs_min = __commonJS({
       }, { "../internals/a-callable": 222, "../internals/export": 259, "../internals/function-call": 264, "../internals/iterate": 293, "../internals/new-promise-capability": 303, "../internals/perform": 323, "../internals/promise-statics-incorrect-iteration": 327 }], 369: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/is-pure"), s = e("../internals/promise-constructor-detection").CONSTRUCTOR, o = e("../internals/promise-native-constructor"), a = e("../internals/get-built-in"), l = e("../internals/is-callable"), c = e("../internals/define-built-in"), u = o && o.prototype;
-        if (n({ target: "Promise", proto: true, forced: s, real: true }, { catch: /* @__PURE__ */ __name2(function(e2) {
+        if (n({ target: "Promise", proto: true, forced: s, real: true }, { catch: /* @__PURE__ */ __name(function(e2) {
           return this.then(void 0, e2);
         }, "catch") }), !i && l(o)) {
           var h = a("Promise").prototype.catch;
@@ -21190,45 +21471,45 @@ var require_exceljs_min = __commonJS({
         }
       }, { "../internals/define-built-in": 245, "../internals/export": 259, "../internals/get-built-in": 269, "../internals/is-callable": 285, "../internals/is-pure": 290, "../internals/promise-constructor-detection": 324, "../internals/promise-native-constructor": 325 }], 370: [function(e, t, r) {
         "use strict";
-        var n, i, s, o = e("../internals/export"), a = e("../internals/is-pure"), l = e("../internals/engine-is-node"), c = e("../internals/global"), u = e("../internals/function-call"), h = e("../internals/define-built-in"), f = e("../internals/object-set-prototype-of"), d = e("../internals/set-to-string-tag"), p = e("../internals/set-species"), m = e("../internals/a-callable"), b = e("../internals/is-callable"), g = e("../internals/is-object"), y = e("../internals/an-instance"), v = e("../internals/species-constructor"), w = e("../internals/task").set, _ = e("../internals/microtask"), x = e("../internals/host-report-errors"), k = e("../internals/perform"), S = e("../internals/queue"), M = e("../internals/internal-state"), C = e("../internals/promise-native-constructor"), T = e("../internals/promise-constructor-detection"), E = e("../internals/new-promise-capability"), A = T.CONSTRUCTOR, R = T.REJECTION_EVENT, O = T.SUBCLASSING, j = M.getterFor("Promise"), I = M.set, N = C && C.prototype, P = C, B = N, D = c.TypeError, F = c.document, L = c.process, z = E.f, U = z, $ = !!(F && F.createEvent && c.dispatchEvent), H = /* @__PURE__ */ __name2(function(e2) {
+        var n, i, s, o = e("../internals/export"), a = e("../internals/is-pure"), l = e("../internals/engine-is-node"), c = e("../internals/global"), u = e("../internals/function-call"), h = e("../internals/define-built-in"), f = e("../internals/object-set-prototype-of"), d = e("../internals/set-to-string-tag"), p = e("../internals/set-species"), m = e("../internals/a-callable"), b = e("../internals/is-callable"), g = e("../internals/is-object"), y = e("../internals/an-instance"), v = e("../internals/species-constructor"), w = e("../internals/task").set, _ = e("../internals/microtask"), x = e("../internals/host-report-errors"), k = e("../internals/perform"), S = e("../internals/queue"), M = e("../internals/internal-state"), C = e("../internals/promise-native-constructor"), T = e("../internals/promise-constructor-detection"), E = e("../internals/new-promise-capability"), A = T.CONSTRUCTOR, R = T.REJECTION_EVENT, O = T.SUBCLASSING, j = M.getterFor("Promise"), I = M.set, N = C && C.prototype, P = C, B = N, D = c.TypeError, F = c.document, L = c.process, z = E.f, U = z, $ = !!(F && F.createEvent && c.dispatchEvent), H = /* @__PURE__ */ __name(function(e2) {
           var t2;
           return !(!g(e2) || !b(t2 = e2.then)) && t2;
-        }, "H"), V = /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "H"), V = /* @__PURE__ */ __name(function(e2, t2) {
           var r2, n2, i2, s2 = t2.value, o2 = 1 === t2.state, a2 = o2 ? e2.ok : e2.fail, l2 = e2.resolve, c2 = e2.reject, h2 = e2.domain;
           try {
             a2 ? (o2 || (2 === t2.rejection && Y(t2), t2.rejection = 1), true === a2 ? r2 = s2 : (h2 && h2.enter(), r2 = a2(s2), h2 && (h2.exit(), i2 = true)), r2 === e2.promise ? c2(new D("Promise-chain cycle")) : (n2 = H(r2)) ? u(n2, r2, l2, c2) : l2(r2)) : c2(s2);
           } catch (e3) {
             h2 && !i2 && h2.exit(), c2(e3);
           }
-        }, "V"), q = /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "V"), q = /* @__PURE__ */ __name(function(e2, t2) {
           e2.notified || (e2.notified = true, _((function() {
             for (var r2, n2 = e2.reactions; r2 = n2.get(); ) V(r2, e2);
             e2.notified = false, t2 && !e2.rejection && X(e2);
           })));
-        }, "q"), W = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        }, "q"), W = /* @__PURE__ */ __name(function(e2, t2, r2) {
           var n2, i2;
           $ ? ((n2 = F.createEvent("Event")).promise = t2, n2.reason = r2, n2.initEvent(e2, false, true), c.dispatchEvent(n2)) : n2 = { promise: t2, reason: r2 }, !R && (i2 = c["on" + e2]) ? i2(n2) : "unhandledrejection" === e2 && x("Unhandled promise rejection", r2);
-        }, "W"), X = /* @__PURE__ */ __name2(function(e2) {
+        }, "W"), X = /* @__PURE__ */ __name(function(e2) {
           u(w, c, (function() {
             var t2, r2 = e2.facade, n2 = e2.value;
             if (K(e2) && (t2 = k((function() {
               l ? L.emit("unhandledRejection", n2, r2) : W("unhandledrejection", r2, n2);
             })), e2.rejection = l || K(e2) ? 2 : 1, t2.error)) throw t2.value;
           }));
-        }, "X"), K = /* @__PURE__ */ __name2(function(e2) {
+        }, "X"), K = /* @__PURE__ */ __name(function(e2) {
           return 1 !== e2.rejection && !e2.parent;
-        }, "K"), Y = /* @__PURE__ */ __name2(function(e2) {
+        }, "K"), Y = /* @__PURE__ */ __name(function(e2) {
           u(w, c, (function() {
             var t2 = e2.facade;
             l ? L.emit("rejectionHandled", t2) : W("rejectionhandled", t2, e2.value);
           }));
-        }, "Y"), Z = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        }, "Y"), Z = /* @__PURE__ */ __name(function(e2, t2, r2) {
           return function(n2) {
             e2(t2, n2, r2);
           };
-        }, "Z"), G = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        }, "Z"), G = /* @__PURE__ */ __name(function(e2, t2, r2) {
           e2.done || (e2.done = true, r2 && (e2 = r2), e2.value = t2, e2.state = 2, q(e2, true));
-        }, "G"), J = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        }, "G"), J = /* @__PURE__ */ __name(function(e2, t2, r2) {
           if (!e2.done) {
             e2.done = true, r2 && (e2 = r2);
             try {
@@ -21247,7 +21528,7 @@ var require_exceljs_min = __commonJS({
             }
           }
         }, "J");
-        if (A && (B = (P = /* @__PURE__ */ __name2(function(e2) {
+        if (A && (B = (P = /* @__PURE__ */ __name(function(e2) {
           y(this, B), m(e2), u(n, this);
           var t2 = j(this);
           try {
@@ -21255,17 +21536,17 @@ var require_exceljs_min = __commonJS({
           } catch (e3) {
             G(t2, e3);
           }
-        }, "P")).prototype, (n = /* @__PURE__ */ __name2(function(e2) {
+        }, "P")).prototype, (n = /* @__PURE__ */ __name(function(e2) {
           I(this, { type: "Promise", done: false, notified: false, parent: false, reactions: new S(), rejection: false, state: 0, value: void 0 });
         }, "n")).prototype = h(B, "then", (function(e2, t2) {
           var r2 = j(this), n2 = z(v(this, P));
           return r2.parent = true, n2.ok = !b(e2) || e2, n2.fail = b(t2) && t2, n2.domain = l ? L.domain : void 0, 0 === r2.state ? r2.reactions.add(n2) : _((function() {
             V(n2, r2);
           })), n2.promise;
-        })), i = /* @__PURE__ */ __name2(function() {
+        })), i = /* @__PURE__ */ __name(function() {
           var e2 = new n(), t2 = j(e2);
           this.promise = e2, this.resolve = Z(J, t2), this.reject = Z(G, t2);
-        }, "i"), E.f = z = /* @__PURE__ */ __name2(function(e2) {
+        }, "i"), E.f = z = /* @__PURE__ */ __name(function(e2) {
           return e2 === P || void 0 === e2 ? new i(e2) : U(e2);
         }, "z"), !a && b(C) && N !== Object.prototype)) {
           s = N.then, O || h(N, "then", (function(e2, t2) {
@@ -21285,10 +21566,10 @@ var require_exceljs_min = __commonJS({
         "use strict";
         var n = e("../internals/export"), i = e("../internals/is-pure"), s = e("../internals/promise-native-constructor"), o = e("../internals/fails"), a = e("../internals/get-built-in"), l = e("../internals/is-callable"), c = e("../internals/species-constructor"), u = e("../internals/promise-resolve"), h = e("../internals/define-built-in"), f = s && s.prototype;
         if (n({ target: "Promise", proto: true, real: true, forced: !!s && o((function() {
-          f.finally.call({ then: /* @__PURE__ */ __name2(function() {
+          f.finally.call({ then: /* @__PURE__ */ __name(function() {
           }, "then") }, (function() {
           }));
-        })) }, { finally: /* @__PURE__ */ __name2(function(e2) {
+        })) }, { finally: /* @__PURE__ */ __name(function(e2) {
           var t2 = c(this, a("Promise")), r2 = l(e2);
           return this.then(r2 ? function(r3) {
             return u(t2, e2()).then((function() {
@@ -21309,7 +21590,7 @@ var require_exceljs_min = __commonJS({
       }, { "../modules/es.promise.all": 368, "../modules/es.promise.catch": 369, "../modules/es.promise.constructor": 370, "../modules/es.promise.race": 373, "../modules/es.promise.reject": 374, "../modules/es.promise.resolve": 375 }], 373: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/function-call"), s = e("../internals/a-callable"), o = e("../internals/new-promise-capability"), a = e("../internals/perform"), l = e("../internals/iterate");
-        n({ target: "Promise", stat: true, forced: e("../internals/promise-statics-incorrect-iteration") }, { race: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Promise", stat: true, forced: e("../internals/promise-statics-incorrect-iteration") }, { race: /* @__PURE__ */ __name(function(e2) {
           var t2 = this, r2 = o.f(t2), n2 = r2.reject, c = a((function() {
             var o2 = s(t2.resolve);
             l(e2, (function(e3) {
@@ -21321,20 +21602,20 @@ var require_exceljs_min = __commonJS({
       }, { "../internals/a-callable": 222, "../internals/export": 259, "../internals/function-call": 264, "../internals/iterate": 293, "../internals/new-promise-capability": 303, "../internals/perform": 323, "../internals/promise-statics-incorrect-iteration": 327 }], 374: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/function-call"), s = e("../internals/new-promise-capability");
-        n({ target: "Promise", stat: true, forced: e("../internals/promise-constructor-detection").CONSTRUCTOR }, { reject: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Promise", stat: true, forced: e("../internals/promise-constructor-detection").CONSTRUCTOR }, { reject: /* @__PURE__ */ __name(function(e2) {
           var t2 = s.f(this);
           return i(t2.reject, void 0, e2), t2.promise;
         }, "reject") });
       }, { "../internals/export": 259, "../internals/function-call": 264, "../internals/new-promise-capability": 303, "../internals/promise-constructor-detection": 324 }], 375: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/get-built-in"), s = e("../internals/is-pure"), o = e("../internals/promise-native-constructor"), a = e("../internals/promise-constructor-detection").CONSTRUCTOR, l = e("../internals/promise-resolve"), c = i("Promise"), u = s && !a;
-        n({ target: "Promise", stat: true, forced: s || a }, { resolve: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Promise", stat: true, forced: s || a }, { resolve: /* @__PURE__ */ __name(function(e2) {
           return l(u && this === c ? o : this, e2);
         }, "resolve") });
       }, { "../internals/export": 259, "../internals/get-built-in": 269, "../internals/is-pure": 290, "../internals/promise-constructor-detection": 324, "../internals/promise-native-constructor": 325, "../internals/promise-resolve": 326 }], 376: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/function-uncurry-this"), s = e("../internals/to-absolute-index"), o = RangeError, a = String.fromCharCode, l = String.fromCodePoint, c = i([].join);
-        n({ target: "String", stat: true, arity: 1, forced: !!l && 1 !== l.length }, { fromCodePoint: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "String", stat: true, arity: 1, forced: !!l && 1 !== l.length }, { fromCodePoint: /* @__PURE__ */ __name(function(e2) {
           for (var t2, r2 = [], n2 = arguments.length, i2 = 0; n2 > i2; ) {
             if (t2 = +arguments[i2++], s(t2, 1114111) !== t2) throw new o(t2 + " is not a valid code point");
             r2[i2] = t2 < 65536 ? a(t2) : a(55296 + ((t2 -= 65536) >> 10), t2 % 1024 + 56320);
@@ -21344,7 +21625,7 @@ var require_exceljs_min = __commonJS({
       }, { "../internals/export": 259, "../internals/function-uncurry-this": 268, "../internals/to-absolute-index": 340 }], 377: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/function-uncurry-this"), s = e("../internals/not-a-regexp"), o = e("../internals/require-object-coercible"), a = e("../internals/to-string"), l = e("../internals/correct-is-regexp-logic"), c = i("".indexOf);
-        n({ target: "String", proto: true, forced: !l("includes") }, { includes: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "String", proto: true, forced: !l("includes") }, { includes: /* @__PURE__ */ __name(function(e2) {
           return !!~c(a(o(this)), a(s(e2)), arguments.length > 1 ? arguments[1] : void 0);
         }, "includes") });
       }, { "../internals/correct-is-regexp-logic": 238, "../internals/export": 259, "../internals/function-uncurry-this": 268, "../internals/not-a-regexp": 304, "../internals/require-object-coercible": 329, "../internals/to-string": 348 }], 378: [function(e, t, r) {
@@ -21352,49 +21633,49 @@ var require_exceljs_min = __commonJS({
         e("../internals/well-known-symbol-define")("asyncIterator");
       }, { "../internals/well-known-symbol-define": 355 }], 379: [function(e, t, r) {
         "use strict";
-        var n = e("../internals/export"), i = e("../internals/global"), s = e("../internals/function-call"), o = e("../internals/function-uncurry-this"), a = e("../internals/is-pure"), l = e("../internals/descriptors"), c = e("../internals/symbol-constructor-detection"), u = e("../internals/fails"), h = e("../internals/has-own-property"), f = e("../internals/object-is-prototype-of"), d = e("../internals/an-object"), p = e("../internals/to-indexed-object"), m = e("../internals/to-property-key"), b = e("../internals/to-string"), g = e("../internals/create-property-descriptor"), y = e("../internals/object-create"), v = e("../internals/object-keys"), w = e("../internals/object-get-own-property-names"), _ = e("../internals/object-get-own-property-names-external"), x = e("../internals/object-get-own-property-symbols"), k = e("../internals/object-get-own-property-descriptor"), S = e("../internals/object-define-property"), M = e("../internals/object-define-properties"), C = e("../internals/object-property-is-enumerable"), T = e("../internals/define-built-in"), E = e("../internals/define-built-in-accessor"), A = e("../internals/shared"), R = e("../internals/shared-key"), O = e("../internals/hidden-keys"), j = e("../internals/uid"), I = e("../internals/well-known-symbol"), N = e("../internals/well-known-symbol-wrapped"), P = e("../internals/well-known-symbol-define"), B = e("../internals/symbol-define-to-primitive"), D = e("../internals/set-to-string-tag"), F = e("../internals/internal-state"), L = e("../internals/array-iteration").forEach, z = R("hidden"), U = F.set, $ = F.getterFor("Symbol"), H = Object.prototype, V = i.Symbol, q = V && V.prototype, W = i.RangeError, X = i.TypeError, K = i.QObject, Y = k.f, Z = S.f, G = _.f, J = C.f, Q = o([].push), ee = A("symbols"), te = A("op-symbols"), re = A("wks"), ne = !K || !K.prototype || !K.prototype.findChild, ie = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        var n = e("../internals/export"), i = e("../internals/global"), s = e("../internals/function-call"), o = e("../internals/function-uncurry-this"), a = e("../internals/is-pure"), l = e("../internals/descriptors"), c = e("../internals/symbol-constructor-detection"), u = e("../internals/fails"), h = e("../internals/has-own-property"), f = e("../internals/object-is-prototype-of"), d = e("../internals/an-object"), p = e("../internals/to-indexed-object"), m = e("../internals/to-property-key"), b = e("../internals/to-string"), g = e("../internals/create-property-descriptor"), y = e("../internals/object-create"), v = e("../internals/object-keys"), w = e("../internals/object-get-own-property-names"), _ = e("../internals/object-get-own-property-names-external"), x = e("../internals/object-get-own-property-symbols"), k = e("../internals/object-get-own-property-descriptor"), S = e("../internals/object-define-property"), M = e("../internals/object-define-properties"), C = e("../internals/object-property-is-enumerable"), T = e("../internals/define-built-in"), E = e("../internals/define-built-in-accessor"), A = e("../internals/shared"), R = e("../internals/shared-key"), O = e("../internals/hidden-keys"), j = e("../internals/uid"), I = e("../internals/well-known-symbol"), N = e("../internals/well-known-symbol-wrapped"), P = e("../internals/well-known-symbol-define"), B = e("../internals/symbol-define-to-primitive"), D = e("../internals/set-to-string-tag"), F = e("../internals/internal-state"), L = e("../internals/array-iteration").forEach, z = R("hidden"), U = F.set, $ = F.getterFor("Symbol"), H = Object.prototype, V = i.Symbol, q = V && V.prototype, W = i.RangeError, X = i.TypeError, K = i.QObject, Y = k.f, Z = S.f, G = _.f, J = C.f, Q = o([].push), ee = A("symbols"), te = A("op-symbols"), re = A("wks"), ne = !K || !K.prototype || !K.prototype.findChild, ie = /* @__PURE__ */ __name(function(e2, t2, r2) {
           var n2 = Y(H, t2);
           n2 && delete H[t2], Z(e2, t2, r2), n2 && e2 !== H && Z(H, t2, n2);
         }, "ie"), se = l && u((function() {
-          return 7 !== y(Z({}, "a", { get: /* @__PURE__ */ __name2(function() {
+          return 7 !== y(Z({}, "a", { get: /* @__PURE__ */ __name(function() {
             return Z(this, "a", { value: 7 }).a;
           }, "get") })).a;
-        })) ? ie : Z, oe = /* @__PURE__ */ __name2(function(e2, t2) {
+        })) ? ie : Z, oe = /* @__PURE__ */ __name(function(e2, t2) {
           var r2 = ee[e2] = y(q);
           return U(r2, { type: "Symbol", tag: e2, description: t2 }), l || (r2.description = t2), r2;
-        }, "oe"), ae = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        }, "oe"), ae = /* @__PURE__ */ __name(function(e2, t2, r2) {
           e2 === H && ae(te, t2, r2), d(e2);
           var n2 = m(t2);
           return d(r2), h(ee, n2) ? (r2.enumerable ? (h(e2, z) && e2[z][n2] && (e2[z][n2] = false), r2 = y(r2, { enumerable: g(0, false) })) : (h(e2, z) || Z(e2, z, g(1, {})), e2[z][n2] = true), se(e2, n2, r2)) : Z(e2, n2, r2);
-        }, "ae"), le = /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "ae"), le = /* @__PURE__ */ __name(function(e2, t2) {
           d(e2);
           var r2 = p(t2), n2 = v(r2).concat(fe(r2));
           return L(n2, (function(t3) {
             l && !s(ce, r2, t3) || ae(e2, t3, r2[t3]);
           })), e2;
-        }, "le"), ce = /* @__PURE__ */ __name2(function(e2) {
+        }, "le"), ce = /* @__PURE__ */ __name(function(e2) {
           var t2 = m(e2), r2 = s(J, this, t2);
           return !(this === H && h(ee, t2) && !h(te, t2)) && (!(r2 || !h(this, t2) || !h(ee, t2) || h(this, z) && this[z][t2]) || r2);
-        }, "ce"), ue = /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "ce"), ue = /* @__PURE__ */ __name(function(e2, t2) {
           var r2 = p(e2), n2 = m(t2);
           if (r2 !== H || !h(ee, n2) || h(te, n2)) {
             var i2 = Y(r2, n2);
             return !i2 || !h(ee, n2) || h(r2, z) && r2[z][n2] || (i2.enumerable = true), i2;
           }
-        }, "ue"), he = /* @__PURE__ */ __name2(function(e2) {
+        }, "ue"), he = /* @__PURE__ */ __name(function(e2) {
           var t2 = G(p(e2)), r2 = [];
           return L(t2, (function(e3) {
             h(ee, e3) || h(O, e3) || Q(r2, e3);
           })), r2;
-        }, "he"), fe = /* @__PURE__ */ __name2(function(e2) {
+        }, "he"), fe = /* @__PURE__ */ __name(function(e2) {
           var t2 = e2 === H, r2 = G(t2 ? te : p(e2)), n2 = [];
           return L(r2, (function(e3) {
             !h(ee, e3) || t2 && !h(H, e3) || Q(n2, ee[e3]);
           })), n2;
         }, "fe");
-        c || (T(q = (V = /* @__PURE__ */ __name2(function() {
+        c || (T(q = (V = /* @__PURE__ */ __name(function() {
           if (f(q, this)) throw new X("Symbol is not a constructor");
-          var e2 = arguments.length && void 0 !== arguments[0] ? b(arguments[0]) : void 0, t2 = j(e2), r2 = /* @__PURE__ */ __name2(function(e3) {
+          var e2 = arguments.length && void 0 !== arguments[0] ? b(arguments[0]) : void 0, t2 = j(e2), r2 = /* @__PURE__ */ __name(function(e3) {
             this === H && s(r2, te, e3), h(this, z) && h(this[z], t2) && (this[z][t2] = false);
             var n2 = g(1, e3);
             try {
@@ -21411,21 +21692,21 @@ var require_exceljs_min = __commonJS({
           return oe(j(e2), e2);
         })), C.f = ce, S.f = ae, M.f = le, k.f = ue, w.f = _.f = he, x.f = fe, N.f = function(e2) {
           return oe(I(e2), e2);
-        }, l && (E(q, "description", { configurable: true, get: /* @__PURE__ */ __name2(function() {
+        }, l && (E(q, "description", { configurable: true, get: /* @__PURE__ */ __name(function() {
           return $(this).description;
         }, "get") }), a || T(H, "propertyIsEnumerable", ce, { unsafe: true }))), n({ global: true, constructor: true, wrap: true, forced: !c, sham: !c }, { Symbol: V }), L(v(re), (function(e2) {
           P(e2);
-        })), n({ target: "Symbol", stat: true, forced: !c }, { useSetter: /* @__PURE__ */ __name2(function() {
+        })), n({ target: "Symbol", stat: true, forced: !c }, { useSetter: /* @__PURE__ */ __name(function() {
           ne = true;
-        }, "useSetter"), useSimple: /* @__PURE__ */ __name2(function() {
+        }, "useSetter"), useSimple: /* @__PURE__ */ __name(function() {
           ne = false;
-        }, "useSimple") }), n({ target: "Object", stat: true, forced: !c, sham: !l }, { create: /* @__PURE__ */ __name2(function(e2, t2) {
+        }, "useSimple") }), n({ target: "Object", stat: true, forced: !c, sham: !l }, { create: /* @__PURE__ */ __name(function(e2, t2) {
           return void 0 === t2 ? y(e2) : le(y(e2), t2);
         }, "create"), defineProperty: ae, defineProperties: le, getOwnPropertyDescriptor: ue }), n({ target: "Object", stat: true, forced: !c }, { getOwnPropertyNames: he }), B(), D(V, "Symbol"), O[z] = true;
       }, { "../internals/an-object": 227, "../internals/array-iteration": 229, "../internals/create-property-descriptor": 242, "../internals/define-built-in": 245, "../internals/define-built-in-accessor": 244, "../internals/descriptors": 247, "../internals/export": 259, "../internals/fails": 260, "../internals/function-call": 264, "../internals/function-uncurry-this": 268, "../internals/global": 274, "../internals/has-own-property": 275, "../internals/hidden-keys": 276, "../internals/internal-state": 282, "../internals/is-pure": 290, "../internals/object-create": 306, "../internals/object-define-properties": 307, "../internals/object-define-property": 308, "../internals/object-get-own-property-descriptor": 309, "../internals/object-get-own-property-names": 311, "../internals/object-get-own-property-names-external": 310, "../internals/object-get-own-property-symbols": 312, "../internals/object-is-prototype-of": 314, "../internals/object-keys": 316, "../internals/object-property-is-enumerable": 317, "../internals/set-to-string-tag": 331, "../internals/shared": 334, "../internals/shared-key": 332, "../internals/symbol-constructor-detection": 336, "../internals/symbol-define-to-primitive": 337, "../internals/to-indexed-object": 341, "../internals/to-property-key": 346, "../internals/to-string": 348, "../internals/uid": 350, "../internals/well-known-symbol": 357, "../internals/well-known-symbol-define": 355, "../internals/well-known-symbol-wrapped": 356 }], 380: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/get-built-in"), s = e("../internals/has-own-property"), o = e("../internals/to-string"), a = e("../internals/shared"), l = e("../internals/symbol-registry-detection"), c = a("string-to-symbol-registry"), u = a("symbol-to-string-registry");
-        n({ target: "Symbol", stat: true, forced: !l }, { for: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Symbol", stat: true, forced: !l }, { for: /* @__PURE__ */ __name(function(e2) {
           var t2 = o(e2);
           if (s(c, t2)) return c[t2];
           var r2 = i("Symbol")(t2);
@@ -21437,7 +21718,7 @@ var require_exceljs_min = __commonJS({
       }, { "../modules/es.json.stringify": 362, "../modules/es.object.get-own-property-symbols": 365, "../modules/es.symbol.constructor": 379, "../modules/es.symbol.for": 380, "../modules/es.symbol.key-for": 382 }], 382: [function(e, t, r) {
         "use strict";
         var n = e("../internals/export"), i = e("../internals/has-own-property"), s = e("../internals/is-symbol"), o = e("../internals/try-to-string"), a = e("../internals/shared"), l = e("../internals/symbol-registry-detection"), c = a("symbol-to-string-registry");
-        n({ target: "Symbol", stat: true, forced: !l }, { keyFor: /* @__PURE__ */ __name2(function(e2) {
+        n({ target: "Symbol", stat: true, forced: !l }, { keyFor: /* @__PURE__ */ __name(function(e2) {
           if (!s(e2)) throw new TypeError(o(e2) + " is not a symbol");
           if (i(c, e2)) return c[e2];
         }, "keyFor") });
@@ -21447,7 +21728,6 @@ var require_exceljs_min = __commonJS({
           return Object.prototype.toString.call(e2);
         }
         __name(n, "n");
-        __name2(n, "n");
         r.isArray = function(e2) {
           return Array.isArray ? Array.isArray(e2) : "[object Array]" === n(e2);
         }, r.isBoolean = function(e2) {
@@ -21490,7 +21770,6 @@ var require_exceljs_min = __commonJS({
               this.curveType = s[e2], this.curveType || (this.curveType = { name: e2 }), this.curve = new n.ec(this.curveType.name), this.keys = void 0;
             }
             __name(o, "o");
-            __name2(o, "o");
             function a(e2, t2, n2) {
               Array.isArray(e2) || (e2 = e2.toArray());
               var i2 = new r2(e2);
@@ -21501,7 +21780,6 @@ var require_exceljs_min = __commonJS({
               return t2 ? i2.toString(t2) : i2;
             }
             __name(a, "a");
-            __name2(a, "a");
             s.p224 = s.secp224r1, s.p256 = s.secp256r1 = s.prime256v1, s.p192 = s.secp192r1 = s.prime192v1, s.p384 = s.secp384r1, s.p521 = s.secp521r1, o.prototype.generateKeys = function(e2, t2) {
               return this.keys = this.curve.genKeyPair(), this.getPublicKey(e2, t2);
             }, o.prototype.computeSecret = function(e2, t2, n2) {
@@ -21529,7 +21807,6 @@ var require_exceljs_min = __commonJS({
           a.call(this, "digest"), this._hash = e2;
         }
         __name(l, "l");
-        __name2(l, "l");
         n(l, a), l.prototype._update = function(e2) {
           this._hash.update(e2);
         }, l.prototype._final = function() {
@@ -21554,7 +21831,6 @@ var require_exceljs_min = __commonJS({
           this._hash = "rmd160" === e2 ? new l() : c(e2), this._hash.update(n2);
         }
         __name(h, "h");
-        __name2(h, "h");
         n(h, s), h.prototype._update = function(e2) {
           this._hash.update(e2);
         }, h.prototype._final = function() {
@@ -21572,7 +21848,6 @@ var require_exceljs_min = __commonJS({
           this._hash = [r2];
         }
         __name(a, "a");
-        __name2(a, "a");
         n(a, s), a.prototype._update = function(e2) {
           this._hash.push(e2);
         }, a.prototype._final = function() {
@@ -21605,30 +21880,30 @@ var require_exceljs_min = __commonJS({
         !(function(e2, n) {
           "object" == typeof r && void 0 !== t ? t.exports = n() : (e2 = "undefined" != typeof globalThis ? globalThis : e2 || self).dayjs = n();
         })(void 0, (function() {
-          var e2 = 6e4, t2 = 36e5, r2 = "millisecond", n = "second", i = "minute", s = "hour", o = "day", a = "week", l = "month", c = "quarter", u = "year", h = "date", f = "Invalid Date", d = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, p = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, m = { name: "en", weekdays: "Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"), months: "January_February_March_April_May_June_July_August_September_October_November_December".split("_"), ordinal: /* @__PURE__ */ __name2(function(e3) {
+          var e2 = 6e4, t2 = 36e5, r2 = "millisecond", n = "second", i = "minute", s = "hour", o = "day", a = "week", l = "month", c = "quarter", u = "year", h = "date", f = "Invalid Date", d = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, p = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, m = { name: "en", weekdays: "Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"), months: "January_February_March_April_May_June_July_August_September_October_November_December".split("_"), ordinal: /* @__PURE__ */ __name(function(e3) {
             var t3 = ["th", "st", "nd", "rd"], r3 = e3 % 100;
             return "[" + e3 + (t3[(r3 - 20) % 10] || t3[r3] || t3[0]) + "]";
-          }, "ordinal") }, b = /* @__PURE__ */ __name2(function(e3, t3, r3) {
+          }, "ordinal") }, b = /* @__PURE__ */ __name(function(e3, t3, r3) {
             var n2 = String(e3);
             return !n2 || n2.length >= t3 ? e3 : "" + Array(t3 + 1 - n2.length).join(r3) + e3;
-          }, "b"), g = { s: b, z: /* @__PURE__ */ __name2(function(e3) {
+          }, "b"), g = { s: b, z: /* @__PURE__ */ __name(function(e3) {
             var t3 = -e3.utcOffset(), r3 = Math.abs(t3), n2 = Math.floor(r3 / 60), i2 = r3 % 60;
             return (t3 <= 0 ? "+" : "-") + b(n2, 2, "0") + ":" + b(i2, 2, "0");
-          }, "z"), m: /* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e3(t3, r3) {
+          }, "z"), m: /* @__PURE__ */ __name(function e3(t3, r3) {
             if (t3.date() < r3.date()) return -e3(r3, t3);
             var n2 = 12 * (r3.year() - t3.year()) + (r3.month() - t3.month()), i2 = t3.clone().add(n2, l), s2 = r3 - i2 < 0, o2 = t3.clone().add(n2 + (s2 ? -1 : 1), l);
             return +(-(n2 + (r3 - i2) / (s2 ? i2 - o2 : o2 - i2)) || 0);
-          }, "e3"), "e"), a: /* @__PURE__ */ __name2(function(e3) {
+          }, "e"), a: /* @__PURE__ */ __name(function(e3) {
             return e3 < 0 ? Math.ceil(e3) || 0 : Math.floor(e3);
-          }, "a"), p: /* @__PURE__ */ __name2(function(e3) {
+          }, "a"), p: /* @__PURE__ */ __name(function(e3) {
             return { M: l, y: u, w: a, d: o, D: h, h: s, m: i, s: n, ms: r2, Q: c }[e3] || String(e3 || "").toLowerCase().replace(/s$/, "");
-          }, "p"), u: /* @__PURE__ */ __name2(function(e3) {
+          }, "p"), u: /* @__PURE__ */ __name(function(e3) {
             return void 0 === e3;
           }, "u") }, y = "en", v = {};
           v[y] = m;
-          var w = "$isDayjsObject", _ = /* @__PURE__ */ __name2(function(e3) {
+          var w = "$isDayjsObject", _ = /* @__PURE__ */ __name(function(e3) {
             return e3 instanceof M || !(!e3 || !e3[w]);
-          }, "_"), x = /* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e3(t3, r3, n2) {
+          }, "_"), x = /* @__PURE__ */ __name(function e3(t3, r3, n2) {
             var i2;
             if (!t3) return y;
             if ("string" == typeof t3) {
@@ -21641,7 +21916,7 @@ var require_exceljs_min = __commonJS({
               v[a2] = t3, i2 = a2;
             }
             return !n2 && i2 && (y = i2), i2 || !n2 && y;
-          }, "e3"), "e"), k = /* @__PURE__ */ __name2(function(e3, t3) {
+          }, "e"), k = /* @__PURE__ */ __name(function(e3, t3) {
             if (_(e3)) return e3.clone();
             var r3 = "object" == typeof t3 ? t3 : {};
             return r3.date = e3, r3.args = arguments, new M(r3);
@@ -21653,8 +21928,7 @@ var require_exceljs_min = __commonJS({
             function m2(e3) {
               this.$L = x(e3.locale, null, true), this.parse(e3), this.$x = this.$x || e3.x || {}, this[w] = true;
             }
-            __name(m2, "m2");
-            __name2(m2, "m");
+            __name(m2, "m");
             var b2 = m2.prototype;
             return b2.parse = function(e3) {
               this.$d = (function(e4) {
@@ -21692,10 +21966,10 @@ var require_exceljs_min = __commonJS({
             }, b2.valueOf = function() {
               return this.$d.getTime();
             }, b2.startOf = function(e3, t3) {
-              var r3 = this, c2 = !!S.u(t3) || t3, f2 = S.p(e3), d2 = /* @__PURE__ */ __name2(function(e4, t4) {
+              var r3 = this, c2 = !!S.u(t3) || t3, f2 = S.p(e3), d2 = /* @__PURE__ */ __name(function(e4, t4) {
                 var n2 = S.w(r3.$u ? Date.UTC(r3.$y, t4, e4) : new Date(r3.$y, t4, e4), r3);
                 return c2 ? n2 : n2.endOf(o);
-              }, "d"), p2 = /* @__PURE__ */ __name2(function(e4, t4) {
+              }, "d"), p2 = /* @__PURE__ */ __name(function(e4, t4) {
                 return S.w(r3.toDate()[e4].apply(r3.toDate("s"), (c2 ? [0, 0, 0, 0] : [23, 59, 59, 999]).slice(t4)), r3);
               }, "p"), m3 = this.$W, b3 = this.$M, g2 = this.$D, y2 = "set" + (this.$u ? "UTC" : "");
               switch (f2) {
@@ -21734,7 +22008,7 @@ var require_exceljs_min = __commonJS({
             }, b2.add = function(r3, c2) {
               var h2, f2 = this;
               r3 = Number(r3);
-              var d2 = S.p(c2), p2 = /* @__PURE__ */ __name2(function(e3) {
+              var d2 = S.p(c2), p2 = /* @__PURE__ */ __name(function(e3) {
                 var t3 = k(f2);
                 return S.w(t3.date(t3.date() + Math.round(e3 * r3)), f2);
               }, "p");
@@ -21749,9 +22023,9 @@ var require_exceljs_min = __commonJS({
             }, b2.format = function(e3) {
               var t3 = this, r3 = this.$locale();
               if (!this.isValid()) return r3.invalidDate || f;
-              var n2 = e3 || "YYYY-MM-DDTHH:mm:ssZ", i2 = S.z(this), s2 = this.$H, o2 = this.$m, a2 = this.$M, l2 = r3.weekdays, c2 = r3.months, u2 = r3.meridiem, h2 = /* @__PURE__ */ __name2(function(e4, r4, i3, s3) {
+              var n2 = e3 || "YYYY-MM-DDTHH:mm:ssZ", i2 = S.z(this), s2 = this.$H, o2 = this.$m, a2 = this.$M, l2 = r3.weekdays, c2 = r3.months, u2 = r3.meridiem, h2 = /* @__PURE__ */ __name(function(e4, r4, i3, s3) {
                 return e4 && (e4[r4] || e4(t3, n2)) || i3[r4].slice(0, s3);
-              }, "h"), d2 = /* @__PURE__ */ __name2(function(e4) {
+              }, "h"), d2 = /* @__PURE__ */ __name(function(e4) {
                 return S.s(s2 % 12 || 12, e4, "0");
               }, "d"), m3 = u2 || function(e4, t4, r4) {
                 var n3 = e4 < 12 ? "AM" : "PM";
@@ -21815,7 +22089,7 @@ var require_exceljs_min = __commonJS({
             }, b2.utcOffset = function() {
               return 15 * -Math.round(this.$d.getTimezoneOffset() / 15);
             }, b2.diff = function(r3, h2, f2) {
-              var d2, p2 = this, m3 = S.p(h2), b3 = k(r3), g2 = (b3.utcOffset() - this.utcOffset()) * e2, y2 = this - b3, v2 = /* @__PURE__ */ __name2(function() {
+              var d2, p2 = this, m3 = S.p(h2), b3 = k(r3), g2 = (b3.utcOffset() - this.utcOffset()) * e2, y2 = this - b3, v2 = /* @__PURE__ */ __name(function() {
                 return S.m(p2, b3);
               }, "v");
               switch (m3) {
@@ -21882,9 +22156,9 @@ var require_exceljs_min = __commonJS({
         !(function(e2, n) {
           "object" == typeof r && void 0 !== t ? t.exports = n() : (e2 = "undefined" != typeof globalThis ? globalThis : e2 || self).dayjs_plugin_customParseFormat = n();
         })(void 0, (function() {
-          var e2 = { LTS: "h:mm:ss A", LT: "h:mm A", L: "MM/DD/YYYY", LL: "MMMM D, YYYY", LLL: "MMMM D, YYYY h:mm A", LLLL: "dddd, MMMM D, YYYY h:mm A" }, t2 = /(\[[^[]*\])|([-_:/.,()\s]+)|(A|a|YYYY|YY?|MM?M?M?|Do|DD?|hh?|HH?|mm?|ss?|S{1,3}|z|ZZ?)/g, r2 = /\d\d/, n = /\d\d?/, i = /\d*[^-_:/,()\s\d]+/, s = {}, o = /* @__PURE__ */ __name2(function(e3) {
+          var e2 = { LTS: "h:mm:ss A", LT: "h:mm A", L: "MM/DD/YYYY", LL: "MMMM D, YYYY", LLL: "MMMM D, YYYY h:mm A", LLLL: "dddd, MMMM D, YYYY h:mm A" }, t2 = /(\[[^[]*\])|([-_:/.,()\s]+)|(A|a|YYYY|YY?|MM?M?M?|Do|DD?|hh?|HH?|mm?|ss?|S{1,3}|z|ZZ?)/g, r2 = /\d\d/, n = /\d\d?/, i = /\d*[^-_:/,()\s\d]+/, s = {}, o = /* @__PURE__ */ __name(function(e3) {
             return (e3 = +e3) + (e3 > 68 ? 1900 : 2e3);
-          }, "o"), a = /* @__PURE__ */ __name2(function(e3) {
+          }, "o"), a = /* @__PURE__ */ __name(function(e3) {
             return function(t3) {
               this[e3] = +t3;
             };
@@ -21895,10 +22169,10 @@ var require_exceljs_min = __commonJS({
               var t3 = e4.match(/([+-]|\d\d)/g), r3 = 60 * t3[1] + (+t3[2] || 0);
               return 0 === r3 ? 0 : "+" === t3[0] ? -r3 : r3;
             })(e3);
-          }], c = /* @__PURE__ */ __name2(function(e3) {
+          }], c = /* @__PURE__ */ __name(function(e3) {
             var t3 = s[e3];
             return t3 && (t3.indexOf ? t3 : t3.s.concat(t3.f));
-          }, "c"), u = /* @__PURE__ */ __name2(function(e3, t3) {
+          }, "c"), u = /* @__PURE__ */ __name(function(e3, t3) {
             var r3, n2 = s.meridiem;
             if (n2) {
               for (var i2 = 1; i2 <= 24; i2 += 1) if (e3.indexOf(n2(i2, 0, t3)) > -1) {
@@ -21964,7 +22238,6 @@ var require_exceljs_min = __commonJS({
             };
           }
           __name(f, "f");
-          __name2(f, "f");
           return function(e3, t3, r3) {
             r3.p.customParseFormat = true, e3 && e3.parseTwoDigitYear && (o = e3.parseTwoDigitYear);
             var n2 = t3.prototype, i2 = n2.parse;
@@ -22082,13 +22355,11 @@ var require_exceljs_min = __commonJS({
           for (var t2 = 0; t2 < this.iv.length; t2++) this.iv[t2] = e2[t2];
         }
         __name(o, "o");
-        __name2(o, "o");
         r.instantiate = function(e2) {
           function t2(t3) {
             e2.call(this, t3), this._cbcInit();
           }
-          __name(t2, "t2");
-          __name2(t2, "t");
+          __name(t2, "t");
           i(t2, e2);
           for (var r2 = Object.keys(s), n2 = 0; n2 < r2.length; n2++) {
             var o2 = r2[n2];
@@ -22119,7 +22390,6 @@ var require_exceljs_min = __commonJS({
           this.options = e2, this.type = this.options.type, this.blockSize = 8, this._init(), this.buffer = new Array(this.blockSize), this.bufferOff = 0, this.padding = false !== e2.padding;
         }
         __name(i, "i");
-        __name2(i, "i");
         t.exports = i, i.prototype._init = function() {
         }, i.prototype.update = function(e2) {
           return 0 === e2.length ? [] : "decrypt" === this.type ? this._updateDecrypt(e2) : this._updateEncrypt(e2);
@@ -22162,14 +22432,12 @@ var require_exceljs_min = __commonJS({
           this.tmp = new Array(2), this.keys = null;
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2) {
           o.call(this, e2);
           var t2 = new a();
           this._desState = t2, this.deriveKeys(t2, e2.key);
         }
         __name(l, "l");
-        __name2(l, "l");
         i(l, o), t.exports = l, l.create = function(e2) {
           return new l(e2);
         };
@@ -22219,14 +22487,12 @@ var require_exceljs_min = __commonJS({
           this.ciphers = "encrypt" === e2 ? [o.create({ type: "encrypt", key: r2 }), o.create({ type: "decrypt", key: i2 }), o.create({ type: "encrypt", key: s2 })] : [o.create({ type: "decrypt", key: s2 }), o.create({ type: "encrypt", key: i2 }), o.create({ type: "decrypt", key: r2 })];
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2) {
           s.call(this, e2);
           var t2 = new a(this.type, this.options.key);
           this._edeState = t2;
         }
         __name(l, "l");
-        __name2(l, "l");
         i(l, s), t.exports = l, l.create = function(e2) {
           return new l(e2);
         }, l.prototype._update = function(e2, t2, r2, n2) {
@@ -22308,9 +22574,9 @@ var require_exceljs_min = __commonJS({
             r.DiffieHellmanGroup = r.createDiffieHellmanGroup = r.getDiffieHellman = function(e2) {
               var r2 = new t2(i[e2].prime, "hex"), n2 = new t2(i[e2].gen, "hex");
               return new s(r2, n2);
-            }, r.createDiffieHellman = r.DiffieHellman = /* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e2(r2, i2, a, l) {
+            }, r.createDiffieHellman = r.DiffieHellman = /* @__PURE__ */ __name(function e2(r2, i2, a, l) {
               return t2.isBuffer(i2) || void 0 === o[i2] ? e2(r2, "binary", i2, a) : (i2 = i2 || "binary", l = l || "binary", a = a || new t2([2]), t2.isBuffer(a) || (a = new t2(a, l)), "number" == typeof r2 ? new s(n(r2, a), a, true) : (t2.isBuffer(r2) || (r2 = new t2(r2, i2)), new s(r2, a, true)));
-            }, "e2"), "e");
+            }, "e");
           }).call(this);
         }).call(this, e("buffer").Buffer);
       }, { "./lib/dh": 401, "./lib/generatePrime": 402, "./lib/primes.json": 403, buffer: 220 }], 401: [function(e, t, r) {
@@ -22322,26 +22588,22 @@ var require_exceljs_min = __commonJS({
               return t2 = t2 || "utf8", r2.isBuffer(e2) || (e2 = new r2(e2, t2)), this._pub = new n(e2), this;
             }
             __name(f, "f");
-            __name2(f, "f");
             function d(e2, t2) {
               return t2 = t2 || "utf8", r2.isBuffer(e2) || (e2 = new r2(e2, t2)), this._priv = new n(e2), this;
             }
             __name(d, "d");
-            __name2(d, "d");
             t.exports = m;
             var p = {};
             function m(e2, t2, r3) {
               this.setGenerator(t2), this.__prime = new n(e2), this._prime = n.mont(this.__prime), this._primeLen = e2.length, this._pub = void 0, this._priv = void 0, this._primeCode = void 0, r3 ? (this.setPublicKey = f, this.setPrivateKey = d) : this._primeCode = 8;
             }
             __name(m, "m");
-            __name2(m, "m");
             function b(e2, t2) {
               var n2 = new r2(e2.toArray());
               return t2 ? n2.toString(t2) : n2;
             }
             __name(b, "b");
-            __name2(b, "b");
-            Object.defineProperty(m.prototype, "verifyError", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+            Object.defineProperty(m.prototype, "verifyError", { enumerable: true, get: /* @__PURE__ */ __name(function() {
               return "number" != typeof this._primeCode && (this._primeCode = (function(e2, t2) {
                 var r3 = t2.toString("hex"), n2 = [r3, e2.toString(16)].join("_");
                 if (n2 in p) return p[n2];
@@ -22397,19 +22659,16 @@ var require_exceljs_min = __commonJS({
           return p = e2, e2;
         }
         __name(m, "m");
-        __name2(m, "m");
         function b(e2) {
           for (var t2 = m(), r2 = 0; r2 < t2.length; r2++) if (0 === e2.modn(t2[r2])) return 0 === e2.cmpn(t2[r2]);
           return true;
         }
         __name(b, "b");
-        __name2(b, "b");
         function g(e2) {
           var t2 = i.mont(e2);
           return 0 === l.toRed(t2).redPow(e2.subn(1)).fromRed().cmpn(1);
         }
         __name(g, "g");
-        __name2(g, "g");
         function y(e2, t2) {
           if (e2 < 16) return new i(2 === t2 || 5 === t2 ? [140, 123] : [140, 39]);
           var r2, p2;
@@ -22422,7 +22681,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(y, "y");
-        __name2(y, "y");
       }, { "bn.js": 404, "miller-rabin": 451, randombytes: 475 }], 403: [function(e, t, r) {
         t.exports = { modp1: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a63a3620ffffffffffffffff" }, modp2: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece65381ffffffffffffffff" }, modp5: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca237327ffffffffffffffff" }, modp14: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aacaa68ffffffffffffffff" }, modp15: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a93ad2caffffffffffffffff" }, modp16: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c934063199ffffffffffffffff" }, modp17: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dcc4024ffffffffffffffff" }, modp18: { gen: "02", prime: "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dbe115974a3926f12fee5e438777cb6a932df8cd8bec4d073b931ba3bc832b68d9dd300741fa7bf8afc47ed2576f6936ba424663aab639c5ae4f5683423b4742bf1c978238f16cbe39d652de3fdb8befc848ad922222e04a4037c0713eb57a81a23f0c73473fc646cea306b4bcbc8862f8385ddfa9d4b7fa2c087e879683303ed5bdd3a062b3cf5b3a278a66d2a13f83f44f82ddf310ee074ab6a364597e899a0255dc164f31cc50846851df9ab48195ded7ea1b1d510bd7ee74d73faf36bc31ecfa268359046f4eb879f924009438b481c6cd7889a002ed5ee382bc9190da6fc026e479558e4475677e9aa9e3050e2765694dfc81f56e880b96e7160c980dd98edd3dfffffffffffffffff" } };
       }, {}], 404: [function(e, t, r) {
@@ -22440,12 +22698,10 @@ var require_exceljs_min = __commonJS({
           !r2 || r2.cmpn(100) > 0 ? this.redN = null : (this._maxwellTrick = true, this.redN = this.n.toRed(this.red));
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2) {
           this.curve = e2, this.type = t2, this.precomputed = null;
         }
         __name(c, "c");
-        __name2(c, "c");
         t.exports = l, l.prototype.point = function() {
           throw new Error("Not implemented");
         }, l.prototype.validate = function() {
@@ -22558,12 +22814,10 @@ var require_exceljs_min = __commonJS({
           this.twisted = 1 != (0 | e2.a), this.mOneA = this.twisted && -1 == (0 | e2.a), this.extended = this.mOneA, o.call(this, "edwards", e2), this.a = new i(e2.a, 16).umod(this.red.m), this.a = this.a.toRed(this.red), this.c = new i(e2.c, 16).toRed(this.red), this.c2 = this.c.redSqr(), this.d = new i(e2.d, 16).toRed(this.red), this.dd = this.d.redAdd(this.d), a(!this.twisted || 0 === this.c.fromRed().cmpn(1)), this.oneC = 1 == (0 | e2.c);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2, n2, s2) {
           o.BasePoint.call(this, e2, "projective"), null === t2 && null === r2 && null === n2 ? (this.x = this.curve.zero, this.y = this.curve.one, this.z = this.curve.one, this.t = this.curve.zero, this.zOne = true) : (this.x = new i(t2, 16), this.y = new i(r2, 16), this.z = n2 ? new i(n2, 16) : this.curve.one, this.t = s2 && new i(s2, 16), this.x.red || (this.x = this.x.toRed(this.curve.red)), this.y.red || (this.y = this.y.toRed(this.curve.red)), this.z.red || (this.z = this.z.toRed(this.curve.red)), this.t && !this.t.red && (this.t = this.t.toRed(this.curve.red)), this.zOne = this.z === this.curve.one, this.curve.extended && !this.t && (this.t = this.x.redMul(this.y), this.zOne || (this.t = this.t.redMul(this.z.redInvm()))));
         }
         __name(c, "c");
-        __name2(c, "c");
         s(l, o), t.exports = l, l.prototype._mulA = function(e2) {
           return this.mOneA ? e2.redNeg() : this.a.redMul(e2);
         }, l.prototype._mulC = function(e2) {
@@ -22660,12 +22914,10 @@ var require_exceljs_min = __commonJS({
           s.call(this, "mont", e2), this.a = new n(e2.a, 16).toRed(this.red), this.b = new n(e2.b, 16).toRed(this.red), this.i4 = new n(4).toRed(this.red).redInvm(), this.two = new n(2).toRed(this.red), this.a24 = this.i4.redMul(this.a.redAdd(this.two));
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2, t2, r2) {
           s.BasePoint.call(this, e2, "projective"), null === t2 && null === r2 ? (this.x = this.curve.one, this.z = this.curve.zero) : (this.x = new n(t2, 16), this.z = new n(r2, 16), this.x.red || (this.x = this.x.toRed(this.curve.red)), this.z.red || (this.z = this.z.toRed(this.curve.red)));
         }
         __name(l, "l");
-        __name2(l, "l");
         i(a, s), t.exports = a, a.prototype.validate = function(e2) {
           var t2 = e2.normalize().x, r2 = t2.redSqr(), n2 = r2.redMul(t2).redAdd(r2.redMul(this.a)).redAdd(t2);
           return 0 === n2.redSqrt().redSqr().cmp(n2);
@@ -22714,17 +22966,14 @@ var require_exceljs_min = __commonJS({
           o.call(this, "short", e2), this.a = new i(e2.a, 16).toRed(this.red), this.b = new i(e2.b, 16).toRed(this.red), this.tinv = this.two.redInvm(), this.zeroA = 0 === this.a.fromRed().cmpn(0), this.threeA = 0 === this.a.fromRed().sub(this.p).cmpn(-3), this.endo = this._getEndomorphism(e2), this._endoWnafT1 = new Array(4), this._endoWnafT2 = new Array(4);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2, n2) {
           o.BasePoint.call(this, e2, "affine"), null === t2 && null === r2 ? (this.x = null, this.y = null, this.inf = true) : (this.x = new i(t2, 16), this.y = new i(r2, 16), n2 && (this.x.forceRed(this.curve.red), this.y.forceRed(this.curve.red)), this.x.red || (this.x = this.x.toRed(this.curve.red)), this.y.red || (this.y = this.y.toRed(this.curve.red)), this.inf = false);
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2, r2, n2) {
           o.BasePoint.call(this, e2, "jacobian"), null === t2 && null === r2 && null === n2 ? (this.x = this.curve.one, this.y = this.curve.one, this.z = new i(0)) : (this.x = new i(t2, 16), this.y = new i(r2, 16), this.z = new i(n2, 16)), this.x.red || (this.x = this.x.toRed(this.curve.red)), this.y.red || (this.y = this.y.toRed(this.curve.red)), this.z.red || (this.z = this.z.toRed(this.curve.red)), this.zOne = this.z === this.curve.one;
         }
         __name(u, "u");
-        __name2(u, "u");
         s(l, o), t.exports = l, l.prototype._getEndomorphism = function(e2) {
           if (this.zeroA && this.g && this.n && 1 === this.p.modn(3)) {
             var t2, r2;
@@ -22787,7 +23036,7 @@ var require_exceljs_min = __commonJS({
             if (e2 && e2.beta) return e2.beta;
             var t2 = this.curve.point(this.x.redMul(this.curve.endo.beta), this.y);
             if (e2) {
-              var r2 = this.curve, n2 = /* @__PURE__ */ __name2(function(e3) {
+              var r2 = this.curve, n2 = /* @__PURE__ */ __name(function(e3) {
                 return r2.point(e3.x.redMul(r2.endo.beta), e3.y);
               }, "n");
               e2.beta = t2, t2.precomputed = { beta: null, naf: e2.naf && { wnd: e2.naf.wnd, points: e2.naf.points.map(n2) }, doubles: e2.doubles && { step: e2.doubles.step, points: e2.doubles.points.map(n2) } };
@@ -22803,8 +23052,7 @@ var require_exceljs_min = __commonJS({
           function i2(t3) {
             return e2.point(t3[0], t3[1], r2);
           }
-          __name(i2, "i2");
-          __name2(i2, "i");
+          __name(i2, "i");
           var s2 = t2[2];
           return n2.precomputed = { beta: null, doubles: s2.doubles && { step: s2.doubles.step, points: [n2].concat(s2.doubles.points.map(i2)) }, naf: s2.naf && { wnd: s2.naf.wnd, points: [n2].concat(s2.naf.points.map(i2)) } }, n2;
         }, c.prototype.inspect = function() {
@@ -22845,7 +23093,7 @@ var require_exceljs_min = __commonJS({
           if (this.inf) return this;
           var t2 = this.curve.point(this.x, this.y.redNeg());
           if (e2 && this.precomputed) {
-            var r2 = this.precomputed, n2 = /* @__PURE__ */ __name2(function(e3) {
+            var r2 = this.precomputed, n2 = /* @__PURE__ */ __name(function(e3) {
               return e3.neg();
             }, "n");
             t2.precomputed = { naf: r2.naf && { wnd: r2.naf.wnd, points: r2.naf.points.map(n2) }, doubles: r2.doubles && { step: r2.doubles.step, points: r2.doubles.points.map(n2) } };
@@ -22972,15 +23220,13 @@ var require_exceljs_min = __commonJS({
           "short" === e2.type ? this.curve = new o.short(e2) : "edwards" === e2.type ? this.curve = new o.edwards(e2) : this.curve = new o.mont(e2), this.g = this.curve.g, this.n = this.curve.n, this.hash = e2.hash, a(this.g.validate(), "Invalid curve"), a(this.g.mul(this.n).isInfinity(), "Invalid curve, G*N != O");
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2) {
-          Object.defineProperty(i, e2, { configurable: true, enumerable: true, get: /* @__PURE__ */ __name2(function() {
+          Object.defineProperty(i, e2, { configurable: true, enumerable: true, get: /* @__PURE__ */ __name(function() {
             var r2 = new l(t2);
             return Object.defineProperty(i, e2, { configurable: true, enumerable: true, value: r2 }), r2;
           }, "get") });
         }
         __name(c, "c");
-        __name2(c, "c");
         i.PresetCurve = l, c("p192", { type: "short", prime: "p192", p: "ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff", a: "ffffffff ffffffff ffffffff fffffffe ffffffff fffffffc", b: "64210519 e59c80e7 0fa7e9ab 72243049 feb8deec c146b9b1", n: "ffffffff ffffffff ffffffff 99def836 146bc9b1 b4d22831", hash: s.sha256, gRed: false, g: ["188da80e b03090f6 7cbf20eb 43a18800 f4ff0afd 82ff1012", "07192b95 ffc8da78 631011ed 6b24cdd5 73f977a1 1e794811"] }), c("p224", { type: "short", prime: "p224", p: "ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001", a: "ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff fffffffe", b: "b4050a85 0c04b3ab f5413256 5044b0b7 d7bfd8ba 270b3943 2355ffb4", n: "ffffffff ffffffff ffffffff ffff16a2 e0b8f03e 13dd2945 5c5c2a3d", hash: s.sha256, gRed: false, g: ["b70e0cbd 6bb4bf7f 321390b9 4a03c1d3 56c21122 343280d6 115c1d21", "bd376388 b5f723fb 4c22dfe6 cd4375a0 5a074764 44d58199 85007e34"] }), c("p256", { type: "short", prime: null, p: "ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff", a: "ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff fffffffc", b: "5ac635d8 aa3a93e7 b3ebbd55 769886bc 651d06b0 cc53b0f6 3bce3c3e 27d2604b", n: "ffffffff 00000000 ffffffff ffffffff bce6faad a7179e84 f3b9cac2 fc632551", hash: s.sha256, gRed: false, g: ["6b17d1f2 e12c4247 f8bce6e5 63a440f2 77037d81 2deb33a0 f4a13945 d898c296", "4fe342e2 fe1a7f9b 8ee7eb4a 7c0f9e16 2bce3357 6b315ece cbb64068 37bf51f5"] }), c("p384", { type: "short", prime: null, p: "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe ffffffff 00000000 00000000 ffffffff", a: "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe ffffffff 00000000 00000000 fffffffc", b: "b3312fa7 e23ee7e4 988e056b e3f82d19 181d9c6e fe814112 0314088f 5013875a c656398d 8a2ed19d 2a85c8ed d3ec2aef", n: "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff c7634d81 f4372ddf 581a0db2 48b0a77a ecec196a ccc52973", hash: s.sha384, gRed: false, g: ["aa87ca22 be8b0537 8eb1c71e f320ad74 6e1d3b62 8ba79b98 59f741e0 82542a38 5502f25d bf55296c 3a545e38 72760ab7", "3617de4a 96262c6f 5d9e98bf 9292dc29 f8f41dbd 289a147c e9da3113 b5f0b8c0 0a60b1ce 1d7e819d 7a431d7c 90ea0e5f"] }), c("p521", { type: "short", prime: null, p: "000001ff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff", a: "000001ff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffc", b: "00000051 953eb961 8e1c9a1f 929a21a0 b68540ee a2da725b 99b315f3 b8b48991 8ef109e1 56193951 ec7e937b 1652c0bd 3bb1bf07 3573df88 3d2c34f1 ef451fd4 6b503f00", n: "000001ff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffa 51868783 bf2f966b 7fcc0148 f709a5d0 3bb5c9b8 899c47ae bb6fb71e 91386409", hash: s.sha512, gRed: false, g: ["000000c6 858e06b7 0404e9cd 9e3ecb66 2395b442 9c648139 053fb521 f828af60 6b4d3dba a14b5e77 efe75928 fe1dc127 a2ffa8de 3348b3c1 856a429b f97e7e31 c2e5bd66", "00000118 39296a78 9a3bc004 5c8a5fb4 2c7d1bd9 98f54449 579b4468 17afbd17 273e662c 97ee7299 5ef42640 c550b901 3fad0761 353c7086 a272c240 88be9476 9fd16650"] }), c("curve25519", { type: "mont", prime: "p25519", p: "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed", a: "76d06", b: "1", n: "1000000000000000 0000000000000000 14def9dea2f79cd6 5812631a5cf5d3ed", hash: s.sha256, gRed: false, g: ["9"] }), c("ed25519", { type: "edwards", prime: "p25519", p: "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed", a: "-1", c: "1", d: "52036cee2b6ffe73 8cc740797779e898 00700a4d4141d8ab 75eb4dca135978a3", n: "1000000000000000 0000000000000000 14def9dea2f79cd6 5812631a5cf5d3ed", hash: s.sha256, gRed: false, g: ["216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a", "6666666666666666666666666666666666666666666666666666666666666658"] });
         try {
           n = e("./precomputed/secp256k1");
@@ -22996,7 +23242,6 @@ var require_exceljs_min = __commonJS({
           "string" == typeof e2 && (l(Object.prototype.hasOwnProperty.call(o, e2), "Unknown curve " + e2), e2 = o[e2]), e2 instanceof o.PresetCurve && (e2 = { curve: e2 }), this.curve = e2.curve.curve, this.n = this.curve.n, this.nh = this.n.ushrn(1), this.g = this.curve.g, this.g = e2.curve.g, this.g.precompute(e2.curve.n.bitLength() + 1), this.hash = e2.hash || e2.curve.hash;
         }
         __name(h, "h");
-        __name2(h, "h");
         t.exports = h, h.prototype.keyPair = function(e2) {
           return new c(this, e2);
         }, h.prototype.keyFromPrivate = function(e2, t2) {
@@ -23064,7 +23309,6 @@ var require_exceljs_min = __commonJS({
           this.ec = e2, this.priv = null, this.pub = null, t2.priv && this._importPrivate(t2.priv, t2.privEnc), t2.pub && this._importPublic(t2.pub, t2.pubEnc);
         }
         __name(s, "s");
-        __name2(s, "s");
         t.exports = s, s.fromPublic = function(e2, t2, r2) {
           return t2 instanceof s ? t2 : new s(e2, { pub: t2, pubEnc: r2 });
         }, s.fromPrivate = function(e2, t2, r2) {
@@ -23098,12 +23342,10 @@ var require_exceljs_min = __commonJS({
           this._importDER(e2, t2) || (s(e2.r && e2.s, "Signature without r or s"), this.r = new n(e2.r, 16), this.s = new n(e2.s, 16), void 0 === e2.recoveryParam ? this.recoveryParam = null : this.recoveryParam = e2.recoveryParam);
         }
         __name(o, "o");
-        __name2(o, "o");
         function a() {
           this.place = 0;
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2, t2) {
           var r2 = e2[t2.place++];
           if (!(128 & r2)) return r2;
@@ -23113,13 +23355,11 @@ var require_exceljs_min = __commonJS({
           return !(i2 <= 127) && (t2.place = o2, i2);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           for (var t2 = 0, r2 = e2.length - 1; !e2[t2] && !(128 & e2[t2 + 1]) && t2 < r2; ) t2++;
           return 0 === t2 ? e2 : e2.slice(t2);
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2) {
           if (t2 < 128) e2.push(t2);
           else {
@@ -23129,7 +23369,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(u, "u");
-        __name2(u, "u");
         t.exports = o, o.prototype._importDER = function(e2, t2) {
           e2 = i.toArray(e2, t2);
           var r2 = new a();
@@ -23171,7 +23410,6 @@ var require_exceljs_min = __commonJS({
           e2 = i[e2].curve, this.curve = e2, this.g = e2.g, this.g.precompute(e2.n.bitLength() + 1), this.pointClass = e2.point().constructor, this.encodingLength = Math.ceil(e2.n.bitLength() / 8), this.hash = n.sha512;
         }
         __name(u, "u");
-        __name2(u, "u");
         t.exports = u, u.prototype.sign = function(e2, t2) {
           e2 = a(e2);
           var r2 = this.keyFromSecret(t2), n2 = this.hashInt(r2.messagePrefix(), e2), i2 = this.g.mul(n2), s2 = this.encodePoint(i2), o2 = this.hashInt(s2, r2.pubBytes(), e2).mul(r2.priv()), l2 = n2.add(o2).umod(this.curve.n);
@@ -23209,7 +23447,6 @@ var require_exceljs_min = __commonJS({
           this.eddsa = e2, this._secret = s(t2.secret), e2.isPoint(t2.pub) ? this._pub = t2.pub : this._pubBytes = s(t2.pub);
         }
         __name(a, "a");
-        __name2(a, "a");
         a.fromPublic = function(e2, t2) {
           return t2 instanceof a ? t2 : new a(e2, { pub: t2 });
         }, a.fromSecret = function(e2, t2) {
@@ -23245,7 +23482,6 @@ var require_exceljs_min = __commonJS({
           this.eddsa = e2, "object" != typeof t2 && (t2 = a(t2)), Array.isArray(t2) && (t2 = { R: t2.slice(0, e2.encodingLength), S: t2.slice(e2.encodingLength) }), s(t2.R && t2.S, "Signature without R or S"), e2.isPoint(t2.R) && (this._R = t2.R), t2.S instanceof n && (this._S = t2.S), this._Rencoded = Array.isArray(t2.R) ? t2.R : t2.Rencoded, this._Sencoded = Array.isArray(t2.S) ? t2.S : t2.Sencoded;
         }
         __name(l, "l");
-        __name2(l, "l");
         o(l, "S", (function() {
           return this.eddsa.decodeInt(this.Sencoded());
         })), o(l, "R", (function() {
@@ -23298,7 +23534,7 @@ var require_exceljs_min = __commonJS({
       }, {}], 422: [function(e, t, r) {
         "use strict";
         var n = Object.create || function(e2) {
-          var t2 = /* @__PURE__ */ __name2(function() {
+          var t2 = /* @__PURE__ */ __name(function() {
           }, "t");
           return t2.prototype = e2, new t2();
         }, i = Object.keys || function(e2) {
@@ -23315,7 +23551,6 @@ var require_exceljs_min = __commonJS({
           this._events && Object.prototype.hasOwnProperty.call(this, "_events") || (this._events = n(null), this._eventsCount = 0), this._maxListeners = this._maxListeners || void 0;
         }
         __name(o, "o");
-        __name2(o, "o");
         t.exports = o, o.EventEmitter = o, o.prototype._events = void 0, o.prototype._maxListeners = void 0;
         var a, l = 10;
         try {
@@ -23328,37 +23563,31 @@ var require_exceljs_min = __commonJS({
           return void 0 === e2._maxListeners ? o.defaultMaxListeners : e2._maxListeners;
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2, r2) {
           if (t2) e2.call(r2);
           else for (var n2 = e2.length, i2 = _(e2, n2), s2 = 0; s2 < n2; ++s2) i2[s2].call(r2);
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2, t2, r2, n2) {
           if (t2) e2.call(r2, n2);
           else for (var i2 = e2.length, s2 = _(e2, i2), o2 = 0; o2 < i2; ++o2) s2[o2].call(r2, n2);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2, t2, r2, n2, i2) {
           if (t2) e2.call(r2, n2, i2);
           else for (var s2 = e2.length, o2 = _(e2, s2), a2 = 0; a2 < s2; ++a2) o2[a2].call(r2, n2, i2);
         }
         __name(d, "d");
-        __name2(d, "d");
         function p(e2, t2, r2, n2, i2, s2) {
           if (t2) e2.call(r2, n2, i2, s2);
           else for (var o2 = e2.length, a2 = _(e2, o2), l2 = 0; l2 < o2; ++l2) a2[l2].call(r2, n2, i2, s2);
         }
         __name(p, "p");
-        __name2(p, "p");
         function m(e2, t2, r2, n2) {
           if (t2) e2.apply(r2, n2);
           else for (var i2 = e2.length, s2 = _(e2, i2), o2 = 0; o2 < i2; ++o2) s2[o2].apply(r2, n2);
         }
         __name(m, "m");
-        __name2(m, "m");
         function b(e2, t2, r2, i2) {
           var s2, o2, a2;
           if ("function" != typeof r2) throw new TypeError('"listener" argument must be a function');
@@ -23372,7 +23601,6 @@ var require_exceljs_min = __commonJS({
           return e2;
         }
         __name(b, "b");
-        __name2(b, "b");
         function g() {
           if (!this.fired) switch (this.target.removeListener(this.type, this.wrapFn), this.fired = true, arguments.length) {
             case 0:
@@ -23389,13 +23617,11 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(g, "g");
-        __name2(g, "g");
         function y(e2, t2, r2) {
           var n2 = { fired: false, wrapFn: void 0, target: e2, type: t2, listener: r2 }, i2 = s.call(g, n2);
           return i2.listener = r2, n2.wrapFn = i2, i2;
         }
         __name(y, "y");
-        __name2(y, "y");
         function v(e2, t2, r2) {
           var n2 = e2._events;
           if (!n2) return [];
@@ -23406,7 +23632,6 @@ var require_exceljs_min = __commonJS({
           })(i2) : _(i2, i2.length) : [];
         }
         __name(v, "v");
-        __name2(v, "v");
         function w(e2) {
           var t2 = this._events;
           if (t2) {
@@ -23417,16 +23642,14 @@ var require_exceljs_min = __commonJS({
           return 0;
         }
         __name(w, "w");
-        __name2(w, "w");
         function _(e2, t2) {
           for (var r2 = new Array(t2), n2 = 0; n2 < t2; ++n2) r2[n2] = e2[n2];
           return r2;
         }
         __name(_, "_");
-        __name2(_, "_");
-        a ? Object.defineProperty(o, "defaultMaxListeners", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        a ? Object.defineProperty(o, "defaultMaxListeners", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return l;
-        }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+        }, "get"), set: /* @__PURE__ */ __name(function(e2) {
           if ("number" != typeof e2 || e2 < 0 || e2 != e2) throw new TypeError('"defaultMaxListeners" must be a positive number');
           l = e2;
         }, "set") }) : o.defaultMaxListeners = l, o.prototype.setMaxListeners = function(e2) {
@@ -23536,35 +23759,35 @@ var require_exceljs_min = __commonJS({
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.CsvParserStream = r.ParserOptions = r.parseFile = r.parseStream = r.parseString = r.parse = r.FormatterOptions = r.CsvFormatterStream = r.writeToPath = r.writeToString = r.writeToBuffer = r.writeToStream = r.write = r.format = void 0;
         var n = e("@fast-csv/format");
-        Object.defineProperty(r, "format", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "format", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.format;
-        }, "get") }), Object.defineProperty(r, "write", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "write", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.write;
-        }, "get") }), Object.defineProperty(r, "writeToStream", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "writeToStream", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.writeToStream;
-        }, "get") }), Object.defineProperty(r, "writeToBuffer", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "writeToBuffer", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.writeToBuffer;
-        }, "get") }), Object.defineProperty(r, "writeToString", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "writeToString", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.writeToString;
-        }, "get") }), Object.defineProperty(r, "writeToPath", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "writeToPath", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.writeToPath;
-        }, "get") }), Object.defineProperty(r, "CsvFormatterStream", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "CsvFormatterStream", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.CsvFormatterStream;
-        }, "get") }), Object.defineProperty(r, "FormatterOptions", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "FormatterOptions", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.FormatterOptions;
         }, "get") });
         var i = e("@fast-csv/parse");
-        Object.defineProperty(r, "parse", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "parse", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.parse;
-        }, "get") }), Object.defineProperty(r, "parseString", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "parseString", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.parseString;
-        }, "get") }), Object.defineProperty(r, "parseStream", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "parseStream", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.parseStream;
-        }, "get") }), Object.defineProperty(r, "parseFile", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "parseFile", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.parseFile;
-        }, "get") }), Object.defineProperty(r, "ParserOptions", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "ParserOptions", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.ParserOptions;
-        }, "get") }), Object.defineProperty(r, "CsvParserStream", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "CsvParserStream", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.CsvParserStream;
         }, "get") });
       }, { "@fast-csv/format": 151, "@fast-csv/parse": 155 }], 425: [function(e, t, r) {
@@ -23574,7 +23797,6 @@ var require_exceljs_min = __commonJS({
           i.call(this), this._block = n.allocUnsafe(e2), this._blockSize = e2, this._blockOffset = 0, this._length = [0, 0, 0, 0], this._finalized = false;
         }
         __name(s, "s");
-        __name2(s, "s");
         e("inherits")(s, i), s.prototype._transform = function(e2, t2, r2) {
           var n2 = null;
           try {
@@ -23626,7 +23848,6 @@ var require_exceljs_min = __commonJS({
           this.pending = null, this.pendingTotal = 0, this.blockSize = this.constructor.blockSize, this.outSize = this.constructor.outSize, this.hmacStrength = this.constructor.hmacStrength, this.padLength = this.constructor.padLength / 8, this.endian = "big", this._delta8 = this.blockSize / 8, this._delta32 = this.blockSize / 32;
         }
         __name(s, "s");
-        __name2(s, "s");
         r.BlockHash = s, s.prototype.update = function(e2, t2) {
           if (e2 = n.toArray(e2, t2), this.pending ? this.pending = this.pending.concat(e2) : this.pending = e2, this.pendingTotal += e2.length, this.pending.length >= this._delta8) {
             var r2 = (e2 = this.pending).length % this._delta8;
@@ -23654,7 +23875,6 @@ var require_exceljs_min = __commonJS({
           this.Hash = e2, this.blockSize = e2.blockSize / 8, this.outSize = e2.outSize / 8, this.inner = null, this.outer = null, this._init(n.toArray(t2, r2));
         }
         __name(s, "s");
-        __name2(s, "s");
         t.exports = s, s.prototype._init = function(e2) {
           e2.length > this.blockSize && (e2 = new this.Hash().update(e2).digest()), i(e2.length <= this.blockSize);
           for (var t2 = e2.length; t2 < this.blockSize; t2++) e2.push(0);
@@ -23674,22 +23894,18 @@ var require_exceljs_min = __commonJS({
           c.call(this), this.h = [1732584193, 4023233417, 2562383102, 271733878, 3285377520], this.endian = "little";
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2, r2, n2) {
           return e2 <= 15 ? t2 ^ r2 ^ n2 : e2 <= 31 ? t2 & r2 | ~t2 & n2 : e2 <= 47 ? (t2 | ~r2) ^ n2 : e2 <= 63 ? t2 & n2 | r2 & ~n2 : t2 ^ (r2 | ~n2);
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2) {
           return e2 <= 15 ? 0 : e2 <= 31 ? 1518500249 : e2 <= 47 ? 1859775393 : e2 <= 63 ? 2400959708 : 2840853838;
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2) {
           return e2 <= 15 ? 1352829926 : e2 <= 31 ? 1548603684 : e2 <= 47 ? 1836072691 : e2 <= 63 ? 2053994217 : 0;
         }
         __name(d, "d");
-        __name2(d, "d");
         n.inherits(u, c), r.ripemd160 = u, u.blockSize = 512, u.outSize = 160, u.hmacStrength = 192, u.padLength = 64, u.prototype._update = function(e2, t2) {
           for (var r2 = this.h[0], n2 = this.h[1], i2 = this.h[2], c2 = this.h[3], u2 = this.h[4], y = r2, v = n2, w = i2, _ = c2, x = u2, k = 0; k < 80; k++) {
             var S = o(s(l(r2, h(k, n2, i2, c2), e2[p[k] + t2], f(k)), b[k]), u2);
@@ -23711,7 +23927,6 @@ var require_exceljs_min = __commonJS({
           u.call(this), this.h = [1732584193, 4023233417, 2562383102, 271733878, 3285377520], this.W = new Array(80);
         }
         __name(f, "f");
-        __name2(f, "f");
         n.inherits(f, u), t.exports = f, f.blockSize = 512, f.outSize = 160, f.hmacStrength = 80, f.padLength = 64, f.prototype._update = function(e2, t2) {
           for (var r2 = this.W, n2 = 0; n2 < 16; n2++) r2[n2] = e2[t2 + n2];
           for (; n2 < r2.length; n2++) r2[n2] = o(r2[n2 - 3] ^ r2[n2 - 8] ^ r2[n2 - 14] ^ r2[n2 - 16], 1);
@@ -23732,7 +23947,6 @@ var require_exceljs_min = __commonJS({
           i.call(this), this.h = [3238371032, 914150663, 812702999, 4144912697, 4290775857, 1750603025, 1694076839, 3204075428];
         }
         __name(s, "s");
-        __name2(s, "s");
         n.inherits(s, i), t.exports = s, s.blockSize = 512, s.outSize = 224, s.hmacStrength = 192, s.padLength = 64, s.prototype._digest = function(e2) {
           return "hex" === e2 ? n.toHex32(this.h.slice(0, 7), "big") : n.split32(this.h.slice(0, 7), "big");
         };
@@ -23744,7 +23958,6 @@ var require_exceljs_min = __commonJS({
           b.call(this), this.h = [1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225], this.k = g, this.W = new Array(64);
         }
         __name(y, "y");
-        __name2(y, "y");
         n.inherits(y, b), t.exports = y, y.blockSize = 512, y.outSize = 256, y.hmacStrength = 192, y.padLength = 64, y.prototype._update = function(e2, t2) {
           for (var r2 = this.W, n2 = 0; n2 < 16; n2++) r2[n2] = e2[t2 + n2];
           for (; n2 < r2.length; n2++) r2[n2] = l(m(r2[n2 - 2]), r2[n2 - 7], p(r2[n2 - 15]), r2[n2 - 16]);
@@ -23765,7 +23978,6 @@ var require_exceljs_min = __commonJS({
           i.call(this), this.h = [3418070365, 3238371032, 1654270250, 914150663, 2438529370, 812702999, 355462360, 4144912697, 1731405415, 4290775857, 2394180231, 1750603025, 3675008525, 1694076839, 1203062813, 3204075428];
         }
         __name(s, "s");
-        __name2(s, "s");
         n.inherits(s, i), t.exports = s, s.blockSize = 1024, s.outSize = 384, s.hmacStrength = 192, s.padLength = 128, s.prototype._digest = function(e2) {
           return "hex" === e2 ? n.toHex32(this.h.slice(0, 12), "big") : n.split32(this.h.slice(0, 12), "big");
         };
@@ -23777,79 +23989,66 @@ var require_exceljs_min = __commonJS({
           g.call(this), this.h = [1779033703, 4089235720, 3144134277, 2227873595, 1013904242, 4271175723, 2773480762, 1595750129, 1359893119, 2917565137, 2600822924, 725511199, 528734635, 4215389547, 1541459225, 327033209], this.k = y, this.W = new Array(160);
         }
         __name(v, "v");
-        __name2(v, "v");
         function w(e2, t2, r2, n2, i2) {
           var s2 = e2 & r2 ^ ~e2 & i2;
           return s2 < 0 && (s2 += 4294967296), s2;
         }
         __name(w, "w");
-        __name2(w, "w");
         function _(e2, t2, r2, n2, i2, s2) {
           var o2 = t2 & n2 ^ ~t2 & s2;
           return o2 < 0 && (o2 += 4294967296), o2;
         }
         __name(_, "_");
-        __name2(_, "_");
         function x(e2, t2, r2, n2, i2) {
           var s2 = e2 & r2 ^ e2 & i2 ^ r2 & i2;
           return s2 < 0 && (s2 += 4294967296), s2;
         }
         __name(x, "x");
-        __name2(x, "x");
         function k(e2, t2, r2, n2, i2, s2) {
           var o2 = t2 & n2 ^ t2 & s2 ^ n2 & s2;
           return o2 < 0 && (o2 += 4294967296), o2;
         }
         __name(k, "k");
-        __name2(k, "k");
         function S(e2, t2) {
           var r2 = o(e2, t2, 28) ^ o(t2, e2, 2) ^ o(t2, e2, 7);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(S, "S");
-        __name2(S, "S");
         function M(e2, t2) {
           var r2 = a(e2, t2, 28) ^ a(t2, e2, 2) ^ a(t2, e2, 7);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(M, "M");
-        __name2(M, "M");
         function C(e2, t2) {
           var r2 = o(e2, t2, 14) ^ o(e2, t2, 18) ^ o(t2, e2, 9);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(C, "C");
-        __name2(C, "C");
         function T(e2, t2) {
           var r2 = a(e2, t2, 14) ^ a(e2, t2, 18) ^ a(t2, e2, 9);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(T, "T");
-        __name2(T, "T");
         function E(e2, t2) {
           var r2 = o(e2, t2, 1) ^ o(e2, t2, 8) ^ l(e2, t2, 7);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(E, "E");
-        __name2(E, "E");
         function A(e2, t2) {
           var r2 = a(e2, t2, 1) ^ a(e2, t2, 8) ^ c(e2, t2, 7);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(A, "A");
-        __name2(A, "A");
         function R(e2, t2) {
           var r2 = o(e2, t2, 19) ^ o(t2, e2, 29) ^ l(e2, t2, 6);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(R, "R");
-        __name2(R, "R");
         function O(e2, t2) {
           var r2 = a(e2, t2, 19) ^ a(t2, e2, 29) ^ c(e2, t2, 6);
           return r2 < 0 && (r2 += 4294967296), r2;
         }
         __name(O, "O");
-        __name2(O, "O");
         n.inherits(v, g), t.exports = v, v.blockSize = 1024, v.outSize = 512, v.hmacStrength = 192, v.padLength = 128, v.prototype._prepareBlock = function(e2, t2) {
           for (var r2 = this.W, n2 = 0; n2 < 32; n2++) r2[n2] = e2[t2 + n2];
           for (; n2 < r2.length; n2 += 2) {
@@ -23877,17 +24076,14 @@ var require_exceljs_min = __commonJS({
           return e2 & t2 ^ ~e2 & r2;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2, t2, r2) {
           return e2 & t2 ^ e2 & r2 ^ t2 & r2;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2, r2) {
           return e2 ^ t2 ^ r2;
         }
         __name(o, "o");
-        __name2(o, "o");
         r.ft_1 = function(e2, t2, r2, n2) {
           return 0 === e2 ? i(t2, r2, n2) : 1 === e2 || 3 === e2 ? o(t2, r2, n2) : 2 === e2 ? s(t2, r2, n2) : void 0;
         }, r.ch32 = i, r.maj32 = s, r.p32 = o, r.s0_256 = function(e2) {
@@ -23906,22 +24102,18 @@ var require_exceljs_min = __commonJS({
           return 55296 == (64512 & e2.charCodeAt(t2)) && (!(t2 < 0 || t2 + 1 >= e2.length) && 56320 == (64512 & e2.charCodeAt(t2 + 1)));
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2) {
           return (e2 >>> 24 | e2 >>> 8 & 65280 | e2 << 8 & 16711680 | (255 & e2) << 24) >>> 0;
         }
         __name(o, "o");
-        __name2(o, "o");
         function a(e2) {
           return 1 === e2.length ? "0" + e2 : e2;
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2) {
           return 7 === e2.length ? "0" + e2 : 6 === e2.length ? "00" + e2 : 5 === e2.length ? "000" + e2 : 4 === e2.length ? "0000" + e2 : 3 === e2.length ? "00000" + e2 : 2 === e2.length ? "000000" + e2 : 1 === e2.length ? "0000000" + e2 : e2;
         }
         __name(l, "l");
-        __name2(l, "l");
         r.inherits = i, r.toArray = function(e2, t2) {
           if (Array.isArray(e2)) return e2.slice();
           if (!e2) return [];
@@ -24005,7 +24197,6 @@ var require_exceljs_min = __commonJS({
           s(t2.length >= this.minEntropy / 8, "Not enough entropy. Minimum is: " + this.minEntropy + " bits"), this._init(t2, r2, n2);
         }
         __name(o, "o");
-        __name2(o, "o");
         t.exports = o, o.prototype._init = function(e2, t2, r2) {
           var n2 = e2.concat(t2).concat(r2);
           this.K = new Array(this.outLen / 8), this.V = new Array(this.outLen / 8);
@@ -24050,7 +24241,7 @@ var require_exceljs_min = __commonJS({
         } : t.exports = function(e2, t2) {
           if (t2) {
             e2.super_ = t2;
-            var r2 = /* @__PURE__ */ __name2(function() {
+            var r2 = /* @__PURE__ */ __name(function() {
             }, "r");
             r2.prototype = t2.prototype, e2.prototype = new r2(), e2.prototype.constructor = e2;
           }
@@ -24062,7 +24253,7 @@ var require_exceljs_min = __commonJS({
             !(function(e2) {
               "object" == typeof r && void 0 !== t ? t.exports = e2() : ("undefined" != typeof window ? window : void 0 !== i ? i : "undefined" != typeof self ? self : this).JSZip = e2();
             })((function() {
-              return (/* @__PURE__ */ __name2(/* @__PURE__ */ __name(function t2(r2, n2, i2) {
+              return (/* @__PURE__ */ __name(function t2(r2, n2, i2) {
                 function s2(a3, l2) {
                   if (!n2[a3]) {
                     if (!r2[a3]) {
@@ -24079,11 +24270,10 @@ var require_exceljs_min = __commonJS({
                   }
                   return n2[a3].exports;
                 }
-                __name(s2, "s2");
-                __name2(s2, "s");
+                __name(s2, "s");
                 for (var o2 = "function" == typeof e && e, a2 = 0; a2 < i2.length; a2++) s2(i2[a2]);
                 return s2;
-              }, "t2"), "t"))({ 1: [function(e2, t2, r2) {
+              }, "t"))({ 1: [function(e2, t2, r2) {
                 var n2 = e2("./utils"), i2 = e2("./support"), s2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
                 r2.encode = function(e3) {
                   for (var t3, r3, i3, o2, a2, l2, c2, u2 = [], h = 0, f = e3.length, d = f, p = "string" !== n2.getTypeOf(e3); h < e3.length; ) d = f - h, i3 = p ? (t3 = e3[h++], r3 = h < f ? e3[h++] : 0, h < f ? e3[h++] : 0) : (t3 = e3.charCodeAt(h++), r3 = h < f ? e3.charCodeAt(h++) : 0, h < f ? e3.charCodeAt(h++) : 0), o2 = t3 >> 2, a2 = (3 & t3) << 4 | r3 >> 4, l2 = 1 < d ? (15 & r3) << 2 | i3 >> 6 : 64, c2 = 2 < d ? 63 & i3 : 64, u2.push(s2.charAt(o2) + s2.charAt(a2) + s2.charAt(l2) + s2.charAt(c2));
@@ -24101,23 +24291,22 @@ var require_exceljs_min = __commonJS({
                 function a2(e3, t3, r3, n3, i3) {
                   this.compressedSize = e3, this.uncompressedSize = t3, this.crc32 = r3, this.compression = n3, this.compressedContent = i3;
                 }
-                __name(a2, "a2");
-                __name2(a2, "a");
-                a2.prototype = { getContentWorker: /* @__PURE__ */ __name2(function() {
+                __name(a2, "a");
+                a2.prototype = { getContentWorker: /* @__PURE__ */ __name(function() {
                   var e3 = new i2(n2.Promise.resolve(this.compressedContent)).pipe(this.compression.uncompressWorker()).pipe(new o2("data_length")), t3 = this;
                   return e3.on("end", (function() {
                     if (this.streamInfo.data_length !== t3.uncompressedSize) throw new Error("Bug : uncompressed data size mismatch");
                   })), e3;
-                }, "getContentWorker"), getCompressedWorker: /* @__PURE__ */ __name2(function() {
+                }, "getContentWorker"), getCompressedWorker: /* @__PURE__ */ __name(function() {
                   return new i2(n2.Promise.resolve(this.compressedContent)).withStreamInfo("compressedSize", this.compressedSize).withStreamInfo("uncompressedSize", this.uncompressedSize).withStreamInfo("crc32", this.crc32).withStreamInfo("compression", this.compression);
                 }, "getCompressedWorker") }, a2.createWorkerFrom = function(e3, t3, r3) {
                   return e3.pipe(new s2()).pipe(new o2("uncompressedSize")).pipe(t3.compressWorker(r3)).pipe(new o2("compressedSize")).withStreamInfo("compression", t3);
                 }, t2.exports = a2;
               }, { "./external": 6, "./stream/Crc32Probe": 25, "./stream/DataLengthProbe": 26, "./stream/DataWorker": 27 }], 3: [function(e2, t2, r2) {
                 var n2 = e2("./stream/GenericWorker");
-                r2.STORE = { magic: "\0\0", compressWorker: /* @__PURE__ */ __name2(function() {
+                r2.STORE = { magic: "\0\0", compressWorker: /* @__PURE__ */ __name(function() {
                   return new n2("STORE compression");
-                }, "compressWorker"), uncompressWorker: /* @__PURE__ */ __name2(function() {
+                }, "compressWorker"), uncompressWorker: /* @__PURE__ */ __name(function() {
                   return new n2("STORE decompression");
                 }, "uncompressWorker") }, r2.DEFLATE = e2("./flate");
               }, { "./flate": 7, "./stream/GenericWorker": 28 }], 4: [function(e2, t2, r2) {
@@ -24152,8 +24341,7 @@ var require_exceljs_min = __commonJS({
                 function l2(e3, t3) {
                   o2.call(this, "FlateWorker/" + e3), this._pako = null, this._pakoAction = e3, this._pakoOptions = t3, this.meta = {};
                 }
-                __name(l2, "l2");
-                __name2(l2, "l");
+                __name(l2, "l");
                 r2.magic = "\b\0", s2.inherits(l2, o2), l2.prototype.processChunk = function(e3) {
                   this.meta = e3.meta, null === this._pako && this._createPako(), this._pako.push(s2.transformTo(a2, e3.data), false);
                 }, l2.prototype.flush = function() {
@@ -24177,8 +24365,7 @@ var require_exceljs_min = __commonJS({
                   for (r3 = 0; r3 < t3; r3++) n3 += String.fromCharCode(255 & e3), e3 >>>= 8;
                   return n3;
                 }
-                __name(n2, "n2");
-                __name2(n2, "n");
+                __name(n2, "n");
                 function i2(e3, t3, r3, i3, o3, u3) {
                   var h, f, d = e3.file, p = e3.compression, m = u3 !== a2.utf8encode, b = s2.transformTo("string", u3(d.name)), g = s2.transformTo("string", a2.utf8encode(d.name)), y = d.comment, v = s2.transformTo("string", u3(y)), w = s2.transformTo("string", a2.utf8encode(y)), _ = g.length !== d.name.length, x = w.length !== y.length, k = "", S = "", M = "", C = d.dir, T = d.date, E = { crc32: 0, compressedSize: 0, uncompressedSize: 0 };
                   t3 && !r3 || (E.crc32 = e3.crc32, E.compressedSize = e3.compressedSize, E.uncompressedSize = e3.uncompressedSize);
@@ -24194,14 +24381,12 @@ var require_exceljs_min = __commonJS({
                   var j = "";
                   return j += "\n\0", j += n2(A, 2), j += p.magic, j += n2(h, 2), j += n2(f, 2), j += n2(E.crc32, 4), j += n2(E.compressedSize, 4), j += n2(E.uncompressedSize, 4), j += n2(b.length, 2), j += n2(k.length, 2), { fileRecord: c2.LOCAL_FILE_HEADER + j + b + k, dirRecord: c2.CENTRAL_FILE_HEADER + n2(O, 2) + j + n2(v.length, 2) + "\0\0\0\0" + n2(R, 4) + n2(i3, 4) + b + k + v };
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 var s2 = e2("../utils"), o2 = e2("../stream/GenericWorker"), a2 = e2("../utf8"), l2 = e2("../crc32"), c2 = e2("../signature");
                 function u2(e3, t3, r3, n3) {
                   o2.call(this, "ZipFileWorker"), this.bytesWritten = 0, this.zipComment = t3, this.zipPlatform = r3, this.encodeFileName = n3, this.streamFiles = e3, this.accumulate = false, this.contentBuffer = [], this.dirRecords = [], this.currentSourceOffset = 0, this.entriesCount = 0, this.currentFile = null, this._sources = [];
                 }
-                __name(u2, "u2");
-                __name2(u2, "u");
+                __name(u2, "u");
                 s2.inherits(u2, o2), u2.prototype.push = function(e3) {
                   var t3 = e3.meta.percent || 0, r3 = this.entriesCount, n3 = this._sources.length;
                   this.accumulate ? this.contentBuffer.push(e3) : (this.bytesWritten += e3.data.length, o2.prototype.push.call(this, { data: e3.data, meta: { currentFile: this.currentFile, percent: r3 ? (t3 + 100 * (r3 - n3 - 1)) / r3 : 100 } }));
@@ -24282,8 +24467,7 @@ var require_exceljs_min = __commonJS({
                     return e3;
                   };
                 }
-                __name(n2, "n2");
-                __name2(n2, "n");
+                __name(n2, "n");
                 (n2.prototype = e2("./object")).loadAsync = e2("./load"), n2.support = e2("./support"), n2.defaults = e2("./defaults"), n2.version = "3.10.1", n2.loadAsync = function(e3, t3) {
                   return new n2().loadAsync(e3, t3);
                 }, n2.external = e2("./external"), t2.exports = n2;
@@ -24299,8 +24483,7 @@ var require_exceljs_min = __commonJS({
                     })).resume();
                   }));
                 }
-                __name(c2, "c2");
-                __name2(c2, "c");
+                __name(c2, "c");
                 t2.exports = function(e3, t3) {
                   var r3 = this;
                   return t3 = n2.extend(t3 || {}, { base64: false, checkCRC32: false, optimizedBinaryString: false, createFolders: false, decodeFileName: s2.utf8decode }), l2.isNode && l2.isStream(e3) ? i2.Promise.reject(new Error("JSZip can't accept a stream when loading a zip file.")) : n2.prepareContent("the loaded zip file", e3, true, t3.optimizedBinaryString, t3.base64).then((function(e4) {
@@ -24323,8 +24506,7 @@ var require_exceljs_min = __commonJS({
                 function s2(e3, t3) {
                   i2.call(this, "Nodejs stream input adapter for " + e3), this._upstreamEnded = false, this._bindStream(t3);
                 }
-                __name(s2, "s2");
-                __name2(s2, "s");
+                __name(s2, "s");
                 n2.inherits(s2, i2), s2.prototype._bindStream = function(e3) {
                   var t3 = this;
                   (this._stream = e3).pause(), e3.on("data", (function(e4) {
@@ -24352,23 +24534,22 @@ var require_exceljs_min = __commonJS({
                     i3.push(null);
                   }));
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 e2("../utils").inherits(i2, n2), i2.prototype._read = function() {
                   this._helper.resume();
                 }, t2.exports = i2;
               }, { "../utils": 32, "readable-stream": 16 }], 14: [function(e2, t2, r2) {
-                t2.exports = { isNode: void 0 !== s, newBufferFrom: /* @__PURE__ */ __name2(function(e3, t3) {
+                t2.exports = { isNode: void 0 !== s, newBufferFrom: /* @__PURE__ */ __name(function(e3, t3) {
                   if (s.from && s.from !== Uint8Array.from) return s.from(e3, t3);
                   if ("number" == typeof e3) throw new Error('The "data" argument must not be a number');
                   return new s(e3, t3);
-                }, "newBufferFrom"), allocBuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "newBufferFrom"), allocBuffer: /* @__PURE__ */ __name(function(e3) {
                   if (s.alloc) return s.alloc(e3);
                   var t3 = new s(e3);
                   return t3.fill(0), t3;
-                }, "allocBuffer"), isBuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "allocBuffer"), isBuffer: /* @__PURE__ */ __name(function(e3) {
                   return s.isBuffer(e3);
-                }, "isBuffer"), isStream: /* @__PURE__ */ __name2(function(e3) {
+                }, "isBuffer"), isStream: /* @__PURE__ */ __name(function(e3) {
                   return e3 && "function" == typeof e3.on && "function" == typeof e3.pause && "function" == typeof e3.resume;
                 }, "isStream") };
               }, {}], 15: [function(e2, t2, r2) {
@@ -24382,33 +24563,31 @@ var require_exceljs_min = __commonJS({
                   var y2 = new u2(e3, g2, a3);
                   this.files[e3] = y2;
                 }
-                __name(n2, "n2");
-                __name2(n2, "n");
-                var i2 = e2("./utf8"), s2 = e2("./utils"), o2 = e2("./stream/GenericWorker"), a2 = e2("./stream/StreamHelper"), l2 = e2("./defaults"), c2 = e2("./compressedObject"), u2 = e2("./zipObject"), h = e2("./generate"), f = e2("./nodejsUtils"), d = e2("./nodejs/NodejsStreamInputAdapter"), p = /* @__PURE__ */ __name2(function(e3) {
+                __name(n2, "n");
+                var i2 = e2("./utf8"), s2 = e2("./utils"), o2 = e2("./stream/GenericWorker"), a2 = e2("./stream/StreamHelper"), l2 = e2("./defaults"), c2 = e2("./compressedObject"), u2 = e2("./zipObject"), h = e2("./generate"), f = e2("./nodejsUtils"), d = e2("./nodejs/NodejsStreamInputAdapter"), p = /* @__PURE__ */ __name(function(e3) {
                   "/" === e3.slice(-1) && (e3 = e3.substring(0, e3.length - 1));
                   var t3 = e3.lastIndexOf("/");
                   return 0 < t3 ? e3.substring(0, t3) : "";
-                }, "p"), m = /* @__PURE__ */ __name2(function(e3) {
+                }, "p"), m = /* @__PURE__ */ __name(function(e3) {
                   return "/" !== e3.slice(-1) && (e3 += "/"), e3;
-                }, "m"), b = /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "m"), b = /* @__PURE__ */ __name(function(e3, t3) {
                   return t3 = void 0 !== t3 ? t3 : l2.createFolders, e3 = m(e3), this.files[e3] || n2.call(this, e3, null, { dir: true, createFolders: t3 }), this.files[e3];
                 }, "b");
                 function g(e3) {
                   return "[object RegExp]" === Object.prototype.toString.call(e3);
                 }
                 __name(g, "g");
-                __name2(g, "g");
-                var y = { load: /* @__PURE__ */ __name2(function() {
+                var y = { load: /* @__PURE__ */ __name(function() {
                   throw new Error("This method has been removed in JSZip 3.0, please check the upgrade guide.");
-                }, "load"), forEach: /* @__PURE__ */ __name2(function(e3) {
+                }, "load"), forEach: /* @__PURE__ */ __name(function(e3) {
                   var t3, r3, n3;
                   for (t3 in this.files) n3 = this.files[t3], (r3 = t3.slice(this.root.length, t3.length)) && t3.slice(0, this.root.length) === this.root && e3(r3, n3);
-                }, "forEach"), filter: /* @__PURE__ */ __name2(function(e3) {
+                }, "forEach"), filter: /* @__PURE__ */ __name(function(e3) {
                   var t3 = [];
                   return this.forEach((function(r3, n3) {
                     e3(r3, n3) && t3.push(n3);
                   })), t3;
-                }, "filter"), file: /* @__PURE__ */ __name2(function(e3, t3, r3) {
+                }, "filter"), file: /* @__PURE__ */ __name(function(e3, t3, r3) {
                   if (1 !== arguments.length) return e3 = this.root + e3, n2.call(this, e3, t3, r3), this;
                   if (g(e3)) {
                     var i3 = e3;
@@ -24418,14 +24597,14 @@ var require_exceljs_min = __commonJS({
                   }
                   var s3 = this.files[this.root + e3];
                   return s3 && !s3.dir ? s3 : null;
-                }, "file"), folder: /* @__PURE__ */ __name2(function(e3) {
+                }, "file"), folder: /* @__PURE__ */ __name(function(e3) {
                   if (!e3) return this;
                   if (g(e3)) return this.filter((function(t4, r4) {
                     return r4.dir && e3.test(t4);
                   }));
                   var t3 = this.root + e3, r3 = b.call(this, t3), n3 = this.clone();
                   return n3.root = r3.name, n3;
-                }, "folder"), remove: /* @__PURE__ */ __name2(function(e3) {
+                }, "folder"), remove: /* @__PURE__ */ __name(function(e3) {
                   e3 = this.root + e3;
                   var t3 = this.files[e3];
                   if (t3 || ("/" !== e3.slice(-1) && (e3 += "/"), t3 = this.files[e3]), t3 && !t3.dir) delete this.files[e3];
@@ -24433,9 +24612,9 @@ var require_exceljs_min = __commonJS({
                     return r4.name.slice(0, e3.length) === e3;
                   })), n3 = 0; n3 < r3.length; n3++) delete this.files[r3[n3].name];
                   return this;
-                }, "remove"), generate: /* @__PURE__ */ __name2(function() {
+                }, "remove"), generate: /* @__PURE__ */ __name(function() {
                   throw new Error("This method has been removed in JSZip 3.0, please check the upgrade guide.");
-                }, "generate"), generateInternalStream: /* @__PURE__ */ __name2(function(e3) {
+                }, "generate"), generateInternalStream: /* @__PURE__ */ __name(function(e3) {
                   var t3, r3 = {};
                   try {
                     if ((r3 = s2.extend(e3 || {}, { streamFiles: false, compression: "STORE", compressionOptions: null, type: "", platform: "DOS", comment: null, mimeType: "application/zip", encodeFileName: i2.utf8encode })).type = r3.type.toLowerCase(), r3.compression = r3.compression.toUpperCase(), "binarystring" === r3.type && (r3.type = "string"), !r3.type) throw new Error("No output type specified.");
@@ -24446,9 +24625,9 @@ var require_exceljs_min = __commonJS({
                     (t3 = new o2("error")).error(e4);
                   }
                   return new a2(t3, r3.type || "string", r3.mimeType);
-                }, "generateInternalStream"), generateAsync: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "generateInternalStream"), generateAsync: /* @__PURE__ */ __name(function(e3, t3) {
                   return this.generateInternalStream(e3).accumulate(t3);
-                }, "generateAsync"), generateNodeStream: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "generateAsync"), generateNodeStream: /* @__PURE__ */ __name(function(e3, t3) {
                   return (e3 = e3 || {}).type || (e3.type = "nodebuffer"), this.generateInternalStream(e3).toNodejsStream(t3);
                 }, "generateNodeStream") };
                 t2.exports = y;
@@ -24460,8 +24639,7 @@ var require_exceljs_min = __commonJS({
                   n2.call(this, e3);
                   for (var t3 = 0; t3 < this.data.length; t3++) e3[t3] = 255 & e3[t3];
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 e2("../utils").inherits(i2, n2), i2.prototype.byteAt = function(e3) {
                   return this.data[this.zero + e3];
                 }, i2.prototype.lastIndexOfSignature = function(e3) {
@@ -24480,27 +24658,26 @@ var require_exceljs_min = __commonJS({
                 function i2(e3) {
                   this.data = e3, this.length = e3.length, this.index = 0, this.zero = 0;
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
-                i2.prototype = { checkOffset: /* @__PURE__ */ __name2(function(e3) {
+                __name(i2, "i");
+                i2.prototype = { checkOffset: /* @__PURE__ */ __name(function(e3) {
                   this.checkIndex(this.index + e3);
-                }, "checkOffset"), checkIndex: /* @__PURE__ */ __name2(function(e3) {
+                }, "checkOffset"), checkIndex: /* @__PURE__ */ __name(function(e3) {
                   if (this.length < this.zero + e3 || e3 < 0) throw new Error("End of data reached (data length = " + this.length + ", asked index = " + e3 + "). Corrupted zip ?");
-                }, "checkIndex"), setIndex: /* @__PURE__ */ __name2(function(e3) {
+                }, "checkIndex"), setIndex: /* @__PURE__ */ __name(function(e3) {
                   this.checkIndex(e3), this.index = e3;
-                }, "setIndex"), skip: /* @__PURE__ */ __name2(function(e3) {
+                }, "setIndex"), skip: /* @__PURE__ */ __name(function(e3) {
                   this.setIndex(this.index + e3);
-                }, "skip"), byteAt: /* @__PURE__ */ __name2(function() {
-                }, "byteAt"), readInt: /* @__PURE__ */ __name2(function(e3) {
+                }, "skip"), byteAt: /* @__PURE__ */ __name(function() {
+                }, "byteAt"), readInt: /* @__PURE__ */ __name(function(e3) {
                   var t3, r3 = 0;
                   for (this.checkOffset(e3), t3 = this.index + e3 - 1; t3 >= this.index; t3--) r3 = (r3 << 8) + this.byteAt(t3);
                   return this.index += e3, r3;
-                }, "readInt"), readString: /* @__PURE__ */ __name2(function(e3) {
+                }, "readInt"), readString: /* @__PURE__ */ __name(function(e3) {
                   return n2.transformTo("string", this.readData(e3));
-                }, "readString"), readData: /* @__PURE__ */ __name2(function() {
-                }, "readData"), lastIndexOfSignature: /* @__PURE__ */ __name2(function() {
-                }, "lastIndexOfSignature"), readAndCheckSignature: /* @__PURE__ */ __name2(function() {
-                }, "readAndCheckSignature"), readDate: /* @__PURE__ */ __name2(function() {
+                }, "readString"), readData: /* @__PURE__ */ __name(function() {
+                }, "readData"), lastIndexOfSignature: /* @__PURE__ */ __name(function() {
+                }, "lastIndexOfSignature"), readAndCheckSignature: /* @__PURE__ */ __name(function() {
+                }, "readAndCheckSignature"), readDate: /* @__PURE__ */ __name(function() {
                   var e3 = this.readInt(4);
                   return new Date(Date.UTC(1980 + (e3 >> 25 & 127), (e3 >> 21 & 15) - 1, e3 >> 16 & 31, e3 >> 11 & 31, e3 >> 5 & 63, (31 & e3) << 1));
                 }, "readDate") }, t2.exports = i2;
@@ -24509,8 +24686,7 @@ var require_exceljs_min = __commonJS({
                 function i2(e3) {
                   n2.call(this, e3);
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 e2("../utils").inherits(i2, n2), i2.prototype.readData = function(e3) {
                   this.checkOffset(e3);
                   var t3 = this.data.slice(this.zero + this.index, this.zero + this.index + e3);
@@ -24521,8 +24697,7 @@ var require_exceljs_min = __commonJS({
                 function i2(e3) {
                   n2.call(this, e3);
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 e2("../utils").inherits(i2, n2), i2.prototype.byteAt = function(e3) {
                   return this.data.charCodeAt(this.zero + e3);
                 }, i2.prototype.lastIndexOfSignature = function(e3) {
@@ -24539,8 +24714,7 @@ var require_exceljs_min = __commonJS({
                 function i2(e3) {
                   n2.call(this, e3);
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 e2("../utils").inherits(i2, n2), i2.prototype.readData = function(e3) {
                   if (this.checkOffset(e3), 0 === e3) return new Uint8Array(0);
                   var t3 = this.data.subarray(this.zero + this.index, this.zero + this.index + e3);
@@ -24559,8 +24733,7 @@ var require_exceljs_min = __commonJS({
                 function s2(e3) {
                   n2.call(this, "ConvertWorker to " + e3), this.destType = e3;
                 }
-                __name(s2, "s2");
-                __name2(s2, "s");
+                __name(s2, "s");
                 i2.inherits(s2, n2), s2.prototype.processChunk = function(e3) {
                   this.push({ data: i2.transformTo(this.destType, e3.data), meta: e3.meta });
                 }, t2.exports = s2;
@@ -24569,8 +24742,7 @@ var require_exceljs_min = __commonJS({
                 function s2() {
                   n2.call(this, "Crc32Probe"), this.withStreamInfo("crc32", 0);
                 }
-                __name(s2, "s2");
-                __name2(s2, "s");
+                __name(s2, "s");
                 e2("../utils").inherits(s2, n2), s2.prototype.processChunk = function(e3) {
                   this.streamInfo.crc32 = i2(e3.data, this.streamInfo.crc32 || 0), this.push(e3);
                 }, t2.exports = s2;
@@ -24579,8 +24751,7 @@ var require_exceljs_min = __commonJS({
                 function s2(e3) {
                   i2.call(this, "DataLengthProbe for " + e3), this.propName = e3, this.withStreamInfo(e3, 0);
                 }
-                __name(s2, "s2");
-                __name2(s2, "s");
+                __name(s2, "s");
                 n2.inherits(s2, i2), s2.prototype.processChunk = function(e3) {
                   if (e3) {
                     var t3 = this.streamInfo[this.propName] || 0;
@@ -24599,8 +24770,7 @@ var require_exceljs_min = __commonJS({
                     t3.error(e4);
                   }));
                 }
-                __name(s2, "s2");
-                __name2(s2, "s");
+                __name(s2, "s");
                 n2.inherits(s2, i2), s2.prototype.cleanUp = function() {
                   i2.prototype.cleanUp.call(this), this.data = null;
                 }, s2.prototype.resume = function() {
@@ -24628,11 +24798,10 @@ var require_exceljs_min = __commonJS({
                 function n2(e3) {
                   this.name = e3 || "default", this.streamInfo = {}, this.generatedError = null, this.extraStreamInfo = {}, this.isPaused = true, this.isFinished = false, this.isLocked = false, this._listeners = { data: [], end: [], error: [] }, this.previous = null;
                 }
-                __name(n2, "n2");
-                __name2(n2, "n");
-                n2.prototype = { push: /* @__PURE__ */ __name2(function(e3) {
+                __name(n2, "n");
+                n2.prototype = { push: /* @__PURE__ */ __name(function(e3) {
                   this.emit("data", e3);
-                }, "push"), end: /* @__PURE__ */ __name2(function() {
+                }, "push"), end: /* @__PURE__ */ __name(function() {
                   if (this.isFinished) return false;
                   this.flush();
                   try {
@@ -24641,17 +24810,17 @@ var require_exceljs_min = __commonJS({
                     this.emit("error", e3);
                   }
                   return true;
-                }, "end"), error: /* @__PURE__ */ __name2(function(e3) {
+                }, "end"), error: /* @__PURE__ */ __name(function(e3) {
                   return !this.isFinished && (this.isPaused ? this.generatedError = e3 : (this.isFinished = true, this.emit("error", e3), this.previous && this.previous.error(e3), this.cleanUp()), true);
-                }, "error"), on: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "error"), on: /* @__PURE__ */ __name(function(e3, t3) {
                   return this._listeners[e3].push(t3), this;
-                }, "on"), cleanUp: /* @__PURE__ */ __name2(function() {
+                }, "on"), cleanUp: /* @__PURE__ */ __name(function() {
                   this.streamInfo = this.generatedError = this.extraStreamInfo = null, this._listeners = [];
-                }, "cleanUp"), emit: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "cleanUp"), emit: /* @__PURE__ */ __name(function(e3, t3) {
                   if (this._listeners[e3]) for (var r3 = 0; r3 < this._listeners[e3].length; r3++) this._listeners[e3][r3].call(this, t3);
-                }, "emit"), pipe: /* @__PURE__ */ __name2(function(e3) {
+                }, "emit"), pipe: /* @__PURE__ */ __name(function(e3) {
                   return e3.registerPrevious(this);
-                }, "pipe"), registerPrevious: /* @__PURE__ */ __name2(function(e3) {
+                }, "pipe"), registerPrevious: /* @__PURE__ */ __name(function(e3) {
                   if (this.isLocked) throw new Error("The stream '" + this + "' has already been used.");
                   this.streamInfo = e3.streamInfo, this.mergeStreamInfo(), this.previous = e3;
                   var t3 = this;
@@ -24662,23 +24831,23 @@ var require_exceljs_min = __commonJS({
                   })), e3.on("error", (function(e4) {
                     t3.error(e4);
                   })), this;
-                }, "registerPrevious"), pause: /* @__PURE__ */ __name2(function() {
+                }, "registerPrevious"), pause: /* @__PURE__ */ __name(function() {
                   return !this.isPaused && !this.isFinished && (this.isPaused = true, this.previous && this.previous.pause(), true);
-                }, "pause"), resume: /* @__PURE__ */ __name2(function() {
+                }, "pause"), resume: /* @__PURE__ */ __name(function() {
                   if (!this.isPaused || this.isFinished) return false;
                   var e3 = this.isPaused = false;
                   return this.generatedError && (this.error(this.generatedError), e3 = true), this.previous && this.previous.resume(), !e3;
-                }, "resume"), flush: /* @__PURE__ */ __name2(function() {
-                }, "flush"), processChunk: /* @__PURE__ */ __name2(function(e3) {
+                }, "resume"), flush: /* @__PURE__ */ __name(function() {
+                }, "flush"), processChunk: /* @__PURE__ */ __name(function(e3) {
                   this.push(e3);
-                }, "processChunk"), withStreamInfo: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "processChunk"), withStreamInfo: /* @__PURE__ */ __name(function(e3, t3) {
                   return this.extraStreamInfo[e3] = t3, this.mergeStreamInfo(), this;
-                }, "withStreamInfo"), mergeStreamInfo: /* @__PURE__ */ __name2(function() {
+                }, "withStreamInfo"), mergeStreamInfo: /* @__PURE__ */ __name(function() {
                   for (var e3 in this.extraStreamInfo) Object.prototype.hasOwnProperty.call(this.extraStreamInfo, e3) && (this.streamInfo[e3] = this.extraStreamInfo[e3]);
-                }, "mergeStreamInfo"), lock: /* @__PURE__ */ __name2(function() {
+                }, "mergeStreamInfo"), lock: /* @__PURE__ */ __name(function() {
                   if (this.isLocked) throw new Error("The stream '" + this + "' has already been used.");
                   this.isLocked = true, this.previous && this.previous.lock();
-                }, "lock"), toString: /* @__PURE__ */ __name2(function() {
+                }, "lock"), toString: /* @__PURE__ */ __name(function() {
                   var e3 = "Worker " + this.name;
                   return this.previous ? this.previous + " -> " + e3 : e3;
                 }, "toString") }, t2.exports = n2;
@@ -24705,8 +24874,7 @@ var require_exceljs_min = __commonJS({
                   }
                 }
                 __name(h, "h");
-                __name2(h, "h");
-                h.prototype = { accumulate: /* @__PURE__ */ __name2(function(e3) {
+                h.prototype = { accumulate: /* @__PURE__ */ __name(function(e3) {
                   return (function(e4, t3) {
                     return new c2.Promise((function(r3, i3) {
                       var o3 = [], l3 = e4._internalType, c3 = e4._outputType, u3 = e4._mimeType;
@@ -24750,18 +24918,18 @@ var require_exceljs_min = __commonJS({
                       })).resume();
                     }));
                   })(this, e3);
-                }, "accumulate"), on: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "accumulate"), on: /* @__PURE__ */ __name(function(e3, t3) {
                   var r3 = this;
                   return "data" === e3 ? this._worker.on(e3, (function(e4) {
                     t3.call(r3, e4.data, e4.meta);
                   })) : this._worker.on(e3, (function() {
                     n2.delay(t3, arguments, r3);
                   })), this;
-                }, "on"), resume: /* @__PURE__ */ __name2(function() {
+                }, "on"), resume: /* @__PURE__ */ __name(function() {
                   return n2.delay(this._worker.resume, [], this._worker), this;
-                }, "resume"), pause: /* @__PURE__ */ __name2(function() {
+                }, "resume"), pause: /* @__PURE__ */ __name(function() {
                   return this._worker.pause(), this;
-                }, "pause"), toNodejsStream: /* @__PURE__ */ __name2(function(e3) {
+                }, "pause"), toNodejsStream: /* @__PURE__ */ __name(function(e3) {
                   if (n2.checkSupport("nodestream"), "nodebuffer" !== this._outputType) throw new Error(this._outputType + " is not supported by this method");
                   return new u2(this, { objectMode: "nodebuffer" !== this._outputType }, e3);
                 }, "toNodejsStream") }, t2.exports = h;
@@ -24790,13 +24958,11 @@ var require_exceljs_min = __commonJS({
                 function c2() {
                   o2.call(this, "utf-8 decode"), this.leftOver = null;
                 }
-                __name(c2, "c2");
-                __name2(c2, "c");
+                __name(c2, "c");
                 function u2() {
                   o2.call(this, "utf-8 encode");
                 }
-                __name(u2, "u2");
-                __name2(u2, "u");
+                __name(u2, "u");
                 a2[254] = a2[254] = 1, r2.utf8encode = function(e3) {
                   return i2.nodebuffer ? s2.newBufferFrom(e3, "utf-8") : (function(e4) {
                     var t3, r3, n3, s3, o3, a3 = e4.length, l3 = 0;
@@ -24840,14 +25006,12 @@ var require_exceljs_min = __commonJS({
                 function a2(e3) {
                   return e3;
                 }
-                __name(a2, "a2");
-                __name2(a2, "a");
+                __name(a2, "a");
                 function l2(e3, t3) {
                   for (var r3 = 0; r3 < e3.length; ++r3) t3[r3] = 255 & e3.charCodeAt(r3);
                   return t3;
                 }
-                __name(l2, "l2");
-                __name2(l2, "l");
+                __name(l2, "l");
                 e2("setimmediate"), r2.newBlob = function(e3, t3) {
                   r2.checkSupport("blob");
                   try {
@@ -24861,12 +25025,12 @@ var require_exceljs_min = __commonJS({
                     }
                   }
                 };
-                var c2 = { stringifyByChunk: /* @__PURE__ */ __name2(function(e3, t3, r3) {
+                var c2 = { stringifyByChunk: /* @__PURE__ */ __name(function(e3, t3, r3) {
                   var n3 = [], i3 = 0, s3 = e3.length;
                   if (s3 <= r3) return String.fromCharCode.apply(null, e3);
                   for (; i3 < s3; ) "array" === t3 || "nodebuffer" === t3 ? n3.push(String.fromCharCode.apply(null, e3.slice(i3, Math.min(i3 + r3, s3)))) : n3.push(String.fromCharCode.apply(null, e3.subarray(i3, Math.min(i3 + r3, s3)))), i3 += r3;
                   return n3.join("");
-                }, "stringifyByChunk"), stringifyByChar: /* @__PURE__ */ __name2(function(e3) {
+                }, "stringifyByChunk"), stringifyByChar: /* @__PURE__ */ __name(function(e3) {
                   for (var t3 = "", r3 = 0; r3 < e3.length; r3++) t3 += String.fromCharCode(e3[r3]);
                   return t3;
                 }, "stringifyByChar"), applyCanBeUsed: { uint8array: (function() {
@@ -24892,48 +25056,46 @@ var require_exceljs_min = __commonJS({
                   return c2.stringifyByChar(e3);
                 }
                 __name(h, "h");
-                __name2(h, "h");
                 function f(e3, t3) {
                   for (var r3 = 0; r3 < e3.length; r3++) t3[r3] = e3[r3];
                   return t3;
                 }
                 __name(f, "f");
-                __name2(f, "f");
                 r2.applyFromCharCode = h;
                 var d = {};
-                d.string = { string: a2, array: /* @__PURE__ */ __name2(function(e3) {
+                d.string = { string: a2, array: /* @__PURE__ */ __name(function(e3) {
                   return l2(e3, new Array(e3.length));
-                }, "array"), arraybuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "array"), arraybuffer: /* @__PURE__ */ __name(function(e3) {
                   return d.string.uint8array(e3).buffer;
-                }, "arraybuffer"), uint8array: /* @__PURE__ */ __name2(function(e3) {
+                }, "arraybuffer"), uint8array: /* @__PURE__ */ __name(function(e3) {
                   return l2(e3, new Uint8Array(e3.length));
-                }, "uint8array"), nodebuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "uint8array"), nodebuffer: /* @__PURE__ */ __name(function(e3) {
                   return l2(e3, s2.allocBuffer(e3.length));
-                }, "nodebuffer") }, d.array = { string: h, array: a2, arraybuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "nodebuffer") }, d.array = { string: h, array: a2, arraybuffer: /* @__PURE__ */ __name(function(e3) {
                   return new Uint8Array(e3).buffer;
-                }, "arraybuffer"), uint8array: /* @__PURE__ */ __name2(function(e3) {
+                }, "arraybuffer"), uint8array: /* @__PURE__ */ __name(function(e3) {
                   return new Uint8Array(e3);
-                }, "uint8array"), nodebuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "uint8array"), nodebuffer: /* @__PURE__ */ __name(function(e3) {
                   return s2.newBufferFrom(e3);
-                }, "nodebuffer") }, d.arraybuffer = { string: /* @__PURE__ */ __name2(function(e3) {
+                }, "nodebuffer") }, d.arraybuffer = { string: /* @__PURE__ */ __name(function(e3) {
                   return h(new Uint8Array(e3));
-                }, "string"), array: /* @__PURE__ */ __name2(function(e3) {
+                }, "string"), array: /* @__PURE__ */ __name(function(e3) {
                   return f(new Uint8Array(e3), new Array(e3.byteLength));
-                }, "array"), arraybuffer: a2, uint8array: /* @__PURE__ */ __name2(function(e3) {
+                }, "array"), arraybuffer: a2, uint8array: /* @__PURE__ */ __name(function(e3) {
                   return new Uint8Array(e3);
-                }, "uint8array"), nodebuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "uint8array"), nodebuffer: /* @__PURE__ */ __name(function(e3) {
                   return s2.newBufferFrom(new Uint8Array(e3));
-                }, "nodebuffer") }, d.uint8array = { string: h, array: /* @__PURE__ */ __name2(function(e3) {
+                }, "nodebuffer") }, d.uint8array = { string: h, array: /* @__PURE__ */ __name(function(e3) {
                   return f(e3, new Array(e3.length));
-                }, "array"), arraybuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "array"), arraybuffer: /* @__PURE__ */ __name(function(e3) {
                   return e3.buffer;
-                }, "arraybuffer"), uint8array: a2, nodebuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "arraybuffer"), uint8array: a2, nodebuffer: /* @__PURE__ */ __name(function(e3) {
                   return s2.newBufferFrom(e3);
-                }, "nodebuffer") }, d.nodebuffer = { string: h, array: /* @__PURE__ */ __name2(function(e3) {
+                }, "nodebuffer") }, d.nodebuffer = { string: h, array: /* @__PURE__ */ __name(function(e3) {
                   return f(e3, new Array(e3.length));
-                }, "array"), arraybuffer: /* @__PURE__ */ __name2(function(e3) {
+                }, "array"), arraybuffer: /* @__PURE__ */ __name(function(e3) {
                   return d.nodebuffer.uint8array(e3).buffer;
-                }, "arraybuffer"), uint8array: /* @__PURE__ */ __name2(function(e3) {
+                }, "arraybuffer"), uint8array: /* @__PURE__ */ __name(function(e3) {
                   return f(e3, new Uint8Array(e3.length));
                 }, "uint8array"), nodebuffer: a2 }, r2.transformTo = function(e3, t3) {
                   if (t3 = t3 || "", !e3) return t3;
@@ -24961,8 +25123,7 @@ var require_exceljs_min = __commonJS({
                 }, r2.inherits = function(e3, t3) {
                   function r3() {
                   }
-                  __name(r3, "r3");
-                  __name2(r3, "r");
+                  __name(r3, "r");
                   r3.prototype = t3.prototype, e3.prototype = new r3();
                 }, r2.extend = function() {
                   var e3, t3, r3 = {};
@@ -24990,36 +25151,35 @@ var require_exceljs_min = __commonJS({
                 function l2(e3) {
                   this.files = [], this.loadOptions = e3;
                 }
-                __name(l2, "l2");
-                __name2(l2, "l");
-                l2.prototype = { checkSignature: /* @__PURE__ */ __name2(function(e3) {
+                __name(l2, "l");
+                l2.prototype = { checkSignature: /* @__PURE__ */ __name(function(e3) {
                   if (!this.reader.readAndCheckSignature(e3)) {
                     this.reader.index -= 4;
                     var t3 = this.reader.readString(4);
                     throw new Error("Corrupted zip or bug: unexpected signature (" + i2.pretty(t3) + ", expected " + i2.pretty(e3) + ")");
                   }
-                }, "checkSignature"), isSignature: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "checkSignature"), isSignature: /* @__PURE__ */ __name(function(e3, t3) {
                   var r3 = this.reader.index;
                   this.reader.setIndex(e3);
                   var n3 = this.reader.readString(4) === t3;
                   return this.reader.setIndex(r3), n3;
-                }, "isSignature"), readBlockEndOfCentral: /* @__PURE__ */ __name2(function() {
+                }, "isSignature"), readBlockEndOfCentral: /* @__PURE__ */ __name(function() {
                   this.diskNumber = this.reader.readInt(2), this.diskWithCentralDirStart = this.reader.readInt(2), this.centralDirRecordsOnThisDisk = this.reader.readInt(2), this.centralDirRecords = this.reader.readInt(2), this.centralDirSize = this.reader.readInt(4), this.centralDirOffset = this.reader.readInt(4), this.zipCommentLength = this.reader.readInt(2);
                   var e3 = this.reader.readData(this.zipCommentLength), t3 = a2.uint8array ? "uint8array" : "array", r3 = i2.transformTo(t3, e3);
                   this.zipComment = this.loadOptions.decodeFileName(r3);
-                }, "readBlockEndOfCentral"), readBlockZip64EndOfCentral: /* @__PURE__ */ __name2(function() {
+                }, "readBlockEndOfCentral"), readBlockZip64EndOfCentral: /* @__PURE__ */ __name(function() {
                   this.zip64EndOfCentralSize = this.reader.readInt(8), this.reader.skip(4), this.diskNumber = this.reader.readInt(4), this.diskWithCentralDirStart = this.reader.readInt(4), this.centralDirRecordsOnThisDisk = this.reader.readInt(8), this.centralDirRecords = this.reader.readInt(8), this.centralDirSize = this.reader.readInt(8), this.centralDirOffset = this.reader.readInt(8), this.zip64ExtensibleData = {};
                   for (var e3, t3, r3, n3 = this.zip64EndOfCentralSize - 44; 0 < n3; ) e3 = this.reader.readInt(2), t3 = this.reader.readInt(4), r3 = this.reader.readData(t3), this.zip64ExtensibleData[e3] = { id: e3, length: t3, value: r3 };
-                }, "readBlockZip64EndOfCentral"), readBlockZip64EndOfCentralLocator: /* @__PURE__ */ __name2(function() {
+                }, "readBlockZip64EndOfCentral"), readBlockZip64EndOfCentralLocator: /* @__PURE__ */ __name(function() {
                   if (this.diskWithZip64CentralDirStart = this.reader.readInt(4), this.relativeOffsetEndOfZip64CentralDir = this.reader.readInt(8), this.disksCount = this.reader.readInt(4), 1 < this.disksCount) throw new Error("Multi-volumes zip are not supported");
-                }, "readBlockZip64EndOfCentralLocator"), readLocalFiles: /* @__PURE__ */ __name2(function() {
+                }, "readBlockZip64EndOfCentralLocator"), readLocalFiles: /* @__PURE__ */ __name(function() {
                   var e3, t3;
                   for (e3 = 0; e3 < this.files.length; e3++) t3 = this.files[e3], this.reader.setIndex(t3.localHeaderOffset), this.checkSignature(s2.LOCAL_FILE_HEADER), t3.readLocalPart(this.reader), t3.handleUTF8(), t3.processAttributes();
-                }, "readLocalFiles"), readCentralDir: /* @__PURE__ */ __name2(function() {
+                }, "readLocalFiles"), readCentralDir: /* @__PURE__ */ __name(function() {
                   var e3;
                   for (this.reader.setIndex(this.centralDirOffset); this.reader.readAndCheckSignature(s2.CENTRAL_FILE_HEADER); ) (e3 = new o2({ zip64: this.zip64 }, this.loadOptions)).readCentralPart(this.reader), this.files.push(e3);
                   if (this.centralDirRecords !== this.files.length && 0 !== this.centralDirRecords && 0 === this.files.length) throw new Error("Corrupted zip or bug: expected " + this.centralDirRecords + " records in central dir, got " + this.files.length);
-                }, "readCentralDir"), readEndOfCentral: /* @__PURE__ */ __name2(function() {
+                }, "readCentralDir"), readEndOfCentral: /* @__PURE__ */ __name(function() {
                   var e3 = this.reader.lastIndexOfSignature(s2.CENTRAL_DIRECTORY_END);
                   if (e3 < 0) throw this.isSignature(0, s2.LOCAL_FILE_HEADER) ? new Error("Corrupted zip: can't find end of central directory") : new Error("Can't find end of central directory : is this a zip file ? If it is, see https://stuk.github.io/jszip/documentation/howto/read_zip.html");
                   this.reader.setIndex(e3);
@@ -25034,9 +25194,9 @@ var require_exceljs_min = __commonJS({
                   var n3 = t3 - r3;
                   if (0 < n3) this.isSignature(t3, s2.CENTRAL_FILE_HEADER) || (this.reader.zero = n3);
                   else if (n3 < 0) throw new Error("Corrupted zip: missing " + Math.abs(n3) + " bytes.");
-                }, "readEndOfCentral"), prepareReader: /* @__PURE__ */ __name2(function(e3) {
+                }, "readEndOfCentral"), prepareReader: /* @__PURE__ */ __name(function(e3) {
                   this.reader = n2(e3);
-                }, "prepareReader"), load: /* @__PURE__ */ __name2(function(e3) {
+                }, "prepareReader"), load: /* @__PURE__ */ __name(function(e3) {
                   this.prepareReader(e3), this.readEndOfCentral(), this.readCentralDir(), this.readLocalFiles();
                 }, "load") }, t2.exports = l2;
               }, { "./reader/readerFor": 22, "./signature": 23, "./support": 30, "./utils": 32, "./zipEntry": 34 }], 34: [function(e2, t2, r2) {
@@ -25044,13 +25204,12 @@ var require_exceljs_min = __commonJS({
                 function u2(e3, t3) {
                   this.options = e3, this.loadOptions = t3;
                 }
-                __name(u2, "u2");
-                __name2(u2, "u");
-                u2.prototype = { isEncrypted: /* @__PURE__ */ __name2(function() {
+                __name(u2, "u");
+                u2.prototype = { isEncrypted: /* @__PURE__ */ __name(function() {
                   return 1 == (1 & this.bitFlag);
-                }, "isEncrypted"), useUTF8: /* @__PURE__ */ __name2(function() {
+                }, "isEncrypted"), useUTF8: /* @__PURE__ */ __name(function() {
                   return 2048 == (2048 & this.bitFlag);
-                }, "useUTF8"), readLocalPart: /* @__PURE__ */ __name2(function(e3) {
+                }, "useUTF8"), readLocalPart: /* @__PURE__ */ __name(function(e3) {
                   var t3, r3;
                   if (e3.skip(22), this.fileNameLength = e3.readInt(2), r3 = e3.readInt(2), this.fileName = e3.readData(this.fileNameLength), e3.skip(r3), -1 === this.compressedSize || -1 === this.uncompressedSize) throw new Error("Bug or corrupted zip : didn't get enough information from the central directory (compressedSize === -1 || uncompressedSize === -1)");
                   if (null === (t3 = (function(e4) {
@@ -25058,25 +25217,25 @@ var require_exceljs_min = __commonJS({
                     return null;
                   })(this.compressionMethod))) throw new Error("Corrupted zip : compression " + i2.pretty(this.compressionMethod) + " unknown (inner file : " + i2.transformTo("string", this.fileName) + ")");
                   this.decompressed = new s2(this.compressedSize, this.uncompressedSize, this.crc32, t3, e3.readData(this.compressedSize));
-                }, "readLocalPart"), readCentralPart: /* @__PURE__ */ __name2(function(e3) {
+                }, "readLocalPart"), readCentralPart: /* @__PURE__ */ __name(function(e3) {
                   this.versionMadeBy = e3.readInt(2), e3.skip(2), this.bitFlag = e3.readInt(2), this.compressionMethod = e3.readString(2), this.date = e3.readDate(), this.crc32 = e3.readInt(4), this.compressedSize = e3.readInt(4), this.uncompressedSize = e3.readInt(4);
                   var t3 = e3.readInt(2);
                   if (this.extraFieldsLength = e3.readInt(2), this.fileCommentLength = e3.readInt(2), this.diskNumberStart = e3.readInt(2), this.internalFileAttributes = e3.readInt(2), this.externalFileAttributes = e3.readInt(4), this.localHeaderOffset = e3.readInt(4), this.isEncrypted()) throw new Error("Encrypted zip are not supported");
                   e3.skip(t3), this.readExtraFields(e3), this.parseZIP64ExtraField(e3), this.fileComment = e3.readData(this.fileCommentLength);
-                }, "readCentralPart"), processAttributes: /* @__PURE__ */ __name2(function() {
+                }, "readCentralPart"), processAttributes: /* @__PURE__ */ __name(function() {
                   this.unixPermissions = null, this.dosPermissions = null;
                   var e3 = this.versionMadeBy >> 8;
                   this.dir = !!(16 & this.externalFileAttributes), 0 == e3 && (this.dosPermissions = 63 & this.externalFileAttributes), 3 == e3 && (this.unixPermissions = this.externalFileAttributes >> 16 & 65535), this.dir || "/" !== this.fileNameStr.slice(-1) || (this.dir = true);
-                }, "processAttributes"), parseZIP64ExtraField: /* @__PURE__ */ __name2(function() {
+                }, "processAttributes"), parseZIP64ExtraField: /* @__PURE__ */ __name(function() {
                   if (this.extraFields[1]) {
                     var e3 = n2(this.extraFields[1].value);
                     this.uncompressedSize === i2.MAX_VALUE_32BITS && (this.uncompressedSize = e3.readInt(8)), this.compressedSize === i2.MAX_VALUE_32BITS && (this.compressedSize = e3.readInt(8)), this.localHeaderOffset === i2.MAX_VALUE_32BITS && (this.localHeaderOffset = e3.readInt(8)), this.diskNumberStart === i2.MAX_VALUE_32BITS && (this.diskNumberStart = e3.readInt(4));
                   }
-                }, "parseZIP64ExtraField"), readExtraFields: /* @__PURE__ */ __name2(function(e3) {
+                }, "parseZIP64ExtraField"), readExtraFields: /* @__PURE__ */ __name(function(e3) {
                   var t3, r3, n3, i3 = e3.index + this.extraFieldsLength;
                   for (this.extraFields || (this.extraFields = {}); e3.index + 4 < i3; ) t3 = e3.readInt(2), r3 = e3.readInt(2), n3 = e3.readData(r3), this.extraFields[t3] = { id: t3, length: r3, value: n3 };
                   e3.setIndex(i3);
-                }, "readExtraFields"), handleUTF8: /* @__PURE__ */ __name2(function() {
+                }, "readExtraFields"), handleUTF8: /* @__PURE__ */ __name(function() {
                   var e3 = c2.uint8array ? "uint8array" : "array";
                   if (this.useUTF8()) this.fileNameStr = a2.utf8decode(this.fileName), this.fileCommentStr = a2.utf8decode(this.fileComment);
                   else {
@@ -25093,14 +25252,14 @@ var require_exceljs_min = __commonJS({
                       this.fileCommentStr = this.loadOptions.decodeFileName(s3);
                     }
                   }
-                }, "handleUTF8"), findExtraFieldUnicodePath: /* @__PURE__ */ __name2(function() {
+                }, "handleUTF8"), findExtraFieldUnicodePath: /* @__PURE__ */ __name(function() {
                   var e3 = this.extraFields[28789];
                   if (e3) {
                     var t3 = n2(e3.value);
                     return 1 !== t3.readInt(1) || o2(this.fileName) !== t3.readInt(4) ? null : a2.utf8decode(t3.readData(e3.length - 5));
                   }
                   return null;
-                }, "findExtraFieldUnicodePath"), findExtraFieldUnicodeComment: /* @__PURE__ */ __name2(function() {
+                }, "findExtraFieldUnicodePath"), findExtraFieldUnicodeComment: /* @__PURE__ */ __name(function() {
                   var e3 = this.extraFields[25461];
                   if (e3) {
                     var t3 = n2(e3.value);
@@ -25112,10 +25271,9 @@ var require_exceljs_min = __commonJS({
                 function n2(e3, t3, r3) {
                   this.name = e3, this.dir = r3.dir, this.date = r3.date, this.comment = r3.comment, this.unixPermissions = r3.unixPermissions, this.dosPermissions = r3.dosPermissions, this._data = t3, this._dataBinary = r3.binary, this.options = { compression: r3.compression, compressionOptions: r3.compressionOptions };
                 }
-                __name(n2, "n2");
-                __name2(n2, "n");
+                __name(n2, "n");
                 var i2 = e2("./stream/StreamHelper"), s2 = e2("./stream/DataWorker"), o2 = e2("./utf8"), a2 = e2("./compressedObject"), l2 = e2("./stream/GenericWorker");
-                n2.prototype = { internalStream: /* @__PURE__ */ __name2(function(e3) {
+                n2.prototype = { internalStream: /* @__PURE__ */ __name(function(e3) {
                   var t3 = null, r3 = "string";
                   try {
                     if (!e3) throw new Error("No output type specified.");
@@ -25127,15 +25285,15 @@ var require_exceljs_min = __commonJS({
                     (t3 = new l2("error")).error(e4);
                   }
                   return new i2(t3, r3, "");
-                }, "internalStream"), async: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "internalStream"), async: /* @__PURE__ */ __name(function(e3, t3) {
                   return this.internalStream(e3).accumulate(t3);
-                }, "async"), nodeStream: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "async"), nodeStream: /* @__PURE__ */ __name(function(e3, t3) {
                   return this.internalStream(e3 || "nodebuffer").toNodejsStream(t3);
-                }, "nodeStream"), _compressWorker: /* @__PURE__ */ __name2(function(e3, t3) {
+                }, "nodeStream"), _compressWorker: /* @__PURE__ */ __name(function(e3, t3) {
                   if (this._data instanceof a2 && this._data.compression.magic === e3.magic) return this._data.getCompressedWorker();
                   var r3 = this._decompressWorker();
                   return this._dataBinary || (r3 = r3.pipe(new o2.Utf8EncodeWorker())), a2.createWorkerFrom(r3, e3, t3);
-                }, "_compressWorker"), _decompressWorker: /* @__PURE__ */ __name2(function() {
+                }, "_compressWorker"), _decompressWorker: /* @__PURE__ */ __name(function() {
                   return this._data instanceof a2 ? this._data.getContentWorker() : this._data instanceof l2 ? this._data : new s2(this._data);
                 }, "_decompressWorker") };
                 for (var c2 = ["asText", "asBinary", "asNodeBuffer", "asUint8Array", "asArrayBuffer"], u2 = function() {
@@ -25147,7 +25305,7 @@ var require_exceljs_min = __commonJS({
                   var r3, n2, i2 = e3.MutationObserver || e3.WebKitMutationObserver;
                   if (i2) {
                     var s2 = 0, o2 = new i2(u2), a2 = e3.document.createTextNode("");
-                    o2.observe(a2, { characterData: true }), r3 = /* @__PURE__ */ __name2(function() {
+                    o2.observe(a2, { characterData: true }), r3 = /* @__PURE__ */ __name(function() {
                       a2.data = s2 = ++s2 % 2;
                     }, "r");
                   } else if (e3.setImmediate || void 0 === e3.MessageChannel) r3 = "document" in e3 && "onreadystatechange" in e3.document.createElement("script") ? function() {
@@ -25160,7 +25318,7 @@ var require_exceljs_min = __commonJS({
                   };
                   else {
                     var l2 = new e3.MessageChannel();
-                    l2.port1.onmessage = u2, r3 = /* @__PURE__ */ __name2(function() {
+                    l2.port1.onmessage = u2, r3 = /* @__PURE__ */ __name(function() {
                       l2.port2.postMessage(0);
                     }, "r");
                   }
@@ -25174,8 +25332,7 @@ var require_exceljs_min = __commonJS({
                     }
                     n2 = false;
                   }
-                  __name(u2, "u2");
-                  __name2(u2, "u");
+                  __name(u2, "u");
                   t2.exports = function(e4) {
                     1 !== c2.push(e4) || n2 || r3();
                   };
@@ -25184,20 +25341,17 @@ var require_exceljs_min = __commonJS({
                 var n2 = e2("immediate");
                 function i2() {
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 var s2 = {}, o2 = ["REJECTED"], a2 = ["FULFILLED"], l2 = ["PENDING"];
                 function c2(e3) {
                   if ("function" != typeof e3) throw new TypeError("resolver must be a function");
                   this.state = l2, this.queue = [], this.outcome = void 0, e3 !== i2 && d(this, e3);
                 }
-                __name(c2, "c2");
-                __name2(c2, "c");
+                __name(c2, "c");
                 function u2(e3, t3, r3) {
                   this.promise = e3, "function" == typeof t3 && (this.onFulfilled = t3, this.callFulfilled = this.otherCallFulfilled), "function" == typeof r3 && (this.onRejected = r3, this.callRejected = this.otherCallRejected);
                 }
-                __name(u2, "u2");
-                __name2(u2, "u");
+                __name(u2, "u");
                 function h(e3, t3, r3) {
                   n2((function() {
                     var n3;
@@ -25210,7 +25364,6 @@ var require_exceljs_min = __commonJS({
                   }));
                 }
                 __name(h, "h");
-                __name2(h, "h");
                 function f(e3) {
                   var t3 = e3 && e3.then;
                   if (e3 && ("object" == typeof e3 || "function" == typeof e3) && "function" == typeof t3) return function() {
@@ -25218,26 +25371,22 @@ var require_exceljs_min = __commonJS({
                   };
                 }
                 __name(f, "f");
-                __name2(f, "f");
                 function d(e3, t3) {
                   var r3 = false;
                   function n3(t4) {
                     r3 || (r3 = true, s2.reject(e3, t4));
                   }
-                  __name(n3, "n3");
-                  __name2(n3, "n");
+                  __name(n3, "n");
                   function i3(t4) {
                     r3 || (r3 = true, s2.resolve(e3, t4));
                   }
-                  __name(i3, "i3");
-                  __name2(i3, "i");
+                  __name(i3, "i");
                   var o3 = p((function() {
                     t3(i3, n3);
                   }));
                   "error" === o3.status && n3(o3.value);
                 }
                 __name(d, "d");
-                __name2(d, "d");
                 function p(e3, t3) {
                   var r3 = {};
                   try {
@@ -25248,7 +25397,6 @@ var require_exceljs_min = __commonJS({
                   return r3;
                 }
                 __name(p, "p");
-                __name2(p, "p");
                 (t2.exports = c2).prototype.finally = function(e3) {
                   if ("function" != typeof e3) return this;
                   var t3 = this.constructor;
@@ -25308,8 +25456,7 @@ var require_exceljs_min = __commonJS({
                       n3 || (n3 = true, s2.reject(c3, e5));
                     }));
                   }
-                  __name(u3, "u3");
-                  __name2(u3, "u");
+                  __name(u3, "u");
                 }, c2.race = function(e3) {
                   if ("[object Array]" !== Object.prototype.toString.call(e3)) return this.reject(new TypeError("must be an array"));
                   var t3 = e3.length, r3 = false;
@@ -25339,15 +25486,13 @@ var require_exceljs_min = __commonJS({
                     this._dict_set = true;
                   }
                 }
-                __name(c2, "c2");
-                __name2(c2, "c");
+                __name(c2, "c");
                 function u2(e3, t3) {
                   var r3 = new c2(t3);
                   if (r3.push(e3, true), r3.err) throw r3.msg || o2[r3.err];
                   return r3.result;
                 }
-                __name(u2, "u2");
-                __name2(u2, "u");
+                __name(u2, "u");
                 c2.prototype.push = function(e3, t3) {
                   var r3, o3, a3 = this.strm, c3 = this.options.chunkSize;
                   if (this.ended) return false;
@@ -25378,14 +25523,12 @@ var require_exceljs_min = __commonJS({
                   this.header = new c2(), n2.inflateGetHeader(this.strm, this.header);
                 }
                 __name(h, "h");
-                __name2(h, "h");
                 function f(e3, t3) {
                   var r3 = new h(t3);
                   if (r3.push(e3, true), r3.err) throw r3.msg || a2[r3.err];
                   return r3.result;
                 }
                 __name(f, "f");
-                __name2(f, "f");
                 h.prototype.push = function(e3, t3) {
                   var r3, a3, l3, c3, h2, f2, d = this.strm, p = this.options.chunkSize, m = this.options.dictionary, b = false;
                   if (this.ended) return false;
@@ -25416,17 +25559,17 @@ var require_exceljs_min = __commonJS({
                 }, r2.shrinkBuf = function(e3, t3) {
                   return e3.length === t3 ? e3 : e3.subarray ? e3.subarray(0, t3) : (e3.length = t3, e3);
                 };
-                var i2 = { arraySet: /* @__PURE__ */ __name2(function(e3, t3, r3, n3, i3) {
+                var i2 = { arraySet: /* @__PURE__ */ __name(function(e3, t3, r3, n3, i3) {
                   if (t3.subarray && e3.subarray) e3.set(t3.subarray(r3, r3 + n3), i3);
                   else for (var s3 = 0; s3 < n3; s3++) e3[i3 + s3] = t3[r3 + s3];
-                }, "arraySet"), flattenChunks: /* @__PURE__ */ __name2(function(e3) {
+                }, "arraySet"), flattenChunks: /* @__PURE__ */ __name(function(e3) {
                   var t3, r3, n3, i3, s3, o2;
                   for (t3 = n3 = 0, r3 = e3.length; t3 < r3; t3++) n3 += e3[t3].length;
                   for (o2 = new Uint8Array(n3), t3 = i3 = 0, r3 = e3.length; t3 < r3; t3++) s3 = e3[t3], o2.set(s3, i3), i3 += s3.length;
                   return o2;
-                }, "flattenChunks") }, s2 = { arraySet: /* @__PURE__ */ __name2(function(e3, t3, r3, n3, i3) {
+                }, "flattenChunks") }, s2 = { arraySet: /* @__PURE__ */ __name(function(e3, t3, r3, n3, i3) {
                   for (var s3 = 0; s3 < n3; s3++) e3[i3 + s3] = t3[r3 + s3];
-                }, "arraySet"), flattenChunks: /* @__PURE__ */ __name2(function(e3) {
+                }, "arraySet"), flattenChunks: /* @__PURE__ */ __name(function(e3) {
                   return [].concat.apply([], e3);
                 }, "flattenChunks") };
                 r2.setTyped = function(e3) {
@@ -25450,8 +25593,7 @@ var require_exceljs_min = __commonJS({
                   for (var r3 = "", o3 = 0; o3 < t3; o3++) r3 += String.fromCharCode(e3[o3]);
                   return r3;
                 }
-                __name(l2, "l2");
-                __name2(l2, "l");
+                __name(l2, "l");
                 o2[254] = o2[254] = 1, r2.string2buf = function(e3) {
                   var t3, r3, i3, s3, o3, a3 = e3.length, l3 = 0;
                   for (s3 = 0; s3 < a3; s3++) 55296 == (64512 & (r3 = e3.charCodeAt(s3))) && s3 + 1 < a3 && 56320 == (64512 & (i3 = e3.charCodeAt(s3 + 1))) && (r3 = 65536 + (r3 - 55296 << 10) + (i3 - 56320), s3++), l3 += r3 < 128 ? 1 : r3 < 2048 ? 2 : r3 < 65536 ? 3 : 4;
@@ -25507,38 +25649,31 @@ var require_exceljs_min = __commonJS({
                   return e3.msg = l2[t3], t3;
                 }
                 __name(d, "d");
-                __name2(d, "d");
                 function p(e3) {
                   return (e3 << 1) - (4 < e3 ? 9 : 0);
                 }
                 __name(p, "p");
-                __name2(p, "p");
                 function m(e3) {
                   for (var t3 = e3.length; 0 <= --t3; ) e3[t3] = 0;
                 }
                 __name(m, "m");
-                __name2(m, "m");
                 function b(e3) {
                   var t3 = e3.state, r3 = t3.pending;
                   r3 > e3.avail_out && (r3 = e3.avail_out), 0 !== r3 && (i2.arraySet(e3.output, t3.pending_buf, t3.pending_out, r3, e3.next_out), e3.next_out += r3, t3.pending_out += r3, e3.total_out += r3, e3.avail_out -= r3, t3.pending -= r3, 0 === t3.pending && (t3.pending_out = 0));
                 }
                 __name(b, "b");
-                __name2(b, "b");
                 function g(e3, t3) {
                   s2._tr_flush_block(e3, 0 <= e3.block_start ? e3.block_start : -1, e3.strstart - e3.block_start, t3), e3.block_start = e3.strstart, b(e3.strm);
                 }
                 __name(g, "g");
-                __name2(g, "g");
                 function y(e3, t3) {
                   e3.pending_buf[e3.pending++] = t3;
                 }
                 __name(y, "y");
-                __name2(y, "y");
                 function v(e3, t3) {
                   e3.pending_buf[e3.pending++] = t3 >>> 8 & 255, e3.pending_buf[e3.pending++] = 255 & t3;
                 }
                 __name(v, "v");
-                __name2(v, "v");
                 function w(e3, t3) {
                   var r3, n3, i3 = e3.max_chain_length, s3 = e3.strstart, o3 = e3.prev_length, a3 = e3.nice_match, l3 = e3.strstart > e3.w_size - h ? e3.strstart - (e3.w_size - h) : 0, c3 = e3.window, f2 = e3.w_mask, d2 = e3.prev, p2 = e3.strstart + u2, m2 = c3[s3 + o3 - 1], b2 = c3[s3 + o3];
                   e3.prev_length >= e3.good_match && (i3 >>= 2), a3 > e3.lookahead && (a3 = e3.lookahead);
@@ -25556,7 +25691,6 @@ var require_exceljs_min = __commonJS({
                   return o3 <= e3.lookahead ? o3 : e3.lookahead;
                 }
                 __name(w, "w");
-                __name2(w, "w");
                 function _(e3) {
                   var t3, r3, n3, s3, l3, c3, u3, f2, d2, p2, m2 = e3.w_size;
                   do {
@@ -25570,7 +25704,6 @@ var require_exceljs_min = __commonJS({
                   } while (e3.lookahead < h && 0 !== e3.strm.avail_in);
                 }
                 __name(_, "_");
-                __name2(_, "_");
                 function x(e3, t3) {
                   for (var r3, n3; ; ) {
                     if (e3.lookahead < h) {
@@ -25587,7 +25720,6 @@ var require_exceljs_min = __commonJS({
                   return e3.insert = e3.strstart < 2 ? e3.strstart : 2, 4 === t3 ? (g(e3, true), 0 === e3.strm.avail_out ? 3 : 4) : e3.last_lit && (g(e3, false), 0 === e3.strm.avail_out) ? 1 : 2;
                 }
                 __name(x, "x");
-                __name2(x, "x");
                 function k(e3, t3) {
                   for (var r3, n3, i3; ; ) {
                     if (e3.lookahead < h) {
@@ -25604,23 +25736,19 @@ var require_exceljs_min = __commonJS({
                   return e3.match_available && (n3 = s2._tr_tally(e3, 0, e3.window[e3.strstart - 1]), e3.match_available = 0), e3.insert = e3.strstart < 2 ? e3.strstart : 2, 4 === t3 ? (g(e3, true), 0 === e3.strm.avail_out ? 3 : 4) : e3.last_lit && (g(e3, false), 0 === e3.strm.avail_out) ? 1 : 2;
                 }
                 __name(k, "k");
-                __name2(k, "k");
                 function S(e3, t3, r3, n3, i3) {
                   this.good_length = e3, this.max_lazy = t3, this.nice_length = r3, this.max_chain = n3, this.func = i3;
                 }
                 __name(S, "S");
-                __name2(S, "S");
                 function M() {
                   this.strm = null, this.status = 0, this.pending_buf = null, this.pending_buf_size = 0, this.pending_out = 0, this.pending = 0, this.wrap = 0, this.gzhead = null, this.gzindex = 0, this.method = 8, this.last_flush = -1, this.w_size = 0, this.w_bits = 0, this.w_mask = 0, this.window = null, this.window_size = 0, this.prev = null, this.head = null, this.ins_h = 0, this.hash_size = 0, this.hash_bits = 0, this.hash_mask = 0, this.hash_shift = 0, this.block_start = 0, this.match_length = 0, this.prev_match = 0, this.match_available = 0, this.strstart = 0, this.match_start = 0, this.lookahead = 0, this.prev_length = 0, this.max_chain_length = 0, this.max_lazy_match = 0, this.level = 0, this.strategy = 0, this.good_match = 0, this.nice_match = 0, this.dyn_ltree = new i2.Buf16(1146), this.dyn_dtree = new i2.Buf16(122), this.bl_tree = new i2.Buf16(78), m(this.dyn_ltree), m(this.dyn_dtree), m(this.bl_tree), this.l_desc = null, this.d_desc = null, this.bl_desc = null, this.bl_count = new i2.Buf16(16), this.heap = new i2.Buf16(573), m(this.heap), this.heap_len = 0, this.heap_max = 0, this.depth = new i2.Buf16(573), m(this.depth), this.l_buf = 0, this.lit_bufsize = 0, this.last_lit = 0, this.d_buf = 0, this.opt_len = 0, this.static_len = 0, this.matches = 0, this.insert = 0, this.bi_buf = 0, this.bi_valid = 0;
                 }
                 __name(M, "M");
-                __name2(M, "M");
                 function C(e3) {
                   var t3;
                   return e3 && e3.state ? (e3.total_in = e3.total_out = 0, e3.data_type = 2, (t3 = e3.state).pending = 0, t3.pending_out = 0, t3.wrap < 0 && (t3.wrap = -t3.wrap), t3.status = t3.wrap ? 42 : f, e3.adler = 2 === t3.wrap ? 0 : 1, t3.last_flush = 0, s2._tr_init(t3), 0) : d(e3, c2);
                 }
                 __name(C, "C");
-                __name2(C, "C");
                 function T(e3) {
                   var t3 = C(e3);
                   return 0 === t3 && (function(e4) {
@@ -25628,7 +25756,6 @@ var require_exceljs_min = __commonJS({
                   })(e3.state), t3;
                 }
                 __name(T, "T");
-                __name2(T, "T");
                 function E(e3, t3, r3, n3, s3, o3) {
                   if (!e3) return c2;
                   var a3 = 1;
@@ -25638,7 +25765,6 @@ var require_exceljs_min = __commonJS({
                   return (e3.state = l3).strm = e3, l3.wrap = a3, l3.gzhead = null, l3.w_bits = n3, l3.w_size = 1 << l3.w_bits, l3.w_mask = l3.w_size - 1, l3.hash_bits = s3 + 7, l3.hash_size = 1 << l3.hash_bits, l3.hash_mask = l3.hash_size - 1, l3.hash_shift = ~~((l3.hash_bits + 3 - 1) / 3), l3.window = new i2.Buf8(2 * l3.w_size), l3.head = new i2.Buf16(l3.hash_size), l3.prev = new i2.Buf16(l3.w_size), l3.lit_bufsize = 1 << s3 + 6, l3.pending_buf_size = 4 * l3.lit_bufsize, l3.pending_buf = new i2.Buf8(l3.pending_buf_size), l3.d_buf = 1 * l3.lit_bufsize, l3.l_buf = 3 * l3.lit_bufsize, l3.level = t3, l3.strategy = o3, l3.method = r3, T(e3);
                 }
                 __name(E, "E");
-                __name2(E, "E");
                 n2 = [new S(0, 0, 0, 0, (function(e3, t3) {
                   var r3 = 65535;
                   for (r3 > e3.pending_buf_size - 5 && (r3 = e3.pending_buf_size - 5); ; ) {
@@ -25818,37 +25944,31 @@ var require_exceljs_min = __commonJS({
                 function c2(e3) {
                   return (e3 >>> 24 & 255) + (e3 >>> 8 & 65280) + ((65280 & e3) << 8) + ((255 & e3) << 24);
                 }
-                __name(c2, "c2");
-                __name2(c2, "c");
+                __name(c2, "c");
                 function u2() {
                   this.mode = 0, this.last = false, this.wrap = 0, this.havedict = false, this.flags = 0, this.dmax = 0, this.check = 0, this.total = 0, this.head = null, this.wbits = 0, this.wsize = 0, this.whave = 0, this.wnext = 0, this.window = null, this.hold = 0, this.bits = 0, this.length = 0, this.offset = 0, this.extra = 0, this.lencode = null, this.distcode = null, this.lenbits = 0, this.distbits = 0, this.ncode = 0, this.nlen = 0, this.ndist = 0, this.have = 0, this.next = null, this.lens = new n2.Buf16(320), this.work = new n2.Buf16(288), this.lendyn = null, this.distdyn = null, this.sane = 0, this.back = 0, this.was = 0;
                 }
-                __name(u2, "u2");
-                __name2(u2, "u");
+                __name(u2, "u");
                 function h(e3) {
                   var t3;
                   return e3 && e3.state ? (t3 = e3.state, e3.total_in = e3.total_out = t3.total = 0, e3.msg = "", t3.wrap && (e3.adler = 1 & t3.wrap), t3.mode = 1, t3.last = 0, t3.havedict = 0, t3.dmax = 32768, t3.head = null, t3.hold = 0, t3.bits = 0, t3.lencode = t3.lendyn = new n2.Buf32(852), t3.distcode = t3.distdyn = new n2.Buf32(592), t3.sane = 1, t3.back = -1, 0) : l2;
                 }
                 __name(h, "h");
-                __name2(h, "h");
                 function f(e3) {
                   var t3;
                   return e3 && e3.state ? ((t3 = e3.state).wsize = 0, t3.whave = 0, t3.wnext = 0, h(e3)) : l2;
                 }
                 __name(f, "f");
-                __name2(f, "f");
                 function d(e3, t3) {
                   var r3, n3;
                   return e3 && e3.state ? (n3 = e3.state, t3 < 0 ? (r3 = 0, t3 = -t3) : (r3 = 1 + (t3 >> 4), t3 < 48 && (t3 &= 15)), t3 && (t3 < 8 || 15 < t3) ? l2 : (null !== n3.window && n3.wbits !== t3 && (n3.window = null), n3.wrap = r3, n3.wbits = t3, f(e3))) : l2;
                 }
                 __name(d, "d");
-                __name2(d, "d");
                 function p(e3, t3) {
                   var r3, n3;
                   return e3 ? (n3 = new u2(), (e3.state = n3).window = null, 0 !== (r3 = d(e3, t3)) && (e3.state = null), r3) : l2;
                 }
                 __name(p, "p");
-                __name2(p, "p");
                 var m, b, g = true;
                 function y(e3) {
                   if (g) {
@@ -25863,13 +25983,11 @@ var require_exceljs_min = __commonJS({
                   e3.lencode = m, e3.lenbits = 9, e3.distcode = b, e3.distbits = 5;
                 }
                 __name(y, "y");
-                __name2(y, "y");
                 function v(e3, t3, r3, i3) {
                   var s3, o3 = e3.state;
                   return null === o3.window && (o3.wsize = 1 << o3.wbits, o3.wnext = 0, o3.whave = 0, o3.window = new n2.Buf8(o3.wsize)), i3 >= o3.wsize ? (n2.arraySet(o3.window, t3, r3 - o3.wsize, o3.wsize, 0), o3.wnext = 0, o3.whave = o3.wsize) : (i3 < (s3 = o3.wsize - o3.wnext) && (s3 = i3), n2.arraySet(o3.window, t3, r3 - i3, s3, o3.wnext), (i3 -= s3) ? (n2.arraySet(o3.window, t3, r3 - i3, i3, 0), o3.wnext = i3, o3.whave = o3.wsize) : (o3.wnext += s3, o3.wnext === o3.wsize && (o3.wnext = 0), o3.whave < o3.wsize && (o3.whave += s3))), 0;
                 }
                 __name(v, "v");
-                __name2(v, "v");
                 r2.inflateReset = f, r2.inflateReset2 = d, r2.inflateResetKeep = h, r2.inflateInit = function(e3) {
                   return p(e3, 15);
                 }, r2.inflateInit2 = p, r2.inflate = function(e3, t3) {
@@ -26275,8 +26393,7 @@ var require_exceljs_min = __commonJS({
                 function i2(e3) {
                   for (var t3 = e3.length; 0 <= --t3; ) e3[t3] = 0;
                 }
-                __name(i2, "i2");
-                __name2(i2, "i");
+                __name(i2, "i");
                 var s2 = 256, o2 = 286, a2 = 30, l2 = 15, c2 = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], u2 = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], h = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7], f = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], d = new Array(576);
                 i2(d);
                 var p = new Array(60);
@@ -26292,38 +26409,31 @@ var require_exceljs_min = __commonJS({
                   this.static_tree = e3, this.extra_bits = t3, this.extra_base = r3, this.elems = n3, this.max_length = i3, this.has_stree = e3 && e3.length;
                 }
                 __name(x, "x");
-                __name2(x, "x");
                 function k(e3, t3) {
                   this.dyn_tree = e3, this.max_code = 0, this.stat_desc = t3;
                 }
                 __name(k, "k");
-                __name2(k, "k");
                 function S(e3) {
                   return e3 < 256 ? m[e3] : m[256 + (e3 >>> 7)];
                 }
                 __name(S, "S");
-                __name2(S, "S");
                 function M(e3, t3) {
                   e3.pending_buf[e3.pending++] = 255 & t3, e3.pending_buf[e3.pending++] = t3 >>> 8 & 255;
                 }
                 __name(M, "M");
-                __name2(M, "M");
                 function C(e3, t3, r3) {
                   e3.bi_valid > 16 - r3 ? (e3.bi_buf |= t3 << e3.bi_valid & 65535, M(e3, e3.bi_buf), e3.bi_buf = t3 >> 16 - e3.bi_valid, e3.bi_valid += r3 - 16) : (e3.bi_buf |= t3 << e3.bi_valid & 65535, e3.bi_valid += r3);
                 }
                 __name(C, "C");
-                __name2(C, "C");
                 function T(e3, t3, r3) {
                   C(e3, r3[2 * t3], r3[2 * t3 + 1]);
                 }
                 __name(T, "T");
-                __name2(T, "T");
                 function E(e3, t3) {
                   for (var r3 = 0; r3 |= 1 & e3, e3 >>>= 1, r3 <<= 1, 0 < --t3; ) ;
                   return r3 >>> 1;
                 }
                 __name(E, "E");
-                __name2(E, "E");
                 function A(e3, t3, r3) {
                   var n3, i3, s3 = new Array(16), o3 = 0;
                   for (n3 = 1; n3 <= l2; n3++) s3[n3] = o3 = o3 + r3[n3 - 1] << 1;
@@ -26333,7 +26443,6 @@ var require_exceljs_min = __commonJS({
                   }
                 }
                 __name(A, "A");
-                __name2(A, "A");
                 function R(e3) {
                   var t3;
                   for (t3 = 0; t3 < o2; t3++) e3.dyn_ltree[2 * t3] = 0;
@@ -26342,31 +26451,26 @@ var require_exceljs_min = __commonJS({
                   e3.dyn_ltree[512] = 1, e3.opt_len = e3.static_len = 0, e3.last_lit = e3.matches = 0;
                 }
                 __name(R, "R");
-                __name2(R, "R");
                 function O(e3) {
                   8 < e3.bi_valid ? M(e3, e3.bi_buf) : 0 < e3.bi_valid && (e3.pending_buf[e3.pending++] = e3.bi_buf), e3.bi_buf = 0, e3.bi_valid = 0;
                 }
                 __name(O, "O");
-                __name2(O, "O");
                 function j(e3, t3, r3, n3) {
                   var i3 = 2 * t3, s3 = 2 * r3;
                   return e3[i3] < e3[s3] || e3[i3] === e3[s3] && n3[t3] <= n3[r3];
                 }
                 __name(j, "j");
-                __name2(j, "j");
                 function I(e3, t3, r3) {
                   for (var n3 = e3.heap[r3], i3 = r3 << 1; i3 <= e3.heap_len && (i3 < e3.heap_len && j(t3, e3.heap[i3 + 1], e3.heap[i3], e3.depth) && i3++, !j(t3, n3, e3.heap[i3], e3.depth)); ) e3.heap[r3] = e3.heap[i3], r3 = i3, i3 <<= 1;
                   e3.heap[r3] = n3;
                 }
                 __name(I, "I");
-                __name2(I, "I");
                 function N(e3, t3, r3) {
                   var n3, i3, o3, a3, l3 = 0;
                   if (0 !== e3.last_lit) for (; n3 = e3.pending_buf[e3.d_buf + 2 * l3] << 8 | e3.pending_buf[e3.d_buf + 2 * l3 + 1], i3 = e3.pending_buf[e3.l_buf + l3], l3++, 0 === n3 ? T(e3, i3, t3) : (T(e3, (o3 = b[i3]) + s2 + 1, t3), 0 !== (a3 = c2[o3]) && C(e3, i3 -= g[o3], a3), T(e3, o3 = S(--n3), r3), 0 !== (a3 = u2[o3]) && C(e3, n3 -= _[o3], a3)), l3 < e3.last_lit; ) ;
                   T(e3, 256, t3);
                 }
                 __name(N, "N");
-                __name2(N, "N");
                 function P(e3, t3) {
                   var r3, n3, i3, s3 = t3.dyn_tree, o3 = t3.stat_desc.static_tree, a3 = t3.stat_desc.has_stree, c3 = t3.stat_desc.elems, u3 = -1;
                   for (e3.heap_len = 0, e3.heap_max = 573, r3 = 0; r3 < c3; r3++) 0 !== s3[2 * r3] ? (e3.heap[++e3.heap_len] = u3 = r3, e3.depth[r3] = 0) : s3[2 * r3 + 1] = 0;
@@ -26387,13 +26491,11 @@ var require_exceljs_min = __commonJS({
                   })(e3, t3), A(s3, u3, e3.bl_count);
                 }
                 __name(P, "P");
-                __name2(P, "P");
                 function B(e3, t3, r3) {
                   var n3, i3, s3 = -1, o3 = t3[1], a3 = 0, l3 = 7, c3 = 4;
                   for (0 === o3 && (l3 = 138, c3 = 3), t3[2 * (r3 + 1) + 1] = 65535, n3 = 0; n3 <= r3; n3++) i3 = o3, o3 = t3[2 * (n3 + 1) + 1], ++a3 < l3 && i3 === o3 || (a3 < c3 ? e3.bl_tree[2 * i3] += a3 : 0 !== i3 ? (i3 !== s3 && e3.bl_tree[2 * i3]++, e3.bl_tree[32]++) : a3 <= 10 ? e3.bl_tree[34]++ : e3.bl_tree[36]++, s3 = i3, c3 = (a3 = 0) === o3 ? (l3 = 138, 3) : i3 === o3 ? (l3 = 6, 3) : (l3 = 7, 4));
                 }
                 __name(B, "B");
-                __name2(B, "B");
                 function D(e3, t3, r3) {
                   var n3, i3, s3 = -1, o3 = t3[1], a3 = 0, l3 = 7, c3 = 4;
                   for (0 === o3 && (l3 = 138, c3 = 3), n3 = 0; n3 <= r3; n3++) if (i3 = o3, o3 = t3[2 * (n3 + 1) + 1], !(++a3 < l3 && i3 === o3)) {
@@ -26403,7 +26505,6 @@ var require_exceljs_min = __commonJS({
                   }
                 }
                 __name(D, "D");
-                __name2(D, "D");
                 i2(_);
                 var F = false;
                 function L(e3, t3, r3, i3) {
@@ -26412,7 +26513,6 @@ var require_exceljs_min = __commonJS({
                   })(e3, t3, r3);
                 }
                 __name(L, "L");
-                __name2(L, "L");
                 r2._tr_init = function(e3) {
                   F || ((function() {
                     var e4, t3, r3, n3, i3, s3 = new Array(16);
@@ -26495,7 +26595,6 @@ var require_exceljs_min = __commonJS({
                       delete l2[e5];
                     }
                     __name(f, "f");
-                    __name2(f, "f");
                     function d(e5) {
                       if (c2) setTimeout(d, 0, e5);
                       else {
@@ -26529,12 +26628,10 @@ var require_exceljs_min = __commonJS({
                       }
                     }
                     __name(d, "d");
-                    __name2(d, "d");
                     function p(t4) {
                       t4.source === e4 && "string" == typeof t4.data && 0 === t4.data.indexOf(o2) && d(+t4.data.slice(o2.length));
                     }
                     __name(p, "p");
-                    __name2(p, "p");
                   })("undefined" == typeof self ? void 0 === e3 ? this : e3 : self);
                 }).call(this, void 0 !== i ? i : "undefined" != typeof self ? self : "undefined" != typeof window ? window : {});
               }, {}] }, {}, [10])(10);
@@ -26557,7 +26654,6 @@ var require_exceljs_min = __commonJS({
               return "0" == t2 && 1 / e3 == -1 / 0 ? "-0" : t2;
             }
             __name(h, "h");
-            __name2(h, "h");
             t.exports = function(e3) {
               var t2;
               return (e3 = null == (t2 = e3) ? "" : h(t2)) && n.test(e3) ? e3.replace(r2, "\\$&") : e3;
@@ -26584,13 +26680,11 @@ var require_exceljs_min = __commonJS({
               return n2;
             }
             __name(k, "k");
-            __name2(k, "k");
             function S(e3, t2) {
               for (var r2 = -1, n2 = e3 ? e3.length : 0; ++r2 < n2; ) if (t2(e3[r2], r2, e3)) return true;
               return false;
             }
             __name(S, "S");
-            __name2(S, "S");
             function M(e3) {
               var t2 = false;
               if (null != e3 && "function" != typeof e3.toString) try {
@@ -26600,7 +26694,6 @@ var require_exceljs_min = __commonJS({
               return t2;
             }
             __name(M, "M");
-            __name2(M, "M");
             function C(e3) {
               var t2 = -1, r2 = Array(e3.size);
               return e3.forEach((function(e4, n2) {
@@ -26608,7 +26701,6 @@ var require_exceljs_min = __commonJS({
               })), r2;
             }
             __name(C, "C");
-            __name2(C, "C");
             function T(e3) {
               var t2 = -1, r2 = Array(e3.size);
               return e3.forEach((function(e4) {
@@ -26616,7 +26708,6 @@ var require_exceljs_min = __commonJS({
               })), r2;
             }
             __name(T, "T");
-            __name2(T, "T");
             var E, A, R, O = Array.prototype, j = Function.prototype, I = Object.prototype, N = g["__core-js_shared__"], P = (E = /[^.]+$/.exec(N && N.keys && N.keys.IE_PROTO || "")) ? "Symbol(src)_1." + E : "", B = j.toString, D = I.hasOwnProperty, F = I.toString, L = RegExp("^" + B.call(D).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&").replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, "$1.*?") + "$"), z = g.Symbol, U = g.Uint8Array, $ = I.propertyIsEnumerable, H = O.splice, V = (A = Object.keys, R = Object, function(e3) {
               return A(R(e3));
             }), q = Ce(g, "DataView"), W = Ce(g, "Map"), X = Ce(g, "Promise"), K = Ce(g, "Set"), Y = Ce(g, "WeakMap"), Z = Ce(Object, "create"), G = Ne(q), J = Ne(W), Q = Ne(X), ee = Ne(K), te = Ne(Y), re = z ? z.prototype : void 0, ne = re ? re.valueOf : void 0, ie = re ? re.toString : void 0;
@@ -26628,7 +26719,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(se, "se");
-            __name2(se, "se");
             function oe(e3) {
               var t2 = -1, r2 = e3 ? e3.length : 0;
               for (this.clear(); ++t2 < r2; ) {
@@ -26637,7 +26727,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(oe, "oe");
-            __name2(oe, "oe");
             function ae(e3) {
               var t2 = -1, r2 = e3 ? e3.length : 0;
               for (this.clear(); ++t2 < r2; ) {
@@ -26646,18 +26735,15 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(ae, "ae");
-            __name2(ae, "ae");
             function le(e3) {
               var t2 = -1, r2 = e3 ? e3.length : 0;
               for (this.__data__ = new ae(); ++t2 < r2; ) this.add(e3[t2]);
             }
             __name(le, "le");
-            __name2(le, "le");
             function ce(e3) {
               this.__data__ = new oe(e3);
             }
             __name(ce, "ce");
-            __name2(ce, "ce");
             function ue(e3, t2) {
               var r2 = Ue(e3) || ze(e3) ? (function(e4, t3) {
                 for (var r3 = -1, n3 = Array(e4); ++r3 < e4; ) n3[r3] = t3(r3);
@@ -26667,20 +26753,17 @@ var require_exceljs_min = __commonJS({
               return r2;
             }
             __name(ue, "ue");
-            __name2(ue, "ue");
             function he(e3, t2) {
               for (var r2 = e3.length; r2--; ) if (Le(e3[r2][0], t2)) return r2;
               return -1;
             }
             __name(he, "he");
-            __name2(he, "he");
             function fe(e3, t2, r2, n2) {
               return me(e3, (function(e4, i2, s2) {
                 t2(n2, e4, r2(e4), s2);
               })), n2;
             }
             __name(fe, "fe");
-            __name2(fe, "fe");
             se.prototype.clear = function() {
               this.__data__ = Z ? Z(null) : {};
             }, se.prototype.delete = function(e3) {
@@ -26741,7 +26824,7 @@ var require_exceljs_min = __commonJS({
               }
               return r2.set(e3, t2), this;
             };
-            var de, pe, me = (de = /* @__PURE__ */ __name2(function(e3, t2) {
+            var de, pe, me = (de = /* @__PURE__ */ __name(function(e3, t2) {
               return e3 && be(e3, t2, Ye);
             }, "de"), function(e3, t2) {
               if (null == e3) return e3;
@@ -26762,12 +26845,10 @@ var require_exceljs_min = __commonJS({
               return r2 && r2 == n2 ? e3 : void 0;
             }
             __name(ge, "ge");
-            __name2(ge, "ge");
             function ye(e3, t2) {
               return null != e3 && t2 in Object(e3);
             }
             __name(ye, "ye");
-            __name2(ye, "ye");
             function ve(e3, t2, r2, a2, l2) {
               return e3 === t2 || (null == e3 || null == t2 || !qe(e3) && !We(t2) ? e3 != e3 && t2 != t2 : (function(e4, t3, r3, a3, l3, c2) {
                 var u2 = Ue(e4), h2 = Ue(t3), f2 = "[object Array]", d2 = "[object Array]";
@@ -26845,14 +26926,12 @@ var require_exceljs_min = __commonJS({
               })(e3, t2, ve, r2, a2, l2));
             }
             __name(ve, "ve");
-            __name2(ve, "ve");
             function we(e3) {
               return !(!qe(e3) || (function(e4) {
                 return !!P && P in e4;
               })(e3)) && (He(e3) || M(e3) ? L : f).test(Ne(e3));
             }
             __name(we, "we");
-            __name2(we, "we");
             function _e(e3) {
               return "function" == typeof e3 ? e3 : null == e3 ? Ze : "object" == typeof e3 ? Ue(e3) ? (function(e4, t3) {
                 if (Ae(e4) && Re(t3)) return Oe(Ie(e4), t3);
@@ -26916,7 +26995,6 @@ var require_exceljs_min = __commonJS({
               var t2, r2;
             }
             __name(_e, "_e");
-            __name2(_e, "_e");
             function xe(e3) {
               if (r2 = (t2 = e3) && t2.constructor, n2 = "function" == typeof r2 && r2.prototype || I, t2 !== n2) return V(e3);
               var t2, r2, n2, i2 = [];
@@ -26924,12 +27002,10 @@ var require_exceljs_min = __commonJS({
               return i2;
             }
             __name(xe, "xe");
-            __name2(xe, "xe");
             function ke(e3) {
               return Ue(e3) ? e3 : je(e3);
             }
             __name(ke, "ke");
-            __name2(ke, "ke");
             function Se(e3, t2, r2, n2, i2, s2) {
               var o2 = 2 & i2, a2 = e3.length, l2 = t2.length;
               if (a2 != l2 && !(o2 && l2 > a2)) return false;
@@ -26959,13 +27035,11 @@ var require_exceljs_min = __commonJS({
               return s2.delete(e3), s2.delete(t2), h2;
             }
             __name(Se, "Se");
-            __name2(Se, "Se");
             function Me(e3, t2) {
               var r2, n2, i2 = e3.__data__;
               return ("string" == (n2 = typeof (r2 = t2)) || "number" == n2 || "symbol" == n2 || "boolean" == n2 ? "__proto__" !== r2 : null === r2) ? i2["string" == typeof t2 ? "string" : "hash"] : i2.map;
             }
             __name(Me, "Me");
-            __name2(Me, "Me");
             function Ce(e3, t2) {
               var r2 = (function(e4, t3) {
                 return null == e4 ? void 0 : e4[t3];
@@ -26973,35 +27047,30 @@ var require_exceljs_min = __commonJS({
               return we(r2) ? r2 : void 0;
             }
             __name(Ce, "Ce");
-            __name2(Ce, "Ce");
-            var Te = /* @__PURE__ */ __name2(function(e3) {
+            var Te = /* @__PURE__ */ __name(function(e3) {
               return F.call(e3);
             }, "Te");
             function Ee(e3, t2) {
               return !!(t2 = null == t2 ? 9007199254740991 : t2) && ("number" == typeof e3 || d.test(e3)) && e3 > -1 && e3 % 1 == 0 && e3 < t2;
             }
             __name(Ee, "Ee");
-            __name2(Ee, "Ee");
             function Ae(e3, t2) {
               if (Ue(e3)) return false;
               var r2 = typeof e3;
               return !("number" != r2 && "symbol" != r2 && "boolean" != r2 && null != e3 && !Xe(e3)) || (l.test(e3) || !a.test(e3) || null != t2 && e3 in Object(t2));
             }
             __name(Ae, "Ae");
-            __name2(Ae, "Ae");
             function Re(e3) {
               return e3 == e3 && !qe(e3);
             }
             __name(Re, "Re");
-            __name2(Re, "Re");
             function Oe(e3, t2) {
               return function(r2) {
                 return null != r2 && (r2[e3] === t2 && (void 0 !== t2 || e3 in Object(r2)));
               };
             }
             __name(Oe, "Oe");
-            __name2(Oe, "Oe");
-            (q && "[object DataView]" != Te(new q(new ArrayBuffer(1))) || W && Te(new W()) != i || X && "[object Promise]" != Te(X.resolve()) || K && Te(new K()) != o || Y && "[object WeakMap]" != Te(new Y())) && (Te = /* @__PURE__ */ __name2(function(e3) {
+            (q && "[object DataView]" != Te(new q(new ArrayBuffer(1))) || W && Te(new W()) != i || X && "[object Promise]" != Te(X.resolve()) || K && Te(new K()) != o || Y && "[object WeakMap]" != Te(new Y())) && (Te = /* @__PURE__ */ __name(function(e3) {
               var t2 = F.call(e3), r2 = t2 == s ? e3.constructor : void 0, n2 = r2 ? Ne(r2) : void 0;
               if (n2) switch (n2) {
                 case G:
@@ -27036,7 +27105,6 @@ var require_exceljs_min = __commonJS({
               return "0" == t2 && 1 / e3 == -1 / 0 ? "-0" : t2;
             }
             __name(Ie, "Ie");
-            __name2(Ie, "Ie");
             function Ne(e3) {
               if (null != e3) {
                 try {
@@ -27051,8 +27119,7 @@ var require_exceljs_min = __commonJS({
               return "";
             }
             __name(Ne, "Ne");
-            __name2(Ne, "Ne");
-            var Pe, Be, De = (Pe = /* @__PURE__ */ __name2(function(e3, t2, r2) {
+            var Pe, Be, De = (Pe = /* @__PURE__ */ __name(function(e3, t2, r2) {
               D.call(e3, r2) ? e3[r2].push(t2) : e3[r2] = [t2];
             }, "Pe"), function(e3, t2) {
               var r2 = Ue(e3) ? k : fe, n2 = Be ? Be() : {};
@@ -27060,7 +27127,7 @@ var require_exceljs_min = __commonJS({
             });
             function Fe(e3, t2) {
               if ("function" != typeof e3 || t2 && "function" != typeof t2) throw new TypeError("Expected a function");
-              var r2 = /* @__PURE__ */ __name2(function() {
+              var r2 = /* @__PURE__ */ __name(function() {
                 var n2 = arguments, i2 = t2 ? t2.apply(this, n2) : n2[0], s2 = r2.cache;
                 if (s2.has(i2)) return s2.get(i2);
                 var o2 = e3.apply(this, n2);
@@ -27069,53 +27136,44 @@ var require_exceljs_min = __commonJS({
               return r2.cache = new (Fe.Cache || ae)(), r2;
             }
             __name(Fe, "Fe");
-            __name2(Fe, "Fe");
             function Le(e3, t2) {
               return e3 === t2 || e3 != e3 && t2 != t2;
             }
             __name(Le, "Le");
-            __name2(Le, "Le");
             function ze(e3) {
               return (function(e4) {
                 return We(e4) && $e(e4);
               })(e3) && D.call(e3, "callee") && (!$.call(e3, "callee") || F.call(e3) == n);
             }
             __name(ze, "ze");
-            __name2(ze, "ze");
             Fe.Cache = ae;
             var Ue = Array.isArray;
             function $e(e3) {
               return null != e3 && Ve(e3.length) && !He(e3);
             }
             __name($e, "$e");
-            __name2($e, "$e");
             function He(e3) {
               var t2 = qe(e3) ? F.call(e3) : "";
               return "[object Function]" == t2 || "[object GeneratorFunction]" == t2;
             }
             __name(He, "He");
-            __name2(He, "He");
             function Ve(e3) {
               return "number" == typeof e3 && e3 > -1 && e3 % 1 == 0 && e3 <= 9007199254740991;
             }
             __name(Ve, "Ve");
-            __name2(Ve, "Ve");
             function qe(e3) {
               var t2 = typeof e3;
               return !!e3 && ("object" == t2 || "function" == t2);
             }
             __name(qe, "qe");
-            __name2(qe, "qe");
             function We(e3) {
               return !!e3 && "object" == typeof e3;
             }
             __name(We, "We");
-            __name2(We, "We");
             function Xe(e3) {
               return "symbol" == typeof e3 || We(e3) && "[object Symbol]" == F.call(e3);
             }
             __name(Xe, "Xe");
-            __name2(Xe, "Xe");
             var Ke = x ? /* @__PURE__ */ (function(e3) {
               return function(t2) {
                 return e3(t2);
@@ -27127,12 +27185,10 @@ var require_exceljs_min = __commonJS({
               return $e(e3) ? ue(e3) : xe(e3);
             }
             __name(Ye, "Ye");
-            __name2(Ye, "Ye");
             function Ze(e3) {
               return e3;
             }
             __name(Ze, "Ze");
-            __name2(Ze, "Ze");
             t.exports = De;
           }).call(this);
         }).call(this, "undefined" != typeof global ? global : "undefined" != typeof self ? self : "undefined" != typeof window ? window : {});
@@ -27161,7 +27217,6 @@ var require_exceljs_min = __commonJS({
               return false;
             }
             __name(v, "v");
-            __name2(v, "v");
             function w(e3) {
               var t2 = -1, r2 = Array(e3.size);
               return e3.forEach((function(e4, n2) {
@@ -27169,7 +27224,6 @@ var require_exceljs_min = __commonJS({
               })), r2;
             }
             __name(w, "w");
-            __name2(w, "w");
             function _(e3) {
               var t2 = -1, r2 = Array(e3.size);
               return e3.forEach((function(e4) {
@@ -27177,7 +27231,6 @@ var require_exceljs_min = __commonJS({
               })), r2;
             }
             __name(_, "_");
-            __name2(_, "_");
             var x, k, S, M = Array.prototype, C = Function.prototype, T = Object.prototype, E = f["__core-js_shared__"], A = C.toString, R = T.hasOwnProperty, O = (x = /[^.]+$/.exec(E && E.keys && E.keys.IE_PROTO || "")) ? "Symbol(src)_1." + x : "", j = T.toString, I = RegExp("^" + A.call(R).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&").replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, "$1.*?") + "$"), N = m ? f.Buffer : void 0, P = f.Symbol, B = f.Uint8Array, D = T.propertyIsEnumerable, F = M.splice, L = P ? P.toStringTag : void 0, z = Object.getOwnPropertySymbols, U = N ? N.isBuffer : void 0, $ = (k = Object.keys, S = Object, function(e3) {
               return k(S(e3));
             }), H = ge(f, "DataView"), V = ge(f, "Map"), q = ge(f, "Promise"), W = ge(f, "Set"), X = ge(f, "WeakMap"), K = ge(Object, "create"), Y = _e(H), Z = _e(V), G = _e(q), J = _e(W), Q = _e(X), ee = P ? P.prototype : void 0, te = ee ? ee.valueOf : void 0;
@@ -27189,7 +27242,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(re, "re");
-            __name2(re, "re");
             function ne(e3) {
               var t2 = -1, r2 = null == e3 ? 0 : e3.length;
               for (this.clear(); ++t2 < r2; ) {
@@ -27198,7 +27250,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(ne, "ne");
-            __name2(ne, "ne");
             function ie(e3) {
               var t2 = -1, r2 = null == e3 ? 0 : e3.length;
               for (this.clear(); ++t2 < r2; ) {
@@ -27207,19 +27258,16 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(ie, "ie");
-            __name2(ie, "ie");
             function se(e3) {
               var t2 = -1, r2 = null == e3 ? 0 : e3.length;
               for (this.__data__ = new ie(); ++t2 < r2; ) this.add(e3[t2]);
             }
             __name(se, "se");
-            __name2(se, "se");
             function oe(e3) {
               var t2 = this.__data__ = new ne(e3);
               this.size = t2.size;
             }
             __name(oe, "oe");
-            __name2(oe, "oe");
             function ae(e3, t2) {
               var r2 = Se(e3), n2 = !r2 && ke(e3), i2 = !r2 && !n2 && Me(e3), s2 = !r2 && !n2 && !i2 && Re(e3), o2 = r2 || n2 || i2 || s2, a2 = o2 ? (function(e4, t3) {
                 for (var r3 = -1, n3 = Array(e4); ++r3 < e4; ) n3[r3] = t3(r3);
@@ -27229,13 +27277,11 @@ var require_exceljs_min = __commonJS({
               return a2;
             }
             __name(ae, "ae");
-            __name2(ae, "ae");
             function le(e3, t2) {
               for (var r2 = e3.length; r2--; ) if (xe(e3[r2][0], t2)) return r2;
               return -1;
             }
             __name(le, "le");
-            __name2(le, "le");
             function ce(e3) {
               return null == e3 ? void 0 === e3 ? "[object Undefined]" : "[object Null]" : L && L in Object(e3) ? (function(e4) {
                 var t2 = R.call(e4, L), r2 = e4[L];
@@ -27252,12 +27298,10 @@ var require_exceljs_min = __commonJS({
               })(e3);
             }
             __name(ce, "ce");
-            __name2(ce, "ce");
             function ue(e3) {
               return Ae(e3) && ce(e3) == n;
             }
             __name(ue, "ue");
-            __name2(ue, "ue");
             function he(e3, t2, r2, a2, l2) {
               return e3 === t2 || (null == e3 || null == t2 || !Ae(e3) && !Ae(t2) ? e3 != e3 && t2 != t2 : (function(e4, t3, r3, a3, l3, c2) {
                 var u2 = Se(e4), h2 = Se(t3), f2 = u2 ? "[object Array]" : ve(e4), d2 = h2 ? "[object Array]" : ve(t3), p2 = (f2 = f2 == n ? s : f2) == s, m2 = (d2 = d2 == n ? s : d2) == s, b2 = f2 == d2;
@@ -27336,14 +27380,12 @@ var require_exceljs_min = __commonJS({
               })(e3, t2, r2, a2, he, l2));
             }
             __name(he, "he");
-            __name2(he, "he");
             function fe(e3) {
               return !(!Ee(e3) || (function(e4) {
                 return !!O && O in e4;
               })(e3)) && (Ce(e3) ? I : a).test(_e(e3));
             }
             __name(fe, "fe");
-            __name2(fe, "fe");
             function de(e3) {
               if (r2 = (t2 = e3) && t2.constructor, n2 = "function" == typeof r2 && r2.prototype || T, t2 !== n2) return $(e3);
               var t2, r2, n2, i2 = [];
@@ -27351,7 +27393,6 @@ var require_exceljs_min = __commonJS({
               return i2;
             }
             __name(de, "de");
-            __name2(de, "de");
             function pe(e3, t2, r2, n2, i2, s2) {
               var o2 = 1 & r2, a2 = e3.length, l2 = t2.length;
               if (a2 != l2 && !(o2 && l2 > a2)) return false;
@@ -27382,7 +27423,6 @@ var require_exceljs_min = __commonJS({
               return s2.delete(e3), s2.delete(t2), h2;
             }
             __name(pe, "pe");
-            __name2(pe, "pe");
             function me(e3) {
               return (function(e4, t2, r2) {
                 var n2 = t2(e4);
@@ -27393,13 +27433,11 @@ var require_exceljs_min = __commonJS({
               })(e3, Oe, ye);
             }
             __name(me, "me");
-            __name2(me, "me");
             function be(e3, t2) {
               var r2, n2, i2 = e3.__data__;
               return ("string" == (n2 = typeof (r2 = t2)) || "number" == n2 || "symbol" == n2 || "boolean" == n2 ? "__proto__" !== r2 : null === r2) ? i2["string" == typeof t2 ? "string" : "hash"] : i2.map;
             }
             __name(be, "be");
-            __name2(be, "be");
             function ge(e3, t2) {
               var r2 = (function(e4, t3) {
                 return null == e4 ? void 0 : e4[t3];
@@ -27407,7 +27445,6 @@ var require_exceljs_min = __commonJS({
               return fe(r2) ? r2 : void 0;
             }
             __name(ge, "ge");
-            __name2(ge, "ge");
             re.prototype.clear = function() {
               this.__data__ = K ? K(null) : {}, this.size = 0;
             }, re.prototype.delete = function(e3) {
@@ -27490,7 +27527,6 @@ var require_exceljs_min = __commonJS({
               return !!(t2 = null == t2 ? 9007199254740991 : t2) && ("number" == typeof e3 || l.test(e3)) && e3 > -1 && e3 % 1 == 0 && e3 < t2;
             }
             __name(we, "we");
-            __name2(we, "we");
             function _e(e3) {
               if (null != e3) {
                 try {
@@ -27505,13 +27541,11 @@ var require_exceljs_min = __commonJS({
               return "";
             }
             __name(_e, "_e");
-            __name2(_e, "_e");
             function xe(e3, t2) {
               return e3 === t2 || e3 != e3 && t2 != t2;
             }
             __name(xe, "xe");
-            __name2(xe, "xe");
-            (H && "[object DataView]" != ve(new H(new ArrayBuffer(1))) || V && ve(new V()) != i || q && "[object Promise]" != ve(q.resolve()) || W && ve(new W()) != o || X && "[object WeakMap]" != ve(new X())) && (ve = /* @__PURE__ */ __name2(function(e3) {
+            (H && "[object DataView]" != ve(new H(new ArrayBuffer(1))) || V && ve(new V()) != i || q && "[object Promise]" != ve(q.resolve()) || W && ve(new W()) != o || X && "[object WeakMap]" != ve(new X())) && (ve = /* @__PURE__ */ __name(function(e3) {
               var t2 = ce(e3), r2 = t2 == s ? e3.constructor : void 0, n2 = r2 ? _e(r2) : "";
               if (n2) switch (n2) {
                 case Y:
@@ -27541,23 +27575,19 @@ var require_exceljs_min = __commonJS({
               return "[object Function]" == t2 || "[object GeneratorFunction]" == t2 || "[object AsyncFunction]" == t2 || "[object Proxy]" == t2;
             }
             __name(Ce, "Ce");
-            __name2(Ce, "Ce");
             function Te(e3) {
               return "number" == typeof e3 && e3 > -1 && e3 % 1 == 0 && e3 <= 9007199254740991;
             }
             __name(Te, "Te");
-            __name2(Te, "Te");
             function Ee(e3) {
               var t2 = typeof e3;
               return null != e3 && ("object" == t2 || "function" == t2);
             }
             __name(Ee, "Ee");
-            __name2(Ee, "Ee");
             function Ae(e3) {
               return null != e3 && "object" == typeof e3;
             }
             __name(Ae, "Ae");
-            __name2(Ae, "Ae");
             var Re = y ? /* @__PURE__ */ (function(e3) {
               return function(t2) {
                 return e3(t2);
@@ -27570,7 +27600,6 @@ var require_exceljs_min = __commonJS({
               var t2;
             }
             __name(Oe, "Oe");
-            __name2(Oe, "Oe");
             t.exports = function(e3, t2) {
               return he(e3, t2);
             };
@@ -27597,7 +27626,6 @@ var require_exceljs_min = __commonJS({
               })(e3);
             }
             __name(u, "u");
-            __name2(u, "u");
             t.exports = function(e3) {
               if (!(function(e4) {
                 var t3 = typeof e4;
@@ -27636,23 +27664,19 @@ var require_exceljs_min = __commonJS({
               })(e3, t2, 0) > -1;
             }
             __name(o, "o");
-            __name2(o, "o");
             function a(e3, t2, r3) {
               for (var n2 = -1, i2 = e3 ? e3.length : 0; ++n2 < i2; ) if (r3(t2, e3[n2])) return true;
               return false;
             }
             __name(a, "a");
-            __name2(a, "a");
             function l(e3) {
               return e3 != e3;
             }
             __name(l, "l");
-            __name2(l, "l");
             function c(e3, t2) {
               return e3.has(t2);
             }
             __name(c, "c");
-            __name2(c, "c");
             function u(e3) {
               var t2 = -1, r3 = Array(e3.size);
               return e3.forEach((function(e4) {
@@ -27660,7 +27684,6 @@ var require_exceljs_min = __commonJS({
               })), r3;
             }
             __name(u, "u");
-            __name2(u, "u");
             var h, f = Array.prototype, d = Function.prototype, p = Object.prototype, m = s["__core-js_shared__"], b = (h = /[^.]+$/.exec(m && m.keys && m.keys.IE_PROTO || "")) ? "Symbol(src)_1." + h : "", g = d.toString, y = p.hasOwnProperty, v = p.toString, w = RegExp("^" + g.call(y).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&").replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, "$1.*?") + "$"), _ = f.splice, x = I(s, "Map"), k = I(s, "Set"), S = I(Object, "create");
             function M(e3) {
               var t2 = -1, r3 = e3 ? e3.length : 0;
@@ -27670,7 +27693,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(M, "M");
-            __name2(M, "M");
             function C(e3) {
               var t2 = -1, r3 = e3 ? e3.length : 0;
               for (this.clear(); ++t2 < r3; ) {
@@ -27679,7 +27701,6 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(C, "C");
-            __name2(C, "C");
             function T(e3) {
               var t2 = -1, r3 = e3 ? e3.length : 0;
               for (this.clear(); ++t2 < r3; ) {
@@ -27688,19 +27709,16 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(T, "T");
-            __name2(T, "T");
             function E(e3) {
               var t2 = -1, r3 = e3 ? e3.length : 0;
               for (this.__data__ = new T(); ++t2 < r3; ) this.add(e3[t2]);
             }
             __name(E, "E");
-            __name2(E, "E");
             function A(e3, t2) {
               for (var r3, n2, i2 = e3.length; i2--; ) if ((r3 = e3[i2][0]) === (n2 = t2) || r3 != r3 && n2 != n2) return i2;
               return -1;
             }
             __name(A, "A");
-            __name2(A, "A");
             function R(e3) {
               return !(!N(e3) || (t2 = e3, b && b in t2)) && ((function(e4) {
                 var t3 = N(e4) ? v.call(e4) : "";
@@ -27728,7 +27746,6 @@ var require_exceljs_min = __commonJS({
               var t2;
             }
             __name(R, "R");
-            __name2(R, "R");
             M.prototype.clear = function() {
               this.__data__ = S ? S(null) : {};
             }, M.prototype.delete = function(e3) {
@@ -27782,7 +27799,6 @@ var require_exceljs_min = __commonJS({
               return ("string" == (n2 = typeof (r3 = t2)) || "number" == n2 || "symbol" == n2 || "boolean" == n2 ? "__proto__" !== r3 : null === r3) ? i2["string" == typeof t2 ? "string" : "hash"] : i2.map;
             }
             __name(j, "j");
-            __name2(j, "j");
             function I(e3, t2) {
               var r3 = (function(e4, t3) {
                 return null == e4 ? void 0 : e4[t3];
@@ -27790,13 +27806,11 @@ var require_exceljs_min = __commonJS({
               return R(r3) ? r3 : void 0;
             }
             __name(I, "I");
-            __name2(I, "I");
             function N(e3) {
               var t2 = typeof e3;
               return !!e3 && ("object" == t2 || "function" == t2);
             }
             __name(N, "N");
-            __name2(N, "N");
             t.exports = function(e3) {
               return e3 && e3.length ? (function(e4, t2, r3) {
                 var n2 = -1, i2 = o, s2 = e4.length, l2 = true, h2 = [], f2 = h2;
@@ -27825,32 +27839,26 @@ var require_exceljs_min = __commonJS({
           i.call(this, 64), this._a = 1732584193, this._b = 4023233417, this._c = 2562383102, this._d = 271733878;
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2, t2) {
           return e2 << t2 | e2 >>> 32 - t2;
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2, n2, i2, s2, o2) {
           return l(e2 + (t2 & r2 | ~t2 & n2) + i2 + s2 | 0, o2) + t2 | 0;
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2, r2, n2, i2, s2, o2) {
           return l(e2 + (t2 & n2 | r2 & ~n2) + i2 + s2 | 0, o2) + t2 | 0;
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2, r2, n2, i2, s2, o2) {
           return l(e2 + (t2 ^ r2 ^ n2) + i2 + s2 | 0, o2) + t2 | 0;
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2, t2, r2, n2, i2, s2, o2) {
           return l(e2 + (r2 ^ (t2 | ~n2)) + i2 + s2 | 0, o2) + t2 | 0;
         }
         __name(f, "f");
-        __name2(f, "f");
         n(a, i), a.prototype._update = function() {
           for (var e2 = o, t2 = 0; t2 < 16; ++t2) e2[t2] = this._block.readInt32LE(4 * t2);
           var r2 = this._a, n2 = this._b, i2 = this._c, s2 = this._d;
@@ -27867,7 +27875,6 @@ var require_exceljs_min = __commonJS({
           this.rand = e2 || new i.Rand();
         }
         __name(s, "s");
-        __name2(s, "s");
         t.exports = s, s.create = function(e2) {
           return new s(e2);
         }, s.prototype._randbelow = function(e2) {
@@ -27922,7 +27929,6 @@ var require_exceljs_min = __commonJS({
           if (!e2) throw new Error(t2 || "Assertion failed");
         }
         __name(n, "n");
-        __name2(n, "n");
         t.exports = n, n.equal = function(e2, t2, r2) {
           if (e2 != t2) throw new Error(r2 || "Assertion failed: " + e2 + " != " + t2);
         };
@@ -27933,13 +27939,11 @@ var require_exceljs_min = __commonJS({
           return 1 === e2.length ? "0" + e2 : e2;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2) {
           for (var t2 = "", r2 = 0; r2 < e2.length; r2++) t2 += i(e2[r2].toString(16));
           return t2;
         }
         __name(s, "s");
-        __name2(s, "s");
         n.toArray = function(e2, t2) {
           if (Array.isArray(e2)) return e2.slice();
           if (!e2) return [];
@@ -28093,7 +28097,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(c, "c");
-        __name2(c, "c");
         t.exports = c, c.signature = n.signature;
       }, { "./aesid.json": 455, "./asn1": 456, "./fixProc": 458, "browserify-aes": 191, pbkdf2: 460, "safe-buffer": 494 }], 460: [function(e, t, r) {
         "use strict";
@@ -28107,7 +28110,6 @@ var require_exceljs_min = __commonJS({
               return i || (i = r2.process && r2.process.nextTick ? r2.process.nextTick : r2.queueMicrotask ? r2.queueMicrotask : r2.setImmediate ? r2.setImmediate : r2.setTimeout);
             }
             __name(d, "d");
-            __name2(d, "d");
             function p(e2, t2, r3, n2, i2) {
               return u.importKey("raw", e2, { name: "PBKDF2" }, false, ["deriveBits"]).then((function(e3) {
                 return u.deriveBits({ name: "PBKDF2", salt: t2, iterations: r3, hash: { name: i2 } }, e3, n2 << 3);
@@ -28116,7 +28118,6 @@ var require_exceljs_min = __commonJS({
               }));
             }
             __name(p, "p");
-            __name2(p, "p");
             t.exports = function(e2, t2, i2, m, b, g) {
               "function" == typeof b && (g = b, b = void 0);
               var y = h[(b = b || "sha1").toLowerCase()];
@@ -28186,8 +28187,7 @@ var require_exceljs_min = __commonJS({
             function t3(t4) {
               return s(e3).update(t4).digest();
             }
-            __name(t3, "t3");
-            __name2(t3, "t");
+            __name(t3, "t");
             return "rmd160" === e3 || "ripemd160" === e3 ? function(e4) {
               return new i().update(e4).digest();
             } : "md5" === e3 ? n : t3;
@@ -28198,7 +28198,6 @@ var require_exceljs_min = __commonJS({
           c2.copy(p, 0, 0, l2), this.ipad1 = p, this.ipad2 = c2, this.opad = f2, this.alg = e2, this.blocksize = l2, this.hash = a2, this.size = h[e2];
         }
         __name(f, "f");
-        __name2(f, "f");
         f.prototype.run = function(e2, t2) {
           return e2.copy(t2, this.blocksize), this.hash(t2).copy(this.opad, this.blocksize), this.hash(this.opad);
         }, t.exports = function(e2, t2, r2, n2, i2) {
@@ -28228,7 +28227,7 @@ var require_exceljs_min = __commonJS({
         (function(e2) {
           (function() {
             "use strict";
-            void 0 === e2 || !e2.version || 0 === e2.version.indexOf("v0.") || 0 === e2.version.indexOf("v1.") && 0 !== e2.version.indexOf("v1.8.") ? t.exports = { nextTick: /* @__PURE__ */ __name2(function(t2, r2, n, i) {
+            void 0 === e2 || !e2.version || 0 === e2.version.indexOf("v0.") || 0 === e2.version.indexOf("v1.") && 0 !== e2.version.indexOf("v1.8.") ? t.exports = { nextTick: /* @__PURE__ */ __name(function(t2, r2, n, i) {
               if ("function" != typeof t2) throw new TypeError('"callback" argument must be a function');
               var s, o, a = arguments.length;
               switch (a) {
@@ -28263,12 +28262,10 @@ var require_exceljs_min = __commonJS({
           throw new Error("setTimeout has not been defined");
         }
         __name(o, "o");
-        __name2(o, "o");
         function a() {
           throw new Error("clearTimeout has not been defined");
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2) {
           if (n === setTimeout) return setTimeout(e2, 0);
           if ((n === o || !n) && setTimeout) return n = setTimeout, setTimeout(e2, 0);
@@ -28283,7 +28280,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(l, "l");
-        __name2(l, "l");
         !(function() {
           try {
             n = "function" == typeof setTimeout ? setTimeout : o;
@@ -28301,7 +28297,6 @@ var require_exceljs_min = __commonJS({
           h && c && (h = false, c.length ? u = c.concat(u) : f = -1, u.length && p());
         }
         __name(d, "d");
-        __name2(d, "d");
         function p() {
           if (!h) {
             var e2 = l(d);
@@ -28326,16 +28321,13 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(p, "p");
-        __name2(p, "p");
         function m(e2, t2) {
           this.fun = e2, this.array = t2;
         }
         __name(m, "m");
-        __name2(m, "m");
         function b() {
         }
         __name(b, "b");
-        __name2(b, "b");
         s.nextTick = function(e2) {
           var t2 = new Array(arguments.length - 1);
           if (arguments.length > 1) for (var r2 = 1; r2 < arguments.length; r2++) t2[r2 - 1] = arguments[r2];
@@ -28368,7 +28360,6 @@ var require_exceljs_min = __commonJS({
           return t2.writeUInt32BE(e2, 0), t2;
         }
         __name(s, "s");
-        __name2(s, "s");
         t.exports = function(e2, t2) {
           for (var r2, o = i.alloc(0), a = 0; o.length < t2; ) r2 = s(a++), o = i.concat([o, n("sha1").update(e2).update(r2).digest()]);
           return o.slice(0, t2);
@@ -28485,7 +28476,6 @@ var require_exceljs_min = __commonJS({
               throw new Error("secure random number generation not supported by this browser\nuse chrome, FireFox or Internet Explorer 11");
             }
             __name(i, "i");
-            __name2(i, "i");
             var s = e("safe-buffer"), o = e("randombytes"), a = s.Buffer, l = s.kMaxLength, c = n.crypto || n.msCrypto, u = Math.pow(2, 32) - 1;
             function h(e2, t3) {
               if ("number" != typeof e2 || e2 != e2) throw new TypeError("offset must be a number");
@@ -28493,14 +28483,12 @@ var require_exceljs_min = __commonJS({
               if (e2 > l || e2 > t3) throw new RangeError("offset out of range");
             }
             __name(h, "h");
-            __name2(h, "h");
             function f(e2, t3, r2) {
               if ("number" != typeof e2 || e2 != e2) throw new TypeError("size must be a number");
               if (e2 > u || e2 < 0) throw new TypeError("size must be a uint32");
               if (e2 + t3 > r2 || e2 > l) throw new RangeError("buffer too small");
             }
             __name(f, "f");
-            __name2(f, "f");
             function d(e2, r2, n2, i2) {
               if (t2.browser) {
                 var s2 = e2.buffer, a2 = new Uint8Array(s2, r2, n2);
@@ -28515,7 +28503,6 @@ var require_exceljs_min = __commonJS({
               }));
             }
             __name(d, "d");
-            __name2(d, "d");
             c && c.getRandomValues || !t2.browser ? (r.randomFill = function(e2, t3, r2, i2) {
               if (!(a.isBuffer(e2) || e2 instanceof n.Uint8Array)) throw new TypeError('"buf" argument must be a Buffer or Uint8Array');
               if ("function" == typeof t3) i2 = t3, t3 = 0, r2 = e2.length;
@@ -28542,14 +28529,12 @@ var require_exceljs_min = __commonJS({
                 return "string" == typeof t2 ? t2 : t2(e4, r5, n4);
               })(r4, n3, i4)) || this;
             }
-            __name(i3, "i3");
-            __name2(i3, "i");
+            __name(i3, "i");
             return n2 = e3, (r3 = i3).prototype = Object.create(n2.prototype), r3.prototype.constructor = r3, r3.__proto__ = n2, i3;
           })(r2);
           i2.prototype.name = r2.name, i2.prototype.code = e2, n[e2] = i2;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2, t2) {
           if (Array.isArray(e2)) {
             var r2 = e2.length;
@@ -28560,7 +28545,6 @@ var require_exceljs_min = __commonJS({
           return "of ".concat(t2, " ").concat(String(e2));
         }
         __name(s, "s");
-        __name2(s, "s");
         i("ERR_INVALID_OPT_VALUE", (function(e2, t2) {
           return 'The value "' + t2 + '" is invalid for option "' + e2 + '"';
         }), TypeError), i("ERR_INVALID_ARG_TYPE", (function(e2, t2, r2) {
@@ -28603,26 +28587,23 @@ var require_exceljs_min = __commonJS({
               i.call(this, e2), s.call(this, e2), this.allowHalfOpen = true, e2 && (false === e2.readable && (this.readable = false), false === e2.writable && (this.writable = false), false === e2.allowHalfOpen && (this.allowHalfOpen = false, this.once("end", u)));
             }
             __name(c, "c");
-            __name2(c, "c");
             function u() {
               this._writableState.ended || r2.nextTick(h, this);
             }
             __name(u, "u");
-            __name2(u, "u");
             function h(e2) {
               e2.end();
             }
             __name(h, "h");
-            __name2(h, "h");
-            Object.defineProperty(c.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            Object.defineProperty(c.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState.highWaterMark;
-            }, "get") }), Object.defineProperty(c.prototype, "writableBuffer", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(c.prototype, "writableBuffer", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState && this._writableState.getBuffer();
-            }, "get") }), Object.defineProperty(c.prototype, "writableLength", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(c.prototype, "writableLength", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState.length;
-            }, "get") }), Object.defineProperty(c.prototype, "destroyed", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(c.prototype, "destroyed", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return void 0 !== this._readableState && void 0 !== this._writableState && (this._readableState.destroyed && this._writableState.destroyed);
-            }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+            }, "get"), set: /* @__PURE__ */ __name(function(e2) {
               void 0 !== this._readableState && void 0 !== this._writableState && (this._readableState.destroyed = e2, this._writableState.destroyed = e2);
             }, "set") });
           }).call(this);
@@ -28636,7 +28617,6 @@ var require_exceljs_min = __commonJS({
           n.call(this, e2);
         }
         __name(i, "i");
-        __name2(i, "i");
         e("inherits")(i, n), i.prototype._transform = function(e2, t2, r2) {
           r2(null, e2);
         };
@@ -28647,7 +28627,7 @@ var require_exceljs_min = __commonJS({
             var i;
             t.exports = M, M.ReadableState = S;
             e("events").EventEmitter;
-            var s = /* @__PURE__ */ __name2(function(e2, t2) {
+            var s = /* @__PURE__ */ __name(function(e2, t2) {
               return e2.listeners(t2).length;
             }, "s"), o = e("./internal/streams/stream"), a = e("buffer").Buffer, l = (void 0 !== n ? n : "undefined" != typeof window ? window : "undefined" != typeof self ? self : {}).Uint8Array || function() {
             };
@@ -28661,14 +28641,12 @@ var require_exceljs_min = __commonJS({
               i = i || e("./_stream_duplex"), t2 = t2 || {}, "boolean" != typeof n2 && (n2 = r3 instanceof i), this.objectMode = !!t2.objectMode, n2 && (this.objectMode = this.objectMode || !!t2.readableObjectMode), this.highWaterMark = b(this, t2, "readableHighWaterMark", n2), this.buffer = new p(), this.length = 0, this.pipes = null, this.pipesCount = 0, this.flowing = null, this.ended = false, this.endEmitted = false, this.reading = false, this.sync = true, this.needReadable = false, this.emittedReadable = false, this.readableListening = false, this.resumeScheduled = false, this.paused = true, this.emitClose = false !== t2.emitClose, this.autoDestroy = !!t2.autoDestroy, this.destroyed = false, this.defaultEncoding = t2.defaultEncoding || "utf8", this.awaitDrain = 0, this.readingMore = false, this.decoder = null, this.encoding = null, t2.encoding && (h || (h = e("string_decoder/").StringDecoder), this.decoder = new h(t2.encoding), this.encoding = t2.encoding);
             }
             __name(S, "S");
-            __name2(S, "S");
             function M(t2) {
               if (i = i || e("./_stream_duplex"), !(this instanceof M)) return new M(t2);
               var r3 = this instanceof i;
               this._readableState = new S(t2, this, r3), this.readable = true, t2 && ("function" == typeof t2.read && (this._read = t2.read), "function" == typeof t2.destroy && (this._destroy = t2.destroy)), o.call(this);
             }
             __name(M, "M");
-            __name2(M, "M");
             function C(e2, t2, r3, n2, i2) {
               c("readableAddChunk", t2);
               var s2, o2 = e2._readableState;
@@ -28698,15 +28676,13 @@ var require_exceljs_min = __commonJS({
               return !o2.ended && (o2.length < o2.highWaterMark || 0 === o2.length);
             }
             __name(C, "C");
-            __name2(C, "C");
             function T(e2, t2, r3, n2) {
               t2.flowing && 0 === t2.length && !t2.sync ? (t2.awaitDrain = 0, e2.emit("data", r3)) : (t2.length += t2.objectMode ? 1 : r3.length, n2 ? t2.buffer.unshift(r3) : t2.buffer.push(r3), t2.needReadable && A(e2)), O(e2, t2);
             }
             __name(T, "T");
-            __name2(T, "T");
-            Object.defineProperty(M.prototype, "destroyed", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            Object.defineProperty(M.prototype, "destroyed", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return void 0 !== this._readableState && this._readableState.destroyed;
-            }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+            }, "get"), set: /* @__PURE__ */ __name(function(e2) {
               this._readableState && (this._readableState.destroyed = e2);
             }, "set") }), M.prototype.destroy = m.destroy, M.prototype._undestroy = m.undestroy, M.prototype._destroy = function(e2, t2) {
               t2(e2);
@@ -28730,24 +28706,20 @@ var require_exceljs_min = __commonJS({
               })(e2)), e2 <= t2.length ? e2 : t2.ended ? t2.length : (t2.needReadable = true, 0));
             }
             __name(E, "E");
-            __name2(E, "E");
             function A(e2) {
               var t2 = e2._readableState;
               c("emitReadable", t2.needReadable, t2.emittedReadable), t2.needReadable = false, t2.emittedReadable || (c("emitReadable", t2.flowing), t2.emittedReadable = true, r2.nextTick(R, e2));
             }
             __name(A, "A");
-            __name2(A, "A");
             function R(e2) {
               var t2 = e2._readableState;
               c("emitReadable_", t2.destroyed, t2.length, t2.ended), t2.destroyed || !t2.length && !t2.ended || (e2.emit("readable"), t2.emittedReadable = false), t2.needReadable = !t2.flowing && !t2.ended && t2.length <= t2.highWaterMark, B(e2);
             }
             __name(R, "R");
-            __name2(R, "R");
             function O(e2, t2) {
               t2.readingMore || (t2.readingMore = true, r2.nextTick(j, e2, t2));
             }
             __name(O, "O");
-            __name2(O, "O");
             function j(e2, t2) {
               for (; !t2.reading && !t2.ended && (t2.length < t2.highWaterMark || t2.flowing && 0 === t2.length); ) {
                 var r3 = t2.length;
@@ -28756,41 +28728,34 @@ var require_exceljs_min = __commonJS({
               t2.readingMore = false;
             }
             __name(j, "j");
-            __name2(j, "j");
             function I(e2) {
               var t2 = e2._readableState;
               t2.readableListening = e2.listenerCount("readable") > 0, t2.resumeScheduled && !t2.paused ? t2.flowing = true : e2.listenerCount("data") > 0 && e2.resume();
             }
             __name(I, "I");
-            __name2(I, "I");
             function N(e2) {
               c("readable nexttick read 0"), e2.read(0);
             }
             __name(N, "N");
-            __name2(N, "N");
             function P(e2, t2) {
               c("resume", t2.reading), t2.reading || e2.read(0), t2.resumeScheduled = false, e2.emit("resume"), B(e2), t2.flowing && !t2.reading && e2.read(0);
             }
             __name(P, "P");
-            __name2(P, "P");
             function B(e2) {
               var t2 = e2._readableState;
               for (c("flow", t2.flowing); t2.flowing && null !== e2.read(); ) ;
             }
             __name(B, "B");
-            __name2(B, "B");
             function D(e2, t2) {
               return 0 === t2.length ? null : (t2.objectMode ? r3 = t2.buffer.shift() : !e2 || e2 >= t2.length ? (r3 = t2.decoder ? t2.buffer.join("") : 1 === t2.buffer.length ? t2.buffer.first() : t2.buffer.concat(t2.length), t2.buffer.clear()) : r3 = t2.buffer.consume(e2, t2.decoder), r3);
               var r3;
             }
             __name(D, "D");
-            __name2(D, "D");
             function F(e2) {
               var t2 = e2._readableState;
               c("endReadable", t2.endEmitted), t2.endEmitted || (t2.ended = true, r2.nextTick(L, t2, e2));
             }
             __name(F, "F");
-            __name2(F, "F");
             function L(e2, t2) {
               if (c("endReadableNT", e2.endEmitted, e2.length), !e2.endEmitted && 0 === e2.length && (e2.endEmitted = true, t2.readable = false, t2.emit("end"), e2.autoDestroy)) {
                 var r3 = t2._writableState;
@@ -28798,13 +28763,11 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(L, "L");
-            __name2(L, "L");
             function z(e2, t2) {
               for (var r3 = 0, n2 = e2.length; r3 < n2; r3++) if (e2[r3] === t2) return r3;
               return -1;
             }
             __name(z, "z");
-            __name2(z, "z");
             M.prototype.read = function(e2) {
               c("read", e2), e2 = parseInt(e2, 10);
               var t2 = this._readableState, r3 = e2;
@@ -28831,13 +28794,11 @@ var require_exceljs_min = __commonJS({
               function a2(t3, r3) {
                 c("onunpipe"), t3 === n2 && r3 && false === r3.hasUnpiped && (r3.hasUnpiped = true, c("cleanup"), e2.removeListener("close", p2), e2.removeListener("finish", m2), e2.removeListener("drain", u2), e2.removeListener("error", d2), e2.removeListener("unpipe", a2), n2.removeListener("end", l2), n2.removeListener("end", b2), n2.removeListener("data", f2), h2 = true, !i2.awaitDrain || e2._writableState && !e2._writableState.needDrain || u2());
               }
-              __name(a2, "a2");
-              __name2(a2, "a");
+              __name(a2, "a");
               function l2() {
                 c("onend"), e2.end();
               }
-              __name(l2, "l2");
-              __name2(l2, "l");
+              __name(l2, "l");
               i2.endEmitted ? r2.nextTick(o2) : n2.once("end", o2), e2.on("unpipe", a2);
               var u2 = /* @__PURE__ */ (function(e3) {
                 return function() {
@@ -28852,28 +28813,23 @@ var require_exceljs_min = __commonJS({
                 var r3 = e2.write(t3);
                 c("dest.write", r3), false === r3 && ((1 === i2.pipesCount && i2.pipes === e2 || i2.pipesCount > 1 && -1 !== z(i2.pipes, e2)) && !h2 && (c("false write response, pause", i2.awaitDrain), i2.awaitDrain++), n2.pause());
               }
-              __name(f2, "f2");
-              __name2(f2, "f");
+              __name(f2, "f");
               function d2(t3) {
                 c("onerror", t3), b2(), e2.removeListener("error", d2), 0 === s(e2, "error") && x(e2, t3);
               }
-              __name(d2, "d2");
-              __name2(d2, "d");
+              __name(d2, "d");
               function p2() {
                 e2.removeListener("finish", m2), b2();
               }
-              __name(p2, "p2");
-              __name2(p2, "p");
+              __name(p2, "p");
               function m2() {
                 c("onfinish"), e2.removeListener("close", p2), b2();
               }
-              __name(m2, "m2");
-              __name2(m2, "m");
+              __name(m2, "m");
               function b2() {
                 c("unpipe"), n2.unpipe(e2);
               }
-              __name(b2, "b2");
-              __name2(b2, "b");
+              __name(b2, "b");
               return n2.on("data", f2), (function(e3, t3, r3) {
                 if ("function" == typeof e3.prependListener) return e3.prependListener(t3, r3);
                 e3._events && e3._events[t3] ? Array.isArray(e3._events[t3]) ? e3._events[t3].unshift(r3) : e3._events[t3] = [r3, e3._events[t3]] : e3.on(t3, r3);
@@ -28927,15 +28883,15 @@ var require_exceljs_min = __commonJS({
               }, this;
             }, "function" == typeof Symbol && (M.prototype[Symbol.asyncIterator] = function() {
               return void 0 === f && (f = e("./internal/streams/async_iterator")), f(this);
-            }), Object.defineProperty(M.prototype, "readableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }), Object.defineProperty(M.prototype, "readableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._readableState.highWaterMark;
-            }, "get") }), Object.defineProperty(M.prototype, "readableBuffer", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(M.prototype, "readableBuffer", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._readableState && this._readableState.buffer;
-            }, "get") }), Object.defineProperty(M.prototype, "readableFlowing", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(M.prototype, "readableFlowing", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._readableState.flowing;
-            }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+            }, "get"), set: /* @__PURE__ */ __name(function(e2) {
               this._readableState && (this._readableState.flowing = e2);
-            }, "set") }), M._fromList = D, Object.defineProperty(M.prototype, "readableLength", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "set") }), M._fromList = D, Object.defineProperty(M.prototype, "readableLength", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._readableState.length;
             }, "get") }), "function" == typeof Symbol && (M.from = function(t2, r3) {
               return void 0 === d && (d = e("./internal/streams/from")), d(M, t2, r3);
@@ -28956,13 +28912,11 @@ var require_exceljs_min = __commonJS({
           i2.reading = false, (i2.needReadable || i2.length < i2.highWaterMark) && this._read(i2.highWaterMark);
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2) {
           if (!(this instanceof u)) return new u(e2);
           l.call(this, e2), this._transformState = { afterTransform: c.bind(this), needTransform: false, transforming: false, writecb: null, writechunk: null, writeencoding: null }, this._readableState.needReadable = true, this._readableState.sync = false, e2 && ("function" == typeof e2.transform && (this._transform = e2.transform), "function" == typeof e2.flush && (this._flush = e2.flush)), this.on("prefinish", h);
         }
         __name(u, "u");
-        __name2(u, "u");
         function h() {
           var e2 = this;
           "function" != typeof this._flush || this._readableState.destroyed ? f(this, null, null) : this._flush((function(t2, r2) {
@@ -28970,7 +28924,6 @@ var require_exceljs_min = __commonJS({
           }));
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2, t2, r2) {
           if (t2) return e2.emit("error", t2);
           if (null != r2 && e2.push(r2), e2._writableState.length) throw new a();
@@ -28978,7 +28931,6 @@ var require_exceljs_min = __commonJS({
           return e2.push(null);
         }
         __name(f, "f");
-        __name2(f, "f");
         e("inherits")(u, l), u.prototype.push = function(e2, t2) {
           return this._transformState.needTransform = false, l.prototype.push.call(this, e2, t2);
         }, u.prototype._transform = function(e2, t2, r2) {
@@ -29016,7 +28968,6 @@ var require_exceljs_min = __commonJS({
               };
             }
             __name(i, "i");
-            __name2(i, "i");
             var s;
             t.exports = M, M.WritableState = S;
             var o = { deprecate: e("util-deprecate") }, a = e("./internal/streams/stream"), l = e("buffer").Buffer, c = (void 0 !== n ? n : "undefined" != typeof window ? window : "undefined" != typeof self ? self : {}).Uint8Array || function() {
@@ -29025,7 +28976,6 @@ var require_exceljs_min = __commonJS({
             function k() {
             }
             __name(k, "k");
-            __name2(k, "k");
             function S(t2, n2, o2) {
               s = s || e("./_stream_duplex"), t2 = t2 || {}, "boolean" != typeof o2 && (o2 = n2 instanceof s), this.objectMode = !!t2.objectMode, o2 && (this.objectMode = this.objectMode || !!t2.writableObjectMode), this.highWaterMark = f(this, t2, "writableHighWaterMark", o2), this.finalCalled = false, this.needDrain = false, this.ending = false, this.ended = false, this.finished = false, this.destroyed = false;
               var a2 = false === t2.decodeStrings;
@@ -29046,26 +28996,22 @@ var require_exceljs_min = __commonJS({
               }, this.writecb = null, this.writelen = 0, this.bufferedRequest = null, this.lastBufferedRequest = null, this.pendingcb = 0, this.prefinished = false, this.errorEmitted = false, this.emitClose = false !== t2.emitClose, this.autoDestroy = !!t2.autoDestroy, this.bufferedRequestCount = 0, this.corkedRequestsFree = new i(this);
             }
             __name(S, "S");
-            __name2(S, "S");
             function M(t2) {
               var r3 = this instanceof (s = s || e("./_stream_duplex"));
               if (!r3 && !u.call(M, this)) return new M(t2);
               this._writableState = new S(t2, this, r3), this.writable = true, t2 && ("function" == typeof t2.write && (this._write = t2.write), "function" == typeof t2.writev && (this._writev = t2.writev), "function" == typeof t2.destroy && (this._destroy = t2.destroy), "function" == typeof t2.final && (this._final = t2.final)), a.call(this);
             }
             __name(M, "M");
-            __name2(M, "M");
             function C(e2, t2, r3, n2, i2, s2, o2) {
               t2.writelen = n2, t2.writecb = o2, t2.writing = true, t2.sync = true, t2.destroyed ? t2.onwrite(new y("write")) : r3 ? e2._writev(i2, t2.onwrite) : e2._write(i2, s2, t2.onwrite), t2.sync = false;
             }
             __name(C, "C");
-            __name2(C, "C");
             function T(e2, t2, r3, n2) {
               r3 || (function(e3, t3) {
                 0 === t3.length && t3.needDrain && (t3.needDrain = false, e3.emit("drain"));
               })(e2, t2), t2.pendingcb--, n2(), O(e2, t2);
             }
             __name(T, "T");
-            __name2(T, "T");
             function E(e2, t2) {
               t2.bufferProcessing = true;
               var r3 = t2.bufferedRequest;
@@ -29084,19 +29030,16 @@ var require_exceljs_min = __commonJS({
               t2.bufferedRequest = r3, t2.bufferProcessing = false;
             }
             __name(E, "E");
-            __name2(E, "E");
             function A(e2) {
               return e2.ending && 0 === e2.length && null === e2.bufferedRequest && !e2.finished && !e2.writing;
             }
             __name(A, "A");
-            __name2(A, "A");
             function R(e2, t2) {
               e2._final((function(r3) {
                 t2.pendingcb--, r3 && x(e2, r3), t2.prefinished = true, e2.emit("prefinish"), O(e2, t2);
               }));
             }
             __name(R, "R");
-            __name2(R, "R");
             function O(e2, t2) {
               var n2 = A(t2);
               if (n2 && ((function(e3, t3) {
@@ -29108,7 +29051,6 @@ var require_exceljs_min = __commonJS({
               return n2;
             }
             __name(O, "O");
-            __name2(O, "O");
             e("inherits")(M, a), S.prototype.getBuffer = function() {
               for (var e2 = this.bufferedRequest, t2 = []; e2; ) t2.push(e2), e2 = e2.next;
               return t2;
@@ -29119,9 +29061,9 @@ var require_exceljs_min = __commonJS({
                 }), "_writableState.buffer is deprecated. Use _writableState.getBuffer instead.", "DEP0003") });
               } catch (e2) {
               }
-            })(), "function" == typeof Symbol && Symbol.hasInstance && "function" == typeof Function.prototype[Symbol.hasInstance] ? (u = Function.prototype[Symbol.hasInstance], Object.defineProperty(M, Symbol.hasInstance, { value: /* @__PURE__ */ __name2(function(e2) {
+            })(), "function" == typeof Symbol && Symbol.hasInstance && "function" == typeof Function.prototype[Symbol.hasInstance] ? (u = Function.prototype[Symbol.hasInstance], Object.defineProperty(M, Symbol.hasInstance, { value: /* @__PURE__ */ __name(function(e2) {
               return !!u.call(this, e2) || this === M && (e2 && e2._writableState instanceof S);
-            }, "value") })) : u = /* @__PURE__ */ __name2(function(e2) {
+            }, "value") })) : u = /* @__PURE__ */ __name(function(e2) {
               return e2 instanceof this;
             }, "u"), M.prototype.pipe = function() {
               x(this, new g());
@@ -29161,9 +29103,9 @@ var require_exceljs_min = __commonJS({
             }, M.prototype.setDefaultEncoding = function(e2) {
               if ("string" == typeof e2 && (e2 = e2.toLowerCase()), !(["hex", "utf8", "utf-8", "ascii", "binary", "base64", "ucs2", "ucs-2", "utf16le", "utf-16le", "raw"].indexOf((e2 + "").toLowerCase()) > -1)) throw new _(e2);
               return this._writableState.defaultEncoding = e2, this;
-            }, Object.defineProperty(M.prototype, "writableBuffer", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, Object.defineProperty(M.prototype, "writableBuffer", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState && this._writableState.getBuffer();
-            }, "get") }), Object.defineProperty(M.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(M.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState.highWaterMark;
             }, "get") }), M.prototype._write = function(e2, t2, r3) {
               r3(new m("_write()"));
@@ -29173,11 +29115,11 @@ var require_exceljs_min = __commonJS({
                 t3.ending = true, O(e3, t3), n3 && (t3.finished ? r2.nextTick(n3) : e3.once("finish", n3));
                 t3.ended = true, e3.writable = false;
               })(this, i2, n2), this;
-            }, Object.defineProperty(M.prototype, "writableLength", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, Object.defineProperty(M.prototype, "writableLength", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState.length;
-            }, "get") }), Object.defineProperty(M.prototype, "destroyed", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, "get") }), Object.defineProperty(M.prototype, "destroyed", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return void 0 !== this._writableState && this._writableState.destroyed;
-            }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+            }, "get"), set: /* @__PURE__ */ __name(function(e2) {
               this._writableState && (this._writableState.destroyed = e2);
             }, "set") }), M.prototype.destroy = h.destroy, M.prototype._undestroy = h.undestroy, M.prototype._destroy = function(e2, t2) {
               t2(e2);
@@ -29205,13 +29147,11 @@ var require_exceljs_min = __commonJS({
               })(t2)) in e2 ? Object.defineProperty(e2, t2, { value: r3, enumerable: true, configurable: true, writable: true }) : e2[t2] = r3, e2;
             }
             __name(i, "i");
-            __name2(i, "i");
             var s = e("./end-of-stream"), o = /* @__PURE__ */ Symbol("lastResolve"), a = /* @__PURE__ */ Symbol("lastReject"), l = /* @__PURE__ */ Symbol("error"), c = /* @__PURE__ */ Symbol("ended"), u = /* @__PURE__ */ Symbol("lastPromise"), h = /* @__PURE__ */ Symbol("handlePromise"), f = /* @__PURE__ */ Symbol("stream");
             function d(e2, t2) {
               return { value: e2, done: t2 };
             }
             __name(d, "d");
-            __name2(d, "d");
             function p(e2) {
               var t2 = e2[o];
               if (null !== t2) {
@@ -29220,16 +29160,14 @@ var require_exceljs_min = __commonJS({
               }
             }
             __name(p, "p");
-            __name2(p, "p");
             function m(e2) {
               r2.nextTick(p, e2);
             }
             __name(m, "m");
-            __name2(m, "m");
             var b = Object.getPrototypeOf((function() {
             })), g = Object.setPrototypeOf((i(n = { get stream() {
               return this[f];
-            }, next: /* @__PURE__ */ __name2(function() {
+            }, next: /* @__PURE__ */ __name(function() {
               var e2 = this, t2 = this[l];
               if (null !== t2) return Promise.reject(t2);
               if (this[c]) return Promise.resolve(d(void 0, true));
@@ -29263,7 +29201,7 @@ var require_exceljs_min = __commonJS({
               }));
             })), n), b);
             t.exports = function(e2) {
-              var t2, r3 = Object.create(g, (i(t2 = {}, f, { value: e2, writable: true }), i(t2, o, { value: null, writable: true }), i(t2, a, { value: null, writable: true }), i(t2, l, { value: null, writable: true }), i(t2, c, { value: e2._readableState.endEmitted, writable: true }), i(t2, h, { value: /* @__PURE__ */ __name2(function(e3, t3) {
+              var t2, r3 = Object.create(g, (i(t2 = {}, f, { value: e2, writable: true }), i(t2, o, { value: null, writable: true }), i(t2, a, { value: null, writable: true }), i(t2, l, { value: null, writable: true }), i(t2, c, { value: e2._readableState.endEmitted, writable: true }), i(t2, h, { value: /* @__PURE__ */ __name(function(e3, t3) {
                 var n2 = r3[f].read();
                 n2 ? (r3[u] = null, r3[o] = null, r3[a] = null, e3(d(n2, false))) : (r3[o] = e3, r3[a] = t3);
               }, "value"), writable: true }), t2));
@@ -29291,7 +29229,6 @@ var require_exceljs_min = __commonJS({
           return r2;
         }
         __name(n, "n");
-        __name2(n, "n");
         function i(e2) {
           for (var t2 = 1; t2 < arguments.length; t2++) {
             var r2 = null != arguments[t2] ? arguments[t2] : {};
@@ -29304,12 +29241,10 @@ var require_exceljs_min = __commonJS({
           return e2;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2, t2, r2) {
           return (t2 = a(t2)) in e2 ? Object.defineProperty(e2, t2, { value: r2, enumerable: true, configurable: true, writable: true }) : e2[t2] = r2, e2;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2) {
           for (var r2 = 0; r2 < t2.length; r2++) {
             var n2 = t2[r2];
@@ -29317,7 +29252,6 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(o, "o");
-        __name2(o, "o");
         function a(e2) {
           var t2 = (function(e3, t3) {
             if ("object" != typeof e3 || null === e3) return e3;
@@ -29332,7 +29266,6 @@ var require_exceljs_min = __commonJS({
           return "symbol" == typeof t2 ? t2 : String(t2);
         }
         __name(a, "a");
-        __name2(a, "a");
         var l = e("buffer").Buffer, c = e("util").inspect, u = c && c.custom || "inspect";
         t.exports = (function() {
           function e2() {
@@ -29340,36 +29273,35 @@ var require_exceljs_min = __commonJS({
               if (!(e3 instanceof t3)) throw new TypeError("Cannot call a class as a function");
             })(this, e2), this.head = null, this.tail = null, this.length = 0;
           }
-          __name(e2, "e2");
-          __name2(e2, "e");
+          __name(e2, "e");
           var t2, r2, n2;
-          return t2 = e2, (r2 = [{ key: "push", value: /* @__PURE__ */ __name2(function(e3) {
+          return t2 = e2, (r2 = [{ key: "push", value: /* @__PURE__ */ __name(function(e3) {
             var t3 = { data: e3, next: null };
             this.length > 0 ? this.tail.next = t3 : this.head = t3, this.tail = t3, ++this.length;
-          }, "value") }, { key: "unshift", value: /* @__PURE__ */ __name2(function(e3) {
+          }, "value") }, { key: "unshift", value: /* @__PURE__ */ __name(function(e3) {
             var t3 = { data: e3, next: this.head };
             0 === this.length && (this.tail = t3), this.head = t3, ++this.length;
-          }, "value") }, { key: "shift", value: /* @__PURE__ */ __name2(function() {
+          }, "value") }, { key: "shift", value: /* @__PURE__ */ __name(function() {
             if (0 !== this.length) {
               var e3 = this.head.data;
               return 1 === this.length ? this.head = this.tail = null : this.head = this.head.next, --this.length, e3;
             }
-          }, "value") }, { key: "clear", value: /* @__PURE__ */ __name2(function() {
+          }, "value") }, { key: "clear", value: /* @__PURE__ */ __name(function() {
             this.head = this.tail = null, this.length = 0;
-          }, "value") }, { key: "join", value: /* @__PURE__ */ __name2(function(e3) {
+          }, "value") }, { key: "join", value: /* @__PURE__ */ __name(function(e3) {
             if (0 === this.length) return "";
             for (var t3 = this.head, r3 = "" + t3.data; t3 = t3.next; ) r3 += e3 + t3.data;
             return r3;
-          }, "value") }, { key: "concat", value: /* @__PURE__ */ __name2(function(e3) {
+          }, "value") }, { key: "concat", value: /* @__PURE__ */ __name(function(e3) {
             if (0 === this.length) return l.alloc(0);
             for (var t3, r3, n3, i2 = l.allocUnsafe(e3 >>> 0), s2 = this.head, o2 = 0; s2; ) t3 = s2.data, r3 = i2, n3 = o2, l.prototype.copy.call(t3, r3, n3), o2 += s2.data.length, s2 = s2.next;
             return i2;
-          }, "value") }, { key: "consume", value: /* @__PURE__ */ __name2(function(e3, t3) {
+          }, "value") }, { key: "consume", value: /* @__PURE__ */ __name(function(e3, t3) {
             var r3;
             return e3 < this.head.data.length ? (r3 = this.head.data.slice(0, e3), this.head.data = this.head.data.slice(e3)) : r3 = e3 === this.head.data.length ? this.shift() : t3 ? this._getString(e3) : this._getBuffer(e3), r3;
-          }, "value") }, { key: "first", value: /* @__PURE__ */ __name2(function() {
+          }, "value") }, { key: "first", value: /* @__PURE__ */ __name(function() {
             return this.head.data;
-          }, "value") }, { key: "_getString", value: /* @__PURE__ */ __name2(function(e3) {
+          }, "value") }, { key: "_getString", value: /* @__PURE__ */ __name(function(e3) {
             var t3 = this.head, r3 = 1, n3 = t3.data;
             for (e3 -= n3.length; t3 = t3.next; ) {
               var i2 = t3.data, s2 = e3 > i2.length ? i2.length : e3;
@@ -29380,7 +29312,7 @@ var require_exceljs_min = __commonJS({
               ++r3;
             }
             return this.length -= r3, n3;
-          }, "value") }, { key: "_getBuffer", value: /* @__PURE__ */ __name2(function(e3) {
+          }, "value") }, { key: "_getBuffer", value: /* @__PURE__ */ __name(function(e3) {
             var t3 = l.allocUnsafe(e3), r3 = this.head, n3 = 1;
             for (r3.data.copy(t3), e3 -= r3.data.length; r3 = r3.next; ) {
               var i2 = r3.data, s2 = e3 > i2.length ? i2.length : e3;
@@ -29391,7 +29323,7 @@ var require_exceljs_min = __commonJS({
               ++n3;
             }
             return this.length -= n3, t3;
-          }, "value") }, { key: u, value: /* @__PURE__ */ __name2(function(e3, t3) {
+          }, "value") }, { key: u, value: /* @__PURE__ */ __name(function(e3, t3) {
             return c(this, i(i({}, t3), {}, { depth: 0, customInspect: false }));
           }, "value") }]) && o(t2.prototype, r2), n2 && o(t2, n2), Object.defineProperty(t2, "prototype", { writable: false }), e2;
         })();
@@ -29402,26 +29334,23 @@ var require_exceljs_min = __commonJS({
             function r2(e3, t2) {
               i(e3, t2), n(e3);
             }
-            __name(r2, "r2");
-            __name2(r2, "r");
+            __name(r2, "r");
             function n(e3) {
               e3._writableState && !e3._writableState.emitClose || e3._readableState && !e3._readableState.emitClose || e3.emit("close");
             }
             __name(n, "n");
-            __name2(n, "n");
             function i(e3, t2) {
               e3.emit("error", t2);
             }
             __name(i, "i");
-            __name2(i, "i");
-            t.exports = { destroy: /* @__PURE__ */ __name2(function(t2, s) {
+            t.exports = { destroy: /* @__PURE__ */ __name(function(t2, s) {
               var o = this, a = this._readableState && this._readableState.destroyed, l = this._writableState && this._writableState.destroyed;
               return a || l ? (s ? s(t2) : t2 && (this._writableState ? this._writableState.errorEmitted || (this._writableState.errorEmitted = true, e2.nextTick(i, this, t2)) : e2.nextTick(i, this, t2)), this) : (this._readableState && (this._readableState.destroyed = true), this._writableState && (this._writableState.destroyed = true), this._destroy(t2 || null, (function(t3) {
                 !s && t3 ? o._writableState ? o._writableState.errorEmitted ? e2.nextTick(n, o) : (o._writableState.errorEmitted = true, e2.nextTick(r2, o, t3)) : e2.nextTick(r2, o, t3) : s ? (e2.nextTick(n, o), s(t3)) : e2.nextTick(n, o);
               })), this);
-            }, "destroy"), undestroy: /* @__PURE__ */ __name2(function() {
+            }, "destroy"), undestroy: /* @__PURE__ */ __name(function() {
               this._readableState && (this._readableState.destroyed = false, this._readableState.reading = false, this._readableState.ended = false, this._readableState.endEmitted = false), this._writableState && (this._writableState.destroyed = false, this._writableState.ended = false, this._writableState.ending = false, this._writableState.finalCalled = false, this._writableState.prefinished = false, this._writableState.finished = false, this._writableState.errorEmitted = false);
-            }, "undestroy"), errorOrDestroy: /* @__PURE__ */ __name2(function(e3, t2) {
+            }, "undestroy"), errorOrDestroy: /* @__PURE__ */ __name(function(e3, t2) {
               var r3 = e3._readableState, n2 = e3._writableState;
               r3 && r3.autoDestroy || n2 && n2.autoDestroy ? e3.destroy(t2) : e3.emit("error", t2);
             }, "errorOrDestroy") };
@@ -29433,8 +29362,7 @@ var require_exceljs_min = __commonJS({
         function i() {
         }
         __name(i, "i");
-        __name2(i, "i");
-        t.exports = /* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e2(t2, r2, s) {
+        t.exports = /* @__PURE__ */ __name(function e2(t2, r2, s) {
           if ("function" == typeof r2) return e2(t2, null, r2);
           r2 || (r2 = {}), s = /* @__PURE__ */ (function(e3) {
             var t3 = false;
@@ -29446,18 +29374,18 @@ var require_exceljs_min = __commonJS({
               }
             };
           })(s || i);
-          var o = r2.readable || false !== r2.readable && t2.readable, a = r2.writable || false !== r2.writable && t2.writable, l = /* @__PURE__ */ __name2(function() {
+          var o = r2.readable || false !== r2.readable && t2.readable, a = r2.writable || false !== r2.writable && t2.writable, l = /* @__PURE__ */ __name(function() {
             t2.writable || u();
-          }, "l"), c = t2._writableState && t2._writableState.finished, u = /* @__PURE__ */ __name2(function() {
+          }, "l"), c = t2._writableState && t2._writableState.finished, u = /* @__PURE__ */ __name(function() {
             a = false, c = true, o || s.call(t2);
-          }, "u"), h = t2._readableState && t2._readableState.endEmitted, f = /* @__PURE__ */ __name2(function() {
+          }, "u"), h = t2._readableState && t2._readableState.endEmitted, f = /* @__PURE__ */ __name(function() {
             o = false, h = true, a || s.call(t2);
-          }, "f"), d = /* @__PURE__ */ __name2(function(e3) {
+          }, "f"), d = /* @__PURE__ */ __name(function(e3) {
             s.call(t2, e3);
-          }, "d"), p = /* @__PURE__ */ __name2(function() {
+          }, "d"), p = /* @__PURE__ */ __name(function() {
             var e3;
             return o && !h ? (t2._readableState && t2._readableState.ended || (e3 = new n()), s.call(t2, e3)) : a && !c ? (t2._writableState && t2._writableState.ended || (e3 = new n()), s.call(t2, e3)) : void 0;
-          }, "p"), m = /* @__PURE__ */ __name2(function() {
+          }, "p"), m = /* @__PURE__ */ __name(function() {
             t2.req.on("finish", u);
           }, "m");
           return !(function(e3) {
@@ -29465,7 +29393,7 @@ var require_exceljs_min = __commonJS({
           })(t2) ? a && !t2._writableState && (t2.on("end", l), t2.on("close", l)) : (t2.on("complete", u), t2.on("abort", p), t2.req ? m() : t2.on("request", m)), t2.on("end", f), t2.on("finish", u), false !== r2.error && t2.on("error", d), t2.on("close", p), function() {
             t2.removeListener("complete", u), t2.removeListener("abort", p), t2.removeListener("request", m), t2.req && t2.req.removeListener("finish", u), t2.removeListener("end", l), t2.removeListener("close", l), t2.removeListener("finish", u), t2.removeListener("end", f), t2.removeListener("error", d), t2.removeListener("close", p);
           };
-        }, "e2"), "e");
+        }, "e");
       }, { "../../../errors": 477 }], 487: [function(e, t, r) {
         "use strict";
         t.exports = function() {
@@ -29479,7 +29407,6 @@ var require_exceljs_min = __commonJS({
           if (e2) throw e2;
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(t2, r2, i2, s2) {
           s2 = /* @__PURE__ */ (function(e2) {
             var t3 = false;
@@ -29502,22 +29429,18 @@ var require_exceljs_min = __commonJS({
           };
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           e2();
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2) {
           return e2.pipe(t2);
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2) {
           return e2.length ? "function" != typeof e2[e2.length - 1] ? a : e2.pop() : a;
         }
         __name(h, "h");
-        __name2(h, "h");
         t.exports = function() {
           for (var e2 = arguments.length, t2 = new Array(e2), r2 = 0; r2 < e2; r2++) t2[r2] = arguments[r2];
           var n2, i2 = h(t2);
@@ -29533,7 +29456,7 @@ var require_exceljs_min = __commonJS({
       }, { "../../../errors": 477, "./end-of-stream": 486 }], 489: [function(e, t, r) {
         "use strict";
         var n = e("../../../errors").codes.ERR_INVALID_OPT_VALUE;
-        t.exports = { getHighWaterMark: /* @__PURE__ */ __name2(function(e2, t2, r2, i) {
+        t.exports = { getHighWaterMark: /* @__PURE__ */ __name(function(e2, t2, r2, i) {
           var s = (function(e3, t3, r3) {
             return null != e3.highWaterMark ? e3.highWaterMark : t3 ? e3[r3] : null;
           })(t2, i, r2);
@@ -29559,11 +29482,10 @@ var require_exceljs_min = __commonJS({
             return Object.defineProperty(e3, t3, { value: r3, enumerable: true, configurable: true, writable: true }), e3[t3];
           }
           __name(l, "l");
-          __name2(l, "l");
           try {
             l({}, "");
           } catch (e3) {
-            l = /* @__PURE__ */ __name2(function(e4, t3, r3) {
+            l = /* @__PURE__ */ __name(function(e4, t3, r3) {
               return e4[t3] = r3;
             }, "l");
           }
@@ -29572,7 +29494,6 @@ var require_exceljs_min = __commonJS({
             return n2(o2, "_invoke", { value: _(e3, r3, a2) }), o2;
           }
           __name(c, "c");
-          __name2(c, "c");
           function u(e3, t3, r3) {
             try {
               return { type: "normal", arg: e3.call(t3, r3) };
@@ -29581,21 +29502,17 @@ var require_exceljs_min = __commonJS({
             }
           }
           __name(u, "u");
-          __name2(u, "u");
           e2.wrap = c;
           var h = {};
           function f() {
           }
           __name(f, "f");
-          __name2(f, "f");
           function d() {
           }
           __name(d, "d");
-          __name2(d, "d");
           function p() {
           }
           __name(p, "p");
-          __name2(p, "p");
           var m = {};
           l(m, s, (function() {
             return this;
@@ -29611,13 +29528,12 @@ var require_exceljs_min = __commonJS({
             }));
           }
           __name(v, "v");
-          __name2(v, "v");
           function w(e3, t3) {
             var i2;
-            n2(this, "_invoke", { value: /* @__PURE__ */ __name2(function(n3, s2) {
+            n2(this, "_invoke", { value: /* @__PURE__ */ __name(function(n3, s2) {
               function o2() {
                 return new t3((function(i3, o3) {
-                  !(/* @__PURE__ */ __name2(/* @__PURE__ */ __name(function n4(i4, s3, o4, a2) {
+                  !(/* @__PURE__ */ __name(function n4(i4, s3, o4, a2) {
                     var l2 = u(e3[i4], e3, s3);
                     if ("throw" !== l2.type) {
                       var c2 = l2.arg, h2 = c2.value;
@@ -29632,16 +29548,14 @@ var require_exceljs_min = __commonJS({
                       }));
                     }
                     a2(l2.arg);
-                  }, "n4"), "n"))(n3, s2, i3, o3);
+                  }, "n"))(n3, s2, i3, o3);
                 }));
               }
-              __name(o2, "o2");
-              __name2(o2, "o");
+              __name(o2, "o");
               return i2 = i2 ? i2.then(o2, o2) : o2();
             }, "value") });
           }
           __name(w, "w");
-          __name2(w, "w");
           function _(e3, t3, r3) {
             var n3 = "suspendedStart";
             return function(i2, s2) {
@@ -29675,7 +29589,6 @@ var require_exceljs_min = __commonJS({
             };
           }
           __name(_, "_");
-          __name2(_, "_");
           function x(e3, t3) {
             var r3 = t3.method, n3 = e3.iterator[r3];
             if (void 0 === n3) return t3.delegate = null, "throw" === r3 && e3.iterator.return && (t3.method = "return", t3.arg = void 0, x(e3, t3), "throw" === t3.method) || "return" !== r3 && (t3.method = "throw", t3.arg = new TypeError("The iterator does not provide a '" + r3 + "' method")), h;
@@ -29685,46 +29598,40 @@ var require_exceljs_min = __commonJS({
             return s2 ? s2.done ? (t3[e3.resultName] = s2.value, t3.next = e3.nextLoc, "return" !== t3.method && (t3.method = "next", t3.arg = void 0), t3.delegate = null, h) : s2 : (t3.method = "throw", t3.arg = new TypeError("iterator result is not an object"), t3.delegate = null, h);
           }
           __name(x, "x");
-          __name2(x, "x");
           function k(e3) {
             var t3 = { tryLoc: e3[0] };
             1 in e3 && (t3.catchLoc = e3[1]), 2 in e3 && (t3.finallyLoc = e3[2], t3.afterLoc = e3[3]), this.tryEntries.push(t3);
           }
           __name(k, "k");
-          __name2(k, "k");
           function S(e3) {
             var t3 = e3.completion || {};
             t3.type = "normal", delete t3.arg, e3.completion = t3;
           }
           __name(S, "S");
-          __name2(S, "S");
           function M(e3) {
             this.tryEntries = [{ tryLoc: "root" }], e3.forEach(k, this), this.reset(true);
           }
           __name(M, "M");
-          __name2(M, "M");
           function C(e3) {
             if (e3) {
               var t3 = e3[s];
               if (t3) return t3.call(e3);
               if ("function" == typeof e3.next) return e3;
               if (!isNaN(e3.length)) {
-                var n3 = -1, i2 = /* @__PURE__ */ __name2(/* @__PURE__ */ __name(function t4() {
+                var n3 = -1, i2 = /* @__PURE__ */ __name(function t4() {
                   for (; ++n3 < e3.length; ) if (r2.call(e3, n3)) return t4.value = e3[n3], t4.done = false, t4;
                   return t4.value = void 0, t4.done = true, t4;
-                }, "t4"), "t");
+                }, "t");
                 return i2.next = i2;
               }
             }
             return { next: T };
           }
           __name(C, "C");
-          __name2(C, "C");
           function T() {
             return { value: void 0, done: true };
           }
           __name(T, "T");
-          __name2(T, "T");
           return d.prototype = p, n2(y, "constructor", { value: p, configurable: true }), n2(p, "constructor", { value: d, configurable: true }), d.displayName = l(p, a, "GeneratorFunction"), e2.isGeneratorFunction = function(e3) {
             var t3 = "function" == typeof e3 && e3.constructor;
             return !!t3 && (t3 === d || "GeneratorFunction" === (t3.displayName || t3.name));
@@ -29747,28 +29654,27 @@ var require_exceljs_min = __commonJS({
           })), e2.keys = function(e3) {
             var t3 = Object(e3), r3 = [];
             for (var n3 in t3) r3.push(n3);
-            return r3.reverse(), /* @__PURE__ */ __name2(/* @__PURE__ */ __name(function e4() {
+            return r3.reverse(), /* @__PURE__ */ __name(function e4() {
               for (; r3.length; ) {
                 var n4 = r3.pop();
                 if (n4 in t3) return e4.value = n4, e4.done = false, e4;
               }
               return e4.done = true, e4;
-            }, "e4"), "e");
-          }, e2.values = C, M.prototype = { constructor: M, reset: /* @__PURE__ */ __name2(function(e3) {
+            }, "e");
+          }, e2.values = C, M.prototype = { constructor: M, reset: /* @__PURE__ */ __name(function(e3) {
             if (this.prev = 0, this.next = 0, this.sent = this._sent = void 0, this.done = false, this.delegate = null, this.method = "next", this.arg = void 0, this.tryEntries.forEach(S), !e3) for (var t3 in this) "t" === t3.charAt(0) && r2.call(this, t3) && !isNaN(+t3.slice(1)) && (this[t3] = void 0);
-          }, "reset"), stop: /* @__PURE__ */ __name2(function() {
+          }, "reset"), stop: /* @__PURE__ */ __name(function() {
             this.done = true;
             var e3 = this.tryEntries[0].completion;
             if ("throw" === e3.type) throw e3.arg;
             return this.rval;
-          }, "stop"), dispatchException: /* @__PURE__ */ __name2(function(e3) {
+          }, "stop"), dispatchException: /* @__PURE__ */ __name(function(e3) {
             if (this.done) throw e3;
             var t3 = this;
             function n3(r3, n4) {
               return o2.type = "throw", o2.arg = e3, t3.next = r3, n4 && (t3.method = "next", t3.arg = void 0), !!n4;
             }
-            __name(n3, "n3");
-            __name2(n3, "n");
+            __name(n3, "n");
             for (var i2 = this.tryEntries.length - 1; i2 >= 0; --i2) {
               var s2 = this.tryEntries[i2], o2 = s2.completion;
               if ("root" === s2.tryLoc) return n3("end");
@@ -29785,7 +29691,7 @@ var require_exceljs_min = __commonJS({
                 }
               }
             }
-          }, "dispatchException"), abrupt: /* @__PURE__ */ __name2(function(e3, t3) {
+          }, "dispatchException"), abrupt: /* @__PURE__ */ __name(function(e3, t3) {
             for (var n3 = this.tryEntries.length - 1; n3 >= 0; --n3) {
               var i2 = this.tryEntries[n3];
               if (i2.tryLoc <= this.prev && r2.call(i2, "finallyLoc") && this.prev < i2.finallyLoc) {
@@ -29796,15 +29702,15 @@ var require_exceljs_min = __commonJS({
             s2 && ("break" === e3 || "continue" === e3) && s2.tryLoc <= t3 && t3 <= s2.finallyLoc && (s2 = null);
             var o2 = s2 ? s2.completion : {};
             return o2.type = e3, o2.arg = t3, s2 ? (this.method = "next", this.next = s2.finallyLoc, h) : this.complete(o2);
-          }, "abrupt"), complete: /* @__PURE__ */ __name2(function(e3, t3) {
+          }, "abrupt"), complete: /* @__PURE__ */ __name(function(e3, t3) {
             if ("throw" === e3.type) throw e3.arg;
             return "break" === e3.type || "continue" === e3.type ? this.next = e3.arg : "return" === e3.type ? (this.rval = this.arg = e3.arg, this.method = "return", this.next = "end") : "normal" === e3.type && t3 && (this.next = t3), h;
-          }, "complete"), finish: /* @__PURE__ */ __name2(function(e3) {
+          }, "complete"), finish: /* @__PURE__ */ __name(function(e3) {
             for (var t3 = this.tryEntries.length - 1; t3 >= 0; --t3) {
               var r3 = this.tryEntries[t3];
               if (r3.finallyLoc === e3) return this.complete(r3.completion, r3.afterLoc), S(r3), h;
             }
-          }, "finish"), catch: /* @__PURE__ */ __name2(function(e3) {
+          }, "finish"), catch: /* @__PURE__ */ __name(function(e3) {
             for (var t3 = this.tryEntries.length - 1; t3 >= 0; --t3) {
               var r3 = this.tryEntries[t3];
               if (r3.tryLoc === e3) {
@@ -29817,7 +29723,7 @@ var require_exceljs_min = __commonJS({
               }
             }
             throw new Error("illegal catch attempt");
-          }, "catch"), delegateYield: /* @__PURE__ */ __name2(function(e3, t3, r3) {
+          }, "catch"), delegateYield: /* @__PURE__ */ __name(function(e3, t3, r3) {
             return this.delegate = { iterator: C(e3), resultName: t3, nextLoc: r3 }, "next" === this.method && (this.arg = void 0), h;
           }, "delegateYield") }, e2;
         })("object" == typeof t ? t.exports : {});
@@ -29833,37 +29739,30 @@ var require_exceljs_min = __commonJS({
           s.call(this, 64), this._a = 1732584193, this._b = 4023233417, this._c = 2562383102, this._d = 271733878, this._e = 3285377520;
         }
         __name(d, "d");
-        __name2(d, "d");
         function p(e2, t2) {
           return e2 << t2 | e2 >>> 32 - t2;
         }
         __name(p, "p");
-        __name2(p, "p");
         function m(e2, t2, r2, n2, i2, s2, o2, a2) {
           return p(e2 + (t2 ^ r2 ^ n2) + s2 + o2 | 0, a2) + i2 | 0;
         }
         __name(m, "m");
-        __name2(m, "m");
         function b(e2, t2, r2, n2, i2, s2, o2, a2) {
           return p(e2 + (t2 & r2 | ~t2 & n2) + s2 + o2 | 0, a2) + i2 | 0;
         }
         __name(b, "b");
-        __name2(b, "b");
         function g(e2, t2, r2, n2, i2, s2, o2, a2) {
           return p(e2 + ((t2 | ~r2) ^ n2) + s2 + o2 | 0, a2) + i2 | 0;
         }
         __name(g, "g");
-        __name2(g, "g");
         function y(e2, t2, r2, n2, i2, s2, o2, a2) {
           return p(e2 + (t2 & n2 | r2 & ~n2) + s2 + o2 | 0, a2) + i2 | 0;
         }
         __name(y, "y");
-        __name2(y, "y");
         function v(e2, t2, r2, n2, i2, s2, o2, a2) {
           return p(e2 + (t2 ^ (r2 | ~n2)) + s2 + o2 | 0, a2) + i2 | 0;
         }
         __name(v, "v");
-        __name2(v, "v");
         i(d, s), d.prototype._update = function() {
           for (var e2 = o, t2 = 0; t2 < 16; ++t2) e2[t2] = this._block.readInt32LE(4 * t2);
           for (var r2 = 0 | this._a, n2 = 0 | this._b, i2 = 0 | this._c, s2 = 0 | this._d, d2 = 0 | this._e, w = 0 | this._a, _ = 0 | this._b, x = 0 | this._c, k = 0 | this._d, S = 0 | this._e, M = 0; M < 80; M += 1) {
@@ -29884,12 +29783,10 @@ var require_exceljs_min = __commonJS({
           for (var r2 in e2) t2[r2] = e2[r2];
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2, r2) {
           return i(e2, t2, r2);
         }
         __name(o, "o");
-        __name2(o, "o");
         i.from && i.alloc && i.allocUnsafe && i.allocUnsafeSlow ? t.exports = n : (s(n, r), r.Buffer = o), o.prototype = Object.create(i.prototype), s(i, o), o.from = function(e2, t2, r2) {
           if ("number" == typeof e2) throw new TypeError("Argument must not be a number");
           return i(e2, t2, r2);
@@ -29933,7 +29830,7 @@ var require_exceljs_min = __commonJS({
         Object.defineProperty(r, "__esModule", { value: true });
         const n = e("xmlchars/xml/1.0/ed5"), i = e("xmlchars/xml/1.1/ed2"), s = e("xmlchars/xmlns/1.0/ed3");
         var o = n.isS, a = n.isChar, l = n.isNameStartChar, c = n.isNameChar, u = n.S_LIST, h = n.NAME_RE, f = i.isChar, d = s.isNCNameStartChar, p = s.isNCNameChar, m = s.NC_NAME_RE;
-        const b = "http://www.w3.org/XML/1998/namespace", g = "http://www.w3.org/2000/xmlns/", y = { __proto__: null, xml: b, xmlns: g }, v = { __proto__: null, amp: "&", gt: ">", lt: "<", quot: '"', apos: "'" }, w = /* @__PURE__ */ __name2((e2) => 34 === e2 || 39 === e2, "w"), _ = [34, 39], x = [..._, 91, 62], k = [..._, 60, 93], S = [61, 63, ...u], M = [...u, 62, 38, 60];
+        const b = "http://www.w3.org/XML/1998/namespace", g = "http://www.w3.org/2000/xmlns/", y = { __proto__: null, xml: b, xmlns: g }, v = { __proto__: null, amp: "&", gt: ">", lt: "<", quot: '"', apos: "'" }, w = /* @__PURE__ */ __name((e2) => 34 === e2 || 39 === e2, "w"), _ = [34, 39], x = [..._, 91, 62], k = [..._, 60, 93], S = [61, 63, ...u], M = [...u, 62, 38, 60];
         function C(e2, t2, r2) {
           switch (t2) {
             case "xml":
@@ -29959,8 +29856,7 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(C, "C");
-        __name2(C, "C");
-        const T = /* @__PURE__ */ __name2((e2) => m.test(e2), "T"), E = /* @__PURE__ */ __name2((e2) => h.test(e2), "E");
+        const T = /* @__PURE__ */ __name((e2) => m.test(e2), "T"), E = /* @__PURE__ */ __name((e2) => h.test(e2), "E");
         r.EVENTS = ["xmldecl", "text", "processinginstruction", "doctype", "comment", "opentagstart", "attribute", "opentag", "closetag", "cdata", "error", "end", "ready"];
         const A = { xmldecl: "xmldeclHandler", text: "textHandler", processinginstruction: "piHandler", doctype: "doctypeHandler", comment: "commentHandler", opentagstart: "openTagStartHandler", attribute: "attributeHandler", opentag: "openTagHandler", closetag: "closeTagHandler", cdata: "cdataHandler", error: "errorHandler", end: "endHandler", ready: "readyHandler" };
         r.SaxesParser = class {
@@ -30642,7 +30538,6 @@ var require_exceljs_min = __commonJS({
           this._block = n.alloc(e2), this._finalSize = t2, this._blockSize = e2, this._len = 0;
         }
         __name(i, "i");
-        __name2(i, "i");
         i.prototype.update = function(e2, t2) {
           "string" == typeof e2 && (t2 = t2 || "utf8", e2 = n.from(e2, t2));
           for (var r2 = this._block, i2 = this._blockSize, s = e2.length, o = this._len, a = 0; a < s; ) {
@@ -30681,17 +30576,14 @@ var require_exceljs_min = __commonJS({
           this.init(), this._w = a, i.call(this, 64, 56);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           return e2 << 30 | e2 >>> 2;
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2, r2, n2) {
           return 0 === e2 ? t2 & r2 | ~t2 & n2 : 2 === e2 ? t2 & r2 | t2 & n2 | r2 & n2 : t2 ^ r2 ^ n2;
         }
         __name(u, "u");
-        __name2(u, "u");
         n(l, i), l.prototype.init = function() {
           return this._a = 1732584193, this._b = 4023233417, this._c = 2562383102, this._d = 271733878, this._e = 3285377520, this;
         }, l.prototype._update = function(e2) {
@@ -30713,22 +30605,18 @@ var require_exceljs_min = __commonJS({
           this.init(), this._w = a, i.call(this, 64, 56);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2) {
           return e2 << 5 | e2 >>> 27;
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2) {
           return e2 << 30 | e2 >>> 2;
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2, r2, n2) {
           return 0 === e2 ? t2 & r2 | ~t2 & n2 : 2 === e2 ? t2 & r2 | t2 & n2 | r2 & n2 : t2 ^ r2 ^ n2;
         }
         __name(h, "h");
-        __name2(h, "h");
         n(l, i), l.prototype.init = function() {
           return this._a = 1732584193, this._b = 4023233417, this._c = 2562383102, this._d = 271733878, this._e = 3285377520, this;
         }, l.prototype._update = function(e2) {
@@ -30750,7 +30638,6 @@ var require_exceljs_min = __commonJS({
           this.init(), this._w = a, s.call(this, 64, 56);
         }
         __name(l, "l");
-        __name2(l, "l");
         n(l, i), l.prototype.init = function() {
           return this._a = 3238371032, this._b = 914150663, this._c = 812702999, this._d = 4144912697, this._e = 4290775857, this._f = 1750603025, this._g = 1694076839, this._h = 3204075428, this;
         }, l.prototype._hash = function() {
@@ -30764,32 +30651,26 @@ var require_exceljs_min = __commonJS({
           this.init(), this._w = a, i.call(this, 64, 56);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2) {
           return r2 ^ e2 & (t2 ^ r2);
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2, r2) {
           return e2 & t2 | r2 & (e2 | t2);
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2) {
           return (e2 >>> 2 | e2 << 30) ^ (e2 >>> 13 | e2 << 19) ^ (e2 >>> 22 | e2 << 10);
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2) {
           return (e2 >>> 6 | e2 << 26) ^ (e2 >>> 11 | e2 << 21) ^ (e2 >>> 25 | e2 << 7);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2) {
           return (e2 >>> 7 | e2 << 25) ^ (e2 >>> 18 | e2 << 14) ^ e2 >>> 3;
         }
         __name(d, "d");
-        __name2(d, "d");
         n(l, i), l.prototype.init = function() {
           return this._a = 1779033703, this._b = 3144134277, this._c = 1013904242, this._d = 2773480762, this._e = 1359893119, this._f = 2600822924, this._g = 528734635, this._h = 1541459225, this;
         }, l.prototype._update = function(e2) {
@@ -30811,7 +30692,6 @@ var require_exceljs_min = __commonJS({
           this.init(), this._w = a, s.call(this, 128, 112);
         }
         __name(l, "l");
-        __name2(l, "l");
         n(l, i), l.prototype.init = function() {
           return this._ah = 3418070365, this._bh = 1654270250, this._ch = 2438529370, this._dh = 355462360, this._eh = 1731405415, this._fh = 2394180231, this._gh = 3675008525, this._hh = 1203062813, this._al = 3238371032, this._bl = 914150663, this._cl = 812702999, this._dl = 4144912697, this._el = 4290775857, this._fl = 1750603025, this._gl = 1694076839, this._hl = 3204075428, this;
         }, l.prototype._hash = function() {
@@ -30819,8 +30699,7 @@ var require_exceljs_min = __commonJS({
           function t2(t3, r2, n2) {
             e2.writeInt32BE(t3, n2), e2.writeInt32BE(r2, n2 + 4);
           }
-          __name(t2, "t2");
-          __name2(t2, "t");
+          __name(t2, "t");
           return t2(this._ah, this._al, 0), t2(this._bh, this._bl, 8), t2(this._ch, this._cl, 16), t2(this._dh, this._dl, 24), t2(this._eh, this._el, 32), t2(this._fh, this._fl, 40), e2;
         }, t.exports = l;
       }, { "./hash": 497, "./sha512": 504, inherits: 440, "safe-buffer": 494 }], 504: [function(e, t, r) {
@@ -30830,52 +30709,42 @@ var require_exceljs_min = __commonJS({
           this.init(), this._w = a, i.call(this, 128, 112);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2) {
           return r2 ^ e2 & (t2 ^ r2);
         }
         __name(c, "c");
-        __name2(c, "c");
         function u(e2, t2, r2) {
           return e2 & t2 | r2 & (e2 | t2);
         }
         __name(u, "u");
-        __name2(u, "u");
         function h(e2, t2) {
           return (e2 >>> 28 | t2 << 4) ^ (t2 >>> 2 | e2 << 30) ^ (t2 >>> 7 | e2 << 25);
         }
         __name(h, "h");
-        __name2(h, "h");
         function f(e2, t2) {
           return (e2 >>> 14 | t2 << 18) ^ (e2 >>> 18 | t2 << 14) ^ (t2 >>> 9 | e2 << 23);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2, t2) {
           return (e2 >>> 1 | t2 << 31) ^ (e2 >>> 8 | t2 << 24) ^ e2 >>> 7;
         }
         __name(d, "d");
-        __name2(d, "d");
         function p(e2, t2) {
           return (e2 >>> 1 | t2 << 31) ^ (e2 >>> 8 | t2 << 24) ^ (e2 >>> 7 | t2 << 25);
         }
         __name(p, "p");
-        __name2(p, "p");
         function m(e2, t2) {
           return (e2 >>> 19 | t2 << 13) ^ (t2 >>> 29 | e2 << 3) ^ e2 >>> 6;
         }
         __name(m, "m");
-        __name2(m, "m");
         function b(e2, t2) {
           return (e2 >>> 19 | t2 << 13) ^ (t2 >>> 29 | e2 << 3) ^ (e2 >>> 6 | t2 << 26);
         }
         __name(b, "b");
-        __name2(b, "b");
         function g(e2, t2) {
           return e2 >>> 0 < t2 >>> 0 ? 1 : 0;
         }
         __name(g, "g");
-        __name2(g, "g");
         n(l, i), l.prototype.init = function() {
           return this._ah = 1779033703, this._bh = 3144134277, this._ch = 1013904242, this._dh = 2773480762, this._eh = 1359893119, this._fh = 2600822924, this._gh = 528734635, this._hh = 1541459225, this._al = 4089235720, this._bl = 2227873595, this._cl = 4271175723, this._dl = 1595750129, this._el = 2917565137, this._fl = 725511199, this._gl = 4215389547, this._hl = 327033209, this;
         }, l.prototype._update = function(e2) {
@@ -30897,8 +30766,7 @@ var require_exceljs_min = __commonJS({
           function t2(t3, r2, n2) {
             e2.writeInt32BE(t3, n2), e2.writeInt32BE(r2, n2 + 4);
           }
-          __name(t2, "t2");
-          __name2(t2, "t");
+          __name(t2, "t");
           return t2(this._ah, this._al, 0), t2(this._bh, this._bl, 8), t2(this._ch, this._cl, 16), t2(this._dh, this._dl, 24), t2(this._eh, this._el, 32), t2(this._fh, this._fl, 40), t2(this._gh, this._gl, 48), t2(this._hh, this._hl, 56), e2;
         }, t.exports = l;
       }, { "./hash": 497, inherits: 440, "safe-buffer": 494 }], 505: [function(e, t, r) {
@@ -30909,41 +30777,34 @@ var require_exceljs_min = __commonJS({
           n.call(this);
         }
         __name(i, "i");
-        __name2(i, "i");
         e("inherits")(i, n), i.Readable = e("readable-stream/readable.js"), i.Writable = e("readable-stream/writable.js"), i.Duplex = e("readable-stream/duplex.js"), i.Transform = e("readable-stream/transform.js"), i.PassThrough = e("readable-stream/passthrough.js"), i.Stream = i, i.prototype.pipe = function(e2, t2) {
           var r2 = this;
           function i2(t3) {
             e2.writable && false === e2.write(t3) && r2.pause && r2.pause();
           }
-          __name(i2, "i2");
-          __name2(i2, "i");
+          __name(i2, "i");
           function s() {
             r2.readable && r2.resume && r2.resume();
           }
           __name(s, "s");
-          __name2(s, "s");
           r2.on("data", i2), e2.on("drain", s), e2._isStdio || t2 && false === t2.end || (r2.on("end", a), r2.on("close", l));
           var o = false;
           function a() {
             o || (o = true, e2.end());
           }
           __name(a, "a");
-          __name2(a, "a");
           function l() {
             o || (o = true, "function" == typeof e2.destroy && e2.destroy());
           }
           __name(l, "l");
-          __name2(l, "l");
           function c(e3) {
             if (u(), 0 === n.listenerCount(this, "error")) throw e3;
           }
           __name(c, "c");
-          __name2(c, "c");
           function u() {
             r2.removeListener("data", i2), e2.removeListener("drain", s), r2.removeListener("end", a), r2.removeListener("close", l), r2.removeListener("error", c), e2.removeListener("error", c), r2.removeListener("end", u), r2.removeListener("close", u), e2.removeListener("close", u);
           }
           __name(u, "u");
-          __name2(u, "u");
           return r2.on("error", c), e2.on("error", c), r2.on("end", u), r2.on("close", u), e2.on("close", u), e2.emit("pipe", r2), e2;
         };
       }, { events: 422, inherits: 440, "readable-stream/duplex.js": 507, "readable-stream/passthrough.js": 516, "readable-stream/readable.js": 517, "readable-stream/transform.js": 518, "readable-stream/writable.js": 519 }], 506: [function(e, t, r) {
@@ -30976,22 +30837,19 @@ var require_exceljs_min = __commonJS({
           o.call(this, e2), a.call(this, e2), e2 && false === e2.readable && (this.readable = false), e2 && false === e2.writable && (this.writable = false), this.allowHalfOpen = true, e2 && false === e2.allowHalfOpen && (this.allowHalfOpen = false), this.once("end", f);
         }
         __name(h, "h");
-        __name2(h, "h");
         function f() {
           this.allowHalfOpen || this._writableState.ended || n.nextTick(d, this);
         }
         __name(f, "f");
-        __name2(f, "f");
         function d(e2) {
           e2.end();
         }
         __name(d, "d");
-        __name2(d, "d");
-        Object.defineProperty(h.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(h.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name(function() {
           return this._writableState.highWaterMark;
-        }, "get") }), Object.defineProperty(h.prototype, "destroyed", { get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(h.prototype, "destroyed", { get: /* @__PURE__ */ __name(function() {
           return void 0 !== this._readableState && void 0 !== this._writableState && (this._readableState.destroyed && this._writableState.destroyed);
-        }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+        }, "get"), set: /* @__PURE__ */ __name(function(e2) {
           void 0 !== this._readableState && void 0 !== this._writableState && (this._readableState.destroyed = e2, this._writableState.destroyed = e2);
         }, "set") }), h.prototype._destroy = function(e2, t2) {
           this.push(null), this.end(), n.nextTick(t2, e2);
@@ -31005,7 +30863,6 @@ var require_exceljs_min = __commonJS({
           n.call(this, e2);
         }
         __name(s, "s");
-        __name2(s, "s");
         i.inherits = e("inherits"), i.inherits(s, n), s.prototype._transform = function(e2, t2, r2) {
           r2(null, e2);
         };
@@ -31018,7 +30875,7 @@ var require_exceljs_min = __commonJS({
             var s, o = e("isarray");
             v.ReadableState = y;
             e("events").EventEmitter;
-            var a = /* @__PURE__ */ __name2(function(e2, t2) {
+            var a = /* @__PURE__ */ __name(function(e2, t2) {
               return e2.listeners(t2).length;
             }, "a"), l = e("./internal/streams/stream"), c = e("safe-buffer").Buffer, u = (void 0 !== n ? n : "undefined" != typeof window ? window : "undefined" != typeof self ? self : {}).Uint8Array || function() {
             };
@@ -31038,13 +30895,11 @@ var require_exceljs_min = __commonJS({
               this.highWaterMark = i2 || 0 === i2 ? i2 : n2 && (o2 || 0 === o2) ? o2 : a2, this.highWaterMark = Math.floor(this.highWaterMark), this.buffer = new m(), this.length = 0, this.pipes = null, this.pipesCount = 0, this.flowing = null, this.ended = false, this.endEmitted = false, this.reading = false, this.sync = true, this.needReadable = false, this.emittedReadable = false, this.readableListening = false, this.resumeScheduled = false, this.destroyed = false, this.defaultEncoding = t2.defaultEncoding || "utf8", this.awaitDrain = 0, this.readingMore = false, this.decoder = null, this.encoding = null, t2.encoding && (p || (p = e("string_decoder/").StringDecoder), this.decoder = new p(t2.encoding), this.encoding = t2.encoding);
             }
             __name(y, "y");
-            __name2(y, "y");
             function v(t2) {
               if (s = s || e("./_stream_duplex"), !(this instanceof v)) return new v(t2);
               this._readableState = new y(t2, this), this.readable = true, t2 && ("function" == typeof t2.read && (this._read = t2.read), "function" == typeof t2.destroy && (this._destroy = t2.destroy)), l.call(this);
             }
             __name(v, "v");
-            __name2(v, "v");
             function w(e2, t2, r3, n2, i2) {
               var s2, o2 = e2._readableState;
               null === t2 ? (o2.reading = false, (function(e3, t3) {
@@ -31067,15 +30922,13 @@ var require_exceljs_min = __commonJS({
               })(o2);
             }
             __name(w, "w");
-            __name2(w, "w");
             function _(e2, t2, r3, n2) {
               t2.flowing && 0 === t2.length && !t2.sync ? (e2.emit("data", r3), e2.read(0)) : (t2.length += t2.objectMode ? 1 : r3.length, n2 ? t2.buffer.unshift(r3) : t2.buffer.push(r3), t2.needReadable && k(e2)), M(e2, t2);
             }
             __name(_, "_");
-            __name2(_, "_");
-            Object.defineProperty(v.prototype, "destroyed", { get: /* @__PURE__ */ __name2(function() {
+            Object.defineProperty(v.prototype, "destroyed", { get: /* @__PURE__ */ __name(function() {
               return void 0 !== this._readableState && this._readableState.destroyed;
-            }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+            }, "get"), set: /* @__PURE__ */ __name(function(e2) {
               this._readableState && (this._readableState.destroyed = e2);
             }, "set") }), v.prototype.destroy = b.destroy, v.prototype._undestroy = b.undestroy, v.prototype._destroy = function(e2, t2) {
               this.push(null), t2(e2);
@@ -31095,45 +30948,37 @@ var require_exceljs_min = __commonJS({
               })(e2)), e2 <= t2.length ? e2 : t2.ended ? t2.length : (t2.needReadable = true, 0));
             }
             __name(x, "x");
-            __name2(x, "x");
             function k(e2) {
               var t2 = e2._readableState;
               t2.needReadable = false, t2.emittedReadable || (d("emitReadable", t2.flowing), t2.emittedReadable = true, t2.sync ? i.nextTick(S, e2) : S(e2));
             }
             __name(k, "k");
-            __name2(k, "k");
             function S(e2) {
               d("emit readable"), e2.emit("readable"), A(e2);
             }
             __name(S, "S");
-            __name2(S, "S");
             function M(e2, t2) {
               t2.readingMore || (t2.readingMore = true, i.nextTick(C, e2, t2));
             }
             __name(M, "M");
-            __name2(M, "M");
             function C(e2, t2) {
               for (var r3 = t2.length; !t2.reading && !t2.flowing && !t2.ended && t2.length < t2.highWaterMark && (d("maybeReadMore read 0"), e2.read(0), r3 !== t2.length); ) r3 = t2.length;
               t2.readingMore = false;
             }
             __name(C, "C");
-            __name2(C, "C");
             function T(e2) {
               d("readable nexttick read 0"), e2.read(0);
             }
             __name(T, "T");
-            __name2(T, "T");
             function E(e2, t2) {
               t2.reading || (d("resume read 0"), e2.read(0)), t2.resumeScheduled = false, t2.awaitDrain = 0, e2.emit("resume"), A(e2), t2.flowing && !t2.reading && e2.read(0);
             }
             __name(E, "E");
-            __name2(E, "E");
             function A(e2) {
               var t2 = e2._readableState;
               for (d("flow", t2.flowing); t2.flowing && null !== e2.read(); ) ;
             }
             __name(A, "A");
-            __name2(A, "A");
             function R(e2, t2) {
               return 0 === t2.length ? null : (t2.objectMode ? r3 = t2.buffer.shift() : !e2 || e2 >= t2.length ? (r3 = t2.decoder ? t2.buffer.join("") : 1 === t2.buffer.length ? t2.buffer.head.data : t2.buffer.concat(t2.length), t2.buffer.clear()) : r3 = (function(e3, t3, r4) {
                 var n2;
@@ -31167,25 +31012,21 @@ var require_exceljs_min = __commonJS({
               var r3;
             }
             __name(R, "R");
-            __name2(R, "R");
             function O(e2) {
               var t2 = e2._readableState;
               if (t2.length > 0) throw new Error('"endReadable()" called on non-empty stream');
               t2.endEmitted || (t2.ended = true, i.nextTick(j, t2, e2));
             }
             __name(O, "O");
-            __name2(O, "O");
             function j(e2, t2) {
               e2.endEmitted || 0 !== e2.length || (e2.endEmitted = true, t2.readable = false, t2.emit("end"));
             }
             __name(j, "j");
-            __name2(j, "j");
             function I(e2, t2) {
               for (var r3 = 0, n2 = e2.length; r3 < n2; r3++) if (e2[r3] === t2) return r3;
               return -1;
             }
             __name(I, "I");
-            __name2(I, "I");
             v.prototype.read = function(e2) {
               d("read", e2), e2 = parseInt(e2, 10);
               var t2 = this._readableState, r3 = e2;
@@ -31212,13 +31053,11 @@ var require_exceljs_min = __commonJS({
               function c2(t3, r3) {
                 d("onunpipe"), t3 === n2 && r3 && false === r3.hasUnpiped && (r3.hasUnpiped = true, d("cleanup"), e2.removeListener("close", g2), e2.removeListener("finish", y2), e2.removeListener("drain", h2), e2.removeListener("error", b2), e2.removeListener("unpipe", c2), n2.removeListener("end", u2), n2.removeListener("end", v2), n2.removeListener("data", m2), f2 = true, !s2.awaitDrain || e2._writableState && !e2._writableState.needDrain || h2());
               }
-              __name(c2, "c2");
-              __name2(c2, "c");
+              __name(c2, "c");
               function u2() {
                 d("onend"), e2.end();
               }
-              __name(u2, "u2");
-              __name2(u2, "u");
+              __name(u2, "u");
               s2.endEmitted ? i.nextTick(l2) : n2.once("end", l2), e2.on("unpipe", c2);
               var h2 = /* @__PURE__ */ (function(e3) {
                 return function() {
@@ -31232,28 +31071,23 @@ var require_exceljs_min = __commonJS({
               function m2(t3) {
                 d("ondata"), p2 = false, false !== e2.write(t3) || p2 || ((1 === s2.pipesCount && s2.pipes === e2 || s2.pipesCount > 1 && -1 !== I(s2.pipes, e2)) && !f2 && (d("false write response, pause", s2.awaitDrain), s2.awaitDrain++, p2 = true), n2.pause());
               }
-              __name(m2, "m2");
-              __name2(m2, "m");
+              __name(m2, "m");
               function b2(t3) {
                 d("onerror", t3), v2(), e2.removeListener("error", b2), 0 === a(e2, "error") && e2.emit("error", t3);
               }
-              __name(b2, "b2");
-              __name2(b2, "b");
+              __name(b2, "b");
               function g2() {
                 e2.removeListener("finish", y2), v2();
               }
-              __name(g2, "g2");
-              __name2(g2, "g");
+              __name(g2, "g");
               function y2() {
                 d("onfinish"), e2.removeListener("close", g2), v2();
               }
-              __name(y2, "y2");
-              __name2(y2, "y");
+              __name(y2, "y");
               function v2() {
                 d("unpipe"), n2.unpipe(e2);
               }
-              __name(v2, "v2");
-              __name2(v2, "v");
+              __name(v2, "v");
               return n2.on("data", m2), (function(e3, t3, r3) {
                 if ("function" == typeof e3.prependListener) return e3.prependListener(t3, r3);
                 e3._events && e3._events[t3] ? o(e3._events[t3]) ? e3._events[t3].unshift(r3) : e3._events[t3] = [r3, e3._events[t3]] : e3.on(t3, r3);
@@ -31304,7 +31138,7 @@ var require_exceljs_min = __commonJS({
               return this._read = function(t3) {
                 d("wrapped _read", t3), n2 && (n2 = false, e2.resume());
               }, this;
-            }, Object.defineProperty(v.prototype, "readableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, Object.defineProperty(v.prototype, "readableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._readableState.highWaterMark;
             }, "get") }), v._fromList = R;
           }).call(this);
@@ -31323,13 +31157,11 @@ var require_exceljs_min = __commonJS({
           i2.reading = false, (i2.needReadable || i2.length < i2.highWaterMark) && this._read(i2.highWaterMark);
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2) {
           if (!(this instanceof o)) return new o(e2);
           n.call(this, e2), this._transformState = { afterTransform: s.bind(this), needTransform: false, transforming: false, writecb: null, writechunk: null, writeencoding: null }, this._readableState.needReadable = true, this._readableState.sync = false, e2 && ("function" == typeof e2.transform && (this._transform = e2.transform), "function" == typeof e2.flush && (this._flush = e2.flush)), this.on("prefinish", a);
         }
         __name(o, "o");
-        __name2(o, "o");
         function a() {
           var e2 = this;
           "function" == typeof this._flush ? this._flush((function(t2, r2) {
@@ -31337,7 +31169,6 @@ var require_exceljs_min = __commonJS({
           })) : l(this, null, null);
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2, t2, r2) {
           if (t2) return e2.emit("error", t2);
           if (null != r2 && e2.push(r2), e2._writableState.length) throw new Error("Calling transform done when ws.length != 0");
@@ -31345,7 +31176,6 @@ var require_exceljs_min = __commonJS({
           return e2.push(null);
         }
         __name(l, "l");
-        __name2(l, "l");
         i.inherits = e("inherits"), i.inherits(o, n), o.prototype.push = function(e2, t2) {
           return this._transformState.needTransform = false, n.prototype.push.call(this, e2, t2);
         }, o.prototype._transform = function(e2, t2, r2) {
@@ -31385,7 +31215,6 @@ var require_exceljs_min = __commonJS({
               };
             }
             __name(o, "o");
-            __name2(o, "o");
             t.exports = y;
             var a, l = !r2.browser && ["v0.10", "v0.9."].indexOf(r2.version.slice(0, 5)) > -1 ? i : s.nextTick;
             y.WritableState = g;
@@ -31397,7 +31226,6 @@ var require_exceljs_min = __commonJS({
             function b() {
             }
             __name(b, "b");
-            __name2(b, "b");
             function g(t2, r3) {
               a = a || e("./_stream_duplex"), t2 = t2 || {};
               var n2 = r3 instanceof a;
@@ -31421,25 +31249,21 @@ var require_exceljs_min = __commonJS({
               }, this.writecb = null, this.writelen = 0, this.bufferedRequest = null, this.lastBufferedRequest = null, this.pendingcb = 0, this.prefinished = false, this.errorEmitted = false, this.bufferedRequestCount = 0, this.corkedRequestsFree = new o(this);
             }
             __name(g, "g");
-            __name2(g, "g");
             function y(t2) {
               if (a = a || e("./_stream_duplex"), !(p.call(y, this) || this instanceof a)) return new y(t2);
               this._writableState = new g(t2, this), this.writable = true, t2 && ("function" == typeof t2.write && (this._write = t2.write), "function" == typeof t2.writev && (this._writev = t2.writev), "function" == typeof t2.destroy && (this._destroy = t2.destroy), "function" == typeof t2.final && (this._final = t2.final)), h.call(this);
             }
             __name(y, "y");
-            __name2(y, "y");
             function v(e2, t2, r3, n2, i2, s2, o2) {
               t2.writelen = n2, t2.writecb = o2, t2.writing = true, t2.sync = true, r3 ? e2._writev(i2, t2.onwrite) : e2._write(i2, s2, t2.onwrite), t2.sync = false;
             }
             __name(v, "v");
-            __name2(v, "v");
             function w(e2, t2, r3, n2) {
               r3 || (function(e3, t3) {
                 0 === t3.length && t3.needDrain && (t3.needDrain = false, e3.emit("drain"));
               })(e2, t2), t2.pendingcb--, n2(), S(e2, t2);
             }
             __name(w, "w");
-            __name2(w, "w");
             function _(e2, t2) {
               t2.bufferProcessing = true;
               var r3 = t2.bufferedRequest;
@@ -31458,19 +31282,16 @@ var require_exceljs_min = __commonJS({
               t2.bufferedRequest = r3, t2.bufferProcessing = false;
             }
             __name(_, "_");
-            __name2(_, "_");
             function x(e2) {
               return e2.ending && 0 === e2.length && null === e2.bufferedRequest && !e2.finished && !e2.writing;
             }
             __name(x, "x");
-            __name2(x, "x");
             function k(e2, t2) {
               e2._final((function(r3) {
                 t2.pendingcb--, r3 && e2.emit("error", r3), t2.prefinished = true, e2.emit("prefinish"), S(e2, t2);
               }));
             }
             __name(k, "k");
-            __name2(k, "k");
             function S(e2, t2) {
               var r3 = x(t2);
               return r3 && (!(function(e3, t3) {
@@ -31478,7 +31299,6 @@ var require_exceljs_min = __commonJS({
               })(e2, t2), 0 === t2.pendingcb && (t2.finished = true, e2.emit("finish"))), r3;
             }
             __name(S, "S");
-            __name2(S, "S");
             c.inherits(y, h), g.prototype.getBuffer = function() {
               for (var e2 = this.bufferedRequest, t2 = []; e2; ) t2.push(e2), e2 = e2.next;
               return t2;
@@ -31489,9 +31309,9 @@ var require_exceljs_min = __commonJS({
                 }), "_writableState.buffer is deprecated. Use _writableState.getBuffer instead.", "DEP0003") });
               } catch (e2) {
               }
-            })(), "function" == typeof Symbol && Symbol.hasInstance && "function" == typeof Function.prototype[Symbol.hasInstance] ? (p = Function.prototype[Symbol.hasInstance], Object.defineProperty(y, Symbol.hasInstance, { value: /* @__PURE__ */ __name2(function(e2) {
+            })(), "function" == typeof Symbol && Symbol.hasInstance && "function" == typeof Function.prototype[Symbol.hasInstance] ? (p = Function.prototype[Symbol.hasInstance], Object.defineProperty(y, Symbol.hasInstance, { value: /* @__PURE__ */ __name(function(e2) {
               return !!p.call(this, e2) || this === y && (e2 && e2._writableState instanceof g);
-            }, "value") })) : p = /* @__PURE__ */ __name2(function(e2) {
+            }, "value") })) : p = /* @__PURE__ */ __name(function(e2) {
               return e2 instanceof this;
             }, "p"), y.prototype.pipe = function() {
               this.emit("error", new Error("Cannot pipe, not readable"));
@@ -31531,7 +31351,7 @@ var require_exceljs_min = __commonJS({
             }, y.prototype.setDefaultEncoding = function(e2) {
               if ("string" == typeof e2 && (e2 = e2.toLowerCase()), !(["hex", "utf8", "utf-8", "ascii", "binary", "base64", "ucs2", "ucs-2", "utf16le", "utf-16le", "raw"].indexOf((e2 + "").toLowerCase()) > -1)) throw new TypeError("Unknown encoding: " + e2);
               return this._writableState.defaultEncoding = e2, this;
-            }, Object.defineProperty(y.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name2(function() {
+            }, Object.defineProperty(y.prototype, "writableHighWaterMark", { enumerable: false, get: /* @__PURE__ */ __name(function() {
               return this._writableState.highWaterMark;
             }, "get") }), y.prototype._write = function(e2, t2, r3) {
               r3(new Error("_write() is not implemented"));
@@ -31541,9 +31361,9 @@ var require_exceljs_min = __commonJS({
                 t3.ending = true, S(e3, t3), r4 && (t3.finished ? s.nextTick(r4) : e3.once("finish", r4));
                 t3.ended = true, e3.writable = false;
               })(this, n2, r3);
-            }, Object.defineProperty(y.prototype, "destroyed", { get: /* @__PURE__ */ __name2(function() {
+            }, Object.defineProperty(y.prototype, "destroyed", { get: /* @__PURE__ */ __name(function() {
               return void 0 !== this._writableState && this._writableState.destroyed;
-            }, "get"), set: /* @__PURE__ */ __name2(function(e2) {
+            }, "get"), set: /* @__PURE__ */ __name(function(e2) {
               this._writableState && (this._writableState.destroyed = e2);
             }, "set") }), y.prototype.destroy = m.destroy, y.prototype._undestroy = m.undestroy, y.prototype._destroy = function(e2, t2) {
               this.end(), t2(e2);
@@ -31559,8 +31379,7 @@ var require_exceljs_min = __commonJS({
               if (!(e3 instanceof t2)) throw new TypeError("Cannot call a class as a function");
             })(this, e2), this.head = null, this.tail = null, this.length = 0;
           }
-          __name(e2, "e2");
-          __name2(e2, "e");
+          __name(e2, "e");
           return e2.prototype.push = function(e3) {
             var t2 = { data: e3, next: null };
             this.length > 0 ? this.tail.next = t2 : this.head = t2, this.tail = t2, ++this.length;
@@ -31594,13 +31413,12 @@ var require_exceljs_min = __commonJS({
           e2.emit("error", t2);
         }
         __name(i, "i");
-        __name2(i, "i");
-        t.exports = { destroy: /* @__PURE__ */ __name2(function(e2, t2) {
+        t.exports = { destroy: /* @__PURE__ */ __name(function(e2, t2) {
           var r2 = this, s = this._readableState && this._readableState.destroyed, o = this._writableState && this._writableState.destroyed;
           return s || o ? (t2 ? t2(e2) : e2 && (this._writableState ? this._writableState.errorEmitted || (this._writableState.errorEmitted = true, n.nextTick(i, this, e2)) : n.nextTick(i, this, e2)), this) : (this._readableState && (this._readableState.destroyed = true), this._writableState && (this._writableState.destroyed = true), this._destroy(e2 || null, (function(e3) {
             !t2 && e3 ? r2._writableState ? r2._writableState.errorEmitted || (r2._writableState.errorEmitted = true, n.nextTick(i, r2, e3)) : n.nextTick(i, r2, e3) : t2 && t2(e3);
           })), this);
-        }, "destroy"), undestroy: /* @__PURE__ */ __name2(function() {
+        }, "destroy"), undestroy: /* @__PURE__ */ __name(function() {
           this._readableState && (this._readableState.destroyed = false, this._readableState.reading = false, this._readableState.ended = false, this._readableState.endEmitted = false), this._writableState && (this._writableState.destroyed = false, this._writableState.ended = false, this._writableState.ending = false, this._writableState.finalCalled = false, this._writableState.prefinished = false, this._writableState.finished = false, this._writableState.errorEmitted = false);
         }, "undestroy") };
       }, { "process-nextick-args": 466 }], 515: [function(e, t, r) {
@@ -31632,7 +31450,6 @@ var require_exceljs_min = __commonJS({
               this._id = e2, this._clearFn = t3;
             }
             __name(c, "c");
-            __name2(c, "c");
             r.setTimeout = function() {
               return new c(s.call(setTimeout, window, arguments), clearTimeout);
             }, r.setInterval = function() {
@@ -31675,8 +31492,7 @@ var require_exceljs_min = __commonJS({
               var r3 = e2.localStorage[t2];
               return null != r3 && "true" === String(r3).toLowerCase();
             }
-            __name(r2, "r2");
-            __name2(r2, "r");
+            __name(r2, "r");
             t.exports = function(e3, t2) {
               if (r2("noDeprecation")) return e3;
               var n = false;
@@ -31696,7 +31512,7 @@ var require_exceljs_min = __commonJS({
           e2.super_ = t2, e2.prototype = Object.create(t2.prototype, { constructor: { value: e2, enumerable: false, writable: true, configurable: true } });
         } : t.exports = function(e2, t2) {
           e2.super_ = t2;
-          var r2 = /* @__PURE__ */ __name2(function() {
+          var r2 = /* @__PURE__ */ __name(function() {
           }, "r");
           r2.prototype = t2.prototype, e2.prototype = new r2(), e2.prototype.constructor = e2;
         };
@@ -31755,18 +31571,15 @@ var require_exceljs_min = __commonJS({
               return arguments.length >= 3 && (n2.depth = arguments[2]), arguments.length >= 4 && (n2.colors = arguments[3]), p(t3) ? n2.showHidden = t3 : t3 && r._extend(n2, t3), y(n2.showHidden) && (n2.showHidden = false), y(n2.depth) && (n2.depth = 2), y(n2.colors) && (n2.colors = false), y(n2.customInspect) && (n2.customInspect = true), n2.colors && (n2.stylize = l), u(n2, e2, n2.depth);
             }
             __name(a, "a");
-            __name2(a, "a");
             function l(e2, t3) {
               var r2 = a.styles[t3];
               return r2 ? "\x1B[" + a.colors[r2][0] + "m" + e2 + "\x1B[" + a.colors[r2][1] + "m" : e2;
             }
             __name(l, "l");
-            __name2(l, "l");
             function c(e2, t3) {
               return e2;
             }
             __name(c, "c");
-            __name2(c, "c");
             function u(e2, t3, n2) {
               if (e2.customInspect && t3 && k(t3.inspect) && t3.inspect !== r.inspect && (!t3.constructor || t3.constructor.prototype !== t3)) {
                 var i2 = t3.inspect(n2, e2);
@@ -31816,12 +31629,10 @@ var require_exceljs_min = __commonJS({
               })(c2, w2, M2)) : M2[0] + w2 + M2[1];
             }
             __name(u, "u");
-            __name2(u, "u");
             function h(e2) {
               return "[" + Error.prototype.toString.call(e2) + "]";
             }
             __name(h, "h");
-            __name2(h, "h");
             function f(e2, t3, r2, n2, i2, s2) {
               var o2, a2, l2;
               if ((l2 = Object.getOwnPropertyDescriptor(t3, i2) || { value: t3[i2] }).get ? a2 = l2.set ? e2.stylize("[Getter/Setter]", "special") : e2.stylize("[Getter]", "special") : l2.set && (a2 = e2.stylize("[Setter]", "special")), E(n2, i2) || (o2 = "[" + i2 + "]"), a2 || (e2.seen.indexOf(l2.value) < 0 ? (a2 = m(r2) ? u(e2, l2.value, null) : u(e2, l2.value, r2 - 1)).indexOf("\n") > -1 && (a2 = s2 ? a2.split("\n").map((function(e3) {
@@ -31835,72 +31646,58 @@ var require_exceljs_min = __commonJS({
               return o2 + ": " + a2;
             }
             __name(f, "f");
-            __name2(f, "f");
             function d(e2) {
               return Array.isArray(e2);
             }
             __name(d, "d");
-            __name2(d, "d");
             function p(e2) {
               return "boolean" == typeof e2;
             }
             __name(p, "p");
-            __name2(p, "p");
             function m(e2) {
               return null === e2;
             }
             __name(m, "m");
-            __name2(m, "m");
             function b(e2) {
               return "number" == typeof e2;
             }
             __name(b, "b");
-            __name2(b, "b");
             function g(e2) {
               return "string" == typeof e2;
             }
             __name(g, "g");
-            __name2(g, "g");
             function y(e2) {
               return void 0 === e2;
             }
             __name(y, "y");
-            __name2(y, "y");
             function v(e2) {
               return w(e2) && "[object RegExp]" === S(e2);
             }
             __name(v, "v");
-            __name2(v, "v");
             function w(e2) {
               return "object" == typeof e2 && null !== e2;
             }
             __name(w, "w");
-            __name2(w, "w");
             function _(e2) {
               return w(e2) && "[object Date]" === S(e2);
             }
             __name(_, "_");
-            __name2(_, "_");
             function x(e2) {
               return w(e2) && ("[object Error]" === S(e2) || e2 instanceof Error);
             }
             __name(x, "x");
-            __name2(x, "x");
             function k(e2) {
               return "function" == typeof e2;
             }
             __name(k, "k");
-            __name2(k, "k");
             function S(e2) {
               return Object.prototype.toString.call(e2);
             }
             __name(S, "S");
-            __name2(S, "S");
             function M(e2) {
               return e2 < 10 ? "0" + e2.toString(10) : e2.toString(10);
             }
             __name(M, "M");
-            __name2(M, "M");
             r.debuglog = function(e2) {
               if (y(s) && (s = t2.env.NODE_DEBUG || ""), e2 = e2.toUpperCase(), !o[e2]) if (new RegExp("\\b" + e2 + "\\b", "i").test(s)) {
                 var n2 = t2.pid;
@@ -31924,12 +31721,10 @@ var require_exceljs_min = __commonJS({
               return [e2.getDate(), C[e2.getMonth()], t3].join(" ");
             }
             __name(T, "T");
-            __name2(T, "T");
             function E(e2, t3) {
               return Object.prototype.hasOwnProperty.call(e2, t3);
             }
             __name(E, "E");
-            __name2(E, "E");
             r.log = function() {
               console.log("%s - %s", T(), r.format.apply(r, arguments));
             }, r.inherits = e("inherits"), r._extend = function(e2, t3) {
@@ -31941,23 +31736,23 @@ var require_exceljs_min = __commonJS({
         }).call(this, e("_process"), "undefined" != typeof global ? global : "undefined" != typeof self ? self : "undefined" != typeof window ? window : {});
       }, { "./support/isBuffer": 526, _process: 467, inherits: 525 }], 528: [function(e, t, r) {
         "use strict";
-        Object.defineProperty(r, "__esModule", { value: true }), Object.defineProperty(r, "v1", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        Object.defineProperty(r, "__esModule", { value: true }), Object.defineProperty(r, "v1", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return n.default;
-        }, "get") }), Object.defineProperty(r, "v3", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "v3", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return i.default;
-        }, "get") }), Object.defineProperty(r, "v4", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "v4", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return s.default;
-        }, "get") }), Object.defineProperty(r, "v5", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "v5", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return o.default;
-        }, "get") }), Object.defineProperty(r, "NIL", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "NIL", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return a.default;
-        }, "get") }), Object.defineProperty(r, "version", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "version", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return l.default;
-        }, "get") }), Object.defineProperty(r, "validate", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "validate", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return c.default;
-        }, "get") }), Object.defineProperty(r, "stringify", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "stringify", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return u.default;
-        }, "get") }), Object.defineProperty(r, "parse", { enumerable: true, get: /* @__PURE__ */ __name2(function() {
+        }, "get") }), Object.defineProperty(r, "parse", { enumerable: true, get: /* @__PURE__ */ __name(function() {
           return h.default;
         }, "get") });
         var n = f(e("./v1.js")), i = f(e("./v3.js")), s = f(e("./v4.js")), o = f(e("./v5.js")), a = f(e("./nil.js")), l = f(e("./version.js")), c = f(e("./validate.js")), u = f(e("./stringify.js")), h = f(e("./parse.js"));
@@ -31965,48 +31760,40 @@ var require_exceljs_min = __commonJS({
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }
         __name(f, "f");
-        __name2(f, "f");
       }, { "./nil.js": 530, "./parse.js": 531, "./stringify.js": 535, "./v1.js": 536, "./v3.js": 537, "./v4.js": 539, "./v5.js": 540, "./validate.js": 541, "./version.js": 542 }], 529: [function(e, t, r) {
         "use strict";
         function n(e2) {
           return 14 + (e2 + 64 >>> 9 << 4) + 1;
         }
         __name(n, "n");
-        __name2(n, "n");
         function i(e2, t2) {
           const r2 = (65535 & e2) + (65535 & t2);
           return (e2 >> 16) + (t2 >> 16) + (r2 >> 16) << 16 | 65535 & r2;
         }
         __name(i, "i");
-        __name2(i, "i");
         function s(e2, t2, r2, n2, s2, o2) {
           return i((a2 = i(i(t2, e2), i(n2, o2))) << (l2 = s2) | a2 >>> 32 - l2, r2);
           var a2, l2;
         }
         __name(s, "s");
-        __name2(s, "s");
         function o(e2, t2, r2, n2, i2, o2, a2) {
           return s(t2 & r2 | ~t2 & n2, e2, t2, i2, o2, a2);
         }
         __name(o, "o");
-        __name2(o, "o");
         function a(e2, t2, r2, n2, i2, o2, a2) {
           return s(t2 & n2 | r2 & ~n2, e2, t2, i2, o2, a2);
         }
         __name(a, "a");
-        __name2(a, "a");
         function l(e2, t2, r2, n2, i2, o2, a2) {
           return s(t2 ^ r2 ^ n2, e2, t2, i2, o2, a2);
         }
         __name(l, "l");
-        __name2(l, "l");
         function c(e2, t2, r2, n2, i2, o2, a2) {
           return s(r2 ^ (t2 | ~n2), e2, t2, i2, o2, a2);
         }
         __name(c, "c");
-        __name2(c, "c");
         Object.defineProperty(r, "__esModule", { value: true }), r.default = void 0;
-        var u = /* @__PURE__ */ __name2(function(e2) {
+        var u = /* @__PURE__ */ __name(function(e2) {
           if ("string" == typeof e2) {
             const t2 = unescape(encodeURIComponent(e2));
             e2 = new Uint8Array(t2.length);
@@ -32043,7 +31830,7 @@ var require_exceljs_min = __commonJS({
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.default = void 0;
         var n, i = (n = e("./validate.js")) && n.__esModule ? n : { default: n };
-        var s = /* @__PURE__ */ __name2(function(e2) {
+        var s = /* @__PURE__ */ __name(function(e2) {
           if (!(0, i.default)(e2)) throw TypeError("Invalid UUID");
           let t2;
           const r2 = new Uint8Array(16);
@@ -32077,14 +31864,12 @@ var require_exceljs_min = __commonJS({
           }
         }
         __name(n, "n");
-        __name2(n, "n");
         function i(e2, t2) {
           return e2 << t2 | e2 >>> 32 - t2;
         }
         __name(i, "i");
-        __name2(i, "i");
         Object.defineProperty(r, "__esModule", { value: true }), r.default = void 0;
-        var s = /* @__PURE__ */ __name2(function(e2) {
+        var s = /* @__PURE__ */ __name(function(e2) {
           const t2 = [1518500249, 1859775393, 2400959708, 3395469782], r2 = [1732584193, 4023233417, 2562383102, 271733878, 3285377520];
           if ("string" == typeof e2) {
             const t3 = unescape(encodeURIComponent(e2));
@@ -32119,7 +31904,7 @@ var require_exceljs_min = __commonJS({
         var n, i = (n = e("./validate.js")) && n.__esModule ? n : { default: n };
         const s = [];
         for (let e2 = 0; e2 < 256; ++e2) s.push((e2 + 256).toString(16).substr(1));
-        var o = /* @__PURE__ */ __name2(function(e2) {
+        var o = /* @__PURE__ */ __name(function(e2) {
           let t2 = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : 0;
           const r2 = (s[e2[t2 + 0]] + s[e2[t2 + 1]] + s[e2[t2 + 2]] + s[e2[t2 + 3]] + "-" + s[e2[t2 + 4]] + s[e2[t2 + 5]] + "-" + s[e2[t2 + 6]] + s[e2[t2 + 7]] + "-" + s[e2[t2 + 8]] + s[e2[t2 + 9]] + "-" + s[e2[t2 + 10]] + s[e2[t2 + 11]] + s[e2[t2 + 12]] + s[e2[t2 + 13]] + s[e2[t2 + 14]] + s[e2[t2 + 15]]).toLowerCase();
           if (!(0, i.default)(r2)) throw TypeError("Stringified UUID is invalid");
@@ -32134,9 +31919,8 @@ var require_exceljs_min = __commonJS({
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }
         __name(s, "s");
-        __name2(s, "s");
         let o, a, l = 0, c = 0;
-        var u = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        var u = /* @__PURE__ */ __name(function(e2, t2, r2) {
           let s2 = t2 && r2 || 0;
           const u2 = t2 || new Array(16);
           let h = (e2 = e2 || {}).node || o, f = void 0 !== e2.clockseq ? e2.clockseq : a;
@@ -32164,7 +31948,6 @@ var require_exceljs_min = __commonJS({
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }
         __name(s, "s");
-        __name2(s, "s");
         var o = (0, n.default)("v3", 48, i.default);
         r.default = o;
       }, { "./md5.js": 529, "./v35.js": 538 }], 538: [function(e, t, r) {
@@ -32185,8 +31968,7 @@ var require_exceljs_min = __commonJS({
             }
             return (0, n.default)(l);
           }
-          __name(s2, "s2");
-          __name2(s2, "s");
+          __name(s2, "s");
           try {
             s2.name = e2;
           } catch (e3) {
@@ -32198,7 +31980,6 @@ var require_exceljs_min = __commonJS({
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }
         __name(s, "s");
-        __name2(s, "s");
         const o = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
         r.DNS = o;
         const a = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
@@ -32211,8 +31992,7 @@ var require_exceljs_min = __commonJS({
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }
         __name(s, "s");
-        __name2(s, "s");
-        var o = /* @__PURE__ */ __name2(function(e2, t2, r2) {
+        var o = /* @__PURE__ */ __name(function(e2, t2, r2) {
           const s2 = (e2 = e2 || {}).random || (e2.rng || n.default)();
           if (s2[6] = 15 & s2[6] | 64, s2[8] = 63 & s2[8] | 128, t2) {
             r2 = r2 || 0;
@@ -32230,14 +32010,13 @@ var require_exceljs_min = __commonJS({
           return e2 && e2.__esModule ? e2 : { default: e2 };
         }
         __name(s, "s");
-        __name2(s, "s");
         var o = (0, n.default)("v5", 80, i.default);
         r.default = o;
       }, { "./sha1.js": 534, "./v35.js": 538 }], 541: [function(e, t, r) {
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.default = void 0;
         var n, i = (n = e("./regex.js")) && n.__esModule ? n : { default: n };
-        var s = /* @__PURE__ */ __name2(function(e2) {
+        var s = /* @__PURE__ */ __name(function(e2) {
           return "string" == typeof e2 && i.default.test(e2);
         }, "s");
         r.default = s;
@@ -32245,7 +32024,7 @@ var require_exceljs_min = __commonJS({
         "use strict";
         Object.defineProperty(r, "__esModule", { value: true }), r.default = void 0;
         var n, i = (n = e("./validate.js")) && n.__esModule ? n : { default: n };
-        var s = /* @__PURE__ */ __name2(function(e2) {
+        var s = /* @__PURE__ */ __name(function(e2) {
           if (!(0, i.default)(e2)) throw TypeError("Invalid UUID");
           return parseInt(e2.substr(14, 1), 16);
         }, "s");
@@ -32257,7 +32036,6 @@ var require_exceljs_min = __commonJS({
           return e2 >= 65 && e2 <= 90 || e2 >= 97 && e2 <= 122 || 58 === e2 || 95 === e2 || 8204 === e2 || 8205 === e2 || e2 >= 192 && e2 <= 214 || e2 >= 216 && e2 <= 246 || e2 >= 248 && e2 <= 767 || e2 >= 880 && e2 <= 893 || e2 >= 895 && e2 <= 8191 || e2 >= 8304 && e2 <= 8591 || e2 >= 11264 && e2 <= 12271 || e2 >= 12289 && e2 <= 55295 || e2 >= 63744 && e2 <= 64975 || e2 >= 65008 && e2 <= 65533 || e2 >= 65536 && e2 <= 983039;
         }
         __name(n, "n");
-        __name2(n, "n");
         r.S_LIST = [32, 10, 13, 9], r.isChar = function(e2) {
           return e2 >= 32 && e2 <= 55295 || 10 === e2 || 13 === e2 || 9 === e2 || e2 >= 57344 && e2 <= 65533 || e2 >= 65536 && e2 <= 1114111;
         }, r.isS = function(e2) {
@@ -32272,7 +32050,6 @@ var require_exceljs_min = __commonJS({
           return e2 >= 65 && e2 <= 90 || e2 >= 97 && e2 <= 122 || 58 === e2 || 95 === e2 || 8204 === e2 || 8205 === e2 || e2 >= 192 && e2 <= 214 || e2 >= 216 && e2 <= 246 || e2 >= 248 && e2 <= 767 || e2 >= 880 && e2 <= 893 || e2 >= 895 && e2 <= 8191 || e2 >= 8304 && e2 <= 8591 || e2 >= 11264 && e2 <= 12271 || e2 >= 12289 && e2 <= 55295 || e2 >= 63744 && e2 <= 64975 || e2 >= 65008 && e2 <= 65533 || e2 >= 65536 && e2 <= 983039;
         }
         __name(n, "n");
-        __name2(n, "n");
         r.S_LIST = [32, 10, 13, 9], r.isChar = function(e2) {
           return e2 >= 1 && e2 <= 55295 || e2 >= 57344 && e2 <= 65533 || e2 >= 65536 && e2 <= 1114111;
         }, r.isRestrictedChar = function(e2) {
@@ -32290,7 +32067,6 @@ var require_exceljs_min = __commonJS({
           return e2 >= 65 && e2 <= 90 || 95 === e2 || e2 >= 97 && e2 <= 122 || e2 >= 192 && e2 <= 214 || e2 >= 216 && e2 <= 246 || e2 >= 248 && e2 <= 767 || e2 >= 880 && e2 <= 893 || e2 >= 895 && e2 <= 8191 || e2 >= 8204 && e2 <= 8205 || e2 >= 8304 && e2 <= 8591 || e2 >= 11264 && e2 <= 12271 || e2 >= 12289 && e2 <= 55295 || e2 >= 63744 && e2 <= 64975 || e2 >= 65008 && e2 <= 65533 || e2 >= 65536 && e2 <= 983039;
         }
         __name(n, "n");
-        __name2(n, "n");
         Object.defineProperty(r, "__esModule", { value: true }), r.NC_NAME_START_CHAR = "A-Z_a-z\xC0-\xD6\xD8-\xF6\xF8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\u{10000}-\u{EFFFF}", r.NC_NAME_CHAR = "-" + r.NC_NAME_START_CHAR + ".0-9\xB7\u0300-\u036F\u203F-\u2040", r.NC_NAME_START_CHAR_RE = new RegExp("^[" + r.NC_NAME_START_CHAR + "]$", "u"), r.NC_NAME_CHAR_RE = new RegExp("^[" + r.NC_NAME_CHAR + "]$", "u"), r.NC_NAME_RE = new RegExp("^[" + r.NC_NAME_START_CHAR + "][" + r.NC_NAME_CHAR + "]*$", "u"), r.isNCNameStartChar = n, r.isNCNameChar = function(e2) {
           return n(e2) || 45 === e2 || 46 === e2 || e2 >= 48 && e2 <= 57 || 183 === e2 || e2 >= 768 && e2 <= 879 || e2 >= 8255 && e2 <= 8256;
         };
@@ -32298,6 +32074,8 @@ var require_exceljs_min = __commonJS({
     }));
   }
 });
+
+// api/inventory/export-david-xlsx.js
 function parseScope(url) {
   const q = new URL(url).searchParams;
   const scopeRaw = String(q.get("scope") || "all").toLowerCase();
@@ -32306,8 +32084,7 @@ function parseScope(url) {
   const tcgId = q.get("tcgId") || void 0;
   return { scope, editionId, tcgId };
 }
-__name(parseScope, "parseScope");
-async function onRequest105(context) {
+async function onRequest108(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -32352,21 +32129,25 @@ async function onRequest105(context) {
     return new Response(String(err), { status: 500 });
   }
 }
-__name(onRequest105, "onRequest105");
 var import_exceljs;
 var init_export_david_xlsx = __esm({
   "api/inventory/export-david-xlsx.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     import_exceljs = __toESM(require_exceljs_min());
     init_d1();
-    __name2(parseScope, "parseScope");
-    __name2(onRequest105, "onRequest");
+    __name(parseScope, "parseScope");
+    __name(onRequest108, "onRequest");
   }
+});
+
+// api/inventory/import-csv.js
+var import_csv_exports = {};
+__export(import_csv_exports, {
+  onRequest: () => onRequest109
 });
 function normalizeHeader2(header) {
   return header.replace(/^\uFEFF/, "").trim();
 }
-__name(normalizeHeader2, "normalizeHeader2");
 function parseCsvRecords2(content) {
   const records = [];
   let currentRow = [];
@@ -32405,7 +32186,6 @@ function parseCsvRecords2(content) {
   }
   return records;
 }
-__name(parseCsvRecords2, "parseCsvRecords2");
 function parseCsv2(content) {
   const records = parseCsvRecords2(content);
   if (records.length < 2) return [];
@@ -32418,7 +32198,6 @@ function parseCsv2(content) {
     return row;
   });
 }
-__name(parseCsv2, "parseCsv2");
 function detectImportMode(rows) {
   if (!rows.length) throw new Error("CSV has no data rows");
   const headers = Object.keys(rows[0]);
@@ -32430,18 +32209,15 @@ function detectImportMode(rows) {
   if (hasUpsert) return "full-upsert";
   throw new Error("Invalid CSV headers");
 }
-__name(detectImportMode, "detectImportMode");
 function parseNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
-__name(parseNumber, "parseNumber");
 function uuid() {
   if (globalThis.crypto && globalThis.crypto.randomUUID) return globalThis.crypto.randomUUID();
   return `L-${Date.now()}-${Math.floor(Math.random() * 1e5)}`;
 }
-__name(uuid, "uuid");
-async function onRequest106(context) {
+async function onRequest109(context) {
   const { request, env } = context;
   const stopTimer = startTimer("import_csv_duration_seconds");
   const SQLITE_MAX_VARS = Number(env.IMPORT_SQLITE_MAX_VARS || env.SQLITE_MAX_VARS || 245);
@@ -32557,12 +32333,12 @@ async function onRequest106(context) {
       }
       return new Response(JSON.stringify({ success: true, result }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
-    const chunk = /* @__PURE__ */ __name2((arr, size) => {
+    const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out = [];
       for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
       return out;
     }, "chunk");
-    const runBatchedInsert = /* @__PURE__ */ __name2(async (tableCols, rowsToInsert, orReplace = false, orIgnore = false) => {
+    const runBatchedInsert = /* @__PURE__ */ __name(async (tableCols, rowsToInsert, orReplace = false, orIgnore = false) => {
       if (!rowsToInsert || rowsToInsert.length === 0) return;
       const colCount = tableCols.cols.length;
       const safeBatch = Math.max(1, Math.floor(SQLITE_MAX_VARS / Math.max(1, colCount)));
@@ -32716,33 +32492,36 @@ async function onRequest106(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest106, "onRequest106");
 var init_import_csv = __esm({
   "api/inventory/import-csv.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
     init_metrics();
-    __name2(normalizeHeader2, "normalizeHeader");
-    __name2(parseCsvRecords2, "parseCsvRecords");
-    __name2(parseCsv2, "parseCsv");
-    __name2(detectImportMode, "detectImportMode");
-    __name2(parseNumber, "parseNumber");
-    __name2(uuid, "uuid");
-    __name2(onRequest106, "onRequest");
+    __name(normalizeHeader2, "normalizeHeader");
+    __name(parseCsvRecords2, "parseCsvRecords");
+    __name(parseCsv2, "parseCsv");
+    __name(detectImportMode, "detectImportMode");
+    __name(parseNumber, "parseNumber");
+    __name(uuid, "uuid");
+    __name(onRequest109, "onRequest");
   }
 });
-async function onRequest107(context) {
-  return onRequest106(context);
+
+// api/inventory/import-with-mapping.js
+async function onRequest110(context) {
+  const mod = await Promise.resolve().then(() => (init_import_csv(), import_csv_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest107, "onRequest107");
 var init_import_with_mapping = __esm({
   "api/inventory/import-with-mapping.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_import_csv();
-    __name2(onRequest107, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest110, "onRequest");
   }
 });
+
+// api/inventory/imports/index.js
 function parseImportQuery2(url) {
   const q = new URL(url).searchParams;
   const page = Number(q.get("page") || 1);
@@ -32754,12 +32533,10 @@ function parseImportQuery2(url) {
   const sortDir = String(q.get("sortDir") || "desc") === "asc" ? "asc" : "desc";
   return { page, pageSize, status, dateFrom, dateTo, sortBy, sortDir };
 }
-__name(parseImportQuery2, "parseImportQuery2");
 async function json31(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json31, "json31");
-async function onRequest108(context) {
+async function onRequest111(context) {
   const { request, env } = context;
   try {
     const db = pickDb2(env);
@@ -32793,21 +32570,21 @@ async function onRequest108(context) {
     return json31({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest108, "onRequest108");
 var init_imports = __esm({
   "api/inventory/imports/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
-    __name2(parseImportQuery2, "parseImportQuery");
-    __name2(json31, "json");
-    __name2(onRequest108, "onRequest");
+    __name(parseImportQuery2, "parseImportQuery");
+    __name(json31, "json");
+    __name(onRequest111, "onRequest");
   }
 });
+
+// api/inventory/update-quantity.js
 async function json32(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json32, "json32");
-async function onRequest109(context) {
+async function onRequest112(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -32828,16 +32605,17 @@ async function onRequest109(context) {
     return json32({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest109, "onRequest109");
 var init_update_quantity = __esm({
   "api/inventory/update-quantity.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json32, "json");
-    __name2(onRequest109, "onRequest");
+    __name(json32, "json");
+    __name(onRequest112, "onRequest");
   }
 });
-async function onRequest110(context) {
+
+// api/invoices/cleanup.js
+async function onRequest113(context) {
   const { env } = context;
   try {
     if (env.ENABLE_INVOICE_CLEANUP_ENDPOINT !== "true") return new Response(JSON.stringify({ success: false, error: "Invoice cleanup endpoint disabled" }), { status: 403, headers: { "Content-Type": "application/json" } });
@@ -32851,14 +32629,15 @@ async function onRequest110(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest110, "onRequest110");
 var init_cleanup = __esm({
   "api/invoices/cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest110, "onRequest");
+    __name(onRequest113, "onRequest");
   }
 });
+
+// api/listings/available.js
 async function findCardFallback2(db, cardId) {
   if (!cardId) return null;
   try {
@@ -32888,8 +32667,7 @@ async function findCardFallback2(db, cardId) {
     return null;
   }
 }
-__name(findCardFallback2, "findCardFallback2");
-async function onRequest111(context) {
+async function onRequest114(context) {
   const { request, env } = context;
   try {
     const params = Object.fromEntries(new URL(request.url).searchParams.entries());
@@ -32948,7 +32726,7 @@ async function onRequest111(context) {
     const stockAlertThreshold = Number(env.STOCK_ALERT_THRESHOLD || env.VITE_STOCK_ALERT_THRESHOLD || 2);
     const defaultMargin = Number(env.DEFAULT_MARGIN_MULTIPLIER || env.VITE_DEFAULT_MARGIN_MULTIPLIER || 1);
     const missingCardIds = Array.from(new Set(rows.filter((r) => (!r.cardName || !r.rarity || !r.imageUrl || !r.externalId || !r.cardCode) && r.cardId).map((r) => r.cardId)));
-    const chunk = /* @__PURE__ */ __name2((arr, size) => {
+    const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out2 = [];
       for (let i = 0; i < arr.length; i += size) out2.push(arr.slice(i, i + size));
       return out2;
@@ -33045,32 +32823,34 @@ async function onRequest111(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest111, "onRequest111");
 var init_available = __esm({
   "api/listings/available.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
-    __name2(findCardFallback2, "findCardFallback");
-    __name2(onRequest111, "onRequest");
+    __name(findCardFallback2, "findCardFallback");
+    __name(onRequest114, "onRequest");
   }
 });
-async function onRequest112(context) {
+
+// api/listings/batch-stock.js
+async function onRequest115(context) {
   const { request, env } = context;
-  const json43 = /* @__PURE__ */ __name2((obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "json");
+  const json44 = /* @__PURE__ */ __name((obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }), "json");
   try {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } });
     }
-    if (request.method !== "POST") return json43({ success: false, error: "Method not allowed" }, 405);
+    if (request.method !== "POST") return json44({ success: false, error: "Method not allowed" }, 405);
     const body = await request.json().catch(() => ({}));
     const updates = Array.isArray(body?.updates) ? body.updates : null;
-    if (!updates || updates.length === 0) return json43({ success: false, error: "updates must be a non-empty array" }, 400);
+    if (!updates || updates.length === 0) return json44({ success: false, error: "updates must be a non-empty array" }, 400);
     const db = pickDb(env);
-    if (!db) return json43({ success: false, error: "No DB binding available" }, 500);
+    if (!db) return json44({ success: false, error: "No DB binding available" }, 500);
     await ensureSchema(db);
     const results = [];
     let updated = 0;
+    const globalStoreId = body.storeId || null;
     for (const u of updates) {
       try {
         if (!u || typeof u.listingId !== "string" || typeof u.quantity !== "number" || u.quantity < 0) {
@@ -33078,35 +32858,117 @@ async function onRequest112(context) {
           continue;
         }
         const q = Math.max(0, Math.floor(u.quantity));
-        await db.prepare("UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, updatedAt = ? WHERE id = ?").bind(q, q, (/* @__PURE__ */ new Date()).toISOString(), u.listingId).run();
-        updated += 1;
-        results.push({ listingId: u.listingId, success: true, quantity: q });
+        const storeId = u.storeId || globalStoreId || null;
+        if (storeId) {
+          const curRes = await db.prepare("SELECT id, quantity FROM listingStock WHERE listingId = ? AND storeId = ?").bind(u.listingId, storeId).all();
+          const curRow = Array.isArray(curRes.results) ? curRes.results[0] : Array.isArray(curRes) ? curRes[0] : null;
+          const now = (/* @__PURE__ */ new Date()).toISOString();
+          if (curRow) {
+            await db.prepare("UPDATE listingStock SET quantity = ?, updatedAt = ? WHERE id = ?").bind(q, now, curRow.id).run();
+          } else {
+            const sid = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `ls-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+            await db.prepare("INSERT INTO listingStock (id, storeId, listingId, quantity, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)").bind(sid, storeId, u.listingId, q, now, now).run();
+          }
+          const aggRes = await db.prepare("SELECT SUM(quantity) as total FROM listingStock WHERE listingId = ?").bind(u.listingId).all();
+          const aggRow = Array.isArray(aggRes.results) ? aggRes.results[0] : Array.isArray(aggRes) ? aggRes[0] : null;
+          const total = aggRow ? Number(aggRow.total) || 0 : 0;
+          await db.prepare("UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, updatedAt = ? WHERE id = ?").bind(total, total, (/* @__PURE__ */ new Date()).toISOString(), u.listingId).run();
+          updated += 1;
+          results.push({ listingId: u.listingId, success: true, storeId, storeQuantity: q, quantity: total });
+        } else {
+          await db.prepare("UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, updatedAt = ? WHERE id = ?").bind(q, q, (/* @__PURE__ */ new Date()).toISOString(), u.listingId).run();
+          updated += 1;
+          results.push({ listingId: u.listingId, success: true, quantity: q });
+        }
       } catch (err) {
         results.push({ listingId: u?.listingId || null, success: false, error: String(err) });
       }
     }
-    return json43({ success: true, updated, results }, 200);
+    return json44({ success: true, updated, results }, 200);
   } catch (err) {
-    return json43({ success: false, error: String(err) }, 500);
+    return json44({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest112, "onRequest112");
 var init_batch_stock = __esm({
   "api/listings/batch-stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest112, "onRequest");
+    __name(onRequest115, "onRequest");
   }
 });
+
+// api/listings/gtin.js
 async function json33(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json33, "json33");
-async function onRequest113(context) {
+async function onRequest116(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
-    if (!db) return json33({ success: false, error: "No DB binding" }, 500);
+    if (db) await ensureSchema(db);
+    if (request.method === "GET") {
+      const url = new URL(request.url);
+      const gtin = String(url.searchParams.get("gtin") || "").trim();
+      if (!gtin) return json33({ success: false, error: "gtin required" }, 400);
+      if (!db) return json33({ success: false, error: "No DB binding available" }, 500);
+      const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "cardId", "editionCode", "referencePrice", "finalPrice", "quantity", "status", "gtin", "sku", "currency"]);
+      let listingSelect = listingCols;
+      listingSelect = aliasSelectColumn(listingSelect, "l", "id", "listingId");
+      const res = await db.prepare(`SELECT ${listingSelect} FROM listing l WHERE l.gtin = ? LIMIT 1`).bind(gtin).all();
+      const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
+      const row = rows[0] || null;
+      if (!row) return json33({ success: false, error: "not_found" }, 404);
+      return json33({ success: true, listing: row });
+    }
+    if (request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const gtin = String(body.gtin || "").trim();
+      if (!gtin) return json33({ success: false, error: "gtin required" }, 400);
+      if (!db) return json33({ success: false, error: "No DB binding available" }, 500);
+      try {
+        const existRes = await db.prepare("SELECT id FROM listing WHERE gtin = ? LIMIT 1").bind(gtin).all();
+        const existRow = Array.isArray(existRes?.results) ? existRes.results[0] : Array.isArray(existRes) ? existRes[0] : null;
+        if (existRow && (existRow.id || existRow.ID)) {
+          const lres = await db.prepare("SELECT id, cardId, editionCode, referencePrice, finalPrice, quantity, status, gtin, sku, currency FROM listing WHERE id = ?").bind(existRow.id || existRow.ID).all();
+          const lrow = Array.isArray(lres?.results) ? lres.results[0] : Array.isArray(lres) ? lres[0] : null;
+          return json33({ success: true, listing: lrow });
+        }
+      } catch (_) {
+      }
+      const listingId = globalThis.crypto && globalThis.crypto.randomUUID ? globalThis.crypto.randomUUID() : `L-${Date.now()}`;
+      const ref = Number.isFinite(Number(body.referencePrice)) ? Number(body.referencePrice) : 0;
+      const margin = Number.isFinite(Number(body.marginMultiplier)) ? Number(body.marginMultiplier) : 1;
+      const usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1e3);
+      const finalPrice = Number.isFinite(Number(body.finalPrice)) ? Number(body.finalPrice) : Math.round(ref * margin * usdToClp);
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      await db.prepare("INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, gtin, sku, createdAt, updatedAt, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(listingId, body.cardId || null, body.editionCode || "", ref, margin, finalPrice, Number(body.quantity) || 0, body.status || "active", gtin, body.sku || null, now, now, body.currency || "CLP").run();
+      const rr = await db.prepare("SELECT id, cardId, editionCode, referencePrice, finalPrice, quantity, status, gtin, sku, currency FROM listing WHERE id = ?").bind(listingId).all();
+      const created = Array.isArray(rr?.results) ? rr.results[0] : Array.isArray(rr) ? rr[0] : null;
+      return json33({ success: true, listing: created }, 201);
+    }
+    return json33({ success: false, error: "method_not_allowed" }, 405);
+  } catch (err) {
+    return json33({ success: false, error: String(err) }, 500);
+  }
+}
+var init_gtin = __esm({
+  "api/listings/gtin.js"() {
+    init_functionsRoutes_0_5723290474085267();
+    init_d1();
+    __name(json33, "json");
+    __name(onRequest116, "onRequest");
+  }
+});
+
+// api/listings/inventory-value.js
+async function json34(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+}
+async function onRequest117(context) {
+  const { request, env } = context;
+  try {
+    const db = pickDb(env);
+    if (!db) return json34({ success: false, error: "No DB binding" }, 500);
     await ensureSchema(db);
     const res = await db.prepare(`SELECT SUM(COALESCE(l.costPrice,0) * COALESCE(l.quantity,0)) AS totalCost,
       SUM(COALESCE(l.finalPrice,0) * COALESCE(l.quantity,0)) AS totalValue,
@@ -33116,20 +32978,95 @@ async function onRequest113(context) {
     const totalCost = Number(row?.totalCost || 0);
     const totalValue = Number(row?.totalValue || 0);
     const itemCount = Number(row?.itemCount || 0);
-    return json33({ success: true, totalCost, totalValue, totalProfit: totalValue - totalCost, itemCount });
+    return json34({ success: true, totalCost, totalValue, totalProfit: totalValue - totalCost, itemCount });
   } catch (err) {
-    return json33({ success: false, error: String(err) }, 500);
+    return json34({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest113, "onRequest113");
 var init_inventory_value = __esm({
   "api/listings/inventory-value.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json33, "json");
-    __name2(onRequest113, "onRequest");
+    __name(json34, "json");
+    __name(onRequest117, "onRequest");
   }
 });
+
+// api/listings/label.js
+async function onRequest118(context) {
+  const { request } = context;
+  try {
+    const url = new URL(request.url);
+    const gtin = url.searchParams.get("gtin") || "";
+    const id = url.searchParams.get("id") || "";
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Etiqueta</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:16px}#barcode{width:100%;max-width:420px;height:120px}</style>
+</head>
+<body>
+  <h2>Etiqueta</h2>
+  <div id="info">Cargando\u2026</div>
+  <svg id="barcode"></svg>
+  <div style="margin-top:12px">
+    <button id="print">Imprimir</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+  <script>
+    (async function(){
+      const params = new URLSearchParams(window.location.search);
+      const gtin = params.get('gtin');
+      const id = params.get('id');
+      let code = gtin || id || '';
+      let label = code;
+      try {
+        if (gtin) {
+          const r = await fetch('/api/listings/gtin?gtin=' + encodeURIComponent(gtin));
+          if (r.ok) {
+            const d = await r.json();
+            code = d.listing?.gtin || code;
+            label = d.listing?.sku || (d.listing?.listingId || code);
+          }
+        } else if (id) {
+          const r = await fetch('/api/listings/' + encodeURIComponent(id));
+          if (r.ok) {
+            const d = await r.json();
+            const listing = d.listing || d;
+            code = listing.gtin || listing.listingId || listing.id || code;
+            label = listing.sku || listing.card?.cardName || listing.listingId || listing.id || code;
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+      document.getElementById('info').textContent = label + ' \u2014 ' + code;
+      try {
+        // try EAN13 first
+        JsBarcode('#barcode', String(code), { format: 'EAN13', displayValue: true, fontSize: 18, height: 60 });
+      } catch (e) {
+        try { JsBarcode('#barcode', String(code), { format: 'CODE128', displayValue: true, fontSize: 14, height: 60 }); } catch (e2) { document.getElementById('info').textContent += ' (no readable)'; }
+      }
+      document.getElementById('print').addEventListener('click', function(){ window.print(); });
+    })();
+  <\/script>
+</body>
+</html>`;
+    return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  } catch (err) {
+    return new Response(String(err), { status: 500 });
+  }
+}
+var init_label = __esm({
+  "api/listings/label.js"() {
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest118, "onRequest");
+  }
+});
+
+// api/listings/low-stock.js
 async function findCardFallback3(db, cardId) {
   if (!cardId) return null;
   try {
@@ -33159,8 +33096,7 @@ async function findCardFallback3(db, cardId) {
     return null;
   }
 }
-__name(findCardFallback3, "findCardFallback3");
-async function onRequest114(context) {
+async function onRequest119(context) {
   const { request, env } = context;
   try {
     const url = new URL(request.url);
@@ -33188,7 +33124,7 @@ async function onRequest114(context) {
     const res = await db.prepare(sql).bind(...bindsArr).all();
     const rows = Array.isArray(res.results) ? res.results : Array.isArray(res) ? res : [];
     const cardIds = Array.from(new Set(rows.map((r) => r.cardId).filter(Boolean)));
-    const chunk = /* @__PURE__ */ __name2((arr, size) => {
+    const chunk = /* @__PURE__ */ __name((arr, size) => {
       const out2 = [];
       for (let i = 0; i < arr.length; i += size) out2.push(arr.slice(i, i + size));
       return out2;
@@ -33264,31 +33200,31 @@ async function onRequest114(context) {
     return new Response(JSON.stringify([]), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest114, "onRequest114");
 var init_low_stock = __esm({
   "api/listings/low-stock.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
-    __name2(findCardFallback3, "findCardFallback");
-    __name2(onRequest114, "onRequest");
+    __name(findCardFallback3, "findCardFallback");
+    __name(onRequest119, "onRequest");
   }
 });
-async function json34(body, status = 200) {
+
+// api/listings/price-preview.js
+async function json35(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json34, "json34");
-async function onRequest115(context) {
+async function onRequest120(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
     const referencePrice = body.referencePrice !== void 0 ? Number(body.referencePrice) : void 0;
     const marginMultiplier = body.marginMultiplier !== void 0 ? Number(body.marginMultiplier) : void 0;
     const roundingMultiple = body.roundingMultiple !== void 0 ? Number(body.roundingMultiple) : void 0;
-    if (typeof referencePrice !== "number" || referencePrice <= 0) return json34({ success: false, error: "referencePrice must be a positive number" }, 400);
-    if (typeof marginMultiplier !== "number" || marginMultiplier <= 0) return json34({ success: false, error: "marginMultiplier must be a positive number" }, 400);
+    if (typeof referencePrice !== "number" || referencePrice <= 0) return json35({ success: false, error: "referencePrice must be a positive number" }, 400);
+    if (typeof marginMultiplier !== "number" || marginMultiplier <= 0) return json35({ success: false, error: "marginMultiplier must be a positive number" }, 400);
     const calculation = await calculateFinalPriceDetailed(env, { referencePrice, marginMultiplier, roundingMultiple });
-    return json34({
+    return json35({
       referencePrice,
       marginMultiplier,
       exchangeRate: calculation.exchangeRate,
@@ -33304,301 +33240,25 @@ async function onRequest115(context) {
       currency: "CLP"
     });
   } catch (err) {
-    return json34({ success: false, error: String(err) }, 500);
+    return json35({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest115, "onRequest115");
 var init_price_preview = __esm({
   "api/listings/price-preview.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_price();
-    __name2(json34, "json");
-    __name2(onRequest115, "onRequest");
+    __name(json35, "json");
+    __name(onRequest120, "onRequest");
   }
 });
-function estimateFallbackReferencePrice(tcgName, rarity) {
-  const baseByTcg = { MAGIC: 0.5, POKEMON: 0.75, YUGIOH: 0.5, ONE_PIECE: 0.35, DIGIMON: 0.35, WEISS_SCHWARZ: 0.35 };
-  const base = baseByTcg[tcgName] ?? 0.5;
-  const r = (rarity || "").toLowerCase();
-  let multiplier = 0.75;
-  if (r.includes("mythic") || r.includes("secret") || r.includes("ultimate") || r.includes("legendary")) multiplier = 3;
-  else if (r.includes("ultra") || r.includes("gold") || r.includes("rainbow") || r.includes("alt")) multiplier = 2;
-  else if (r.includes("super") || r.includes("hyper") || r === "sr" || r === "ur") multiplier = 1.5;
-  else if (r.includes("rare") || r.includes("holo") || r.includes("parallel")) multiplier = 1.2;
-  else if (r.includes("uncommon")) multiplier = 1;
-  return Number((base * multiplier).toFixed(2));
-}
-__name(estimateFallbackReferencePrice, "estimateFallbackReferencePrice");
-async function onRequest116(context) {
-  const { request, env } = context;
-  try {
-    const stopRun = startTimer("price_sync_duration_seconds");
-    const body = request.method === "GET" ? Object.fromEntries(new URL(request.url).searchParams.entries()) : await request.json().catch(() => ({}));
-    const db = pickDb(env);
-    if (db) await ensureSchema(db);
-    let runId2 = null;
-    const startedAt = (/* @__PURE__ */ new Date()).toISOString();
-    if (db) {
-      runId2 = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `run-${Date.now()}`;
-      await db.prepare(`INSERT INTO priceSyncRun (id, source, status, notes, total, updated, volatile, failed, roundingMultiple, startedAt, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(runId2, body.source || "manual", "running", body.notes || null, 0, 0, 0, 0, Number(body.roundingMultiple) || 1, startedAt, startedAt).run();
-    }
-    let usdToClp = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1e3);
-    if (db) {
-      try {
-        const meta = await getUSDtoCLPRateMetaFast(env, db);
-        if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) usdToClp = Number(meta.usdToCLP);
-      } catch (_) {
-      }
-    }
-    const updates = body.updates;
-    const inventoryOnly = body.inventoryOnly === "true" || body.inventoryOnly === true;
-    const tcgNameFilter = body.tcgName || body.tcg || null;
-    let editionFilter = body.editionId || null;
-    if (editionFilter && typeof editionFilter === "string" && editionFilter.includes(":")) {
-      const parts = editionFilter.split(":");
-      editionFilter = parts.slice(1).join(":");
-    }
-    const result = { total: 0, updated: 0, failed: 0, errors: [] };
-    if (Array.isArray(updates) && updates.length > 0) {
-      result.total = updates.length;
-      for (const u of updates) {
-        try {
-          if (!db) throw new Error("No DB binding available");
-          if (u.listingId) {
-            const listingColsForUpdate = await buildSelectColumns(db, "listing", "l", ["id", "referencePrice", "marginMultiplier", "finalPrice"]);
-            let listingSelectForUpdate = listingColsForUpdate;
-            listingSelectForUpdate = aliasSelectColumn(listingSelectForUpdate, "l", "id", "listingId");
-            const lres = await db.prepare(`SELECT ${listingSelectForUpdate} FROM listing l WHERE l.id = ?`).bind(u.listingId).all();
-            const listing = Array.isArray(lres.results) ? lres.results[0] : Array.isArray(lres) ? lres[0] : null;
-            if (!listing) throw new Error("Listing not found");
-            const margin = typeof u.marginMultiplier === "number" ? u.marginMultiplier : listing.marginMultiplier || 1;
-            const ref = Number(u.referencePrice);
-            if (!Number.isFinite(ref) || ref <= 0) throw new Error("referencePrice must be a positive number");
-            const finalPrice = Math.round(ref * margin * usdToClp);
-            await db.prepare("UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?").bind(ref, margin, finalPrice, (/* @__PURE__ */ new Date()).toISOString(), u.listingId).run();
-            try {
-              const phId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `ph-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-              const percent = listing.finalPrice && listing.finalPrice > 0 ? (finalPrice - listing.finalPrice) / listing.finalPrice * 100 : null;
-              const listingIdForHistory = listing.id || listing.listingId || u.listingId;
-              await db.prepare("INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(phId, listingIdForHistory, listing.finalPrice ?? null, finalPrice, listing.referencePrice ?? null, ref, "MANUAL_SYNC", percent, body.changedBy || body.source || "system", body.notes || null, (/* @__PURE__ */ new Date()).toISOString()).run();
-            } catch (_) {
-            }
-            result.updated += 1;
-            incr("price_sync_updates_total", { mode: "manual" }, 1);
-            continue;
-          }
-          if (u.cardId) {
-            const cardId = u.cardId;
-            const listingId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `L-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-            const ref = Number(u.referencePrice) || 0;
-            const margin = typeof u.marginMultiplier === "number" ? u.marginMultiplier : 1;
-            const finalPrice = Math.round(ref * margin * usdToClp);
-            try {
-              const now = (/* @__PURE__ */ new Date()).toISOString();
-              const parts = String(cardId || "").split(":");
-              const inferredTcg = parts.length > 1 ? parts[0] : null;
-              const externalId = parts.length > 1 ? parts.slice(1).join(":") : cardId;
-              await db.prepare(`INSERT OR IGNORE INTO card (id, externalId, tcg, editionCode, cardName, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?);`).bind(cardId, externalId, inferredTcg, u.editionCode || "", null, now, now).run();
-            } catch (_) {
-            }
-            await db.prepare("INSERT INTO listing (id, cardId, editionCode, referencePrice, marginMultiplier, finalPrice, quantity, status, lastSyncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(listingId, cardId, u.editionCode || "", ref, margin, finalPrice, u.quantity ? Number(u.quantity) : 0, "active", (/* @__PURE__ */ new Date()).toISOString()).run();
-            try {
-              const phId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `ph-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-              await db.prepare("INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(phId, listingId, null, finalPrice, null, ref, "TCGPLAYER_SYNC", null, body.changedBy || body.source || "system", "Initial listing creation", (/* @__PURE__ */ new Date()).toISOString()).run();
-            } catch (_) {
-            }
-            result.updated += 1;
-            incr("price_sync_updates_total", { mode: "manual" }, 1);
-            continue;
-          }
-          throw new Error("Update must include listingId or cardId");
-        } catch (err) {
-          result.failed += 1;
-          incr("price_sync_failures_total", { mode: "manual" }, 1);
-          result.errors.push({ id: u.listingId || u.cardId || "N/A", message: err && err.message || String(err) });
-        }
-      }
-      try {
-        incr("price_sync_runs_total", { mode: "manual" });
-      } catch (_) {
-      }
-      try {
-        stopRun();
-      } catch (_) {
-      }
-      return new Response(JSON.stringify({ success: true, ...result }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    if (!db) return new Response(JSON.stringify({ success: false, error: "No DB binding available for sync" }), { status: 500, headers: { "Content-Type": "application/json" } });
-    const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "cardId", "referencePrice", "marginMultiplier", "finalPrice", "quantity", "status"]);
-    const cardCols = await buildSelectColumns(db, "card", "c", ["externalId", "cardName", "tcg", "editionCode", "rarity"]);
-    let listingSelect = listingCols;
-    listingSelect = aliasSelectColumn(listingSelect, "l", "id", "listingId");
-    const selectParts = [];
-    if (listingSelect) selectParts.push(listingSelect);
-    if (cardCols) selectParts.push(cardCols);
-    let sql = `SELECT ${selectParts.join(", ")} FROM listing l LEFT JOIN card c ON l.cardId = c.id WHERE l.status = 'active'`;
-    const binds = [];
-    if (inventoryOnly) {
-      sql += " AND l.quantity > 0";
-    }
-    if (tcgNameFilter) {
-      sql += " AND c.tcg = ?";
-      binds.push(tcgNameFilter);
-    }
-    if (editionFilter) {
-      sql += " AND c.editionCode = ?";
-      binds.push(String(editionFilter).toUpperCase());
-    }
-    const rowsRes = await db.prepare(sql).bind(...binds).all();
-    const rows = Array.isArray(rowsRes.results) ? rowsRes.results : Array.isArray(rowsRes) ? rowsRes : [];
-    result.total = rows.length;
-    const grouped = /* @__PURE__ */ new Map();
-    for (const r of rows) {
-      const inferredTcg = r.tcg || r.cardId && String(r.cardId).split(":")[0] || "LOCAL";
-      const key = `${inferredTcg}|${String(r.editionCode || "").toUpperCase()}`;
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key).push(r);
-    }
-    for (const [key, group] of grouped.entries()) {
-      const [tcgName, editionCode] = key.split("|");
-      const cacheKey = `setPrices:${tcgName}:${editionCode}`;
-      const ttl = Number(env.EXTERNAL_SET_CACHE_TTL_SECONDS || env.VITE_EXTERNAL_SET_CACHE_TTL_SECONDS || 3600);
-      let setPriceLookup = /* @__PURE__ */ new Map();
-      let setPriceByName = /* @__PURE__ */ new Map();
-      let usedCache = false;
-      if (db) {
-        try {
-          const cacheRes = await db.prepare("SELECT value FROM appConfig WHERE key = ?").bind(cacheKey).all();
-          const cacheRow = Array.isArray(cacheRes?.results) ? cacheRes.results[0] : Array.isArray(cacheRes) ? cacheRes[0] : null;
-          if (cacheRow && cacheRow.value) {
-            const parsed = JSON.parse(cacheRow.value);
-            const fetchedAt = parsed?.fetchedAt ? new Date(parsed.fetchedAt).getTime() : 0;
-            if (fetchedAt && Date.now() - fetchedAt < ttl * 1e3) {
-              for (const [k, v] of Object.entries(parsed.pricesById || {})) setPriceLookup.set(k, v);
-              for (const [k, v] of Object.entries(parsed.pricesByName || {})) setPriceByName.set(k, v);
-              usedCache = true;
-            }
-          }
-        } catch (_) {
-        }
-      }
-      if (!usedCache) {
-        await new Promise((res) => setTimeout(res, 120));
-        const _t0 = Date.now();
-        const setCards = await getSetCards(tcgName, editionCode).catch(() => []);
-        const _t1 = Date.now() - _t0;
-        try {
-          console.log(`[sync-prices] fetched set ${tcgName}/${editionCode} in ${_t1}ms; cards=${setCards.length}`);
-        } catch (_) {
-        }
-        try {
-          incr("price_sync_external_set_fetches_total", { tcg: tcgName, edition: editionCode }, 1);
-        } catch (_) {
-        }
-        for (const s of setCards) {
-          const price = s.priceMarket ?? s.priceMid ?? s.priceLow;
-          if (typeof price === "number" && Number.isFinite(price) && price > 0) {
-            setPriceLookup.set(s.externalId, price);
-            const nameKey = (s.cardName || "").trim().toLowerCase();
-            const existing = setPriceByName.get(nameKey);
-            if (!existing || price > existing) setPriceByName.set(nameKey, price);
-          }
-        }
-        if (db) {
-          try {
-            await db.prepare("INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)").bind(cacheKey, JSON.stringify({ pricesById: Object.fromEntries([...setPriceLookup.entries()]), pricesByName: Object.fromEntries([...setPriceByName.entries()]), fetchedAt: (/* @__PURE__ */ new Date()).toISOString() }), (/* @__PURE__ */ new Date()).toISOString()).run();
-          } catch (_) {
-          }
-        }
-      }
-      for (const listing of group) {
-        try {
-          const externalPrice = setPriceLookup.get(String(listing.externalId)) ?? setPriceByName.get(String((listing.cardName || "").trim().toLowerCase())) ?? null;
-          const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
-          const fallbackRef = estimateFallbackReferencePrice(tcgName, listing.rarity || void 0);
-          let chosenReference = fallbackRef;
-          if (externalPrice && externalPrice > 0) chosenReference = externalPrice;
-          else if (safeStoredRef) chosenReference = safeStoredRef;
-          const margin = listing.marginMultiplier || 1;
-          const finalPrice = Math.round(chosenReference * margin * usdToClp);
-          try {
-            const oldFinal = listing.finalPrice ?? null;
-            const oldRef = listing.referencePrice ?? null;
-            await db.prepare("UPDATE listing SET referencePrice = ?, marginMultiplier = ?, finalPrice = ?, lastSyncedAt = ? WHERE id = ?").bind(chosenReference, margin, finalPrice, (/* @__PURE__ */ new Date()).toISOString(), listing.listingId).run();
-            const phId = globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `ph-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-            const percent = oldFinal && oldFinal > 0 ? (finalPrice - oldFinal) / oldFinal * 100 : null;
-            await db.prepare("INSERT INTO priceHistory (id, listingId, oldPrice, newPrice, oldReferencePrice, newReferencePrice, reason, percentChange, changedBy, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(phId, listing.listingId, oldFinal, finalPrice, oldRef, chosenReference, "EXTERNAL_API_SYNC", percent, body.changedBy || body.source || "system", null, (/* @__PURE__ */ new Date()).toISOString()).run();
-            result.updated += 1;
-            incr("price_sync_updates_total", { mode: "external" }, 1);
-          } catch (err) {
-            result.failed += 1;
-            incr("price_sync_failures_total", { mode: "external" }, 1);
-            result.errors.push({ listingId: listing.listingId, message: err && err.message || String(err) });
-          }
-        } catch (err) {
-          result.failed += 1;
-          incr("price_sync_failures_total", { mode: "external" }, 1);
-          result.errors.push({ listingId: listing.listingId, message: err && err.message || String(err) });
-        }
-      }
-    }
-    if (db && runId2) {
-      const completedAt = (/* @__PURE__ */ new Date()).toISOString();
-      try {
-        await db.prepare("UPDATE priceSyncRun SET status = ?, total = ?, updated = ?, failed = ?, errors = ?, completedAt = ? WHERE id = ?").bind(result.failed > 0 && result.updated === 0 ? "failed" : "completed", result.total, result.updated, result.failed, result.errors && result.errors.length ? JSON.stringify(result.errors) : null, completedAt, runId2).run();
-      } catch (_) {
-      }
-    }
-    try {
-      incr("price_sync_runs_total", { mode: "batch" });
-    } catch (_) {
-    }
-    try {
-      incr("price_sync_updates_total", {}, result.updated);
-    } catch (_) {
-    }
-    try {
-      incr("price_sync_failures_total", {}, result.failed);
-    } catch (_) {
-    }
-    try {
-      stopRun();
-    } catch (_) {
-    }
-    return new Response(JSON.stringify({ success: true, runId: runId2, ...result }), { status: 200, headers: { "Content-Type": "application/json" } });
-  } catch (err) {
-    if (typeof err !== "undefined" && env) {
-      const dbFail = pickDb(env);
-      if (dbFail) {
-        try {
-          await dbFail.prepare("UPDATE priceSyncRun SET status = ?, errors = ?, completedAt = ? WHERE id = ?").bind("failed", JSON.stringify([{ listingId: "N/A", message: String(err) }]), (/* @__PURE__ */ new Date()).toISOString(), runId || "unknown").run();
-        } catch (_) {
-        }
-      }
-    }
-    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
-  }
-}
-__name(onRequest116, "onRequest116");
-var init_sync_prices = __esm({
-  "api/listings/sync-prices.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_d1();
-    init_tcgcsv();
-    init_exchange_rate();
-    init_metrics();
-    __name2(estimateFallbackReferencePrice, "estimateFallbackReferencePrice");
-    __name2(onRequest116, "onRequest");
-  }
-});
+
+// _shared/orders.js
 function genId7(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId7, "genId7");
 function generateOrderNumber2() {
   return `ORD-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(generateOrderNumber2, "generateOrderNumber2");
 async function getOrderById2(db, id) {
   if (!db) return null;
   const ordRes = await db.prepare('SELECT id, storeId, orderNumber, customerEmail, status, subtotal, tax, total, notes, receiptUrl, createdAt, updatedAt FROM "order" WHERE id = ?').bind(id).all();
@@ -33609,7 +33269,6 @@ async function getOrderById2(db, id) {
   order.items = items;
   return order;
 }
-__name(getOrderById2, "getOrderById2");
 async function processPosSale2(db, input) {
   if (!db) throw new Error("No DB binding available");
   const items = Array.isArray(input?.items) ? input.items : [];
@@ -33631,6 +33290,17 @@ async function processPosSale2(db, input) {
   const listingRes = await db.prepare(`SELECT id, finalPrice, quantity FROM listing WHERE id IN (${placeholders})`).bind(...listingIds).all();
   const listingRows = Array.isArray(listingRes?.results) ? listingRes.results : Array.isArray(listingRes) ? listingRes : [];
   const listingMap = new Map(listingRows.map((r) => [r.id || r.ID || r.Id, r]));
+  const storeId = input.storeId || null;
+  let storeStockMap = /* @__PURE__ */ new Map();
+  if (storeId) {
+    try {
+      const stRes = await db.prepare(`SELECT listingId, id, quantity FROM listingStock WHERE listingId IN (${placeholders}) AND storeId = ?`).bind(...listingIds, storeId).all();
+      const stRows = Array.isArray(stRes?.results) ? stRes.results : Array.isArray(stRes) ? stRes : [];
+      for (const r of stRows) storeStockMap.set(r.listingId || r.LISTINGID || r.listingId, { id: r.id || r.ID, quantity: Number(r.quantity || 0) });
+    } catch (_) {
+      storeStockMap = /* @__PURE__ */ new Map();
+    }
+  }
   let subtotal = 0;
   for (const it of items) {
     const lid = String(it.listingId);
@@ -33638,7 +33308,8 @@ async function processPosSale2(db, input) {
     if (!listing) throw new Error(`Listing not found: ${lid}`);
     const qty = Number(it.quantity || 0);
     if (qty <= 0) throw new Error("Quantity must be > 0");
-    if (Number(listing.quantity || 0) < qty) throw new Error(`Insufficient stock for listing ${lid}`);
+    const available = storeId ? storeStockMap.get(lid)?.quantity || 0 : Number(listing.quantity || 0);
+    if (available < qty) throw new Error(`Insufficient stock for listing ${lid}`);
     const unitPrice = Number(listing.finalPrice || 0);
     subtotal += unitPrice * qty;
   }
@@ -33657,29 +33328,52 @@ async function processPosSale2(db, input) {
     const itemId = genId7("oi");
     await db.prepare("INSERT INTO orderItem (id, cartId, orderId, listingId, quantity, pricePerUnit, subtotal, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(itemId, null, orderId, lid, qty, unitPrice, subtotalItem, now).run();
     const smId = genId7("sm");
-    await db.prepare("INSERT INTO stockMovement (id, listingId, warehouseId, fromWarehouseId, toWarehouseId, quantity, type, reference, performedBy, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(smId, lid, null, null, null, qty, "OUT", `pos:${orderId}`, input.performedBy || null, now).run();
-    try {
-      await db.prepare("UPDATE listing SET quantity = quantity - ? WHERE id = ?").bind(qty, lid).run();
-    } catch (_) {
+    await db.prepare("INSERT INTO stockMovement (id, listingId, warehouseId, fromWarehouseId, toWarehouseId, quantity, type, reference, performedBy, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(smId, lid, storeId || null, storeId || null, null, qty, "OUT", `pos:${orderId}`, input.performedBy || null, now).run();
+    if (storeId) {
+      const storeRow = storeStockMap.get(lid);
+      if (!storeRow) throw new Error(`No stock row for listing ${lid} at store ${storeId}`);
+      const newStoreQty = Math.max(0, Number(storeRow.quantity || 0) - qty);
+      try {
+        await db.prepare("UPDATE listingStock SET quantity = ?, updatedAt = ? WHERE id = ?").bind(newStoreQty, now, storeRow.id).run();
+        storeStockMap.set(lid, { id: storeRow.id, quantity: newStoreQty });
+      } catch (err) {
+        throw new Error(`Failed to update store stock for listing ${lid}: ${String(err)}`);
+      }
+      try {
+        const sumRes = await db.prepare("SELECT SUM(quantity) as total FROM listingStock WHERE listingId = ?").bind(lid).all();
+        const sumRow = Array.isArray(sumRes?.results) ? sumRes.results[0] : Array.isArray(sumRes) ? sumRes[0] : null;
+        const total2 = sumRow && sumRow.total ? Number(sumRow.total) : 0;
+        try {
+          await db.prepare("UPDATE listing SET quantity = ?, lastSyncedAt = ? WHERE id = ?").bind(total2, now, lid).run();
+        } catch (_) {
+        }
+      } catch (_) {
+      }
+    } else {
+      try {
+        await db.prepare("UPDATE listing SET quantity = quantity - ? WHERE id = ?").bind(qty, lid).run();
+      } catch (_) {
+      }
     }
   }
   const created = await getOrderById2(db, orderId);
   return created;
 }
-__name(processPosSale2, "processPosSale2");
 var orders_default2;
 var init_orders2 = __esm({
   "_shared/orders.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(genId7, "genId");
-    __name2(generateOrderNumber2, "generateOrderNumber");
-    __name2(getOrderById2, "getOrderById");
-    __name2(processPosSale2, "processPosSale");
+    __name(genId7, "genId");
+    __name(generateOrderNumber2, "generateOrderNumber");
+    __name(getOrderById2, "getOrderById");
+    __name(processPosSale2, "processPosSale");
     orders_default2 = { processPosSale: processPosSale2, getOrderById: getOrderById2 };
   }
 });
-async function onRequest117(context) {
+
+// api/payments/pos-sale.js
+async function onRequest121(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -33692,20 +33386,25 @@ async function onRequest117(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest117, "onRequest117");
 var init_pos_sale = __esm({
   "api/payments/pos-sale.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_orders2();
-    __name2(onRequest117, "onRequest");
+    __name(onRequest121, "onRequest");
   }
 });
-async function json35(body, status = 200) {
+
+// api/payments/webhook/index.js
+var webhook_exports = {};
+__export(webhook_exports, {
+  default: () => webhook_default,
+  onRequest: () => onRequest122
+});
+async function json36(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json35, "json35");
-async function onRequest118(context) {
+async function onRequest122(context) {
   const { request, env } = context;
   try {
     const raw = await request.text().catch(() => "");
@@ -33721,50 +33420,57 @@ async function onRequest118(context) {
         event = null;
       }
     }
-    if (!event || !event.type) return json35({ received: true });
-    if (event.type !== "payment_intent.succeeded") return json35({ received: true });
+    if (!event || !event.type) return json36({ received: true });
+    if (event.type !== "payment_intent.succeeded") return json36({ received: true });
     const intent = event.data?.object || event.data || event;
     const metadata = intent?.metadata || {};
     const itemsJson = metadata.items || metadata.Items || null;
-    if (!itemsJson) return json35({ received: true });
+    if (!itemsJson) return json36({ received: true });
     let items;
     try {
       items = typeof itemsJson === "string" ? JSON.parse(itemsJson) : itemsJson;
     } catch (err) {
-      return json35({ success: false, message: "Invalid items metadata" }, 400);
+      return json36({ success: false, message: "Invalid items metadata" }, 400);
     }
     const db = pickDb(env);
-    if (!db) return json35({ success: false, error: "No DB binding available" }, 500);
+    if (!db) return json36({ success: false, error: "No DB binding available" }, 500);
     await ensureSchema(db);
     const paymentIntentId = intent.id || metadata.paymentIntentId || null;
-    if (!paymentIntentId) return json35({ received: true });
+    if (!paymentIntentId) return json36({ received: true });
     try {
       const ex = await db.prepare('SELECT id FROM "order" WHERE notes = ? LIMIT 1').bind(`stripe_intent:${paymentIntentId}`).all();
       const found = firstRow(ex);
-      if (found && found.id) return json35({ received: true, note: "Already processed" });
+      if (found && found.id) return json36({ received: true, note: "Already processed" });
     } catch (_) {
     }
     try {
       await orders_default2.processPosSale(db, { items, storeId: metadata.storeId || null, paymentMethod: "CARD", externalReference: `stripe_intent:${paymentIntentId}` });
-      return json35({ received: true });
+      return json36({ received: true });
     } catch (err) {
-      return json35({ success: false, message: String(err) }, 400);
+      return json36({ success: false, message: String(err) }, 400);
     }
   } catch (err) {
-    return json35({ success: false, message: String(err) }, 500);
+    return json36({ success: false, message: String(err) }, 500);
   }
 }
-__name(onRequest118, "onRequest118");
+var webhook_default;
 var init_webhook2 = __esm({
   "api/payments/webhook/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_orders2();
-    __name2(json35, "json");
-    __name2(onRequest118, "onRequest");
+    __name(json36, "json");
+    __name(onRequest122, "onRequest");
+    webhook_default = onRequest122;
   }
 });
-async function onRequest119(context) {
+
+// api/cash-sessions/index.js
+var cash_sessions_exports = {};
+__export(cash_sessions_exports, {
+  onRequest: () => onRequest123
+});
+async function onRequest123(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -33777,38 +33483,43 @@ async function onRequest119(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest119, "onRequest119");
 var init_cash_sessions = __esm({
   "api/cash-sessions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_cash();
-    __name2(onRequest119, "onRequest");
+    __name(onRequest123, "onRequest");
   }
 });
-async function onRequest120(context) {
-  return onRequest119(context);
+
+// api/pos/cash/index.js
+async function onRequest124(context) {
+  const mod = await Promise.resolve().then(() => (init_cash_sessions(), cash_sessions_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest120, "onRequest120");
 var init_cash3 = __esm({
   "api/pos/cash/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_cash_sessions();
-    __name2(onRequest120, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest124, "onRequest");
   }
 });
-async function onRequest121(context) {
-  return onRequest119(context);
+
+// api/pos/cash-sessions/index.js
+async function onRequest125(context) {
+  const mod = await Promise.resolve().then(() => (init_cash_sessions(), cash_sessions_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest121, "onRequest121");
 var init_cash_sessions2 = __esm({
   "api/pos/cash-sessions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_cash_sessions();
-    __name2(onRequest121, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest125, "onRequest");
   }
 });
-async function onRequest122(context) {
+
+// api/pos/sessions/index.js
+async function onRequest126(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -33821,20 +33532,20 @@ async function onRequest122(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest122, "onRequest122");
 var init_sessions = __esm({
   "api/pos/sessions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_pos2();
-    __name2(onRequest122, "onRequest");
+    __name(onRequest126, "onRequest");
   }
 });
-async function json36(body, status = 200) {
+
+// api/pricing/approvals/index.js
+async function json37(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json36, "json36");
-async function onRequest123(context) {
+async function onRequest127(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -33863,49 +33574,53 @@ async function onRequest123(context) {
       }
     }
     const store = await resolveStoreFromRequest(request, env);
-    if (!store) return json36({ success: false, error: "Unauthorized" }, 401);
-    if (!db) return json36({ success: false, error: "No DB binding" }, 500);
+    if (!store) return json37({ success: false, error: "Unauthorized" }, 401);
+    if (!db) return json37({ success: false, error: "No DB binding" }, 500);
     const url = new URL(request.url);
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
     const res = await db.prepare("SELECT id, listingId, oldFinalPrice, newFinalPrice, newReferencePrice, marginMultiplier, percentChange, status, requestedBy, processedBy, processedAt, notes, createdAt FROM priceChangeApproval WHERE status = ? ORDER BY createdAt ASC LIMIT ?").bind("PENDING", limit).all();
     const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
-    return json36({ success: true, total: rows.length, approvals: rows });
+    return json37({ success: true, total: rows.length, approvals: rows });
   } catch (err) {
-    return json36({ success: false, error: String(err) }, 500);
+    return json37({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest123, "onRequest123");
 var init_approvals2 = __esm({
   "api/pricing/approvals/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_tenant();
-    __name2(json36, "json");
-    __name2(onRequest123, "onRequest");
+    __name(json37, "json");
+    __name(onRequest127, "onRequest");
   }
 });
-async function onRequest124(context) {
+
+// api/stripe-webhook/test/index.js
+async function onRequest128(context) {
   return new Response(JSON.stringify({ success: true, stub: "StripeWebhook.test" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
-__name(onRequest124, "onRequest124");
 var init_test8 = __esm({
   "api/stripe-webhook/test/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest124, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest128, "onRequest");
   }
 });
-async function onRequest125(context) {
-  return onRequest55(context);
+
+// api/card/[id].js
+async function onRequest129(context) {
+  const mod = await Promise.resolve().then(() => (init_card2(), card_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest125, "onRequest125");
-var init_id3 = __esm({
+var init_id4 = __esm({
   "api/card/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_card2();
-    __name2(onRequest125, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest129, "onRequest");
   }
 });
-async function onRequest126(context) {
+
+// api/cards/[id].js
+async function onRequest130(context) {
   const { request, env, params } = context;
   try {
     const { id } = params || {};
@@ -33920,16 +33635,17 @@ async function onRequest126(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest126, "onRequest126");
-var init_id4 = __esm({
+var init_id5 = __esm({
   "api/cards/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_cardService();
-    __name2(onRequest126, "onRequest");
+    __name(onRequest130, "onRequest");
   }
 });
-async function onRequest127(context) {
+
+// api/cart/[sessionId]/index.js
+async function onRequest131(context) {
   const { env, params } = context;
   try {
     const { sessionId } = params || {};
@@ -33943,16 +33659,17 @@ async function onRequest127(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest127, "onRequest127");
 var init_sessionId2 = __esm({
   "api/cart/[sessionId]/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d12();
     init_cart();
-    __name2(onRequest127, "onRequest");
+    __name(onRequest131, "onRequest");
   }
 });
-async function onRequest128(context) {
+
+// api/editions/[id]/index.js
+async function onRequest132(context) {
   const { request, env, params } = context;
   try {
     const id = params.id;
@@ -34005,15 +33722,16 @@ async function onRequest128(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest128, "onRequest128");
-var init_id5 = __esm({
+var init_id6 = __esm({
   "api/editions/[id]/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest128, "onRequest");
+    __name(onRequest132, "onRequest");
   }
 });
-async function onRequest129(context) {
+
+// api/invoices/[id].js
+async function onRequest133(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -34029,14 +33747,15 @@ async function onRequest129(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest129, "onRequest129");
-var init_id6 = __esm({
+var init_id7 = __esm({
   "api/invoices/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest129, "onRequest");
+    __name(onRequest133, "onRequest");
   }
 });
+
+// api/listings/[id]/index.js
 async function findCardFallback4(db, cardId) {
   if (!cardId) return null;
   try {
@@ -34066,8 +33785,7 @@ async function findCardFallback4(db, cardId) {
     return null;
   }
 }
-__name(findCardFallback4, "findCardFallback4");
-async function onRequest130(context) {
+async function onRequest134(context) {
   const { request, env, params } = context;
   try {
     const { id } = params || {};
@@ -34143,17 +33861,18 @@ async function onRequest130(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest130, "onRequest130");
-var init_id7 = __esm({
+var init_id8 = __esm({
   "api/listings/[id]/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_exchange_rate();
-    __name2(findCardFallback4, "findCardFallback");
-    __name2(onRequest130, "onRequest");
+    __name(findCardFallback4, "findCardFallback");
+    __name(onRequest134, "onRequest");
   }
 });
-async function onRequest131(context) {
+
+// api/orders/[id].js
+async function onRequest135(context) {
   const { env, params } = context;
   try {
     const { id } = params || {};
@@ -34168,24 +33887,24 @@ async function onRequest131(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest131, "onRequest131");
-var init_id8 = __esm({
+var init_id9 = __esm({
   "api/orders/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_orders2();
-    __name2(onRequest131, "onRequest");
+    __name(onRequest135, "onRequest");
   }
 });
-async function json37(body, status = 200) {
+
+// api/tcgs/[id].js
+async function json38(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json37, "json37");
-async function onRequest132(context) {
+async function onRequest136(context) {
   const { request, env, params } = context;
   try {
     const id = params && (params.id || params.tcgId) ? String(params.id || params.tcgId) : null;
-    if (!id) return json37({ success: false, error: "id required" }, 400);
+    if (!id) return json38({ success: false, error: "id required" }, 400);
     const db = pickDb(env);
     if (db) await ensureSchema(db);
     let tcgRecord = null;
@@ -34212,21 +33931,22 @@ async function onRequest132(context) {
       }
     }
     tcgRecord.editions = editions.map((r) => ({ id: r.id, editionCode: r.editionCode, editionName: r.editionName, releaseDate: r.releaseDate, isActive: !!r.isActive }));
-    return json37({ success: true, tcg: tcgRecord });
+    return json38({ success: true, tcg: tcgRecord });
   } catch (err) {
-    return json37({ success: false, error: String(err) }, 500);
+    return json38({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest132, "onRequest132");
-var init_id9 = __esm({
+var init_id10 = __esm({
   "api/tcgs/[id].js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json37, "json");
-    __name2(onRequest132, "onRequest");
+    __name(json38, "json");
+    __name(onRequest136, "onRequest");
   }
 });
-async function onRequest133(context) {
+
+// tienda/[slug]/catalogo.js
+async function onRequest137(context) {
   const { params } = context;
   const slug = String(params && params.slug || "");
   const html = `<!doctype html>
@@ -34294,14 +34014,15 @@ async function onRequest133(context) {
   </html>`;
   return new Response(html, { status: 200, headers: { "Content-Type": "text/html" } });
 }
-__name(onRequest133, "onRequest133");
 var init_catalogo = __esm({
   "tienda/[slug]/catalogo.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest133, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest137, "onRequest");
   }
 });
-async function onRequest134(context) {
+
+// api/editions/index.js
+async function onRequest138(context) {
   const { request, env } = context;
   try {
     const url = new URL(request.url);
@@ -34350,33 +34071,34 @@ async function onRequest134(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest134, "onRequest134");
 var init_editions2 = __esm({
   "api/editions/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(onRequest134, "onRequest");
+    __name(onRequest138, "onRequest");
   }
 });
-async function onRequest135(context) {
-  return onRequest100(context);
+
+// api/health/index.js
+async function onRequest139(context) {
+  const mod = await Promise.resolve().then(() => (init_health(), health_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest135, "onRequest135");
 var init_health2 = __esm({
   "api/health/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_health();
-    __name2(onRequest135, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest139, "onRequest");
   }
 });
+
+// _shared/invoice.js
 function genId8(prefix = "id") {
   return globalThis.crypto && globalThis.crypto.randomUUID && globalThis.crypto.randomUUID() || `${prefix}-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genId8, "genId8");
 function genInvoiceNumber() {
   return `INV-${Date.now()}-${Math.floor(Math.random() * 9e3) + 1e3}`;
 }
-__name(genInvoiceNumber, "genInvoiceNumber");
 async function createInvoiceForOrder(db, orderId) {
   if (!db) throw new Error("No DB binding available");
   const ordRes = await db.prepare('SELECT id, total FROM "order" WHERE id = ?').bind(orderId).all();
@@ -34389,19 +34111,20 @@ async function createInvoiceForOrder(db, orderId) {
   const res = await db.prepare("SELECT id, storeId, orderId, invoiceNumber, date, total, currency, pdfUrl, createdAt FROM invoice WHERE id = ?").bind(id).all();
   return firstRow(res);
 }
-__name(createInvoiceForOrder, "createInvoiceForOrder");
 var invoice_default;
 var init_invoice = __esm({
   "_shared/invoice.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(genId8, "genId");
-    __name2(genInvoiceNumber, "genInvoiceNumber");
-    __name2(createInvoiceForOrder, "createInvoiceForOrder");
+    __name(genId8, "genId");
+    __name(genInvoiceNumber, "genInvoiceNumber");
+    __name(createInvoiceForOrder, "createInvoiceForOrder");
     invoice_default = { createInvoiceForOrder };
   }
 });
-async function onRequest136(context) {
+
+// api/invoices/index.js
+async function onRequest140(context) {
   const { request, env } = context;
   try {
     const body = await request.json().catch(() => ({}));
@@ -34416,20 +34139,20 @@ async function onRequest136(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest136, "onRequest136");
 var init_invoices = __esm({
   "api/invoices/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_invoice();
-    __name2(onRequest136, "onRequest");
+    __name(onRequest140, "onRequest");
   }
 });
-async function json38(body, status = 200) {
+
+// api/listings/index.js
+async function json39(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json38, "json38");
-async function onRequest137(context) {
+async function onRequest141(context) {
   const { request, env } = context;
   try {
     const url = new URL(request.url);
@@ -34438,7 +34161,7 @@ async function onRequest137(context) {
     const tcgId = url.searchParams.get("tcgId") || null;
     const editionId = url.searchParams.get("editionId") || null;
     const db = pickDb(env);
-    if (!db) return json38({ success: false, error: "No DB binding" }, 500);
+    if (!db) return json39({ success: false, error: "No DB binding" }, 500);
     await ensureSchema(db);
     const listingCols = await buildSelectColumns(db, "listing", "l", ["id", "cardId", "editionCode", "condition", "rarity", "quantity", "referencePrice", "marginMultiplier", "exchangeRate", "finalPrice", "currency", "costPrice", "status", "everHadStock", "lastSyncedAt", "createdAt", "updatedAt"]);
     const cardCols = await buildSelectColumns(db, "card", "c", ["id", "externalId", "tcg", "editionCode", "cardCode", "cardName", "cardNumber", "rarity", "imageUrl", "priceLow", "priceMid", "priceMarket"]);
@@ -34458,21 +34181,22 @@ async function onRequest137(context) {
     binds.push(take, skip);
     const res = await db.prepare(sql).bind(...binds).all();
     const rows = Array.isArray(res?.results) ? res.results : Array.isArray(res) ? res : [];
-    return json38({ success: true, listings: rows });
+    return json39({ success: true, listings: rows });
   } catch (err) {
-    return json38({ success: false, error: String(err) }, 500);
+    return json39({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest137, "onRequest137");
 var init_listings = __esm({
   "api/listings/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json38, "json");
-    __name2(onRequest137, "onRequest");
+    __name(json39, "json");
+    __name(onRequest141, "onRequest");
   }
 });
-async function onRequest138() {
+
+// api/metrics/index.js
+async function onRequest142() {
   try {
     const text = getMetricsText();
     return new Response(text, { status: 200, headers: { "Content-Type": "text/plain; version=0.0.4; charset=utf-8", "Access-Control-Allow-Origin": "*" } });
@@ -34480,15 +34204,16 @@ async function onRequest138() {
     return new Response("error: unable to render metrics", { status: 500 });
   }
 }
-__name(onRequest138, "onRequest138");
 var init_metrics2 = __esm({
   "api/metrics/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_metrics();
-    __name2(onRequest138, "onRequest");
+    __name(onRequest142, "onRequest");
   }
 });
-async function onRequest139(context) {
+
+// api/orders/index.js
+async function onRequest143(context) {
   const { request, env } = context;
   try {
     const url = new URL(request.url);
@@ -34526,31 +34251,33 @@ async function onRequest139(context) {
     return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
-__name(onRequest139, "onRequest139");
 var init_orders3 = __esm({
   "api/orders/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     init_orders2();
-    __name2(onRequest139, "onRequest");
+    __name(onRequest143, "onRequest");
   }
 });
-async function onRequest140(context) {
-  return onRequest118(context);
+
+// api/stripe-webhook/index.js
+async function onRequest144(context) {
+  const mod = await Promise.resolve().then(() => (init_webhook2(), webhook_exports));
+  if (mod && mod.onRequest) return mod.onRequest(context);
+  throw new Error("delegate handler not available");
 }
-__name(onRequest140, "onRequest140");
 var init_stripe_webhook = __esm({
   "api/stripe-webhook/index.js"() {
-    init_functionsRoutes_0_421892428804746();
-    init_webhook2();
-    __name2(onRequest140, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest144, "onRequest");
   }
 });
-async function json39(body, status = 200) {
+
+// api/tcgs/index.js
+async function json40(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json39, "json39");
-async function onRequest141(context) {
+async function onRequest145(context) {
   const { request, env } = context;
   try {
     const db = pickDb(env);
@@ -34579,16 +34306,15 @@ async function onRequest141(context) {
         }
       }
     }
-    return json39({ success: true, total: tcgs.length, tcgs });
+    return json40({ success: true, total: tcgs.length, tcgs });
   } catch (err) {
-    return json39({ success: false, error: String(err) }, 500);
+    return json40({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest141, "onRequest141");
 var DEFAULT_TCGS;
 var init_tcgs = __esm({
   "api/tcgs/index.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
     DEFAULT_TCGS = [
       { id: "MAGIC", name: "MAGIC", displayName: "Magic: The Gathering" },
@@ -34598,14 +34324,15 @@ var init_tcgs = __esm({
       { id: "DIGIMON", name: "DIGIMON", displayName: "Digimon Card Game" },
       { id: "WEISS_SCHWARZ", name: "WEISS_SCHWARZ", displayName: "Weiss Schwarz" }
     ];
-    __name2(json39, "json");
-    __name2(onRequest141, "onRequest");
+    __name(json40, "json");
+    __name(onRequest145, "onRequest");
   }
 });
-async function json40(body, status = 200) {
+
+// cron/cart-cleanup.js
+async function json41(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json40, "json40");
 async function runCartCleanup(db, expiryMinutes, env = {}) {
   if (!db) throw new Error("No DB binding");
   try {
@@ -34644,11 +34371,10 @@ async function runCartCleanup(db, expiryMinutes, env = {}) {
   }
   return { deletedItems: totalDeletedItems, deletedCarts: totalDeletedCarts };
 }
-__name(runCartCleanup, "runCartCleanup");
-async function onRequest142(context) {
+async function onRequest146(context) {
   const { request, env } = context;
   const db = pickDb(env);
-  if (!db) return json40({ success: false, error: "No DB binding" }, 500);
+  if (!db) return json41({ success: false, error: "No DB binding" }, 500);
   if (db) await ensureSchema(db);
   const url = new URL(request.url);
   const qp = url.searchParams.get("expiryMinutes");
@@ -34656,25 +34382,25 @@ async function onRequest142(context) {
   const expiry = body.expiryMinutes ?? qp ?? void 0;
   try {
     const result = await runCartCleanup(db, expiry, env);
-    return json40({ success: true, ...result });
+    return json41({ success: true, ...result });
   } catch (err) {
-    return json40({ success: false, error: String(err) }, 500);
+    return json41({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest142, "onRequest142");
 var init_cart_cleanup = __esm({
   "cron/cart-cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json40, "json");
-    __name2(runCartCleanup, "runCartCleanup");
-    __name2(onRequest142, "onRequest");
+    __name(json41, "json");
+    __name(runCartCleanup, "runCartCleanup");
+    __name(onRequest146, "onRequest");
   }
 });
-async function json41(body, status = 200) {
+
+// cron/invoice-cleanup.js
+async function json42(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json41, "json41");
 async function runInvoiceCleanup(db, env = {}) {
   if (!db) throw new Error("No DB binding");
   try {
@@ -34724,33 +34450,32 @@ async function runInvoiceCleanup(db, env = {}) {
   }
   return { deletedInvoices, deletedReceipts, retentionDays };
 }
-__name(runInvoiceCleanup, "runInvoiceCleanup");
-async function onRequest143(context) {
+async function onRequest147(context) {
   const { request, env } = context;
   const db = pickDb(env);
-  if (!db) return json41({ success: false, error: "No DB binding" }, 500);
+  if (!db) return json42({ success: false, error: "No DB binding" }, 500);
   if (db) await ensureSchema(db);
   try {
     const result = await runInvoiceCleanup(db, env);
-    return json41({ success: true, ...result });
+    return json42({ success: true, ...result });
   } catch (err) {
-    return json41({ success: false, error: String(err) }, 500);
+    return json42({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest143, "onRequest143");
 var init_invoice_cleanup = __esm({
   "cron/invoice-cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json41, "json");
-    __name2(runInvoiceCleanup, "runInvoiceCleanup");
-    __name2(onRequest143, "onRequest");
+    __name(json42, "json");
+    __name(runInvoiceCleanup, "runInvoiceCleanup");
+    __name(onRequest147, "onRequest");
   }
 });
-async function json42(body, status = 200) {
+
+// cron/reservation-cleanup.js
+async function json43(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
-__name(json42, "json42");
 async function runReservationCleanup(db, env = {}) {
   if (!db) throw new Error("No DB binding");
   try {
@@ -34801,30 +34526,30 @@ async function runReservationCleanup(db, env = {}) {
   }
   return { processed };
 }
-__name(runReservationCleanup, "runReservationCleanup");
-async function onRequest144(context) {
+async function onRequest148(context) {
   const { request, env } = context;
   const db = pickDb(env);
-  if (!db) return json42({ success: false, error: "No DB binding" }, 500);
+  if (!db) return json43({ success: false, error: "No DB binding" }, 500);
   if (db) await ensureSchema(db);
   try {
     const result = await runReservationCleanup(db, env);
-    return json42({ success: true, ...result });
+    return json43({ success: true, ...result });
   } catch (err) {
-    return json42({ success: false, error: String(err) }, 500);
+    return json43({ success: false, error: String(err) }, 500);
   }
 }
-__name(onRequest144, "onRequest144");
 var init_reservation_cleanup = __esm({
   "cron/reservation-cleanup.js"() {
-    init_functionsRoutes_0_421892428804746();
+    init_functionsRoutes_0_5723290474085267();
     init_d1();
-    __name2(json42, "json");
-    __name2(runReservationCleanup, "runReservationCleanup");
-    __name2(onRequest144, "onRequest");
+    __name(json43, "json");
+    __name(runReservationCleanup, "runReservationCleanup");
+    __name(onRequest148, "onRequest");
   }
 });
-async function onRequest145(context) {
+
+// [slug]/catalogo.js
+async function onRequest149(context) {
   const { params } = context;
   const slug = String(params && params.slug || "");
   const html = `<!doctype html>
@@ -34891,19 +34616,21 @@ async function onRequest145(context) {
   </html>`;
   return new Response(html, { status: 200, headers: { "Content-Type": "text/html" } });
 }
-__name(onRequest145, "onRequest145");
 var init_catalogo2 = __esm({
   "[slug]/catalogo.js"() {
-    init_functionsRoutes_0_421892428804746();
-    __name2(onRequest145, "onRequest");
+    init_functionsRoutes_0_5723290474085267();
+    __name(onRequest149, "onRequest");
   }
 });
+
+// ../.wrangler/tmp/pages-C1DStZ/functionsRoutes-0.5723290474085267.mjs
 var routes;
-var init_functionsRoutes_0_421892428804746 = __esm({
-  "../.wrangler/tmp/pages-wp6dUU/functionsRoutes-0.421892428804746.mjs"() {
+var init_functionsRoutes_0_5723290474085267 = __esm({
+  "../.wrangler/tmp/pages-C1DStZ/functionsRoutes-0.5723290474085267.mjs"() {
     init_bulk();
     init_test();
     init_test2();
+    init_storeId();
     init_runId();
     init_commit2();
     init_release2();
@@ -34947,6 +34674,7 @@ var init_functionsRoutes_0_421892428804746 = __esm({
     init_test5();
     init_test6();
     init_test7();
+    init_id();
     init_editionId();
     init_tcgId();
     init_editionId2();
@@ -34954,7 +34682,7 @@ var init_functionsRoutes_0_421892428804746 = __esm({
     init_listingId();
     init_importId();
     init_cardId2();
-    init_id2();
+    init_id3();
     init_sessionId();
     init_add();
     init_checkout();
@@ -35010,7 +34738,9 @@ var init_functionsRoutes_0_421892428804746 = __esm({
     init_cleanup();
     init_available();
     init_batch_stock();
+    init_gtin();
     init_inventory_value();
+    init_label();
     init_low_stock();
     init_price_preview();
     init_sync_prices();
@@ -35021,15 +34751,15 @@ var init_functionsRoutes_0_421892428804746 = __esm({
     init_sessions();
     init_approvals2();
     init_test8();
-    init_id3();
     init_id4();
-    init_sessionId2();
-    init_id();
     init_id5();
+    init_sessionId2();
+    init_id2();
     init_id6();
     init_id7();
     init_id8();
     init_id9();
+    init_id10();
     init_catalogo();
     init_card2();
     init_cash_sessions();
@@ -35068,999 +34798,1035 @@ var init_functionsRoutes_0_421892428804746 = __esm({
         modules: [onRequest3]
       },
       {
+        routePath: "/api/admin/inventory/store/:storeId",
+        mountPath: "/api/admin/inventory/store",
+        method: "",
+        middlewares: [],
+        modules: [onRequest4]
+      },
+      {
         routePath: "/api/listings/sync-prices/runs/:runId",
         mountPath: "/api/listings/sync-prices/runs",
         method: "",
         middlewares: [],
-        modules: [onRequest4]
+        modules: [onRequest5]
       },
       {
         routePath: "/api/erp/reservation/:id/commit",
         mountPath: "/api/erp/reservation/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest6]
+        modules: [onRequest7]
       },
       {
         routePath: "/api/erp/reservation/:id/release",
         mountPath: "/api/erp/reservation/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest8]
+        modules: [onRequest9]
       },
       {
         routePath: "/api/erp/reservations/:id/commit",
         mountPath: "/api/erp/reservations/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest5]
+        modules: [onRequest6]
       },
       {
         routePath: "/api/erp/reservations/:id/release",
         mountPath: "/api/erp/reservations/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest7]
+        modules: [onRequest8]
       },
       {
         routePath: "/api/inventory/imports/:id/rollback",
         mountPath: "/api/inventory/imports/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest9]
+        modules: [onRequest10]
       },
       {
         routePath: "/api/pos/cash-sessions/:id/close",
         mountPath: "/api/pos/cash-sessions/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest10]
+        modules: [onRequest11]
       },
       {
         routePath: "/api/pos/sessions/:sessionId/transactions",
         mountPath: "/api/pos/sessions/:sessionId/transactions",
         method: "",
         middlewares: [],
-        modules: [onRequest11]
+        modules: [onRequest12]
       },
       {
         routePath: "/api/pricing/approvals/:id/approve",
         mountPath: "/api/pricing/approvals/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest12]
+        modules: [onRequest13]
       },
       {
         routePath: "/api/pricing/approvals/:id/reject",
         mountPath: "/api/pricing/approvals/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest13]
+        modules: [onRequest14]
       },
       {
         routePath: "/api/external/cards/:tcg/:cardId",
         mountPath: "/api/external/cards/:tcg",
         method: "",
         middlewares: [],
-        modules: [onRequest14]
+        modules: [onRequest15]
       },
       {
         routePath: "/api/cart/:sessionId/item/:itemId",
         mountPath: "/api/cart/:sessionId/item",
         method: "",
         middlewares: [],
-        modules: [onRequest15]
+        modules: [onRequest16]
       },
       {
         routePath: "/api/admin/auth/create",
         mountPath: "/api/admin/auth",
         method: "",
         middlewares: [],
-        modules: [onRequest17]
+        modules: [onRequest18]
       },
       {
         routePath: "/api/admin/auth/login",
         mountPath: "/api/admin/auth",
         method: "",
         middlewares: [],
-        modules: [onRequest19]
+        modules: [onRequest20]
       },
       {
         routePath: "/api/admin/auth/logout",
         mountPath: "/api/admin/auth",
         method: "",
         middlewares: [],
-        modules: [onRequest21]
+        modules: [onRequest22]
       },
       {
         routePath: "/api/admin/auth/me",
         mountPath: "/api/admin/auth",
         method: "",
         middlewares: [],
-        modules: [onRequest23]
+        modules: [onRequest24]
       },
       {
         routePath: "/api/admin/cache/invalidate",
         mountPath: "/api/admin/cache",
         method: "",
         middlewares: [],
-        modules: [onRequest24]
+        modules: [onRequest25]
       },
       {
         routePath: "/api/admin/catalog/bootstrap",
         mountPath: "/api/admin/catalog",
         method: "",
         middlewares: [],
-        modules: [onRequest27]
+        modules: [onRequest29]
       },
       {
         routePath: "/api/admin/catalog/reset",
         mountPath: "/api/admin/catalog",
         method: "",
         middlewares: [],
-        modules: [onRequest28]
+        modules: [onRequest30]
       },
       {
         routePath: "/api/admin/catalog/sync",
         mountPath: "/api/admin/catalog",
         method: "",
         middlewares: [],
-        modules: [onRequest30]
+        modules: [onRequest32]
       },
       {
         routePath: "/api/admin/pricing/preview",
         mountPath: "/api/admin/pricing",
         method: "",
         middlewares: [],
-        modules: [onRequest32]
+        modules: [onRequest34]
       },
       {
         routePath: "/api/admin/pricing/thresholds",
         mountPath: "/api/admin/pricing",
         method: "",
         middlewares: [],
-        modules: [onRequest33]
+        modules: [onRequest35]
       },
       {
         routePath: "/api/admin/routes/test",
         mountPath: "/api/admin/routes/test",
         method: "",
         middlewares: [],
-        modules: [onRequest34]
+        modules: [onRequest36]
       },
       {
         routePath: "/api/erp/stock/movement",
         mountPath: "/api/erp/stock",
         method: "",
         middlewares: [],
-        modules: [onRequest35]
+        modules: [onRequest37]
       },
       {
         routePath: "/api/erp/stock/snapshot",
         mountPath: "/api/erp/stock",
         method: "",
         middlewares: [],
-        modules: [onRequest36]
+        modules: [onRequest38]
       },
       {
         routePath: "/api/erp/stock/transfer",
         mountPath: "/api/erp/stock",
         method: "",
         middlewares: [],
-        modules: [onRequest37]
+        modules: [onRequest39]
       },
       {
         routePath: "/api/external/import/card",
         mountPath: "/api/external/import",
         method: "",
         middlewares: [],
-        modules: [onRequest38]
+        modules: [onRequest40]
       },
       {
         routePath: "/api/external/import/search",
         mountPath: "/api/external/import",
         method: "",
         middlewares: [],
-        modules: [onRequest39]
+        modules: [onRequest41]
       },
       {
         routePath: "/api/external/import/set",
         mountPath: "/api/external/import",
         method: "",
         middlewares: [],
-        modules: [onRequest25]
+        modules: [onRequest27]
       },
       {
         routePath: "/api/external/optcgapi/cards",
         mountPath: "/api/external/optcgapi",
         method: "",
         middlewares: [],
-        modules: [onRequest40]
+        modules: [onRequest42]
       },
       {
         routePath: "/api/external/ygoprodeck/card-sets",
         mountPath: "/api/external/ygoprodeck",
         method: "",
         middlewares: [],
-        modules: [onRequest42]
+        modules: [onRequest44]
       },
       {
         routePath: "/api/inventory/import-csv/template",
         mountPath: "/api/inventory/import-csv",
         method: "",
         middlewares: [],
-        modules: [onRequest43]
+        modules: [onRequest45]
       },
       {
         routePath: "/api/inventory/import-csv/validate",
         mountPath: "/api/inventory/import-csv",
         method: "",
         middlewares: [],
-        modules: [onRequest44]
+        modules: [onRequest46]
       },
       {
         routePath: "/api/inventory/imports/export",
         mountPath: "/api/inventory/imports",
         method: "",
         middlewares: [],
-        modules: [onRequest45]
+        modules: [onRequest47]
       },
       {
         routePath: "/api/listings/price-history/export",
         mountPath: "/api/listings/price-history",
         method: "",
         middlewares: [],
-        modules: [onRequest46]
+        modules: [onRequest48]
       },
       {
         routePath: "/api/listings/sync-prices/runs",
         mountPath: "/api/listings/sync-prices/runs",
         method: "",
         middlewares: [],
-        modules: [onRequest47]
+        modules: [onRequest49]
       },
       {
         routePath: "/api/orders/routes/test",
         mountPath: "/api/orders/routes/test",
         method: "",
         middlewares: [],
-        modules: [onRequest48]
+        modules: [onRequest50]
       },
       {
         routePath: "/api/payments/mercadopago/create-preference",
         mountPath: "/api/payments/mercadopago",
         method: "",
         middlewares: [],
-        modules: [onRequest49]
+        modules: [onRequest51]
       },
       {
         routePath: "/api/payments/stripe/create-intent",
         mountPath: "/api/payments/stripe",
         method: "",
         middlewares: [],
-        modules: [onRequest50]
+        modules: [onRequest52]
       },
       {
         routePath: "/api/payments/stripe/webhook",
         mountPath: "/api/payments/stripe",
         method: "",
         middlewares: [],
-        modules: [onRequest51]
+        modules: [onRequest53]
       },
       {
         routePath: "/api/payments/webhook/test",
         mountPath: "/api/payments/webhook/test",
         method: "",
         middlewares: [],
-        modules: [onRequest52]
+        modules: [onRequest54]
       },
       {
         routePath: "/api/public-and-import-with-mapping/integration/test",
         mountPath: "/api/public-and-import-with-mapping/integration/test",
         method: "",
         middlewares: [],
-        modules: [onRequest53]
+        modules: [onRequest55]
       },
       {
         routePath: "/api/routes/integration/test",
         mountPath: "/api/routes/integration/test",
         method: "",
         middlewares: [],
-        modules: [onRequest54]
+        modules: [onRequest56]
+      },
+      {
+        routePath: "/api/admin/stores/:id",
+        mountPath: "/api/admin/stores",
+        method: "",
+        middlewares: [],
+        modules: [onRequest57]
       },
       {
         routePath: "/api/card/edition/:editionId",
         mountPath: "/api/card/edition",
         method: "",
         middlewares: [],
-        modules: [onRequest56]
+        modules: [onRequest59]
       },
       {
         routePath: "/api/card/tcg/:tcgId",
         mountPath: "/api/card/tcg",
         method: "",
         middlewares: [],
-        modules: [onRequest57]
+        modules: [onRequest60]
       },
       {
         routePath: "/api/cards/edition/:editionId",
         mountPath: "/api/cards/edition",
         method: "",
         middlewares: [],
-        modules: [onRequest58]
+        modules: [onRequest61]
       },
       {
         routePath: "/api/cards/tcg/:tcgId",
         mountPath: "/api/cards/tcg",
         method: "",
         middlewares: [],
-        modules: [onRequest59]
+        modules: [onRequest62]
       },
       {
         routePath: "/api/erp/stock/:listingId",
         mountPath: "/api/erp/stock",
         method: "",
         middlewares: [],
-        modules: [onRequest61]
+        modules: [onRequest64]
       },
       {
         routePath: "/api/inventory/imports/:importId",
         mountPath: "/api/inventory/imports",
         method: "",
         middlewares: [],
-        modules: [onRequest62]
+        modules: [onRequest65]
       },
       {
         routePath: "/api/listings/card/:cardId",
         mountPath: "/api/listings/card",
         method: "",
         middlewares: [],
-        modules: [onRequest63]
+        modules: [onRequest66]
       },
       {
         routePath: "/api/pos/cash-sessions/:id",
         mountPath: "/api/pos/cash-sessions",
         method: "",
         middlewares: [],
-        modules: [onRequest65]
+        modules: [onRequest68]
       },
       {
         routePath: "/api/pos/sessions/:sessionId",
         mountPath: "/api/pos/sessions",
         method: "",
         middlewares: [],
-        modules: [onRequest66]
+        modules: [onRequest69]
       },
       {
         routePath: "/api/cart/:sessionId/add",
         mountPath: "/api/cart/:sessionId",
         method: "",
         middlewares: [],
-        modules: [onRequest67]
+        modules: [onRequest70]
       },
       {
         routePath: "/api/cart/:sessionId/checkout",
         mountPath: "/api/cart/:sessionId",
         method: "",
         middlewares: [],
-        modules: [onRequest68]
+        modules: [onRequest71]
       },
       {
         routePath: "/api/cash-sessions/:id/close",
         mountPath: "/api/cash-sessions/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest69]
+        modules: [onRequest72]
       },
       {
         routePath: "/api/editions/:id/cards-with-stock",
         mountPath: "/api/editions/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest70]
+        modules: [onRequest73]
       },
       {
         routePath: "/api/editions/:id/csv-template",
         mountPath: "/api/editions/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest71]
+        modules: [onRequest74]
       },
       {
         routePath: "/api/invoices/:id/pdf",
         mountPath: "/api/invoices/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest72]
+        modules: [onRequest75]
       },
       {
         routePath: "/api/listings/:id/price-debug",
         mountPath: "/api/listings/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest73]
+        modules: [onRequest76]
       },
       {
         routePath: "/api/listings/:id/pricing-mode",
         mountPath: "/api/listings/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest74]
+        modules: [onRequest77]
       },
       {
         routePath: "/api/listings/:id/stock",
         mountPath: "/api/listings/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest60]
+        modules: [onRequest63]
       },
       {
         routePath: "/api/orders/:id/cancel",
         mountPath: "/api/orders/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest75]
+        modules: [onRequest78]
       },
       {
         routePath: "/api/orders/:id/deliver",
         mountPath: "/api/orders/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest76]
+        modules: [onRequest79]
       },
       {
         routePath: "/api/orders/:id/receipt",
         mountPath: "/api/orders/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest77]
+        modules: [onRequest80]
       },
       {
         routePath: "/api/orders/:id/ship",
         mountPath: "/api/orders/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest78]
+        modules: [onRequest81]
       },
       {
         routePath: "/api/admin/accounts",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest79]
+        modules: [onRequest82]
       },
       {
         routePath: "/api/admin/approvals",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest80]
+        modules: [onRequest83]
       },
       {
         routePath: "/api/admin/catalog-bootstrap",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest26]
+        modules: [onRequest28]
       },
       {
         routePath: "/api/admin/catalog-reset",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest81]
+        modules: [onRequest84]
       },
       {
         routePath: "/api/admin/catalog-sync",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest29]
+        modules: [onRequest31]
       },
       {
         routePath: "/api/admin/create",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest16]
+        modules: [onRequest17]
       },
       {
         routePath: "/api/admin/dashboard",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest82]
+        modules: [onRequest85]
       },
       {
         routePath: "/api/admin/editions",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest83]
+        modules: [onRequest86]
       },
       {
         routePath: "/api/admin/login",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest18]
+        modules: [onRequest19]
       },
       {
         routePath: "/api/admin/logout",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest20]
+        modules: [onRequest21]
       },
       {
         routePath: "/api/admin/me",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest22]
+        modules: [onRequest23]
       },
       {
         routePath: "/api/admin/migrate",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest84]
+        modules: [onRequest87]
       },
       {
         routePath: "/api/admin/normalize-ids",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest85]
+        modules: [onRequest88]
       },
       {
         routePath: "/api/admin/price-volatility",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest86]
+        modules: [onRequest89]
       },
       {
         routePath: "/api/admin/pricing-config",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest87]
+        modules: [onRequest90]
       },
       {
         routePath: "/api/admin/pricing-preview",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest31]
+        modules: [onRequest33]
       },
       {
         routePath: "/api/admin/stock-alerts",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest88]
+        modules: [onRequest91]
       },
       {
         routePath: "/api/admin/stores",
-        mountPath: "/api/admin",
+        mountPath: "/api/admin/stores",
         method: "",
         middlewares: [],
-        modules: [onRequest89]
+        modules: [onRequest92]
       },
       {
         routePath: "/api/admin/tcgplayer-coverage",
         mountPath: "/api/admin",
         method: "",
         middlewares: [],
-        modules: [onRequest90]
+        modules: [onRequest93]
       },
       {
         routePath: "/api/admin/thresholds",
         mountPath: "/api/admin/thresholds",
         method: "",
         middlewares: [],
-        modules: [onRequest91]
+        modules: [onRequest94]
       },
       {
         routePath: "/api/card/search",
         mountPath: "/api/card",
         method: "",
         middlewares: [],
-        modules: [onRequest92]
+        modules: [onRequest95]
       },
       {
         routePath: "/api/cards/search",
         mountPath: "/api/cards",
         method: "",
         middlewares: [],
-        modules: [onRequest93]
+        modules: [onRequest96]
       },
       {
         routePath: "/api/erp/reservation",
         mountPath: "/api/erp",
         method: "",
         middlewares: [],
-        modules: [onRequest95]
+        modules: [onRequest98]
       },
       {
         routePath: "/api/erp/reservations",
         mountPath: "/api/erp/reservations",
         method: "",
         middlewares: [],
-        modules: [onRequest94]
+        modules: [onRequest97]
       },
       {
         routePath: "/api/external/exchange-rate",
         mountPath: "/api/external",
         method: "",
         middlewares: [],
-        modules: [onRequest96]
+        modules: [onRequest99]
       },
       {
         routePath: "/api/external/exchange-rate-debug",
         mountPath: "/api/external",
         method: "",
         middlewares: [],
-        modules: [onRequest97]
+        modules: [onRequest100]
       },
       {
         routePath: "/api/external/exchange-rate-refresh",
         mountPath: "/api/external",
         method: "",
         middlewares: [],
-        modules: [onRequest98]
+        modules: [onRequest101]
       },
       {
         routePath: "/api/external/search",
         mountPath: "/api/external",
         method: "",
         middlewares: [],
-        modules: [onRequest99]
+        modules: [onRequest102]
       },
       {
         routePath: "/api/external/sets",
         mountPath: "/api/external",
         method: "",
         middlewares: [],
-        modules: [onRequest41]
+        modules: [onRequest43]
       },
       {
         routePath: "/api/health/ready",
         mountPath: "/api/health",
         method: "",
         middlewares: [],
-        modules: [onRequest101]
+        modules: [onRequest104]
       },
       {
         routePath: "/api/inventory/bulk-update",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest102]
+        modules: [onRequest105]
       },
       {
         routePath: "/api/inventory/decrease",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest103]
+        modules: [onRequest106]
       },
       {
         routePath: "/api/inventory/export-csv",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest104]
+        modules: [onRequest107]
       },
       {
         routePath: "/api/inventory/export-david-xlsx",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest105]
+        modules: [onRequest108]
       },
       {
         routePath: "/api/inventory/import-csv",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest106]
+        modules: [onRequest109]
       },
       {
         routePath: "/api/inventory/import-with-mapping",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest107]
+        modules: [onRequest110]
       },
       {
         routePath: "/api/inventory/imports",
         mountPath: "/api/inventory/imports",
         method: "",
         middlewares: [],
-        modules: [onRequest108]
+        modules: [onRequest111]
       },
       {
         routePath: "/api/inventory/update-quantity",
         mountPath: "/api/inventory",
         method: "",
         middlewares: [],
-        modules: [onRequest109]
+        modules: [onRequest112]
       },
       {
         routePath: "/api/invoices/cleanup",
         mountPath: "/api/invoices",
         method: "",
         middlewares: [],
-        modules: [onRequest110]
+        modules: [onRequest113]
       },
       {
         routePath: "/api/listings/available",
         mountPath: "/api/listings",
         method: "",
         middlewares: [],
-        modules: [onRequest111]
+        modules: [onRequest114]
       },
       {
         routePath: "/api/listings/batch-stock",
         mountPath: "/api/listings",
         method: "",
         middlewares: [],
-        modules: [onRequest112]
-      },
-      {
-        routePath: "/api/listings/inventory-value",
-        mountPath: "/api/listings",
-        method: "",
-        middlewares: [],
-        modules: [onRequest113]
-      },
-      {
-        routePath: "/api/listings/low-stock",
-        mountPath: "/api/listings",
-        method: "",
-        middlewares: [],
-        modules: [onRequest114]
-      },
-      {
-        routePath: "/api/listings/price-preview",
-        mountPath: "/api/listings",
-        method: "",
-        middlewares: [],
         modules: [onRequest115]
       },
       {
-        routePath: "/api/listings/sync-prices",
+        routePath: "/api/listings/gtin",
         mountPath: "/api/listings",
         method: "",
         middlewares: [],
         modules: [onRequest116]
       },
       {
+        routePath: "/api/listings/inventory-value",
+        mountPath: "/api/listings",
+        method: "",
+        middlewares: [],
+        modules: [onRequest117]
+      },
+      {
+        routePath: "/api/listings/label",
+        mountPath: "/api/listings",
+        method: "",
+        middlewares: [],
+        modules: [onRequest118]
+      },
+      {
+        routePath: "/api/listings/low-stock",
+        mountPath: "/api/listings",
+        method: "",
+        middlewares: [],
+        modules: [onRequest119]
+      },
+      {
+        routePath: "/api/listings/price-preview",
+        mountPath: "/api/listings",
+        method: "",
+        middlewares: [],
+        modules: [onRequest120]
+      },
+      {
+        routePath: "/api/listings/sync-prices",
+        mountPath: "/api/listings",
+        method: "",
+        middlewares: [],
+        modules: [onRequest26]
+      },
+      {
         routePath: "/api/payments/pos-sale",
         mountPath: "/api/payments",
         method: "",
         middlewares: [],
-        modules: [onRequest117]
+        modules: [onRequest121]
       },
       {
         routePath: "/api/payments/webhook",
         mountPath: "/api/payments/webhook",
         method: "",
         middlewares: [],
-        modules: [onRequest118]
+        modules: [onRequest122]
       },
       {
         routePath: "/api/pos/cash",
         mountPath: "/api/pos/cash",
         method: "",
         middlewares: [],
-        modules: [onRequest120]
+        modules: [onRequest124]
       },
       {
         routePath: "/api/pos/cash-sessions",
         mountPath: "/api/pos/cash-sessions",
         method: "",
         middlewares: [],
-        modules: [onRequest121]
+        modules: [onRequest125]
       },
       {
         routePath: "/api/pos/sessions",
         mountPath: "/api/pos/sessions",
         method: "",
         middlewares: [],
-        modules: [onRequest122]
+        modules: [onRequest126]
       },
       {
         routePath: "/api/pricing/approvals",
         mountPath: "/api/pricing/approvals",
         method: "",
         middlewares: [],
-        modules: [onRequest123]
+        modules: [onRequest127]
       },
       {
         routePath: "/api/stripe-webhook/test",
         mountPath: "/api/stripe-webhook/test",
         method: "",
         middlewares: [],
-        modules: [onRequest124]
+        modules: [onRequest128]
       },
       {
         routePath: "/api/card/:id",
         mountPath: "/api/card",
         method: "",
         middlewares: [],
-        modules: [onRequest125]
+        modules: [onRequest129]
       },
       {
         routePath: "/api/cards/:id",
         mountPath: "/api/cards",
         method: "",
         middlewares: [],
-        modules: [onRequest126]
+        modules: [onRequest130]
       },
       {
         routePath: "/api/cart/:sessionId",
         mountPath: "/api/cart/:sessionId",
         method: "",
         middlewares: [],
-        modules: [onRequest127]
+        modules: [onRequest131]
       },
       {
         routePath: "/api/cash-sessions/:id",
         mountPath: "/api/cash-sessions",
         method: "",
         middlewares: [],
-        modules: [onRequest64]
+        modules: [onRequest67]
       },
       {
         routePath: "/api/editions/:id",
         mountPath: "/api/editions/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest128]
+        modules: [onRequest132]
       },
       {
         routePath: "/api/invoices/:id",
         mountPath: "/api/invoices",
         method: "",
         middlewares: [],
-        modules: [onRequest129]
+        modules: [onRequest133]
       },
       {
         routePath: "/api/listings/:id",
         mountPath: "/api/listings/:id",
         method: "",
         middlewares: [],
-        modules: [onRequest130]
+        modules: [onRequest134]
       },
       {
         routePath: "/api/orders/:id",
         mountPath: "/api/orders",
         method: "",
         middlewares: [],
-        modules: [onRequest131]
+        modules: [onRequest135]
       },
       {
         routePath: "/api/tcgs/:id",
         mountPath: "/api/tcgs",
         method: "",
         middlewares: [],
-        modules: [onRequest132]
+        modules: [onRequest136]
       },
       {
         routePath: "/tienda/:slug/catalogo",
         mountPath: "/tienda/:slug",
         method: "",
         middlewares: [],
-        modules: [onRequest133]
+        modules: [onRequest137]
       },
       {
         routePath: "/api/card",
         mountPath: "/api/card",
         method: "",
         middlewares: [],
-        modules: [onRequest55]
+        modules: [onRequest58]
       },
       {
         routePath: "/api/cash-sessions",
         mountPath: "/api/cash-sessions",
         method: "",
         middlewares: [],
-        modules: [onRequest119]
+        modules: [onRequest123]
       },
       {
         routePath: "/api/editions",
         mountPath: "/api/editions",
         method: "",
         middlewares: [],
-        modules: [onRequest134]
+        modules: [onRequest138]
       },
       {
         routePath: "/api/health",
         mountPath: "/api/health",
         method: "",
         middlewares: [],
-        modules: [onRequest135]
+        modules: [onRequest139]
       },
       {
         routePath: "/api/invoices",
         mountPath: "/api/invoices",
         method: "",
         middlewares: [],
-        modules: [onRequest136]
+        modules: [onRequest140]
       },
       {
         routePath: "/api/listings",
         mountPath: "/api/listings",
         method: "",
         middlewares: [],
-        modules: [onRequest137]
+        modules: [onRequest141]
       },
       {
         routePath: "/api/metrics",
         mountPath: "/api/metrics",
         method: "",
         middlewares: [],
-        modules: [onRequest138]
+        modules: [onRequest142]
       },
       {
         routePath: "/api/orders",
         mountPath: "/api/orders",
         method: "",
         middlewares: [],
-        modules: [onRequest139]
+        modules: [onRequest143]
       },
       {
         routePath: "/api/stripe-webhook",
         mountPath: "/api/stripe-webhook",
         method: "",
         middlewares: [],
-        modules: [onRequest140]
+        modules: [onRequest144]
       },
       {
         routePath: "/api/tcgs",
         mountPath: "/api/tcgs",
         method: "",
         middlewares: [],
-        modules: [onRequest141]
+        modules: [onRequest145]
       },
       {
         routePath: "/cron/cart-cleanup",
         mountPath: "/cron",
         method: "",
         middlewares: [],
-        modules: [onRequest142]
+        modules: [onRequest146]
       },
       {
         routePath: "/cron/invoice-cleanup",
         mountPath: "/cron",
         method: "",
         middlewares: [],
-        modules: [onRequest143]
+        modules: [onRequest147]
       },
       {
         routePath: "/cron/reservation-cleanup",
         mountPath: "/cron",
         method: "",
         middlewares: [],
-        modules: [onRequest144]
+        modules: [onRequest148]
       },
       {
         routePath: "/:slug/catalogo",
         mountPath: "/:slug",
         method: "",
         middlewares: [],
-        modules: [onRequest145]
+        modules: [onRequest149]
       }
     ];
   }
 });
-init_functionsRoutes_0_421892428804746();
-init_functionsRoutes_0_421892428804746();
-init_functionsRoutes_0_421892428804746();
-init_functionsRoutes_0_421892428804746();
+
+// ../.wrangler/tmp/bundle-1ZeZJP/middleware-loader.entry.ts
+init_functionsRoutes_0_5723290474085267();
+
+// ../.wrangler/tmp/bundle-1ZeZJP/middleware-insertion-facade.js
+init_functionsRoutes_0_5723290474085267();
+
+// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/pages-template-worker.ts
+init_functionsRoutes_0_5723290474085267();
+
+// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/path-to-regexp/dist.es2015/index.js
+init_functionsRoutes_0_5723290474085267();
 function lexer(str) {
   var tokens = [];
   var i = 0;
@@ -36145,7 +35911,6 @@ function lexer(str) {
   return tokens;
 }
 __name(lexer, "lexer");
-__name2(lexer, "lexer");
 function parse(str, options) {
   if (options === void 0) {
     options = {};
@@ -36156,18 +35921,18 @@ function parse(str, options) {
   var key = 0;
   var i = 0;
   var path = "";
-  var tryConsume = /* @__PURE__ */ __name2(function(type) {
+  var tryConsume = /* @__PURE__ */ __name(function(type) {
     if (i < tokens.length && tokens[i].type === type)
       return tokens[i++].value;
   }, "tryConsume");
-  var mustConsume = /* @__PURE__ */ __name2(function(type) {
+  var mustConsume = /* @__PURE__ */ __name(function(type) {
     var value2 = tryConsume(type);
     if (value2 !== void 0)
       return value2;
     var _a2 = tokens[i], nextType = _a2.type, index = _a2.index;
     throw new TypeError("Unexpected ".concat(nextType, " at ").concat(index, ", expected ").concat(type));
   }, "mustConsume");
-  var consumeText = /* @__PURE__ */ __name2(function() {
+  var consumeText = /* @__PURE__ */ __name(function() {
     var result2 = "";
     var value2;
     while (value2 = tryConsume("CHAR") || tryConsume("ESCAPED_CHAR")) {
@@ -36175,7 +35940,7 @@ function parse(str, options) {
     }
     return result2;
   }, "consumeText");
-  var isSafe = /* @__PURE__ */ __name2(function(value2) {
+  var isSafe = /* @__PURE__ */ __name(function(value2) {
     for (var _i = 0, delimiter_1 = delimiter; _i < delimiter_1.length; _i++) {
       var char2 = delimiter_1[_i];
       if (value2.indexOf(char2) > -1)
@@ -36183,7 +35948,7 @@ function parse(str, options) {
     }
     return false;
   }, "isSafe");
-  var safePattern = /* @__PURE__ */ __name2(function(prefix2) {
+  var safePattern = /* @__PURE__ */ __name(function(prefix2) {
     var prev = result[result.length - 1];
     var prevText = prefix2 || (prev && typeof prev === "string" ? prev : "");
     if (prev && !prevText) {
@@ -36246,14 +36011,12 @@ function parse(str, options) {
   return result;
 }
 __name(parse, "parse");
-__name2(parse, "parse");
 function match(str, options) {
   var keys = [];
   var re = pathToRegexp(str, keys, options);
   return regexpToFunction(re, keys, options);
 }
 __name(match, "match");
-__name2(match, "match");
 function regexpToFunction(re, keys, options) {
   if (options === void 0) {
     options = {};
@@ -36267,7 +36030,7 @@ function regexpToFunction(re, keys, options) {
       return false;
     var path = m[0], index = m.index;
     var params = /* @__PURE__ */ Object.create(null);
-    var _loop_1 = /* @__PURE__ */ __name2(function(i2) {
+    var _loop_1 = /* @__PURE__ */ __name(function(i2) {
       if (m[i2] === void 0)
         return "continue";
       var key = keys[i2 - 1];
@@ -36286,17 +36049,14 @@ function regexpToFunction(re, keys, options) {
   };
 }
 __name(regexpToFunction, "regexpToFunction");
-__name2(regexpToFunction, "regexpToFunction");
 function escapeString(str) {
   return str.replace(/([.+*?=^!:${}()[\]|/\\])/g, "\\$1");
 }
 __name(escapeString, "escapeString");
-__name2(escapeString, "escapeString");
 function flags(options) {
   return options && options.sensitive ? "" : "i";
 }
 __name(flags, "flags");
-__name2(flags, "flags");
 function regexpToRegexp(path, keys) {
   if (!keys)
     return path;
@@ -36317,7 +36077,6 @@ function regexpToRegexp(path, keys) {
   return path;
 }
 __name(regexpToRegexp, "regexpToRegexp");
-__name2(regexpToRegexp, "regexpToRegexp");
 function arrayToRegexp(paths, keys, options) {
   var parts = paths.map(function(path) {
     return pathToRegexp(path, keys, options).source;
@@ -36325,12 +36084,10 @@ function arrayToRegexp(paths, keys, options) {
   return new RegExp("(?:".concat(parts.join("|"), ")"), flags(options));
 }
 __name(arrayToRegexp, "arrayToRegexp");
-__name2(arrayToRegexp, "arrayToRegexp");
 function stringToRegexp(path, keys, options) {
   return tokensToRegexp(parse(path, options), keys, options);
 }
 __name(stringToRegexp, "stringToRegexp");
-__name2(stringToRegexp, "stringToRegexp");
 function tokensToRegexp(tokens, keys, options) {
   if (options === void 0) {
     options = {};
@@ -36386,7 +36143,6 @@ function tokensToRegexp(tokens, keys, options) {
   return new RegExp(route, flags(options));
 }
 __name(tokensToRegexp, "tokensToRegexp");
-__name2(tokensToRegexp, "tokensToRegexp");
 function pathToRegexp(path, keys, options) {
   if (path instanceof RegExp)
     return regexpToRegexp(path, keys);
@@ -36395,7 +36151,8 @@ function pathToRegexp(path, keys, options) {
   return stringToRegexp(path, keys, options);
 }
 __name(pathToRegexp, "pathToRegexp");
-__name2(pathToRegexp, "pathToRegexp");
+
+// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/pages-template-worker.ts
 var escapeRegex = /[.+?^${}()|[\]\\]/g;
 function* executeRequest(request) {
   const requestPath = new URL(request.url).pathname;
@@ -36446,14 +36203,13 @@ function* executeRequest(request) {
   }
 }
 __name(executeRequest, "executeRequest");
-__name2(executeRequest, "executeRequest");
 var pages_template_worker_default = {
   async fetch(originalRequest, env, workerContext) {
     let request = originalRequest;
     const handlerIterator = executeRequest(request);
     let data = {};
     let isFailOpen = false;
-    const next = /* @__PURE__ */ __name2(async (input, init) => {
+    const next = /* @__PURE__ */ __name(async (input, init) => {
       if (input !== void 0) {
         let url = input;
         if (typeof input === "string") {
@@ -36480,7 +36236,7 @@ var pages_template_worker_default = {
           },
           env,
           waitUntil: workerContext.waitUntil.bind(workerContext),
-          passThroughOnException: /* @__PURE__ */ __name2(() => {
+          passThroughOnException: /* @__PURE__ */ __name(() => {
             isFailOpen = true;
           }, "passThroughOnException")
         };
@@ -36508,15 +36264,17 @@ var pages_template_worker_default = {
     }
   }
 };
-var cloneResponse = /* @__PURE__ */ __name2((response) => (
+var cloneResponse = /* @__PURE__ */ __name((response) => (
   // https://fetch.spec.whatwg.org/#null-body-status
   new Response(
     [101, 204, 205, 304].includes(response.status) ? null : response.body,
     response
   )
 ), "cloneResponse");
-init_functionsRoutes_0_421892428804746();
-var drainBody = /* @__PURE__ */ __name2(async (request, env, _ctx, middlewareCtx) => {
+
+// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
+init_functionsRoutes_0_5723290474085267();
+var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
   try {
     return await middlewareCtx.next(request, env);
   } finally {
@@ -36532,7 +36290,9 @@ var drainBody = /* @__PURE__ */ __name2(async (request, env, _ctx, middlewareCtx
   }
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
-init_functionsRoutes_0_421892428804746();
+
+// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
+init_functionsRoutes_0_5723290474085267();
 function reduceError(e) {
   return {
     name: e?.name,
@@ -36542,8 +36302,7 @@ function reduceError(e) {
   };
 }
 __name(reduceError, "reduceError");
-__name2(reduceError, "reduceError");
-var jsonError = /* @__PURE__ */ __name2(async (request, env, _ctx, middlewareCtx) => {
+var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
   try {
     return await middlewareCtx.next(request, env);
   } catch (e) {
@@ -36555,18 +36314,21 @@ var jsonError = /* @__PURE__ */ __name2(async (request, env, _ctx, middlewareCtx
   }
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
+
+// ../.wrangler/tmp/bundle-1ZeZJP/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
 ];
 var middleware_insertion_facade_default = pages_template_worker_default;
-init_functionsRoutes_0_421892428804746();
+
+// ../../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/common.ts
+init_functionsRoutes_0_5723290474085267();
 var __facade_middleware__ = [];
 function __facade_register__(...args) {
   __facade_middleware__.push(...args.flat());
 }
 __name(__facade_register__, "__facade_register__");
-__name2(__facade_register__, "__facade_register__");
 function __facade_invokeChain__(request, env, ctx, dispatch, middlewareChain) {
   const [head, ...tail] = middlewareChain;
   const middlewareCtx = {
@@ -36578,7 +36340,6 @@ function __facade_invokeChain__(request, env, ctx, dispatch, middlewareChain) {
   return head(request, env, ctx, middlewareCtx);
 }
 __name(__facade_invokeChain__, "__facade_invokeChain__");
-__name2(__facade_invokeChain__, "__facade_invokeChain__");
 function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
   return __facade_invokeChain__(request, env, ctx, dispatch, [
     ...__facade_middleware__,
@@ -36586,18 +36347,16 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
   ]);
 }
 __name(__facade_invoke__, "__facade_invoke__");
-__name2(__facade_invoke__, "__facade_invoke__");
+
+// ../.wrangler/tmp/bundle-1ZeZJP/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
-  static {
-    __name(this, "___Facade_ScheduledController__");
-  }
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
     this.cron = cron;
     this.#noRetry = noRetry;
   }
   static {
-    __name2(this, "__Facade_ScheduledController__");
+    __name(this, "__Facade_ScheduledController__");
   }
   #noRetry;
   noRetry() {
@@ -36614,7 +36373,7 @@ function wrapExportedHandler(worker) {
   for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__) {
     __facade_register__(middleware);
   }
-  const fetchDispatcher = /* @__PURE__ */ __name2(function(request, env, ctx) {
+  const fetchDispatcher = /* @__PURE__ */ __name(function(request, env, ctx) {
     if (worker.fetch === void 0) {
       throw new Error("Handler does not export a fetch() function.");
     }
@@ -36623,7 +36382,7 @@ function wrapExportedHandler(worker) {
   return {
     ...worker,
     fetch(request, env, ctx) {
-      const dispatcher = /* @__PURE__ */ __name2(function(type, init) {
+      const dispatcher = /* @__PURE__ */ __name(function(type, init) {
         if (type === "scheduled" && worker.scheduled !== void 0) {
           const controller = new __Facade_ScheduledController__(
             Date.now(),
@@ -36639,7 +36398,6 @@ function wrapExportedHandler(worker) {
   };
 }
 __name(wrapExportedHandler, "wrapExportedHandler");
-__name2(wrapExportedHandler, "wrapExportedHandler");
 function wrapWorkerEntrypoint(klass) {
   if (__INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0) {
     return klass;
@@ -36648,7 +36406,7 @@ function wrapWorkerEntrypoint(klass) {
     __facade_register__(middleware);
   }
   return class extends klass {
-    #fetchDispatcher = /* @__PURE__ */ __name2((request, env, ctx) => {
+    #fetchDispatcher = /* @__PURE__ */ __name((request, env, ctx) => {
       this.env = env;
       this.ctx = ctx;
       if (super.fetch === void 0) {
@@ -36656,7 +36414,7 @@ function wrapWorkerEntrypoint(klass) {
       }
       return super.fetch(request);
     }, "#fetchDispatcher");
-    #dispatcher = /* @__PURE__ */ __name2((type, init) => {
+    #dispatcher = /* @__PURE__ */ __name((type, init) => {
       if (type === "scheduled" && super.scheduled !== void 0) {
         const controller = new __Facade_ScheduledController__(
           Date.now(),
@@ -36679,7 +36437,6 @@ function wrapWorkerEntrypoint(klass) {
   };
 }
 __name(wrapWorkerEntrypoint, "wrapWorkerEntrypoint");
-__name2(wrapWorkerEntrypoint, "wrapWorkerEntrypoint");
 var WRAPPED_ENTRY;
 if (typeof middleware_insertion_facade_default === "object") {
   WRAPPED_ENTRY = wrapExportedHandler(middleware_insertion_facade_default);
@@ -36687,179 +36444,9 @@ if (typeof middleware_insertion_facade_default === "object") {
   WRAPPED_ENTRY = wrapWorkerEntrypoint(middleware_insertion_facade_default);
 }
 var middleware_loader_entry_default = WRAPPED_ENTRY;
-
-// ../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
-var drainBody2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env);
-  } finally {
-    try {
-      if (request.body !== null && !request.bodyUsed) {
-        const reader = request.body.getReader();
-        while (!(await reader.read()).done) {
-        }
-      }
-    } catch (e) {
-      console.error("Failed to drain the unused request body.", e);
-    }
-  }
-}, "drainBody");
-var middleware_ensure_req_body_drained_default2 = drainBody2;
-
-// ../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
-function reduceError2(e) {
-  return {
-    name: e?.name,
-    message: e?.message ?? String(e),
-    stack: e?.stack,
-    cause: e?.cause === void 0 ? void 0 : reduceError2(e.cause)
-  };
-}
-__name(reduceError2, "reduceError");
-var jsonError2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env);
-  } catch (e) {
-    const error = reduceError2(e);
-    return Response.json(error, {
-      status: 500,
-      headers: { "MF-Experimental-Error-Stack": "true" }
-    });
-  }
-}, "jsonError");
-var middleware_miniflare3_json_error_default2 = jsonError2;
-
-// .wrangler/tmp/bundle-9MtIPM/middleware-insertion-facade.js
-var __INTERNAL_WRANGLER_MIDDLEWARE__2 = [
-  middleware_ensure_req_body_drained_default2,
-  middleware_miniflare3_json_error_default2
-];
-var middleware_insertion_facade_default2 = middleware_loader_entry_default;
-
-// ../../../../AppData/Local/npm-cache/_npx/c943b712072b77c4/node_modules/wrangler/templates/middleware/common.ts
-var __facade_middleware__2 = [];
-function __facade_register__2(...args) {
-  __facade_middleware__2.push(...args.flat());
-}
-__name(__facade_register__2, "__facade_register__");
-function __facade_invokeChain__2(request, env, ctx, dispatch, middlewareChain) {
-  const [head, ...tail] = middlewareChain;
-  const middlewareCtx = {
-    dispatch,
-    next(newRequest, newEnv) {
-      return __facade_invokeChain__2(newRequest, newEnv, ctx, dispatch, tail);
-    }
-  };
-  return head(request, env, ctx, middlewareCtx);
-}
-__name(__facade_invokeChain__2, "__facade_invokeChain__");
-function __facade_invoke__2(request, env, ctx, dispatch, finalMiddleware) {
-  return __facade_invokeChain__2(request, env, ctx, dispatch, [
-    ...__facade_middleware__2,
-    finalMiddleware
-  ]);
-}
-__name(__facade_invoke__2, "__facade_invoke__");
-
-// .wrangler/tmp/bundle-9MtIPM/middleware-loader.entry.ts
-var __Facade_ScheduledController__2 = class ___Facade_ScheduledController__2 {
-  constructor(scheduledTime, cron, noRetry) {
-    this.scheduledTime = scheduledTime;
-    this.cron = cron;
-    this.#noRetry = noRetry;
-  }
-  static {
-    __name(this, "__Facade_ScheduledController__");
-  }
-  #noRetry;
-  noRetry() {
-    if (!(this instanceof ___Facade_ScheduledController__2)) {
-      throw new TypeError("Illegal invocation");
-    }
-    this.#noRetry();
-  }
-};
-function wrapExportedHandler2(worker) {
-  if (__INTERNAL_WRANGLER_MIDDLEWARE__2 === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__2.length === 0) {
-    return worker;
-  }
-  for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__2) {
-    __facade_register__2(middleware);
-  }
-  const fetchDispatcher = /* @__PURE__ */ __name(function(request, env, ctx) {
-    if (worker.fetch === void 0) {
-      throw new Error("Handler does not export a fetch() function.");
-    }
-    return worker.fetch(request, env, ctx);
-  }, "fetchDispatcher");
-  return {
-    ...worker,
-    fetch(request, env, ctx) {
-      const dispatcher = /* @__PURE__ */ __name(function(type, init) {
-        if (type === "scheduled" && worker.scheduled !== void 0) {
-          const controller = new __Facade_ScheduledController__2(
-            Date.now(),
-            init.cron ?? "",
-            () => {
-            }
-          );
-          return worker.scheduled(controller, env, ctx);
-        }
-      }, "dispatcher");
-      return __facade_invoke__2(request, env, ctx, dispatcher, fetchDispatcher);
-    }
-  };
-}
-__name(wrapExportedHandler2, "wrapExportedHandler");
-function wrapWorkerEntrypoint2(klass) {
-  if (__INTERNAL_WRANGLER_MIDDLEWARE__2 === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__2.length === 0) {
-    return klass;
-  }
-  for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__2) {
-    __facade_register__2(middleware);
-  }
-  return class extends klass {
-    #fetchDispatcher = /* @__PURE__ */ __name((request, env, ctx) => {
-      this.env = env;
-      this.ctx = ctx;
-      if (super.fetch === void 0) {
-        throw new Error("Entrypoint class does not define a fetch() function.");
-      }
-      return super.fetch(request);
-    }, "#fetchDispatcher");
-    #dispatcher = /* @__PURE__ */ __name((type, init) => {
-      if (type === "scheduled" && super.scheduled !== void 0) {
-        const controller = new __Facade_ScheduledController__2(
-          Date.now(),
-          init.cron ?? "",
-          () => {
-          }
-        );
-        return super.scheduled(controller);
-      }
-    }, "#dispatcher");
-    fetch(request) {
-      return __facade_invoke__2(
-        request,
-        this.env,
-        this.ctx,
-        this.#dispatcher,
-        this.#fetchDispatcher
-      );
-    }
-  };
-}
-__name(wrapWorkerEntrypoint2, "wrapWorkerEntrypoint");
-var WRAPPED_ENTRY2;
-if (typeof middleware_insertion_facade_default2 === "object") {
-  WRAPPED_ENTRY2 = wrapExportedHandler2(middleware_insertion_facade_default2);
-} else if (typeof middleware_insertion_facade_default2 === "function") {
-  WRAPPED_ENTRY2 = wrapWorkerEntrypoint2(middleware_insertion_facade_default2);
-}
-var middleware_loader_entry_default2 = WRAPPED_ENTRY2;
 export {
-  __INTERNAL_WRANGLER_MIDDLEWARE__2 as __INTERNAL_WRANGLER_MIDDLEWARE__,
-  middleware_loader_entry_default2 as default
+  __INTERNAL_WRANGLER_MIDDLEWARE__,
+  middleware_loader_entry_default as default
 };
 /*! Bundled license information:
 
@@ -36906,4 +36493,4 @@ exceljs/dist/exceljs.min.js:
    * @copyright Louis-Dominique Dubeau
    *)
 */
-//# sourceMappingURL=functionsWorker-0.1742440047913295.js.map
+//# sourceMappingURL=functionsWorker-0.561557521086898.mjs.map

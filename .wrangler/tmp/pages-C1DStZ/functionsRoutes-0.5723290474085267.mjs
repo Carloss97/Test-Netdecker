@@ -1,6 +1,7 @@
 import { onRequest as __api_external_optcgapi_import_bulk_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\external\\optcgapi\\import\\bulk.js"
 import { onRequest as __api_inventory_routes_integration_test_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\inventory\\routes\\integration\\test\\index.js"
 import { onRequest as __api_pos_routes_integration_test_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\pos\\routes\\integration\\test\\index.js"
+import { onRequest as __api_admin_inventory_store__storeId__js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\inventory\\store\\[storeId].js"
 import { onRequest as __api_listings_sync_prices_runs__runId__js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\sync-prices\\runs\\[runId].js"
 import { onRequest as __api_erp_reservation__id__commit_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\erp\\reservation\\[id]\\commit.js"
 import { onRequest as __api_erp_reservation__id__release_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\erp\\reservation\\[id]\\release.js"
@@ -44,6 +45,7 @@ import { onRequest as __api_payments_stripe_webhook_js_onRequest } from "C:\\Use
 import { onRequest as __api_payments_webhook_test_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\payments\\webhook\\test\\index.js"
 import { onRequest as __api_public_and_import_with_mapping_integration_test_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\public-and-import-with-mapping\\integration\\test\\index.js"
 import { onRequest as __api_routes_integration_test_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\routes\\integration\\test\\index.js"
+import { onRequest as __api_admin_stores__id__js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\stores\\[id].js"
 import { onRequest as __api_card_edition__editionId__js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\card\\edition\\[editionId].js"
 import { onRequest as __api_card_tcg__tcgId__js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\card\\tcg\\[tcgId].js"
 import { onRequest as __api_cards_edition__editionId__js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\cards\\edition\\[editionId].js"
@@ -83,7 +85,7 @@ import { onRequest as __api_admin_price_volatility_js_onRequest } from "C:\\User
 import { onRequest as __api_admin_pricing_config_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\pricing-config.js"
 import { onRequest as __api_admin_pricing_preview_js_onRequest_2 } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\pricing-preview.js"
 import { onRequest as __api_admin_stock_alerts_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\stock-alerts.js"
-import { onRequest as __api_admin_stores_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\stores.js"
+import { onRequest as __api_admin_stores_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\stores\\index.js"
 import { onRequest as __api_admin_tcgplayer_coverage_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\tcgplayer-coverage.js"
 import { onRequest as __api_admin_thresholds_index_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\admin\\thresholds\\index.js"
 import { onRequest as __api_card_search_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\card\\search.js"
@@ -107,7 +109,9 @@ import { onRequest as __api_inventory_update_quantity_js_onRequest } from "C:\\U
 import { onRequest as __api_invoices_cleanup_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\invoices\\cleanup.js"
 import { onRequest as __api_listings_available_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\available.js"
 import { onRequest as __api_listings_batch_stock_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\batch-stock.js"
+import { onRequest as __api_listings_gtin_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\gtin.js"
 import { onRequest as __api_listings_inventory_value_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\inventory-value.js"
+import { onRequest as __api_listings_label_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\label.js"
 import { onRequest as __api_listings_low_stock_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\low-stock.js"
 import { onRequest as __api_listings_price_preview_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\price-preview.js"
 import { onRequest as __api_listings_sync_prices_js_onRequest } from "C:\\Users\\sarlo\\OneDrive\\Escritorio\\Proyectos\\Test-Netdecker\\functions\\api\\listings\\sync-prices.js"
@@ -164,6 +168,13 @@ export const routes = [
       method: "",
       middlewares: [],
       modules: [__api_pos_routes_integration_test_index_js_onRequest],
+    },
+  {
+      routePath: "/api/admin/inventory/store/:storeId",
+      mountPath: "/api/admin/inventory/store",
+      method: "",
+      middlewares: [],
+      modules: [__api_admin_inventory_store__storeId__js_onRequest],
     },
   {
       routePath: "/api/listings/sync-prices/runs/:runId",
@@ -467,6 +478,13 @@ export const routes = [
       modules: [__api_routes_integration_test_index_js_onRequest],
     },
   {
+      routePath: "/api/admin/stores/:id",
+      mountPath: "/api/admin/stores",
+      method: "",
+      middlewares: [],
+      modules: [__api_admin_stores__id__js_onRequest],
+    },
+  {
       routePath: "/api/card/edition/:editionId",
       mountPath: "/api/card/edition",
       method: "",
@@ -741,10 +759,10 @@ export const routes = [
     },
   {
       routePath: "/api/admin/stores",
-      mountPath: "/api/admin",
+      mountPath: "/api/admin/stores",
       method: "",
       middlewares: [],
-      modules: [__api_admin_stores_js_onRequest],
+      modules: [__api_admin_stores_index_js_onRequest],
     },
   {
       routePath: "/api/admin/tcgplayer-coverage",
@@ -908,11 +926,25 @@ export const routes = [
       modules: [__api_listings_batch_stock_js_onRequest],
     },
   {
+      routePath: "/api/listings/gtin",
+      mountPath: "/api/listings",
+      method: "",
+      middlewares: [],
+      modules: [__api_listings_gtin_js_onRequest],
+    },
+  {
       routePath: "/api/listings/inventory-value",
       mountPath: "/api/listings",
       method: "",
       middlewares: [],
       modules: [__api_listings_inventory_value_js_onRequest],
+    },
+  {
+      routePath: "/api/listings/label",
+      mountPath: "/api/listings",
+      method: "",
+      middlewares: [],
+      modules: [__api_listings_label_js_onRequest],
     },
   {
       routePath: "/api/listings/low-stock",

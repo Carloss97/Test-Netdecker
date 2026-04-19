@@ -1,6 +1,7 @@
 import { getGroups, getGroupProducts, getGroupPrices, resolveGroupBySetCode, getSetCards } from '../../../_shared/tcgcsv.js';
 import { pickDb, ensureSchema, firstRow, buildSelectColumns, aliasSelectColumn } from '../../../_shared/d1.js';
 import { refreshExchangeRate } from '../../../_shared/exchange-rate.js';
+import { onRequest as syncPricesOnRequest } from '../../listings/sync-prices.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -225,6 +226,30 @@ export async function onRequest(context) {
     } else {
       // No DB configured — just return inspection results
       for (const p of cards) results.push({ externalId: p.externalId, cardName: p.cardName, priceMarket: p.priceMarket });
+    }
+
+    // Optionally trigger a post-import external price sync. Preference order:
+    // 1) explicit `syncPrices` payload boolean
+    // 2) pricing config `importSetSyncPricesDefault` stored in appConfig
+    let shouldSyncPrices = false;
+    if (typeof payload.syncPrices === 'boolean') {
+      shouldSyncPrices = payload.syncPrices;
+    } else if (db) {
+      try {
+        const pcRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('pricingConfig').all();
+        const pcRow = Array.isArray(pcRes?.results) ? pcRes.results[0] : (Array.isArray(pcRes) ? pcRes[0] : null);
+        if (pcRow && pcRow.value) {
+          const parsed = JSON.parse(pcRow.value);
+          if (parsed && parsed.importSetSyncPricesDefault === true) shouldSyncPrices = true;
+        }
+      } catch (_) {}
+    }
+
+    if (shouldSyncPrices && db && createdListings > 0) {
+      try {
+        const fakeReq = { method: 'POST', json: async () => ({ tcg: tcg, editionId: `${tcg}:${editionCode}`, source: 'import:set', notes: `post-import sync for ${tcg}:${editionCode}` }) };
+        await syncPricesOnRequest({ request: fakeReq, env });
+      } catch (_) {}
     }
 
     return new Response(JSON.stringify({ success: true, total: cards.length, createdCards, updatedCards, createdListings, results }), { status: 200, headers: { 'Content-Type': 'application/json' } });

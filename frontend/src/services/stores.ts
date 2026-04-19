@@ -34,6 +34,16 @@ export async function getStore(id: string): Promise<Store> {
   return res.data;
 }
 
+export async function getStoreInventory(storeId: string) {
+  const res = await apiClient.get(`/admin/inventory/store/${storeId}`);
+  return res.data;
+}
+
+export async function updateStoreInventory(storeId: string, listingId: string, quantity: number) {
+  const res = await apiClient.post(`/admin/inventory/store/${storeId}`, { listingId, quantity });
+  return res.data;
+}
+
 export default {
   createStore,
   updateStore,

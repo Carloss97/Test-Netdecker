@@ -242,6 +242,34 @@ async function ensureSchema(db) {
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_invoice_invoiceNumber ON invoice(invoiceNumber);').run();
   } catch (err) {}
 
+  // Stores and per-store listing stock
+  await db.prepare(`CREATE TABLE IF NOT EXISTS store (
+    id TEXT PRIMARY KEY,
+    code TEXT UNIQUE,
+    name TEXT,
+    address TEXT,
+    metadata TEXT,
+    createdAt TEXT,
+    updatedAt TEXT
+  );`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS listingStock (
+    id TEXT PRIMARY KEY,
+    storeId TEXT,
+    listingId TEXT,
+    quantity INTEGER DEFAULT 0,
+    reserved INTEGER DEFAULT 0,
+    updatedAt TEXT,
+    createdAt TEXT,
+    UNIQUE(storeId, listingId)
+  );`).run();
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_store_code ON store(code);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_listingStock_storeId ON listingStock(storeId);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_listingStock_listingId ON listingStock(listingId);').run();
+  } catch (err) {}
+
   // Admin users and sessions for lightweight admin auth in Functions
   await db.prepare(`CREATE TABLE IF NOT EXISTS adminUser (
     id TEXT PRIMARY KEY,
@@ -267,6 +295,9 @@ async function ensureSchema(db) {
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_adminSession_userId ON adminSession(userId);').run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_adminUser_email ON adminUser(email);').run();
   } catch (err) {}
+
+  // Ensure adminSession can optionally be scoped to a store
+  await addColumnIfMissing('adminSession', 'storeId', 'TEXT');
 
   // Inventory import history table
   await db.prepare(`CREATE TABLE IF NOT EXISTS inventoryImport (
@@ -355,6 +386,8 @@ async function ensureSchema(db) {
   // Listing table may have been created with older schema. Ensure commonly used columns exist.
   await addColumnIfMissing('listing', 'condition', "TEXT DEFAULT 'NM'");
   await addColumnIfMissing('listing', 'rarity', 'TEXT');
+  await addColumnIfMissing('listing', 'gtin', 'TEXT');
+  await addColumnIfMissing('listing', 'sku', 'TEXT');
   await addColumnIfMissing('listing', 'exchangeRate', 'REAL DEFAULT 1.0');
   await addColumnIfMissing('listing', 'finalPrice', 'REAL DEFAULT 0');
   await addColumnIfMissing('listing', 'currency', "TEXT DEFAULT 'CLP'");
@@ -363,6 +396,13 @@ async function ensureSchema(db) {
   await addColumnIfMissing('listing', 'lastSyncedAt', 'TEXT');
   await addColumnIfMissing('listing', 'createdAt', 'TEXT');
   await addColumnIfMissing('listing', 'updatedAt', 'TEXT');
+
+  try {
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_listing_gtin ON listing(gtin);').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_listing_sku ON listing(sku);').run();
+  } catch (err) {
+    // ignore index creation errors
+  }
 
   // Card table may have been created with older schema in some D1 instances.
   // Ensure commonly referenced card columns exist so queries referencing

@@ -64,6 +64,19 @@ async function refreshExchangeRate(env, db) {
         }
       }
 
+      // also persist into exchangeRate table for compatibility with existing helpers
+      if (db) {
+        try {
+          const id = (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `rate-usd-clp`;
+          const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString();
+          await db.prepare(`INSERT INTO exchangeRate (id, fromCurrency, toCurrency, rate, source, fetchedAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(fromCurrency, toCurrency) DO UPDATE SET rate = excluded.rate, source = excluded.source, fetchedAt = excluded.fetchedAt, expiresAt = excluded.expiresAt;`)
+            .bind(id, 'USD', 'CLP', Number(rate), p.name, fetchedAt, expiresAt).run();
+        } catch (_) {
+          // ignore write errors
+        }
+      }
+
       return { usdToCLP: Number(rate), source: p.name, fetchedAt };
     } catch (err) {
       lastErr = err;

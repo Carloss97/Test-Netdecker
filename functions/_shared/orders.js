@@ -45,6 +45,19 @@ export async function processPosSale(db, input) {
   const listingRows = Array.isArray(listingRes?.results) ? listingRes.results : (Array.isArray(listingRes) ? listingRes : []);
   const listingMap = new Map(listingRows.map((r) => [r.id || r.ID || r.Id, r]));
 
+  // If storeId provided, fetch per-store stock for validation and later decrement
+  const storeId = input.storeId || null;
+  let storeStockMap = new Map();
+  if (storeId) {
+    try {
+      const stRes = await db.prepare(`SELECT listingId, id, quantity FROM listingStock WHERE listingId IN (${placeholders}) AND storeId = ?`).bind(...listingIds, storeId).all();
+      const stRows = Array.isArray(stRes?.results) ? stRes.results : (Array.isArray(stRes) ? stRes : []);
+      for (const r of stRows) storeStockMap.set(r.listingId || r.LISTINGID || r.listingId, { id: r.id || r.ID, quantity: Number(r.quantity || 0) });
+    } catch (_) {
+      storeStockMap = new Map();
+    }
+  }
+
   // Validate stock & compute totals
   let subtotal = 0;
   for (const it of items) {
@@ -53,7 +66,8 @@ export async function processPosSale(db, input) {
     if (!listing) throw new Error(`Listing not found: ${lid}`);
     const qty = Number(it.quantity || 0);
     if (qty <= 0) throw new Error('Quantity must be > 0');
-    if (Number(listing.quantity || 0) < qty) throw new Error(`Insufficient stock for listing ${lid}`);
+    const available = storeId ? (storeStockMap.get(lid)?.quantity || 0) : Number(listing.quantity || 0);
+    if (available < qty) throw new Error(`Insufficient stock for listing ${lid}`);
     const unitPrice = Number(listing.finalPrice || 0);
     subtotal += unitPrice * qty;
   }
@@ -82,12 +96,35 @@ export async function processPosSale(db, input) {
     // stock movement
     const smId = genId('sm');
     await db.prepare('INSERT INTO stockMovement (id, listingId, warehouseId, fromWarehouseId, toWarehouseId, quantity, type, reference, performedBy, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(smId, lid, null, null, null, qty, 'OUT', `pos:${orderId}`, input.performedBy || null, now).run();
+      .bind(smId, lid, storeId || null, storeId || null, null, qty, 'OUT', `pos:${orderId}`, input.performedBy || null, now).run();
 
-    // decrement listing quantity (best-effort)
-    try {
-      await db.prepare('UPDATE listing SET quantity = quantity - ? WHERE id = ?').bind(qty, lid).run();
-    } catch (_) {}
+    // decrement per-store stock when storeId provided, otherwise decrement global listing quantity
+    if (storeId) {
+      const storeRow = storeStockMap.get(lid);
+      if (!storeRow) throw new Error(`No stock row for listing ${lid} at store ${storeId}`);
+      const newStoreQty = Math.max(0, (Number(storeRow.quantity || 0) - qty));
+      try {
+        await db.prepare('UPDATE listingStock SET quantity = ?, updatedAt = ? WHERE id = ?').bind(newStoreQty, now, storeRow.id).run();
+        // update in-memory map so subsequent items use updated value
+        storeStockMap.set(lid, { id: storeRow.id, quantity: newStoreQty });
+      } catch (err) {
+        throw new Error(`Failed to update store stock for listing ${lid}: ${String(err)}`);
+      }
+
+      // recompute aggregated listing quantity across stores and update listing
+      try {
+        const sumRes = await db.prepare('SELECT SUM(quantity) as total FROM listingStock WHERE listingId = ?').bind(lid).all();
+        const sumRow = Array.isArray(sumRes?.results) ? sumRes.results[0] : (Array.isArray(sumRes) ? sumRes[0] : null);
+        const total = sumRow && sumRow.total ? Number(sumRow.total) : 0;
+        try {
+          await db.prepare('UPDATE listing SET quantity = ?, lastSyncedAt = ? WHERE id = ?').bind(total, now, lid).run();
+        } catch (_) {}
+      } catch (_) {}
+    } else {
+      try {
+        await db.prepare('UPDATE listing SET quantity = quantity - ? WHERE id = ?').bind(qty, lid).run();
+      } catch (_) {}
+    }
   }
 
   // Return created order with items

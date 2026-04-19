@@ -1,5 +1,4 @@
 import { validateToken } from '../../_shared/adminAuth.js';
-import { onRequest as importSetHandler } from '../external/import/set.js';
 
 function extractToken(request) {
   const auth = request.headers.get('authorization') || '';
@@ -23,8 +22,12 @@ export async function onRequest(context) {
     const setCode = String(body.setCode || body.code || body.set || '').trim();
     if (setCode) {
       const fakeReq = new Request('https://internal/import-set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const resp = await importSetHandler({ request: fakeReq, env });
-      return resp;
+      try {
+        const mod = await import('../external/import/set.js');
+        if (mod && mod.onRequest) return await mod.onRequest({ request: fakeReq, env });
+      } catch (err) {
+        return json({ success: false, error: String(err) }, 500);
+      }
     }
 
     return json({ success: false, error: 'Catalog sync for all sets is not implemented in Functions; provide setCode to sync a single set' }, 501);

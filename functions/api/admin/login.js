@@ -12,7 +12,8 @@ export async function onRequest(context) {
     const password = String(body.password || '').trim();
     if (!email || !password) return json({ success: false, error: 'email and password required' }, 400);
 
-    const result = await authenticate(env, email, password);
+    const storeId = body.storeId || null;
+    const result = await authenticate(env, email, password, storeId);
     return json({ success: true, data: result });
   } catch (err) {
     return json({ success: false, error: String(err) }, 401);

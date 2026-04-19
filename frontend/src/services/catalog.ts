@@ -255,9 +255,12 @@ export async function updateListingStock(
   listingId: string,
   op: 'set' | 'inc' | 'dec',
   value: number,
+  storeId?: string | null,
 ) {
   try {
-    const { data } = await apiClient.patch(`/listings/${listingId}/stock`, { op, value });
+    const payload: any = { op, value };
+    if (storeId) payload.storeId = storeId;
+    const { data } = await apiClient.patch(`/listings/${listingId}/stock`, payload);
     return data as { success: boolean; listingId: string; quantity: number };
   } catch (_) {
     // Local fallback

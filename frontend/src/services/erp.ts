@@ -49,6 +49,7 @@ export async function posCheckout(params: {
   const { data } = await apiClient.post('/payments/pos-sale', params);
   return data.order ?? data;
 }
+// Note: `params` may include optional `storeId?: string | null` to scope the sale to a store.
 
 export async function createStripePaymentIntent(params: {
   items: { listingId: string; quantity: number }[];

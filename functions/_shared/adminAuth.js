@@ -118,7 +118,7 @@ export async function createUser(env, email, password, role = 'ADMIN') {
   return { id, email, role };
 }
 
-export async function authenticate(env, email, password) {
+export async function authenticate(env, email, password, storeId = null) {
   const db = pickDb(env);
   if (!db) throw new Error('No DB available');
   await ensureSchema(db);
@@ -134,22 +134,28 @@ export async function authenticate(env, email, password) {
   const days = Number(env.ADMIN_SESSION_DAYS || 7);
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   const sid = (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `sess-${Date.now()}-${Math.floor(Math.random()*10000)}`;
-  await db.prepare('INSERT INTO adminSession (id, token, userId, expiresAt, createdAt) VALUES (?, ?, ?, ?, ?)').bind(sid, String(token), String(row.id || row.ID), expiresAt, nowIso()).run();
+  try {
+    await db.prepare('INSERT INTO adminSession (id, token, userId, expiresAt, createdAt, storeId) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(sid, String(token), String(row.id || row.ID), expiresAt, nowIso(), storeId || null).run();
+  } catch (e) {
+    // Fall back to earlier schema without storeId
+    await db.prepare('INSERT INTO adminSession (id, token, userId, expiresAt, createdAt) VALUES (?, ?, ?, ?, ?)').bind(sid, String(token), String(row.id || row.ID), expiresAt, nowIso()).run();
+  }
   // update lastLoginAt
   await db.prepare('UPDATE adminUser SET lastLoginAt = ?, updatedAt = ? WHERE id = ?').bind(nowIso(), nowIso(), String(row.id || row.ID)).run();
-  return { token, user: { id: row.id || row.ID, email: row.email || row.EMAIL, role: row.role || row.ROLE }, expiresAt };
+  return { token, user: { id: row.id || row.ID, email: row.email || row.EMAIL, role: row.role || row.ROLE, storeId: storeId || null }, expiresAt };
 }
 
 export async function validateToken(env, token) {
   const db = pickDb(env);
   if (!db) return null;
   await ensureSchema(db);
-  const res = await db.prepare('SELECT s.token, s.expiresAt, u.id as userId, u.email, u.role, u.isActive FROM adminSession s LEFT JOIN adminUser u ON u.id = s.userId WHERE s.token = ?').bind(String(token)).all();
+  const res = await db.prepare('SELECT s.token, s.expiresAt, s.storeId, u.id as userId, u.email, u.role, u.isActive FROM adminSession s LEFT JOIN adminUser u ON u.id = s.userId WHERE s.token = ?').bind(String(token)).all();
   const row = Array.isArray(res?.results) ? res.results[0] : (Array.isArray(res) ? res[0] : null);
   if (!row) return null;
   if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) return null;
   if (!row.isActive && row.isActive !== 1) return null;
-  return { id: row.userId, email: row.email, role: row.role };
+  return { id: row.userId, email: row.email, role: row.role, storeId: row.storeId || null };
 }
 
 export async function logout(env, token) {

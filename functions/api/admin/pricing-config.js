@@ -21,7 +21,7 @@ export async function onRequest(context) {
 
     if (request.method === 'GET') {
       const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
-      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.0, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' } };
+      const defaultConfig = { defaultMarginMultiplier: Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.0, exchangeRate: { mode: 'manual', activeRate: defaultRate, source: 'env' }, importSetSyncPricesDefault: false };
 
       if (!db) {
         return new Response(JSON.stringify({ config: defaultConfig }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -35,6 +35,7 @@ export async function onRequest(context) {
           // Ensure exchangeRate.activeRate is always a number for UI
           if (!parsed.exchangeRate) parsed.exchangeRate = { mode: 'manual', activeRate: defaultRate, source: 'env' };
           if (parsed.exchangeRate.activeRate === null || parsed.exchangeRate.activeRate === undefined) parsed.exchangeRate.activeRate = defaultRate;
+          if (parsed.importSetSyncPricesDefault === null || parsed.importSetSyncPricesDefault === undefined) parsed.importSetSyncPricesDefault = false;
 
           // If using API mode, prefer cached exchangeRate value when present
           try {
@@ -63,6 +64,7 @@ export async function onRequest(context) {
       const defaultMarginMultiplier = typeof body.defaultMarginMultiplier === 'number' ? body.defaultMarginMultiplier : (Number(body.defaultMarginMultiplier) || Number(env.DEFAULT_MARGIN_MULTIPLIER) || 1.0);
       const exchangeRateMode = body.exchangeRateMode === 'api' ? 'api' : 'manual';
       const manualUsdToClp = typeof body.manualUsdToClp === 'number' ? body.manualUsdToClp : (Number(body.manualUsdToClp) || Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP) || 1000);
+      const importSetSyncPricesDefault = body.importSetSyncPricesDefault === true;
 
       const defaultRate = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
       const config = {
@@ -73,6 +75,7 @@ export async function onRequest(context) {
           activeRate: exchangeRateMode === 'manual' ? manualUsdToClp : defaultRate,
           source: exchangeRateMode === 'manual' ? 'manual' : 'api',
         },
+        importSetSyncPricesDefault: !!importSetSyncPricesDefault,
       };
 
       if (db) {
@@ -85,6 +88,29 @@ export async function onRequest(context) {
           } catch (_) {}
         }
         await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)').bind('pricingConfig', JSON.stringify(config), new Date().toISOString()).run();
+
+        // If API mode requested, attempt to fetch live rate now and update cache so UI reflects it immediately
+        if (exchangeRateMode === 'api') {
+          try {
+            const meta = await getUSDtoCLPRateMeta(env, db);
+            const liveRate = meta && Number.isFinite(Number(meta.rate)) ? Number(meta.rate) : null;
+            if (liveRate && liveRate > 0) {
+              const fetchedAtIso = meta.fetchedAt && meta.fetchedAt.toISOString ? meta.fetchedAt.toISOString() : (meta.fetchedAt ? new Date(meta.fetchedAt).toISOString() : new Date().toISOString());
+              try {
+                await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
+                  .bind('exchangeRateCache', JSON.stringify({ usdToCLP: liveRate, source: meta.provider || 'api', fetchedAt: fetchedAtIso }), fetchedAtIso)
+                  .run();
+              } catch (_) {}
+
+              // update returned config to reflect live rate
+              config.exchangeRate.activeRate = liveRate;
+              config.exchangeRate.source = meta.provider || 'api';
+              config.exchangeRate.fetchedAt = fetchedAtIso;
+            }
+          } catch (_) {
+            // ignore live fetch errors; keep placeholder
+          }
+        }
       }
 
       return new Response(JSON.stringify({ success: true, config }), { status: 200, headers: { 'Content-Type': 'application/json' } });

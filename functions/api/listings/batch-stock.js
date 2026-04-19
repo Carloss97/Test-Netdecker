@@ -20,6 +20,7 @@ export async function onRequest(context) {
 
     const results = [];
     let updated = 0;
+    const globalStoreId = body.storeId || null;
     for (const u of updates) {
       try {
         if (!u || typeof u.listingId !== 'string' || typeof u.quantity !== 'number' || u.quantity < 0) {
@@ -27,12 +28,34 @@ export async function onRequest(context) {
           continue;
         }
         const q = Math.max(0, Math.floor(u.quantity));
-        // Update quantity and set everHadStock when >0
-        await db.prepare('UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, updatedAt = ? WHERE id = ?')
-          .bind(q, q, new Date().toISOString(), u.listingId)
-          .run();
-        updated += 1;
-        results.push({ listingId: u.listingId, success: true, quantity: q });
+        const storeId = u.storeId || globalStoreId || null;
+        if (storeId) {
+          // update or insert listingStock for this store
+          const curRes = await db.prepare('SELECT id, quantity FROM listingStock WHERE listingId = ? AND storeId = ?').bind(u.listingId, storeId).all();
+          const curRow = Array.isArray(curRes.results) ? curRes.results[0] : (Array.isArray(curRes) ? curRes[0] : null);
+          const now = new Date().toISOString();
+          if (curRow) {
+            await db.prepare('UPDATE listingStock SET quantity = ?, updatedAt = ? WHERE id = ?').bind(q, now, curRow.id).run();
+          } else {
+            const sid = (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `ls-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+            await db.prepare('INSERT INTO listingStock (id, storeId, listingId, quantity, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)').bind(sid, storeId, u.listingId, q, now, now).run();
+          }
+          // recompute aggregate and update listing.quantity
+          const aggRes = await db.prepare('SELECT SUM(quantity) as total FROM listingStock WHERE listingId = ?').bind(u.listingId).all();
+          const aggRow = Array.isArray(aggRes.results) ? aggRes.results[0] : (Array.isArray(aggRes) ? aggRes[0] : null);
+          const total = aggRow ? (Number(aggRow.total) || 0) : 0;
+          await db.prepare('UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, updatedAt = ? WHERE id = ?')
+            .bind(total, total, new Date().toISOString(), u.listingId).run();
+          updated += 1;
+          results.push({ listingId: u.listingId, success: true, storeId, storeQuantity: q, quantity: total });
+        } else {
+          // legacy global listing update
+          await db.prepare('UPDATE listing SET quantity = ?, everHadStock = CASE WHEN ? > 0 THEN 1 ELSE everHadStock END, updatedAt = ? WHERE id = ?')
+            .bind(q, q, new Date().toISOString(), u.listingId)
+            .run();
+          updated += 1;
+          results.push({ listingId: u.listingId, success: true, quantity: q });
+        }
       } catch (err) {
         results.push({ listingId: u?.listingId || null, success: false, error: String(err) });
       }

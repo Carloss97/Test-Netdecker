@@ -1,4 +1,5 @@
 import { pickDb, ensureSchema } from './d1.js';
+import { getUSDtoCLPRateMetaFast } from './exchange-rate.js';
 
 function resolveRoundingMultiple(env, override) {
   if (typeof override === 'number' && Number.isFinite(override) && override >= 1) return Math.max(1, Math.round(override));
@@ -23,7 +24,17 @@ async function getUSDtoCLPRateMeta(env, dbParam) {
   }
 
   // Try DB
+  // Prefer appConfig cache when present (fast path)
   if (db) {
+    try {
+      const meta = await getUSDtoCLPRateMetaFast(env, db);
+      if (meta && Number.isFinite(Number(meta.usdToCLP)) && Number(meta.usdToCLP) > 0) {
+        return { rate: Number(meta.usdToCLP), retrievalSource: 'cache', provider: meta.source || null, fetchedAt: meta.fetchedAt ? new Date(meta.fetchedAt) : undefined, expiresAt: null };
+      }
+    } catch (_) {
+      // ignore cache read failures
+    }
+
     try {
       const res = await db.prepare('SELECT id, fromCurrency, toCurrency, rate, source, fetchedAt, expiresAt FROM exchangeRate WHERE fromCurrency = ? AND toCurrency = ? LIMIT 1').bind('USD', 'CLP').all();
       const row = Array.isArray(res?.results) ? res.results[0] : (Array.isArray(res) ? res[0] : null);
