@@ -35,12 +35,8 @@ model Store {
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
-  fiscalPeriods FiscalPeriod[]
   posSessions POSSession[]
   cashSessions CashSession[]
-  currency    String   @default("CLP")
-  taxRate     Float    @default(0.0)
-  settings    String?
 }
 
 
@@ -105,7 +101,7 @@ model Listing {
   rarity         String
   quantity       Int       @default(0)
   referencePrice Float
-  marginMultiplier Float  @default(1.0)
+  marginMultiplier Float  @default(1.2)
   exchangeRate   Float    @default(1.0)
   finalPrice     Float
   currency       String   @default("CLP")
@@ -167,25 +163,7 @@ model InventoryImport {
   storeId        String?
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
-  // Relation: an import can be broken into multiple batches for rollback
-  batches        ImportBatch[]
   changes        InventoryImportChange[]
-}
-
-// Rollback strategy stored as string in SQLite schema
-// Options: 'FULL' | 'PARTIAL' | 'NONE'
-model ImportBatch {
-  id          String   @id @default(cuid())
-  importId    String
-  import      InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
-  batchIndex  Int
-  startRow    Int?
-  endRow      Int?
-  status      String   @default("completed")
-  createdAt   DateTime @default(now())
-  changes     InventoryImportChange[]
-  @@index([importId])
-  @@index([batchIndex])
 }
 
 model Cart {
@@ -266,94 +244,6 @@ model PriceSyncRun {
   @@index([startedAt])
   @@index([source])
   @@index([status])
-}
-
-model FiscalPeriod {
-  id        String   @id @default(cuid())
-  storeId   String?
-  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  startDate DateTime
-  endDate   DateTime
-  status    String   @default("OPEN")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([storeId])
-  @@index([startDate])
-  @@index([endDate])
-}
-
-// ============================================
-// POS SESSIONS & PAYMENT TRANSACTIONS (SQLite variant)
-// Enums represented as Strings in SQLite schema
-// ============================================
-
-model POSSession {
-  id         String   @id @default(cuid())
-  sessionId  String   @unique @default(cuid())
-
-  storeId    String?
-  store      Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  userId     String?
-
-  items      String?
-
-  subtotal   Float    @default(0.0)
-  tax        Float    @default(0.0)
-  total      Float    @default(0.0)
-
-  status     String   @default("OPEN")
-
-  transactions PaymentTransaction[]
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
-
-  @@index([sessionId])
-  @@index([storeId])
-}
-
-model CashSession {
-  id           String   @id @default(cuid())
-  sessionId    String   @unique @default(cuid())
-
-  storeId      String?
-  store        Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  openedBy     String?
-  closedBy     String?
-
-  startingCash Float    @default(0.0)
-  endingCash   Float?
-
-  status       String   @default("OPEN")
-
-  createdAt    DateTime @default(now())
-  closedAt     DateTime?
-
-  @@index([sessionId])
-  @@index([storeId])
-}
-
-model PaymentTransaction {
-  id                 String       @id @default(cuid())
-  sessionId          String
-  session            POSSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  method             String       @default("OTHER")
-  amount             Float
-  status             String       @default("PENDING")
-
-  processorResponse  String?
-  processorReference String?
-
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @default(now())
-
-  @@index([sessionId])
 }
 
 // ============================================
@@ -517,23 +407,6 @@ model JournalLine {
   @@index([accountId])
 }
 
-model FiscalPeriod {
-  id        String   @id @default(cuid())
-  storeId   String?
-  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  startDate DateTime
-  endDate   DateTime
-  status    String   @default("OPEN")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([storeId])
-  @@index([startDate])
-  @@index([endDate])
-}
-
 // Tracks atomic changes made during an inventory import, allowing rollback
 // of per-listing quantity changes.
 model InventoryImportChange {
@@ -542,8 +415,6 @@ model InventoryImportChange {
   import        InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
   listingId     String
   listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  batchId       String?
-  batch         ImportBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
   oldQuantity   Int
   newQuantity   Int
   note          String?
@@ -551,7 +422,6 @@ model InventoryImportChange {
 
   @@index([importId])
   @@index([listingId])
-  @@index([batchId])
 }
 
 // Approval requests for price changes marked volatile by automated sync.
