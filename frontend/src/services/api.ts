@@ -85,11 +85,22 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      // Handle auth errors: clear token and reload the page so Cloudflare Access
-      // (or any external auth) can re-run its flow. Redirecting to `/login`
-      // caused blank pages when no `/login` route exists.
+      // Handle auth errors: clear token and trigger a single reload so
+      // external auth (Cloudflare Access, etc.) can re-run its flow.
+      // Guard with a sessionStorage flag to avoid infinite reload loops.
       localStorage.removeItem('auth_token');
-      window.location.reload();
+      try {
+        const RELOAD_KEY = 'netdecker.auth_reload_in_progress';
+        if (!sessionStorage.getItem(RELOAD_KEY)) {
+          sessionStorage.setItem(RELOAD_KEY, '1');
+          // Reload once; clear the lock after a delay to allow future attempts
+          window.location.reload();
+          setTimeout(() => sessionStorage.removeItem(RELOAD_KEY), 10_000);
+        }
+      } catch (_) {
+        // If storage fails for any reason, fall back to a plain reload.
+        try { window.location.reload(); } catch { /* ignore */ }
+      }
     }
     return Promise.reject(error);
   }
