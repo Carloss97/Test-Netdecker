@@ -230,24 +230,6 @@ CREATE INDEX "Cart_sessionId_idx" ON "Cart"("sessionId");
 -- CreateIndex
 CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
 
--- CreateIndex
-CREATE INDEX "Order_customerEmail_idx" ON "Order"("customerEmail");
-
--- CreateIndex
-CREATE INDEX "Order_status_idx" ON "Order"("status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ExchangeRate_fromCurrency_toCurrency_key" ON "ExchangeRate"("fromCurrency", "toCurrency");
-
--- CreateIndex
-CREATE INDEX "PriceSyncRun_startedAt_idx" ON "PriceSyncRun"("startedAt");
-
--- CreateIndex
-CREATE INDEX "PriceSyncRun_source_idx" ON "PriceSyncRun"("source");
-
--- CreateIndex
-CREATE INDEX "PriceSyncRun_status_idx" ON "PriceSyncRun"("status");
-
 -- AddForeignKey
 ALTER TABLE "Edition" ADD CONSTRAINT "Edition_tcgId_fkey" FOREIGN KEY ("tcgId") REFERENCES "TCG"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

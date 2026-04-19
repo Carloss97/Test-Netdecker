@@ -16,7 +16,7 @@ CREATE TABLE "TCG" (
     "displayName" TEXT NOT NULL,
     "description" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
@@ -398,73 +398,3 @@ CREATE INDEX "PriceSyncRun_source_idx" ON "PriceSyncRun"("source");
 CREATE INDEX "PriceSyncRun_status_idx" ON "PriceSyncRun"("status");
 
 -- CreateIndex
-CREATE INDEX "Warehouse_storeId_idx" ON "Warehouse"("storeId");
-
--- CreateIndex
-CREATE INDEX "StockMovement_listingId_idx" ON "StockMovement"("listingId");
-
--- CreateIndex
-CREATE INDEX "StockMovement_warehouseId_idx" ON "StockMovement"("warehouseId");
-
--- CreateIndex
-CREATE INDEX "StockMovement_fromWarehouseId_idx" ON "StockMovement"("fromWarehouseId");
-
--- CreateIndex
-CREATE INDEX "StockMovement_toWarehouseId_idx" ON "StockMovement"("toWarehouseId");
-
--- CreateIndex
-CREATE INDEX "StockSnapshot_listingId_idx" ON "StockSnapshot"("listingId");
-
--- CreateIndex
-CREATE INDEX "StockSnapshot_warehouseId_idx" ON "StockSnapshot"("warehouseId");
-
--- CreateIndex
-CREATE INDEX "StockSnapshot_takenAt_idx" ON "StockSnapshot"("takenAt");
-
--- CreateIndex
-CREATE INDEX "WarehouseStock_warehouseId_idx" ON "WarehouseStock"("warehouseId");
-
--- CreateIndex
-CREATE INDEX "WarehouseStock_listingId_idx" ON "WarehouseStock"("listingId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "WarehouseStock_listingId_warehouseId_key" ON "WarehouseStock"("listingId", "warehouseId");
-
--- CreateIndex
-CREATE INDEX "Reservation_listingId_idx" ON "Reservation"("listingId");
-
--- CreateIndex
-CREATE INDEX "Reservation_warehouseId_idx" ON "Reservation"("warehouseId");
-
--- CreateIndex
-CREATE INDEX "Reservation_status_idx" ON "Reservation"("status");
-
--- CreateIndex
-CREATE INDEX "Account_storeId_idx" ON "Account"("storeId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Account_storeId_code_key" ON "Account"("storeId", "code");
-
--- CreateIndex
-CREATE INDEX "JournalEntry_storeId_idx" ON "JournalEntry"("storeId");
-
--- CreateIndex
-CREATE INDEX "JournalEntry_date_idx" ON "JournalEntry"("date");
-
--- CreateIndex
-CREATE INDEX "JournalLine_journalEntryId_idx" ON "JournalLine"("journalEntryId");
-
--- CreateIndex
-CREATE INDEX "JournalLine_accountId_idx" ON "JournalLine"("accountId");
-
--- CreateIndex
-CREATE INDEX "InventoryImportChange_importId_idx" ON "InventoryImportChange"("importId");
-
--- CreateIndex
-CREATE INDEX "InventoryImportChange_listingId_idx" ON "InventoryImportChange"("listingId");
-
--- CreateIndex
-CREATE INDEX "PriceChangeApproval_listingId_idx" ON "PriceChangeApproval"("listingId");
-
--- CreateIndex
-CREATE INDEX "PriceChangeApproval_status_idx" ON "PriceChangeApproval"("status");
