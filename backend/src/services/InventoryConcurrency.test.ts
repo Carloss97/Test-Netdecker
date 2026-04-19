@@ -10,24 +10,29 @@ if (process.env.SKIP_DB_INIT) {
   test.skip('concurrent decrements do not oversell (integration) — skipped (SKIP_DB_INIT)', async () => {});
 } else {
   test('concurrent decrements do not oversell', async () => {
-    // Ensure dependent records exist (tcg, edition, card) then create listing with finite stock
-    await prisma.tCG.upsert({ where: { name: 'TEST-TCG' }, update: { displayName: 'TEST TCG' }, create: { id: 't-1', name: 'TEST-TCG', displayName: 'TEST TCG' } });
+    // Ensure dependent records exist: use an existing valid TCG enum value
+    const existingTcg = await prisma.tCG.findUnique({ where: { name: 'MAGIC' } });
+    const tcgId = existingTcg?.id;
+    if (!tcgId) throw new Error('Expected seeded TCG "MAGIC" to exist for tests');
+
+    // Create or reuse a unique edition/card/listing for this test (avoid colliding with seeded data)
     const edition = await prisma.edition.upsert({
-      where: { tcgId_editionCode: { tcgId: 't-1', editionCode: 'E1' } },
-      update: { editionName: 'Edition 1' },
-      create: { id: 'e-1', tcgId: 't-1', editionCode: 'E1', editionName: 'Edition 1' }
-    });
-    await prisma.card.upsert({
-      where: { tcgId_editionId_cardCode_rarity: { tcgId: 't-1', editionId: edition.id, cardCode: 'C1', rarity: 'R' } },
-      update: { cardName: 'Test Card' },
-      create: { id: 'c-1', tcgId: 't-1', editionId: edition.id, cardCode: 'C1', cardName: 'Test Card', rarity: 'R' }
+      where: { tcgId_editionCode: { tcgId, editionCode: 'TEST-E1' } },
+      update: { editionName: 'Edition TEST E1' },
+      create: { tcgId, editionCode: 'TEST-E1', editionName: 'Edition TEST E1' }
     });
 
-    // Create or replace a listing with finite stock
+    const card = await prisma.card.upsert({
+      where: { tcgId_editionId_cardCode_rarity: { tcgId, editionId: edition.id, cardCode: 'TEST-C1', rarity: 'TEST-R' } },
+      update: { cardName: 'Test Card' },
+      create: { tcgId, editionId: edition.id, cardCode: 'TEST-C1', cardName: 'Test Card', rarity: 'TEST-R' }
+    });
+
+    // Create or replace a listing with finite stock (use the created card/edition ids)
     const listing = await prisma.listing.upsert({
-      where: { cardId_condition_rarity: { cardId: 'c-1', condition: 'NM', rarity: 'R' } },
+      where: { cardId_condition_rarity: { cardId: card.id, condition: 'NM', rarity: 'TEST-R' } },
       update: { quantity: 10, referencePrice: 1, finalPrice: 1000 },
-      create: { cardId: 'c-1', editionId: 'e-1', condition: 'NM', rarity: 'R', quantity: 10, referencePrice: 1, finalPrice: 1000 }
+      create: { cardId: card.id, editionId: edition.id, condition: 'NM', rarity: 'TEST-R', quantity: 10, referencePrice: 1, finalPrice: 1000 }
     });
 
     const decrementAmount = 1;
@@ -54,10 +59,9 @@ if (process.env.SKIP_DB_INIT) {
     assert(final && final.quantity >= 0, 'Final quantity must be non-negative');
     assert.strictEqual(successCount, 10, 'Only 10 decrements should succeed');
 
-    // cleanup
+    // cleanup created resources (do not delete seeded TCG)
     await prisma.listing.delete({ where: { id: listing.id } });
-    await prisma.card.delete({ where: { id: 'c-1' } });
-    await prisma.edition.delete({ where: { id: 'e-1' } });
-    await prisma.tCG.delete({ where: { id: 't-1' } });
+    await prisma.card.delete({ where: { id: card.id } });
+    await prisma.edition.delete({ where: { id: edition.id } });
   });
 }
