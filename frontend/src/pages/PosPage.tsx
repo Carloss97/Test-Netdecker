@@ -16,40 +16,34 @@ type CartItem = {
 
 // ...existing code...
 
-export function PosPage() {
-  // ...existing hooks and logic...
 
-  // Place this inside the PosPage component, where appropriate in the return statement:
-  //
-  // {showCreateModal && (
-  //   <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-  //     <div style={{ background: '#fff', padding: 16, width: 480, maxWidth: '95%', borderRadius: 8 }}>
-  //       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  //         <h3>Crear listing rápido</h3>
-  //         <div>
-  //           <button onClick={() => setShowCreateModal(false)}>Cerrar</button>
-  //           <button style={{ marginLeft: 8 }} onClick={autoFillFromGTIN}>Auto-llenar</button>
-  //         </div>
-  //       </div>
-  //       <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-  //         <label>GTIN</label>
-  //         <input value={newListingForm.gtin} onChange={(e) => setNewListingForm({ ...newListingForm, gtin: e.target.value })} />
-  //         <label>SKU</label>
-  //         <input value={newListingForm.sku} onChange={(e) => setNewListingForm({ ...newListingForm, sku: e.target.value })} />
-  //         <label>Reference price (USD)</label>
-  //         <input type="number" value={newListingForm.referencePrice} onChange={(e) => setNewListingForm({ ...newListingForm, referencePrice: Number(e.target.value || 0) })} />
-  //         <label>Margin multiplier</label>
-  //         <input type="number" step="0.01" value={newListingForm.marginMultiplier} onChange={(e) => setNewListingForm({ ...newListingForm, marginMultiplier: Number(e.target.value || 1.0) })} />
-  //         <label>Quantity</label>
-  //         <input type="number" value={newListingForm.quantity} onChange={(e) => setNewListingForm({ ...newListingForm, quantity: Number(e.target.value || 0) })} />
-  //         <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-  //           <button onClick={submitNewListing}>Crear y añadir</button>
-  //           <button onClick={() => setShowCreateModal(false)}>Cancelar</button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // )}
+export function PosPage() {
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerMessage, setScannerMessage] = useState('');
+  const [message, setMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showCardPayment, setShowCardPayment] = useState(false);
+  const [showMppayment, setShowMpPayment] = useState(false);
+  const [offlineQueueEntries, setOfflineQueueEntries] = useState<Array<{ createdAt: string; cart: CartItem[] }>>([]);
+  const searchDebounce = useRef<any>(null);
+
+  const storeId = typeof window !== 'undefined' ? (localStorage.getItem('auth_store') || null) : null;
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerInputRef = useRef<HTMLInputElement | null>(null);
+  const detectorRef = useRef<any>(null);
+  const scanIntervalRef = useRef<number | null>(null);
+  const lastScannedRef = useRef<string | null>(null);
+
+  const total = cart.reduce((sum, it) => sum + it.subtotal, 0);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newListingForm, setNewListingForm] = useState<any>({ gtin: '', sku: '', referencePrice: 0, marginMultiplier: 1.0, quantity: 1, editionCode: '', cardId: '' });
+
 
 
   async function searchCards() {
@@ -150,10 +144,8 @@ export function PosPage() {
     }
   } catch (err) {
     console.error('startCameraScan failed', err)
-    setScannerMessage('No se pudo acceder a la cámara')
+    setScannerMessage('No se pudo acceder a la cámara');
   }
-  }
-
   function removeItem(index: number) {
     setCart((s) => s.filter((_, i) => i !== index))
   }
@@ -506,7 +498,7 @@ export function PosPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default PosPage
+export default PosPage;
