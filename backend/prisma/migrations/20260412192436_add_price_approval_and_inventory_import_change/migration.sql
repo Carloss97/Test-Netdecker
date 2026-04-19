@@ -1,0 +1,3 @@
+-- Placeholder migration to allow baseline (no-op)
+-- This file was added to satisfy Prisma migrate deploy lookup
+-- Do NOT execute; already baselined on the target DB
