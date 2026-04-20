@@ -3,17 +3,33 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 let API_BASE_URL = (import.meta.env.VITE_API_URL as string) || '/api';
 
-// Normalize VITE_API_URL to always point at the API prefix.
-// If the deploy env provides a host like "https://api-erp.krumm.cl"
-// ensure the runtime base becomes "https://api-erp.krumm.cl/api" so
-// frontend callers don't accidentally request "/admin/..." instead
-// of "/api/admin/...".
+// Runtime preference: avoid cross-origin API calls from the browser.
+// If VITE_API_URL points to a different origin than the current page,
+// prefer the relative `/api` path so the frontend's host (Vercel) can
+// proxy requests to the backend (via vercel.json rewrites) and avoid CORS.
 try {
-  if (typeof API_BASE_URL === 'string' && API_BASE_URL.startsWith('http') && !API_BASE_URL.endsWith('/api')) {
-    API_BASE_URL = API_BASE_URL.replace(/\/+$/, '') + '/api';
+  if (typeof API_BASE_URL === 'string' && API_BASE_URL.startsWith('http')) {
+    try {
+      const parsed = new URL(API_BASE_URL);
+      const loc = typeof window !== 'undefined' ? window.location : null;
+      if (loc && parsed.origin !== loc.origin) {
+        // Use same-origin proxy path to avoid CORS
+        // (Vercel rewrite will forward /api/* to the backend)
+        API_BASE_URL = '/api';
+      } else {
+        // same-origin: ensure the base ends with /api
+        if (!API_BASE_URL.endsWith('/api')) API_BASE_URL = API_BASE_URL.replace(/\/+$/, '') + '/api';
+      }
+    } catch (e) {
+      // If URL parsing fails, fall back to relative path to be safe
+      API_BASE_URL = '/api';
+    }
+  } else {
+    // Relative base: normalize trailing slashes and ensure /api prefix
+    if (API_BASE_URL && API_BASE_URL !== '/api') API_BASE_URL = API_BASE_URL.replace(/\/+$/, '') + '/api';
   }
 } catch (_) {
-  // fallback: leave as-is
+  API_BASE_URL = '/api';
 }
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const MAX_RETRIES = 3;
