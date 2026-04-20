@@ -63,7 +63,9 @@ const PORT = process.env.PORT || 3333;
 // MIDDLEWARE
 // ============================================
 
-app.use(cors());
+// Configure CORS to reflect request origin and allow credentials so
+// cross-origin fetches can send/receive cookies (required for auth_token cookie).
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Parse cookies into req.cookies for middleware that expects it
