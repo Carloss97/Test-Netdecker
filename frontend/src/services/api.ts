@@ -53,10 +53,16 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add token if available
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Add token if available (use safe storage access; some browsers block storage)
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (err) {
+      // Storage may be blocked by Tracking Prevention or similar; continue without token
+      // eslint-disable-next-line no-console
+      console.warn('[api] localStorage access blocked in request interceptor', err);
     }
     return config;
   },
@@ -98,19 +104,23 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      // Handle auth errors: clear token and trigger a single reload so
-      // external auth (Cloudflare Access, etc.) can re-run its flow.
-      // Use a localStorage timestamp guard to avoid infinite reload loops
-      // even across cross-origin redirects where sessionStorage might be
-      // unreliable.
-      localStorage.removeItem('auth_token');
       try {
+        try { localStorage.removeItem('auth_token'); } catch (_) { /* ignore */ }
         const RELOAD_KEY = 'netdecker.auth_reload_ts';
         const COOLDOWN_MS = 60_000; // 1 minute
         const now = Date.now();
-        const last = Number(localStorage.getItem(RELOAD_KEY) || '0');
+        let last = 0;
+        try {
+          last = Number(localStorage.getItem(RELOAD_KEY) || '0');
+        } catch (e) {
+          // storage blocked — treat as no previous reload
+          // eslint-disable-next-line no-console
+          console.warn('[api] localStorage.getItem blocked for reload guard', e);
+          last = 0;
+        }
+
         if (!last || now - last > COOLDOWN_MS) {
-          localStorage.setItem(RELOAD_KEY, String(now));
+          try { localStorage.setItem(RELOAD_KEY, String(now)); } catch (e) { /* ignore */ }
           // Log for diagnostics and perform a single reload to trigger
           // external auth flows.
           // eslint-disable-next-line no-console
@@ -121,9 +131,9 @@ apiClient.interceptors.response.use(
           console.warn('[api] 401 received — reload suppressed by guard');
         }
       } catch (err) {
-        // If storage fails for any reason, fall back to a plain reload.
+        // Ensure we still attempt a reload if storage operations completely fail
         // eslint-disable-next-line no-console
-        console.warn('[api] failed to access localStorage for reload guard', err);
+        console.warn('[api] failed handling 401 reload guard', err);
         try { window.location.reload(); } catch { /* ignore */ }
       }
     }

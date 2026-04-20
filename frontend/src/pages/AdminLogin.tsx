@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/adminAuth';
+import apiClient from '../services/api';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -19,12 +20,31 @@ export default function AdminLogin() {
     try {
       const resp = await login(email.trim(), password, storeId || undefined);
       if (resp && resp.success && resp.data && resp.data.token) {
-        localStorage.setItem('auth_token', resp.data.token);
-        if (resp.data.user && resp.data.user.storeId) {
-          localStorage.setItem('auth_store', String(resp.data.user.storeId));
-        } else {
-          localStorage.removeItem('auth_store');
+        try {
+          localStorage.setItem('auth_token', resp.data.token);
+        } catch (err) {
+          // Storage may be blocked by browser; continue without persisting
+          // eslint-disable-next-line no-console
+          console.warn('[AdminLogin] localStorage.setItem blocked', err);
         }
+
+        // Ensure apiClient uses the token for subsequent requests even if storage is blocked
+        try {
+          apiClient.defaults.headers.common.Authorization = `Bearer ${resp.data.token}`;
+        } catch (err) {
+          // ignore
+        }
+
+        try {
+          if (resp.data.user && resp.data.user.storeId) {
+            localStorage.setItem('auth_store', String(resp.data.user.storeId));
+          } else {
+            try { localStorage.removeItem('auth_store'); } catch (_) { /* ignore */ }
+          }
+        } catch (err) {
+          // ignore storage errors for store id
+        }
+
         navigate('/admin');
         return;
       }
