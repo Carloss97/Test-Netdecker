@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://api-erp.krumm.cl/api/$1" }
+  ],
+  "cleanUrls": true
+}

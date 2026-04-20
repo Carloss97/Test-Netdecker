@@ -1,7 +1,20 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+let API_BASE_URL = (import.meta.env.VITE_API_URL as string) || '/api';
+
+// Normalize VITE_API_URL to always point at the API prefix.
+// If the deploy env provides a host like "https://api-erp.krumm.cl"
+// ensure the runtime base becomes "https://api-erp.krumm.cl/api" so
+// frontend callers don't accidentally request "/admin/..." instead
+// of "/api/admin/...".
+try {
+  if (typeof API_BASE_URL === 'string' && API_BASE_URL.startsWith('http') && !API_BASE_URL.endsWith('/api')) {
+    API_BASE_URL = API_BASE_URL.replace(/\/+$/, '') + '/api';
+  }
+} catch (_) {
+  // fallback: leave as-is
+}
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 350;
