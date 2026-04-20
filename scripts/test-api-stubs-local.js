@@ -8,6 +8,14 @@ const handlers = [
   { name: '/api/external/sets', file: path.join('..', 'api', 'external', 'sets.js'), req: { method: 'GET', url: '/api/external/sets?tcg=YUGIOH' } },
   { name: '/api/tcgs', file: path.join('..', 'api', 'tcgs.js'), req: { method: 'GET', url: '/api/tcgs' } },
   { name: '/api/external/import/set', file: path.join('..', 'api', 'external', 'import', 'set.js'), req: { method: 'POST', url: '/api/external/import/set', body: { tcg: 'YUGIOH', set: 'RA05' } } },
+
+  // Additional stubs added during audit
+  { name: '/api/inventory/import-csv', file: path.join('..', 'api', 'inventory', 'import-csv.js'), req: { method: 'POST', url: '/api/inventory/import-csv', body: { preview: true } } },
+  { name: '/api/inventory/import-with-mapping', file: path.join('..', 'api', 'inventory', 'import-with-mapping.js'), req: { method: 'POST', url: '/api/inventory/import-with-mapping', body: { mapping: {} } } },
+  { name: '/api/inventory/import-csv/validate', file: path.join('..', 'api', 'inventory', 'import-csv', 'validate.js'), req: { method: 'POST', url: '/api/inventory/import-csv/validate', body: { preview: true } } },
+
+  { name: '/api/listings/label', file: path.join('..', 'api', 'listings', 'label.js'), req: { method: 'GET', url: '/api/listings/label?id=L-001' } },
+  { name: '/api/listings/labels-sheet', file: path.join('..', 'api', 'listings', 'labels-sheet.js'), req: { method: 'GET', url: '/api/listings/labels-sheet?ids=L-001,L-002&qtys=1,2' } },
 ];
 
 function makeRes(doneCb) {
@@ -20,11 +28,13 @@ function makeRes(doneCb) {
     end(chunk) {
       if (chunk) body += chunk;
       try {
-        const parsed = JSON.parse(body);
-        doneCb(null, { status, body: parsed });
-      } catch (err) {
-        doneCb(new Error('Response not JSON: ' + body));
-      }
+          const parsed = JSON.parse(body);
+          doneCb(null, { status, body: parsed });
+        } catch (err) {
+          // Treat non-JSON 200 responses as OK for endpoints that return CSV/HTML
+          if (status === 200) return doneCb(null, { status, body: { success: true, raw: body } });
+          doneCb(new Error('Response not JSON: ' + body));
+        }
     },
     json(obj) {
       doneCb(null, { status, body: obj });
