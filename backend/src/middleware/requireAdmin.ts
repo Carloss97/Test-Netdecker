@@ -5,7 +5,27 @@ import prisma from '../utils/db.js';
 function extractToken(req: Request) {
   const auth = String(req.headers['authorization'] || '');
   if (auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
-  return String(req.headers['x-admin-token'] || '').trim();
+
+  // Check explicit header first
+  const headerToken = String(req.headers['x-admin-token'] || '').trim();
+  if (headerToken) return headerToken;
+
+  // If cookie parsing middleware is present, prefer that
+  const anyReq = req as any;
+  if (anyReq.cookies && anyReq.cookies.auth_token) return String(anyReq.cookies.auth_token).trim();
+
+  // Fallback: parse Cookie header manually
+  const cookieHeader = String(req.headers['cookie'] || '');
+  if (cookieHeader) {
+    const parts = cookieHeader.split(';').map((p) => p.trim());
+    for (const p of parts) {
+      if (p.startsWith('auth_token=')) {
+        return decodeURIComponent(p.substring('auth_token='.length));
+      }
+    }
+  }
+
+  return '';
 }
 
 export async function requireAdmin(req: Request, _res: Response, next: NextFunction) {
