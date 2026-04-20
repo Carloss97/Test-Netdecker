@@ -1,6 +1,7 @@
 // src/index.ts
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import 'express-async-errors';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -65,6 +66,8 @@ const PORT = process.env.PORT || 3333;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Parse cookies into req.cookies for middleware that expects it
+app.use(cookieParser());
 
 // Request logging
 app.use((req: Request, res: Response, next: NextFunction) => {

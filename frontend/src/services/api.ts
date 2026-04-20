@@ -66,6 +66,9 @@ const apiClient = axios.create({
   }
 });
 
+// Ensure cookies are sent for cross-origin requests when needed
+apiClient.defaults.withCredentials = true;
+
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
@@ -79,6 +82,19 @@ apiClient.interceptors.request.use(
       // Storage may be blocked by Tracking Prevention or similar; continue without token
       // eslint-disable-next-line no-console
       console.warn('[api] localStorage access blocked in request interceptor', err);
+    }
+    
+    // Fallback: try to extract auth_token from cookies when localStorage is unavailable
+    try {
+      if (!config.headers.Authorization && typeof document !== 'undefined' && document.cookie) {
+        const match = document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith('auth_token='));
+        if (match) {
+          const cookieVal = decodeURIComponent(match.substring('auth_token='.length));
+          if (cookieVal) config.headers.Authorization = `Bearer ${cookieVal}`;
+        }
+      }
+    } catch (e) {
+      // ignore cookie parsing errors
     }
     return config;
   },
@@ -122,6 +138,8 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       try {
         try { localStorage.removeItem('auth_token'); } catch (_) { /* ignore */ }
+        // Also attempt to clear cookie-based token so UI flows can retry cleanly
+        try { if (typeof document !== 'undefined') document.cookie = 'auth_token=; Path=/; Max-Age=0;'; } catch (_) { /* ignore */ }
         const RELOAD_KEY = 'netdecker.auth_reload_ts';
         const COOLDOWN_MS = 60_000; // 1 minute
         const now = Date.now();
