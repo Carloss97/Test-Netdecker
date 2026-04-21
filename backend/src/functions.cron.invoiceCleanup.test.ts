@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const mod = await import('./functions/cron/invoice-cleanup.js');
-const onRequest = mod.onRequest || mod.default?.onRequest || mod.default || mod;
+import * as invoiceCleanupModule from './functions/cron/invoice-cleanup.js';
+const onRequest = invoiceCleanupModule.onRequest || invoiceCleanupModule.default?.onRequest || invoiceCleanupModule.default || invoiceCleanupModule;
 
 class D1Mock {
   constructor() { this.tables = { invoice: [], order: [] }; }

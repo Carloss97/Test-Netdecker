@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const thresholdsModule = await import('./functions/api/admin/pricing/thresholds.js');
+import * as thresholdsModule from './functions/api/admin/pricing/thresholds.js';
 const onRequest = thresholdsModule.onRequest || thresholdsModule.default?.onRequest || thresholdsModule.default || thresholdsModule;
 
 class D1Mock {
