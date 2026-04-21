@@ -3,6 +3,7 @@ import prisma from '../utils/db.js';
 import { NotFoundError } from '../utils/errors.js';
 import type { Prisma } from '@prisma/client';
 import createD1Proxy from '../utils/d1Proxy.js';
+import { importShared } from '../utils/importShared.js';
 
 console.log('[CardService] Loaded, prisma available:', prisma ? 'YES' : 'NO');
 
@@ -43,7 +44,7 @@ export class CardService {
   static async getCard(id: string) {
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       const rec = await CardD1.getCard(db, id);
       return rec;
     }
@@ -62,7 +63,7 @@ export class CardService {
   static async findCardByCode(tcgId: string, editionId: string, cardCode: string, rarity?: string) {
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       return CardD1.findCardByCode(db, tcgId, editionId, cardCode, rarity);
     }
 
@@ -88,7 +89,7 @@ export class CardService {
     console.debug('[CardService] searchByName called', { name: String(name).slice(0,80), tcgId, limit });
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       return CardD1.searchByName(db, name, tcgId, limit);
     }
 
@@ -124,7 +125,7 @@ export class CardService {
     console.debug('[CardService] searchByCode called', { code: String(code).slice(0,80), tcgId, limit });
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       return CardD1.searchByCode(db, code, tcgId, limit);
     }
 
@@ -162,7 +163,7 @@ export class CardService {
   static async getCardsByEdition(editionId: string) {
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       return CardD1.getCardsByEdition(db, editionId);
     }
 
@@ -180,7 +181,7 @@ export class CardService {
     console.log('[CardService.getCardsByTCG] Called with:', tcgIdentifier);
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       return CardD1.getCardsByTCG(db, tcgIdentifier);
     }
 
@@ -223,7 +224,7 @@ export class CardService {
   static async bulkUpsertCards(cards: CreateCardInput[]) {
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const CardD1 = await import('../../../functions/_shared/cardService.js');
+      const CardD1 = await importShared('cardService');
       return CardD1.bulkUpsertCards(db, cards as any, {});
     }
 
