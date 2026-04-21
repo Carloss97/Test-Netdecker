@@ -8,7 +8,7 @@ import PriceThresholdService from './PriceThresholdService.js';
 import { CardDatabaseService } from './CardDatabaseService.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import createD1Proxy from '../utils/d1Proxy.js';
-import { importShared } from '../utils/importShared.js';
+import * as PriceSyncD1 from '../functions/_shared/priceSyncService.js';
 
 export interface PriceSyncUpdateInput {
   listingId?: string;
@@ -161,8 +161,7 @@ export class PriceSyncService {
     // If configured to use D1 backend, delegate to the D1 implementation
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
-      const priceSync = await importShared('priceSyncService');
-      const res = await priceSync.runPriceSync(db, process.env, input as any);
+      const res = await (PriceSyncD1 as any).runPriceSync(db, process.env, input as any);
       return {
         runId: res.runId,
         source: res.source,
