@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const mod = await import('../../functions/cron/cart-cleanup.js');
+const mod = await import('../../legacy/functions/cron/cart-cleanup.js');
 const onRequest = mod.onRequest || mod.default?.onRequest || mod.default || mod;
 
 class D1Mock {
