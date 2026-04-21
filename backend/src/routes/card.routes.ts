@@ -10,29 +10,38 @@ const router = express.Router();
  * Search cards by name or by card code
  */
 router.get('/search', async (req: Request, res: Response) => {
-  const { name, code, tcgId, limit } = req.query;
+  try {
+    const { name, code, tcgId, limit } = req.query;
 
-  if (!name && !code) {
-    throw new ValidationError('name or code query parameter is required');
-  }
+    if (!name && !code) {
+      throw new ValidationError('name or code query parameter is required');
+    }
 
-  if (code) {
-    const cards = await CardService.searchByCode(
-      code as string,
+    if (code) {
+      console.debug('[card.routes] search by code', { code: String(code).slice(0, 80), tcgId, limit });
+      const cards = await CardService.searchByCode(
+        code as string,
+        tcgId as string | undefined,
+        parseInt(limit as string) || 50,
+      );
+      res.json(cards);
+      return;
+    }
+
+    console.debug('[card.routes] search by name', { name: String(name).slice(0, 80), tcgId, limit });
+    const cards = await CardService.searchByName(
+      name as string,
       tcgId as string | undefined,
-      parseInt(limit as string) || 50,
+      parseInt(limit as string) || 20,
     );
+
     res.json(cards);
-    return;
+  } catch (err) {
+    try {
+      console.error('[card.routes] /api/cards/search error', { path: req.path, query: req.query, error: (err as any)?.message || err });
+    } catch (_) {}
+    throw err;
   }
-
-  const cards = await CardService.searchByName(
-    name as string,
-    tcgId as string | undefined,
-    parseInt(limit as string) || 20,
-  );
-
-  res.json(cards);
 });
 
 /**

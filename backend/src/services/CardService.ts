@@ -85,6 +85,7 @@ export class CardService {
    * Search cards by name (case-insensitive, partial match)
    */
   static async searchByName(name: string, tcgId?: string, limit: number = 20) {
+    console.debug('[CardService] searchByName called', { name: String(name).slice(0,80), tcgId, limit });
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
       const CardD1 = await import('../../../functions/_shared/cardService.js');
@@ -103,11 +104,16 @@ export class CardService {
       where.tcgId = tcgId;
     }
 
-    return prisma.card.findMany({
-      where,
-      include: { listings: true, edition: true },
-      take: limit,
-    });
+    try {
+      return await prisma.card.findMany({
+        where,
+        include: { listings: true, edition: true },
+        take: limit,
+      });
+    } catch (err) {
+      console.error('[CardService] searchByName error', { name: String(name).slice(0,80), tcgId, limit, err: (err as any)?.message || err });
+      throw err;
+    }
   }
 
   /**
@@ -115,6 +121,7 @@ export class CardService {
    * Returns all matching cards across editions and rarities.
    */
   static async searchByCode(code: string, tcgId?: string, limit: number = 50) {
+    console.debug('[CardService] searchByCode called', { code: String(code).slice(0,80), tcgId, limit });
     if (process.env.USE_D1 === 'true') {
       const db = createD1Proxy(prisma);
       const CardD1 = await import('../../../functions/_shared/cardService.js');
@@ -137,11 +144,16 @@ export class CardService {
       where.tcgId = tcgId;
     }
 
-    return prisma.card.findMany({
-      where,
-      include: { listings: true, edition: true },
-      take: limit,
-    });
+    try {
+      return await prisma.card.findMany({
+        where,
+        include: { listings: true, edition: true },
+        take: limit,
+      });
+    } catch (err) {
+      console.error('[CardService] searchByCode error', { code: String(code).slice(0,80), tcgId, limit, err: (err as any)?.message || err });
+      throw err;
+    }
   }
 
   /**
