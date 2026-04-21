@@ -3,19 +3,25 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 let API_BASE_URL = (import.meta.env.VITE_API_URL as string) || '/api';
 
-// Runtime preference: avoid cross-origin API calls from the browser.
-// If VITE_API_URL points to a different origin than the current page,
-// prefer the relative `/api` path so the frontend's host (Vercel) can
-// proxy requests to the backend (via vercel.json rewrites) and avoid CORS.
+// By default prefer an explicit `VITE_API_URL` (cross-origin) so the browser
+// talks directly to the backend host and can receive/send the httpOnly
+// `auth_token` cookie. In some deployments you may want to force same-origin
+// proxying via Vercel rewrites; set `VITE_API_FORCE_SAME_ORIGIN=1` to enable that.
+const FORCE_SAME_ORIGIN = (import.meta.env.VITE_API_FORCE_SAME_ORIGIN === '1' || import.meta.env.VITE_API_FORCE_SAME_ORIGIN === 'true');
+
 try {
   if (typeof API_BASE_URL === 'string' && API_BASE_URL.startsWith('http')) {
     try {
       const parsed = new URL(API_BASE_URL);
       const loc = typeof window !== 'undefined' ? window.location : null;
       if (loc && parsed.origin !== loc.origin) {
-        // Use same-origin proxy path to avoid CORS
-        // (Vercel rewrite will forward /api/* to the backend)
-        API_BASE_URL = '/api';
+        if (FORCE_SAME_ORIGIN) {
+          // Force same-origin proxy (useful for environments that rely on Vercel rewrites)
+          API_BASE_URL = '/api';
+        } else {
+          // Use explicit external API origin so cross-origin cookies work
+          if (!API_BASE_URL.endsWith('/api')) API_BASE_URL = API_BASE_URL.replace(/\/+$/, '') + '/api';
+        }
       } else {
         // same-origin: ensure the base ends with /api
         if (!API_BASE_URL.endsWith('/api')) API_BASE_URL = API_BASE_URL.replace(/\/+$/, '') + '/api';

@@ -152,33 +152,40 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
   // Ensure each card has at least one listing. If not, create one.
   for (const card of cards as CardWithListings[]) {
     if (card.listings.length === 0) {
-      const newListing = await prisma.listing.create({
-        data: {
-          cardId: card.id,
-          editionId: edition.id,
-          condition: 'NM',
-          rarity: card.rarity ?? 'Unknown',
-          quantity: 0,
-          referencePrice: 0,
-          marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,
-          exchangeRate: 1.0,
-          finalPrice: 0,
-          currency: 'CLP',
-          status: 'active',
-        },
-        select: {
-          id: true,
-          condition: true,
-          quantity: true,
-          referencePrice: true,
-          marginMultiplier: true,
-          finalPrice: true,
-          currency: true,
-          lastSyncedAt: true,
-          status: true,
-        },
-      });
-      card.listings.push(newListing);
+      try {
+        const newListing = await prisma.listing.create({
+          data: {
+            cardId: card.id,
+            editionId: edition.id,
+            condition: 'NM',
+            rarity: card.rarity ?? 'Unknown',
+            quantity: 0,
+            referencePrice: 0,
+            marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,
+            exchangeRate: 1.0,
+            finalPrice: 0,
+            currency: 'CLP',
+            status: 'active',
+          },
+          select: {
+            id: true,
+            condition: true,
+            quantity: true,
+            referencePrice: true,
+            marginMultiplier: true,
+            finalPrice: true,
+            currency: true,
+            lastSyncedAt: true,
+            status: true,
+          },
+        });
+        card.listings.push(newListing);
+      } catch (e) {
+        try {
+          console.error('[edition.routes] failed creating listing', { editionId: edition.id, cardId: card.id, cardCode: card.cardCode, err: (e as any)?.message || e });
+        } catch (_) {}
+        throw e;
+      }
     }
   }
 
