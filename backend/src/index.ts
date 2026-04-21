@@ -107,11 +107,14 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/external', externalRoutes);
+// Mount auth routes before the general admin router so public auth endpoints
+// (login/create) are not intercepted by the admin authentication middleware
+// declared inside `adminRoutes`.
+app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/editions', editionRoutes);
 app.use('/tienda', publicRoutes);
 app.use('/api/pricing', pricingRoutes);
-app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/pos', posRoutes);
 app.use('/api/pos/cash-sessions', cashSessionsRoutes);
 app.use('/api/invoices', invoicesRoutes);

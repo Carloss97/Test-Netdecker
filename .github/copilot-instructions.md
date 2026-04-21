@@ -36,6 +36,7 @@
 - For pricing changes, use `PriceService.updateListingPrice()` to ensure history tracking is preserved.
 - For backend-focused edits, follow scoped instruction files: `.github/instructions/backend-routes.instructions.md` and `.github/instructions/backend-services.instructions.md`.
 - For frontend API/client and API-consuming page edits, follow: `.github/instructions/frontend-api.instructions.md`.
+- Give code for powershell when relevant, especially for local dev and testing commands.
 
 ## Environment And Pitfalls
 
