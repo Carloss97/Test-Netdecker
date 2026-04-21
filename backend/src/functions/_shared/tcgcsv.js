@@ -4,7 +4,7 @@ const API_KEY = (typeof process !== 'undefined' && process.env && process.env.TC
 // In-memory cache and concurrency limiter (per-worker instance). TTL and concurrency
 // can be tuned via env vars: TCGCSV_CACHE_TTL (seconds) and TCGCSV_CONCURRENCY_LIMIT
 const DEFAULT_TTL = Number((typeof process !== 'undefined' && process.env && process.env.TCGCSV_CACHE_TTL) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_CACHE_TTL) || 3600);
-const CONCURRENCY_LIMIT = Number((typeof process !== 'undefined' && process.env && process.env.TCGCSV_CONCURRENCY_LIMIT) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_CONCURRENCY_LIMIT) || 6);
+const CONCURRENCY_LIMIT = Number((typeof process !== 'undefined' && process.env && process.env.TCGCSV_CONCURRENCY_LIMIT) || (typeof globalThis !== 'undefined' && globalThis.TCGCSV_CONCURRENCY_LIMIT) || 3);
 
 if (!globalThis.__TCGCSV_CACHE_V1) globalThis.__TCGCSV_CACHE_V1 = new Map();
 if (!globalThis.__TCGCSV_CONCURRENCY_V1) globalThis.__TCGCSV_CONCURRENCY_V1 = { active: 0, queue: [] };
