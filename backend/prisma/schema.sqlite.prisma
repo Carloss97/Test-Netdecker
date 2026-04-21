@@ -2,7 +2,7 @@
 // Generator outputs the client to `node_modules/@prisma/client_sqlite` inside the backend package.
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/@prisma/client_sqlite"
+  output   = "../node_modules/@prisma/client_sqlite_generated"
 }
 
 datasource db {
@@ -23,6 +23,8 @@ model Store {
   name        String
   description String?
   apiKeyHash  String?
+  currency    String   @default("CLP")
+  taxRate     Float    @default(0.0)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
@@ -34,6 +36,7 @@ model Store {
   orders      Order[]
   adminSessions AdminSession[]
   priceSyncs  PriceSyncRun[]
+  fiscalPeriods FiscalPeriod[]
   accounts    Account[]
   journalEntries JournalEntry[]
   posSessions POSSession[]
@@ -165,6 +168,7 @@ model InventoryImport {
   store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   @@index([storeId])
   changes        InventoryImportChange[]
+  batches        ImportBatch[]
 }
 
 model Cart {
@@ -251,6 +255,23 @@ model PriceSyncRun {
 // ERP: INVENTORY & ACCOUNTING MODELS (SQLite)
 // Note: enums are represented as Strings in this SQLite schema.
 // ============================================
+
+model FiscalPeriod {
+  id        String   @id @default(cuid())
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("OPEN")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([startDate])
+  @@index([endDate])
+}
 
 model Warehouse {
   id          String   @id @default(cuid())
@@ -410,12 +431,34 @@ model JournalLine {
 
 // Tracks atomic changes made during an inventory import, allowing rollback
 // of per-listing quantity changes.
+model ImportBatch {
+  id          String   @id @default(cuid())
+  importId    String
+  import      InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  batchIndex  Int
+  startRow    Int?
+  endRow      Int?
+  status      String   @default("completed")
+
+  createdAt   DateTime @default(now())
+
+  changes     InventoryImportChange[]
+
+  @@index([importId])
+  @@index([batchIndex])
+}
+
+// Tracks atomic changes made during an inventory import, allowing rollback
+// of per-listing quantity changes.
 model InventoryImportChange {
   id            String   @id @default(cuid())
   importId      String
   import        InventoryImport @relation(fields: [importId], references: [id], onDelete: Cascade)
   listingId     String
   listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  batchId       String?
+  batch         ImportBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
   oldQuantity   Int
   newQuantity   Int
   note          String?
@@ -423,6 +466,7 @@ model InventoryImportChange {
 
   @@index([importId])
   @@index([listingId])
+  @@index([batchId])
 }
 
 // Approval requests for price changes marked volatile by automated sync.

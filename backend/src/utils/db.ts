@@ -287,30 +287,35 @@ if (process.env.SKIP_DB_INIT === 'true') {
 	try {
 		// Avoid noisy import attempts when generated Prisma clients are not installed.
 		// Check for package.json presence under backend/node_modules before attempting dynamic import.
-		const pkgPath = useSqlite
-			? path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite/package.json')
-			: path.resolve(__dirname, '../../node_modules/@prisma/client/package.json');
+		let pkgPath: string;
+		let clientPackageName: string;
+		if (useSqlite) {
+			const generatedPath = path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite_generated/package.json');
+			const defaultPath = path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite/package.json');
+			if (fs.existsSync(generatedPath)) {
+				pkgPath = generatedPath;
+				clientPackageName = '@prisma/client_sqlite_generated';
+			} else {
+				pkgPath = defaultPath;
+				clientPackageName = '@prisma/client_sqlite';
+			}
+		} else {
+			pkgPath = path.resolve(__dirname, '../../node_modules/@prisma/client/package.json');
+			clientPackageName = '@prisma/client';
+		}
 
 		if (!fs.existsSync(pkgPath)) {
 			console.warn(`[DB] Prisma client package not found at ${pkgPath}; using in-memory stub`);
 			prisma = createPrismaStub();
 		} else {
-			if (useSqlite) {
-				console.log('[DB] Attempting to load @prisma/client_sqlite...');
-				// @ts-ignore - dynamic import of generated sqlite client; ambient types may not exist in all environments
-				const pkg = await import('@prisma/client_sqlite');
-				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-				const PrismaClientCtor: any = PrismaClientClass as any;
-				prisma = new PrismaClientCtor() as MinimalPrisma;
-				console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
-			} else {
-				console.log('[DB] Loading @prisma/client (Postgres)');
-				const pkg = await import('@prisma/client');
-				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-				const PrismaClientCtor: any = PrismaClientClass as any;
-				prisma = new PrismaClientCtor() as MinimalPrisma;
-				console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
-			}
+			console.log(`[DB] Attempting to load ${clientPackageName}...`);
+			// @ts-ignore - dynamic import of generated client; ambient types may not exist in all environments
+			const pkg = await import(clientPackageName as any);
+			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+			const PrismaClientCtor: any = PrismaClientClass as any;
+			prisma = new PrismaClientCtor() as MinimalPrisma;
+			console.log(`[DB] Initialized Prisma client (${clientPackageName})`);
+            
 
 			// Connect and log status
 			prisma.$connect().then(() => {
