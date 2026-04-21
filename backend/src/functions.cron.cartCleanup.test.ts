@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const mod = await import('../../functions/cron/cart-cleanup.js');
-const onRequest = mod.onRequest || mod.default?.onRequest || mod.default || mod;
+import * as cartCleanupModule from './functions/cron/cart-cleanup.js';
+const onRequest = cartCleanupModule.onRequest || cartCleanupModule.default?.onRequest || cartCleanupModule.default || cartCleanupModule;
 
 class D1Mock {
   constructor() { this.tables = { cart: [], orderItem: [] }; }

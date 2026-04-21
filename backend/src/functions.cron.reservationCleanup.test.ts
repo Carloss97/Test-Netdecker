@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const mod = await import('../../functions/cron/reservation-cleanup.js');
-const onRequest = mod.onRequest || mod.default?.onRequest || mod.default || mod;
+import * as reservationCleanupModule from './functions/cron/reservation-cleanup.js';
+const onRequest = reservationCleanupModule.onRequest || reservationCleanupModule.default?.onRequest || reservationCleanupModule.default || reservationCleanupModule;
 
 class D1Mock {
   constructor() { this.tables = { reservation: [], stockMovement: [], listing: [] }; }

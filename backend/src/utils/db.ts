@@ -15,14 +15,11 @@ if (fs.existsSync(envPath)) {
 	dotenv.config();
 }
 
-// If DATABASE_URL is missing, fall back to local SQLite (Pages D1 / local dev).
-// Prefer SQLite by default for Cloudflare Pages D1 compatibility and simpler local dev.
+// If DATABASE_URL is missing, warn the developer. Postgres is the canonical
+// database for this project; SQLite is only used when explicitly enabled
+// via `USE_SQLITE=true` or by providing a file-based `DATABASE_URL`.
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
-	const defaultSqlite = 'file:./dev.sqlite';
-	process.env.DATABASE_URL = defaultSqlite;
-	// Mark explicit preference for SQLite client loading
-	process.env.USE_SQLITE = 'true';
-	console.log(`[DB] No DATABASE_URL found; falling back to local SQLite at ${defaultSqlite} and enabling USE_SQLITE=true`);
+	console.warn('[DB] No DATABASE_URL found; Postgres is the default. Set `DATABASE_URL` to a Postgres DSN or set `USE_SQLITE=true` to opt into SQLite.');
 } else {
 	console.log('[DB] Using provided DATABASE_URL (redacted)');
 }
@@ -287,30 +284,35 @@ if (process.env.SKIP_DB_INIT === 'true') {
 	try {
 		// Avoid noisy import attempts when generated Prisma clients are not installed.
 		// Check for package.json presence under backend/node_modules before attempting dynamic import.
-		const pkgPath = useSqlite
-			? path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite/package.json')
-			: path.resolve(__dirname, '../../node_modules/@prisma/client/package.json');
+		let pkgPath: string;
+		let clientPackageName: string;
+		if (useSqlite) {
+			const generatedPath = path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite_generated/package.json');
+			const defaultPath = path.resolve(__dirname, '../../node_modules/@prisma/client_sqlite/package.json');
+			if (fs.existsSync(generatedPath)) {
+				pkgPath = generatedPath;
+				clientPackageName = '@prisma/client_sqlite_generated';
+			} else {
+				pkgPath = defaultPath;
+				clientPackageName = '@prisma/client_sqlite';
+			}
+		} else {
+			pkgPath = path.resolve(__dirname, '../../node_modules/@prisma/client/package.json');
+			clientPackageName = '@prisma/client';
+		}
 
 		if (!fs.existsSync(pkgPath)) {
 			console.warn(`[DB] Prisma client package not found at ${pkgPath}; using in-memory stub`);
 			prisma = createPrismaStub();
 		} else {
-			if (useSqlite) {
-				console.log('[DB] Attempting to load @prisma/client_sqlite...');
-				// @ts-ignore - dynamic import of generated sqlite client; ambient types may not exist in all environments
-				const pkg = await import('@prisma/client_sqlite');
-				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-				const PrismaClientCtor: any = PrismaClientClass as any;
-				prisma = new PrismaClientCtor() as MinimalPrisma;
-				console.log('[DB] Initialized SQLite Prisma client (@prisma/client_sqlite)');
-			} else {
-				console.log('[DB] Loading @prisma/client (Postgres)');
-				const pkg = await import('@prisma/client');
-				const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
-				const PrismaClientCtor: any = PrismaClientClass as any;
-				prisma = new PrismaClientCtor() as MinimalPrisma;
-				console.log('[DB] Initialized Postgres Prisma client (@prisma/client)');
-			}
+			console.log(`[DB] Attempting to load ${clientPackageName}...`);
+			// @ts-ignore - dynamic import of generated client; ambient types may not exist in all environments
+			const pkg = await import(clientPackageName as any);
+			const PrismaClientClass = pkg.PrismaClient ?? pkg.default?.PrismaClient ?? pkg.default;
+			const PrismaClientCtor: any = PrismaClientClass as any;
+			prisma = new PrismaClientCtor() as MinimalPrisma;
+			console.log(`[DB] Initialized Prisma client (${clientPackageName})`);
+            
 
 			// Connect and log status
 			prisma.$connect().then(() => {
@@ -327,3 +329,50 @@ if (process.env.SKIP_DB_INIT === 'true') {
 }
 
 export default prisma;
+
+// Wrap the Prisma client's $transaction with a simple retry/backoff for
+// transient "unable to start a transaction" errors. This helps mitigate
+// intermittent transaction-start timeouts observed under high concurrency
+// (Neon/managed Postgres pool latencies). Controlled via
+// `DB_TRANSACTION_RETRIES` env var (default 3).
+(function wrapTransactionWithRetries() {
+	try {
+		const orig = (prisma as any).$transaction?.bind(prisma);
+		if (!orig) return;
+
+		const maxRetries = Number(process.env.DB_TRANSACTION_RETRIES ?? 3) || 3;
+		const baseDelayMs = 100;
+
+		(prisma as any).$transaction = async function patchedTransaction(...args: any[]) {
+			let attempt = 0;
+			// eslint-disable-next-line no-constant-condition
+			while (true) {
+				try {
+					return await orig(...args);
+				} catch (err: any) {
+					const msg = err && (err.message ?? String(err));
+					const isTransient = typeof msg === 'string' && (
+						msg.includes('Unable to start a transaction') ||
+						msg.includes('Transaction API error') ||
+						msg.toLowerCase().includes('timeout')
+					);
+
+					if (!isTransient || attempt >= maxRetries) {
+						throw err;
+					}
+
+					const delay = baseDelayMs * Math.pow(2, attempt);
+					// eslint-disable-next-line no-console
+					console.warn(`[DB] Transaction start failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms: ${msg}`);
+					await new Promise((res) => setTimeout(res, delay));
+					attempt += 1;
+				}
+			}
+		};
+	} catch (e) {
+		// If anything goes wrong here, avoid crashing startup — fallback to
+		// existing behaviour.
+		// eslint-disable-next-line no-console
+		console.warn('[DB] Failed to install $transaction retry wrapper:', e instanceof Error ? e.message : String(e));
+	}
+})();

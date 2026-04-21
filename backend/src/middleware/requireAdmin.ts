@@ -51,13 +51,12 @@ export async function requireAdmin(req: Request, _res: Response, next: NextFunct
     } catch (_) {}
   }
 
-  const sess = await prisma.adminSession.findUnique({ where: { token }, include: { user: true } });
+  const sess = await prisma.adminSession.findUnique({ where: { token }, include: { user: true } as any });
   if (!sess) throw new UnauthorizedError('Invalid admin token');
   if (sess.expiresAt && sess.expiresAt.getTime() < Date.now()) throw new UnauthorizedError('Session expired');
   if (!sess.user || !sess.user.isActive) throw new ForbiddenError('User disabled');
-
-  // Attach minimal user to request
-  (req as any).adminUser = { id: sess.user.id, email: sess.user.email, role: (sess.user as any).role };
+  // Attach minimal user to request, including optional tenant scope
+  (req as any).adminUser = { id: sess.user.id, email: sess.user.email, role: (sess.user as any).role, storeId: (sess as any).storeId || null };
   return next();
 }
 

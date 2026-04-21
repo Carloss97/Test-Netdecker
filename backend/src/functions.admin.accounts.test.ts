@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const accountsModule = await import('../../functions/api/admin/accounts.js');
+import * as accountsModule from './functions/api/admin/accounts.js';
 const onRequest = accountsModule.onRequest || accountsModule.default?.onRequest || accountsModule.default || accountsModule;
 
 class D1Mock {

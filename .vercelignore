@@ -2,3 +2,4 @@
 # This prevents Vercel from including the repository's `functions/` folder
 # in the Pages build output while keeping the code in-place for backend usage.
 functions/
+legacy/

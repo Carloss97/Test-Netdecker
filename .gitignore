@@ -45,3 +45,10 @@ prisma/dev.db-journal
 logs/
 *.log
 nbackend/.envn
+
+# Ignore legacy temporary artifacts and exports
+legacy/archives/tmp/
+legacy/archives/tmp_apply/
+legacy/archives/tmp_import_*
+legacy/archives/*.xlsx
+scripts/tmp_smoke_api.js

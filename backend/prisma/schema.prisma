@@ -123,6 +123,7 @@ model Store {
   carts       Cart[]
   orders      Order[]
   posSessions POSSession[]
+  adminSessions AdminSession[]
   priceSyncs  PriceSyncRun[]
   accounts    Account[]
   journalEntries JournalEntry[]
@@ -432,8 +433,12 @@ model AdminSession {
   user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime?
   createdAt DateTime @default(now())
+  // Optional tenant scoping for admin sessions
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([storeId])
 }
 
 model AuditTrail {

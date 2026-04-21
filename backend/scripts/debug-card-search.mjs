@@ -1,6 +1,6 @@
 import * as url from 'url';
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-const searchModule = await import('../../functions/api/cards/search.js');
+const searchModule = await import('../src/functions/api/cards/search.js');
 const searchHandler = searchModule.onRequest || searchModule.default?.onRequest || searchModule.default || searchModule;
 
 class D1Mock {

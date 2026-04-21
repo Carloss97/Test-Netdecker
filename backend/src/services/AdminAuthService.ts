@@ -41,7 +41,8 @@ export class AdminAuthService {
     return { id: user.id, email: user.email, role: user.role };
   }
 
-  static async authenticate(email: string, password: string) {
+  // Optional `storeId` allows creating tenant-scoped admin sessions when supported by the schema.
+  static async authenticate(email: string, password: string, storeId?: string | null) {
     const user = await prisma.adminUser.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedError('Invalid credentials');
 
@@ -53,7 +54,14 @@ export class AdminAuthService {
     const days = Number(process.env.ADMIN_SESSION_DAYS || '7');
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    await prisma.adminSession.create({ data: { token, userId: user.id, expiresAt } });
+    // Try to store `storeId` when available in the DB schema; fall back if column missing.
+    try {
+      // Use `any` to avoid TypeScript errors on projects whose generated client lacks the field.
+      await (prisma as any).adminSession.create({ data: { token, userId: user.id, expiresAt, storeId: storeId || null } });
+    } catch (err) {
+      // Fall back for databases without `storeId` column.
+      await prisma.adminSession.create({ data: { token, userId: user.id, expiresAt } });
+    }
     await prisma.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
     return { token, user: { id: user.id, email: user.email, role: user.role }, expiresAt };
@@ -61,11 +69,12 @@ export class AdminAuthService {
 
   static async validateToken(token: string) {
     if (!token) return null;
-    const sess = await prisma.adminSession.findUnique({ where: { token }, include: { user: true } });
+    const sess = await prisma.adminSession.findUnique({ where: { token }, include: { user: true } as any });
     if (!sess) return null;
     if (sess.expiresAt && sess.expiresAt.getTime() < Date.now()) return null;
     if (!sess.user || !sess.user.isActive) return null;
-    return { id: sess.user.id, email: sess.user.email, role: (sess.user as any).role };
+    // Expose optional storeId when present on the session row.
+    return { id: sess.user.id, email: sess.user.email, role: (sess.user as any).role, storeId: (sess as any).storeId || null };
   }
 
   static async logout(token: string) {
