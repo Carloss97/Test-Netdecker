@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const approvalsModule = await import('../../legacy/functions/api/admin/approvals.js');
+const approvalsModule = await import('./functions/api/admin/approvals.js');
 const onRequest = approvalsModule.onRequest || approvalsModule.default?.onRequest || approvalsModule.default || approvalsModule;
 
 class D1Mock {

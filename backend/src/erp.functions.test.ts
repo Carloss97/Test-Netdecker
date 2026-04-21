@@ -132,7 +132,7 @@ class MockDB {
 test('stock movement IN increments listing quantity and inserts movement', async () => {
   const db = new MockDB();
   db.listing['L1'] = { id: 'L1', quantity: 10 };
-  const mod = await import('../../legacy/functions/api/erp/stock/movement.js');
+  const mod = await import('./functions/api/erp/stock/movement.js');
   const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ listingId: 'L1', type: 'IN', quantity: 5 }), headers: { 'Content-Type': 'application/json' } });
   const res = await mod.onRequest({ request: req, env: { TCG_D1: db } });
   const body = await res.json();
@@ -143,7 +143,7 @@ test('stock movement IN increments listing quantity and inserts movement', async
 test('stock movement OUT with insufficient stock returns 409', async () => {
   const db = new MockDB();
   db.listing['L2'] = { id: 'L2', quantity: 2 };
-  const mod = await import('../../legacy/functions/api/erp/stock/movement.js');
+  const mod = await import('./functions/api/erp/stock/movement.js');
   const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ listingId: 'L2', type: 'OUT', quantity: 3 }), headers: { 'Content-Type': 'application/json' } });
   const res = await mod.onRequest({ request: req, env: { TCG_D1: db } });
   assert.equal(res.status, 409);
@@ -154,7 +154,7 @@ test('stock movement OUT with insufficient stock returns 409', async () => {
 test('snapshot creates snapshot record with current listing quantity', async () => {
   const db = new MockDB();
   db.listing['L3'] = { id: 'L3', quantity: 7 };
-  const mod = await import('../../legacy/functions/api/erp/stock/snapshot.js');
+  const mod = await import('./functions/api/erp/stock/snapshot.js');
   const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ listingId: 'L3' }), headers: { 'Content-Type': 'application/json' } });
   const res = await mod.onRequest({ request: req, env: { TCG_D1: db } });
   const body = await res.json();
@@ -168,7 +168,7 @@ test('snapshot creates snapshot record with current listing quantity', async () 
 test('transfer inserts transfer movement without altering listing quantity', async () => {
   const db = new MockDB();
   db.listing['L4'] = { id: 'L4', quantity: 20 };
-  const mod = await import('../../legacy/functions/api/erp/stock/transfer.js');
+  const mod = await import('./functions/api/erp/stock/transfer.js');
   const req = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ listingId: 'L4', fromWarehouseId: 'W1', toWarehouseId: 'W2', quantity: 5 }), headers: { 'Content-Type': 'application/json' } });
   const res = await mod.onRequest({ request: req, env: { TCG_D1: db } });
   const body = await res.json();
@@ -180,9 +180,9 @@ test('transfer inserts transfer movement without altering listing quantity', asy
 test('reservations create, commit and release flows', async () => {
   const db = new MockDB();
   db.listing['L5'] = { id: 'L5', quantity: 10 };
-  const resIndex = await import('../../legacy/functions/api/erp/reservations/index.js');
-  const resCommit = await import('../../legacy/functions/api/erp/reservations/[id]/commit.js');
-  const resRelease = await import('../../legacy/functions/api/erp/reservations/[id]/release.js');
+  const resIndex = await import('./functions/api/erp/reservations/index.js');
+  const resCommit = await import('./functions/api/erp/reservations/[id]/commit.js');
+  const resRelease = await import('./functions/api/erp/reservations/[id]/release.js');
 
   // create reservation
   const createReq = new Request('http://localhost', { method: 'POST', body: JSON.stringify({ listingId: 'L5', quantity: 3 }), headers: { 'Content-Type': 'application/json' } });

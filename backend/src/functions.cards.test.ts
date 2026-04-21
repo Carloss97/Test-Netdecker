@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const searchModule = await import('../../legacy/functions/api/cards/search.js');
-const byIdModule = await import('../../legacy/functions/api/cards/[id].js');
-const editionModule = await import('../../legacy/functions/api/cards/edition/[editionId].js');
-const tcgModule = await import('../../legacy/functions/api/cards/tcg/[tcgId].js');
+const searchModule = await import('./functions/api/cards/search.js');
+const byIdModule = await import('./functions/api/cards/[id].js');
+const editionModule = await import('./functions/api/cards/edition/[editionId].js');
+const tcgModule = await import('./functions/api/cards/tcg/[tcgId].js');
 
 const searchHandler = searchModule.onRequest || searchModule.default?.onRequest || searchModule.default || searchModule;
 const byIdHandler = byIdModule.onRequest || byIdModule.default?.onRequest || byIdModule.default || byIdModule;

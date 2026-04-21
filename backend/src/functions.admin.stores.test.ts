@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 // import module dynamically and support different export shapes (named or default)
-const storesModule = await import('../../legacy/functions/api/admin/stores.js');
+const storesModule = await import('./functions/api/admin/stores.js');
 const onRequest = storesModule.onRequest || storesModule.default?.onRequest || storesModule.default || storesModule;
 
 // Minimal D1 mock used for functions unit tests. Implements prepare().bind().all()/run()
