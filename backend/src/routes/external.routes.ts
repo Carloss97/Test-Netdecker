@@ -161,6 +161,50 @@ router.get('/ygoprodeck/card-sets', async (req: Request, res: Response) => {
 });
 
 /**
+ * Proxy endpoints for YGOPRODeck compatibility (some callers expect PHP-style endpoints)
+ * GET /api/external/ygopro/cardsets.php
+ */
+router.get('/ygopro/cardsets.php', async (req: Request, res: Response) => {
+  try {
+    const target = 'https://db.ygoprodeck.com/api/v7/cardsets.php';
+    if (typeof globalThis.fetch !== 'function') {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(501).json({ success: false, error: 'Server fetch not available in runtime' });
+      return;
+    }
+    const r = await globalThis.fetch(target);
+    const txt = await r.text();
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'application/json');
+    res.status(r.status).send(txt);
+  } catch (err) {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ success: false, error: String(err) });
+  }
+});
+
+/**
+ * Proxy GET /api/external/ygopro/cardinfo.php?{params}
+ */
+router.get('/ygopro/cardinfo.php', async (req: Request, res: Response) => {
+  try {
+    const params = new URLSearchParams(req.query as Record<string, string>);
+    const target = `https://db.ygoprodeck.com/api/v7/cardinfo.php?${params.toString()}`;
+    if (typeof globalThis.fetch !== 'function') {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(501).json({ success: false, error: 'Server fetch not available in runtime' });
+      return;
+    }
+    const r = await globalThis.fetch(target);
+    const txt = await r.text();
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'application/json');
+    res.status(r.status).send(txt);
+  } catch (err) {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ success: false, error: String(err) });
+  }
+});
+
+/**
  * GET /api/external/optcgapi/cards
  * Browse all One Piece cards sourced from TCGCSV.
  * Optional query params: limit (default: 100), offset (default: 0)
