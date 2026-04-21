@@ -15,14 +15,11 @@ if (fs.existsSync(envPath)) {
 	dotenv.config();
 }
 
-// If DATABASE_URL is missing, fall back to local SQLite (Pages D1 / local dev).
-// Prefer SQLite by default for Cloudflare Pages D1 compatibility and simpler local dev.
+// If DATABASE_URL is missing, warn the developer. Postgres is the canonical
+// database for this project; SQLite is only used when explicitly enabled
+// via `USE_SQLITE=true` or by providing a file-based `DATABASE_URL`.
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
-	const defaultSqlite = 'file:./dev.sqlite';
-	process.env.DATABASE_URL = defaultSqlite;
-	// Mark explicit preference for SQLite client loading
-	process.env.USE_SQLITE = 'true';
-	console.log(`[DB] No DATABASE_URL found; falling back to local SQLite at ${defaultSqlite} and enabling USE_SQLITE=true`);
+	console.warn('[DB] No DATABASE_URL found; Postgres is the default. Set `DATABASE_URL` to a Postgres DSN or set `USE_SQLITE=true` to opt into SQLite.');
 } else {
 	console.log('[DB] Using provided DATABASE_URL (redacted)');
 }
