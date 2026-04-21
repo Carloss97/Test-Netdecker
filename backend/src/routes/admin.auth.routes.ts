@@ -17,7 +17,8 @@ router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, error: { message: 'email and password required' } });
 
-  const result = await AdminAuthService.authenticate(String(email), String(password));
+  const storeId = req.body?.storeId ? String(req.body.storeId) : undefined;
+  const result = await AdminAuthService.authenticate(String(email), String(password), storeId);
   // Set httpOnly cookie with session token. For cross-origin XHR/fetch the
   // cookie must be `SameSite=None` and `Secure`; in development we keep
   // `lax` to avoid Secure requirement on localhost.
