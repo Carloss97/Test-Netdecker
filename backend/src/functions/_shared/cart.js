@@ -1,2 +1,1 @@
-export * from '../../../../legacy/functions/_shared/cart.js';
-export { default } from '../../../../legacy/functions/_shared/cart.js';
+module.exports = require('../../functions_disabled/_shared/cart.js');

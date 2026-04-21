@@ -1,2 +1,1 @@
-export * from '../../../../legacy/functions/_shared/adminAuth.js';
-export { default } from '../../../../legacy/functions/_shared/adminAuth.js';
+module.exports = require('../../functions_disabled/_shared/adminAuth.js');

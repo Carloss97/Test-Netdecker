@@ -1,2 +1,1 @@
-export * from '../../../../legacy/functions/_shared/tenant.js';
-export { default } from '../../../../legacy/functions/_shared/tenant.js';
+module.exports = require('../../functions_disabled/_shared/tenant.js');

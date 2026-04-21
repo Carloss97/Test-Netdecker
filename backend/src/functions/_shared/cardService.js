@@ -1,2 +1,1 @@
-export * from '../../../../legacy/functions/_shared/cardService.js';
-export { default } from '../../../../legacy/functions/_shared/cardService.js';
+module.exports = require('../../functions_disabled/_shared/cardService.js');

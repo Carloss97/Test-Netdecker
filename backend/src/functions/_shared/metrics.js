@@ -1,2 +1,1 @@
-export * from '../../../../legacy/functions/_shared/metrics.js';
-export { default } from '../../../../legacy/functions/_shared/metrics.js';
+module.exports = require('../../functions_disabled/_shared/metrics.js');
