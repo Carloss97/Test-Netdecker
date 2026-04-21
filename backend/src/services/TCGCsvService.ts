@@ -257,16 +257,31 @@ export class TCGCsvService {
     while (true) {
       try {
         await this.throttle();
-        const { data } = await axios.get<T>(url, { timeout: REQUEST_TIMEOUT });
+        const defaultAgent = process.env.TCGCSV_USER_AGENT || 'Mozilla/5.0 (compatible; TCG-ERP/1.0)';
+        const headers: Record<string, string> = {
+          Accept: 'application/json, text/javascript, */*; q=0.01',
+          'User-Agent': defaultAgent,
+          Referer: getTcgCsvBase(),
+        };
+        const { data } = await axios.get<T>(url, { timeout: REQUEST_TIMEOUT, headers });
         return data;
       } catch (err) {
-        const status = (err as { response?: { status?: number; headers?: Record<string, string> } }).response?.status;
-        const headers = (err as { response?: { headers?: Record<string, string> } }).response?.headers;
+        const response = (err as { response?: { status?: number; headers?: Record<string, string>; data?: unknown } }).response;
+        const status = response?.status;
+        const headers = response?.headers;
+        const respData = response?.data;
         const retryAfterHeader = headers?.['retry-after'];
         const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN;
 
         const shouldRetry = status === 429 || status === 503 || status === 504;
         if (!shouldRetry || attempt >= MAX_RETRIES) {
+          // Provide richer debug logs for non-retryable failures (especially 401)
+          try {
+            const snippet = typeof respData === 'string' ? (respData as string).slice(0, 2000) : JSON.stringify(respData || {}).slice(0, 2000);
+            console.error(`[TCGCsvService] request failed for ${url} status=${status} headers=${JSON.stringify(headers || {})} bodySnippet=${snippet}`);
+          } catch (logErr) {
+            console.error('[TCGCsvService] failed to stringify error response', logErr);
+          }
           throw err;
         }
 
