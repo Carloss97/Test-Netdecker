@@ -2,6 +2,10 @@
 
 Plataforma integral para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, One Piece) con precios dinámicos, inventario masivo, integración de APIs nativas y panel de administración completo.
 
+## Estado Actual
+
+La base activa del proyecto hoy corre con frontend en Vercel, backend en Render, caché en Upstash y base de datos PostgreSQL en Neon. El material histórico de despliegues, migraciones y workflows antiguos quedó resguardado en carpetas legacy para revisión o recuperación rápida.
+
 ## Estructura del Proyecto
 
 ```
