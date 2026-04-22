@@ -4,7 +4,7 @@
     "module": "ES2022",
     "noImplicitAny": false,
     "lib": ["ES2020"],
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "strict": false,
     "esModuleInterop": true,
@@ -18,7 +18,7 @@
     "moduleResolution": "bundler",
     "types": ["node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test-api-prices.ts"],
   "exclude": [
     "node_modules",
     "dist",

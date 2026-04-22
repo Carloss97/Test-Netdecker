@@ -45,14 +45,40 @@ router.get('/sets', async (req: Request, res: Response) => {
   if (!tcg) throw new ValidationError('tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ');
 
   const sets = await CardDatabaseService.listSets(tcg);
-  const enrichedSets = await Promise.all(
-    sets.map(async (set) => ({
-      ...set,
-      totalCards: typeof set.totalCards === 'number' && set.totalCards > 0
-        ? set.totalCards
-        : await CardDatabaseService.getSetCardCount(tcg, set.code),
-    }))
+  // Keep this endpoint fast and memory-safe by default.
+  // Computing missing card counts can trigger one products request per set (very expensive for large TCGs).
+  const includeCardCounts = String(req.query.includeCardCounts || '').toLowerCase() === 'true';
+  if (!includeCardCounts) {
+    res.json({ success: true, tcg, total: sets.length, sets });
+    return;
+  }
+
+  const enrichedSets: Array<typeof sets[number]> = [];
+  const maxCountLookups = Math.min(
+    Number.parseInt(String(req.query.maxCountLookups || '40'), 10) || 40,
+    120,
   );
+  let lookupsUsed = 0;
+
+  for (const set of sets) {
+    if (typeof set.totalCards === 'number' && set.totalCards > 0) {
+      enrichedSets.push(set);
+      continue;
+    }
+
+    if (lookupsUsed >= maxCountLookups) {
+      enrichedSets.push(set);
+      continue;
+    }
+
+    try {
+      lookupsUsed += 1;
+      const count = await CardDatabaseService.getSetCardCount(tcg, set.code);
+      enrichedSets.push({ ...set, totalCards: count ?? undefined });
+    } catch {
+      enrichedSets.push(set);
+    }
+  }
 
   res.json({ success: true, tcg, total: enrichedSets.length, sets: enrichedSets });
 });

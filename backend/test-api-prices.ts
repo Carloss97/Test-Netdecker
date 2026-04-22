@@ -3,7 +3,7 @@
  * Run with: npm exec ts-node test-api-prices.ts
  */
 
-import { CardDatabaseService } from './src/services/CardDatabaseService.ts';
+import { CardDatabaseService } from './src/services/CardDatabaseService';
 
 async function testPrices() {
   console.log('🔍 Testing API prices...\n');
