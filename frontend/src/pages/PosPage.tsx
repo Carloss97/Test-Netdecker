@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import './PosPage.css'
-import apiClient from '../services/api'
+import apiClient, { buildApiUrl } from '../services/api'
 import { getListingsByCard } from '../services/catalog'
 import * as erp from '../services/erp'
 import StripeCheckout from '../components/StripeCheckout'
@@ -49,29 +49,16 @@ export function PosPage(): JSX.Element {
   const [listings, setListings] = useState<Listing[]>([])
   const [message, setMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [showScanner, setShowScanner] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showCardPayment, setShowCardPayment] = useState(false)
   const [showMpPayment, setShowMpPayment] = useState(false)
   const [offlineQueueEntries, setOfflineQueueEntries] = useState<Array<{ createdAt: string; cart: CartItem[] }>>([])
 
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const scannerInputRef = useRef<HTMLInputElement | null>(null)
-  const detectorRef = useRef<any>(null)
-  const scanIntervalRef = useRef<number | null>(null)
-  const lastScannedRef = useRef<string | null>(null)
-
   const [newListingForm, setNewListingForm] = useState<NewListingForm>({ gtin: '', sku: '', referencePrice: 0, marginMultiplier: 1.0, quantity: 1, editionCode: '', cardId: '', currency: 'CLP' })
-  const [scannerMessage, setScannerMessage] = useState('')
 
   const MpLazy = lazy(() => import('../components/MercadoPagoCheckout'))
 
   const total = cart.reduce((s, it) => s + it.subtotal, 0)
-
-  function addDummy() {
-    const item: CartItem = { id: `${Date.now()}`, name: 'Sample', price: 100, qty: 1, subtotal: 100 }
-    setCart((c) => [...c, item])
-  }
 
   function addListingToCart(listing: Listing, label?: string) {
     setCart((s) => {
@@ -92,7 +79,7 @@ export function PosPage(): JSX.Element {
     const params = new URLSearchParams()
     if (q) params.set('gtin', q)
     if (id) params.set('id', id)
-    window.open(`/api/listings/label?${params.toString()}`, '_blank')
+    window.open(buildApiUrl(`/listings/label?${params.toString()}`), '_blank')
   }
 
   function removeItem(index: number) {
@@ -110,7 +97,7 @@ export function PosPage(): JSX.Element {
     }
     const ids = cart.map((it) => it.id).join(',')
     const qtys = cart.map((it) => it.qty).join(',')
-    const url = `/api/listings/labels-sheet?ids=${encodeURIComponent(ids)}&qtys=${encodeURIComponent(qtys)}`
+    const url = buildApiUrl(`/listings/labels-sheet?ids=${encodeURIComponent(ids)}&qtys=${encodeURIComponent(qtys)}`)
     window.open(url, '_blank')
   }
 
@@ -154,87 +141,6 @@ export function PosPage(): JSX.Element {
     }
   }
 
-  async function handleScannedCode(code: string) {
-    if (!code) return
-    const normalized = String(code).trim()
-    if (!normalized) return
-    if (lastScannedRef.current === normalized) return
-    lastScannedRef.current = normalized
-    setScannerMessage(`Escaneado: ${normalized}`)
-    try {
-      const { data } = await apiClient.get('/listings/gtin', { params: { gtin: normalized } })
-      if (data && data.success && data.listing) {
-        const l = data.listing
-        const listingObj: Listing = { id: l.listingId || l.id, finalPrice: Number(l.finalPrice || 0), quantity: Number(l.quantity || 0), condition: l.condition || 'NM', rarity: l.rarity || '' }
-        addListingToCart(listingObj, l.sku || l.cardName || `GTIN ${normalized}`)
-        setScannerMessage('Añadido al carrito')
-        return
-      }
-    } catch (err: any) {
-      if (err?.response && err.response.status === 404) {
-        setNewListingForm((p) => ({ ...p, gtin: normalized }))
-        setShowCreateModal(true)
-        setScannerMessage('GTIN no encontrado — complete datos para crear listing')
-        return
-      }
-      console.error('lookup by GTIN failed', err)
-    }
-    setScannerMessage('No se encontró el GTIN')
-  }
-
-  async function stopCameraScan() {
-    try {
-      if (scanIntervalRef.current) {
-        window.clearInterval(scanIntervalRef.current)
-        scanIntervalRef.current = null
-      }
-      if (videoRef.current && videoRef.current.srcObject) {
-        const s = videoRef.current.srcObject as MediaStream
-        s.getTracks().forEach((t) => t.stop())
-        videoRef.current.srcObject = null
-      }
-      detectorRef.current = null
-      setScannerMessage('')
-    } catch (err) {
-      console.error('stopCameraScan error', err)
-    }
-  }
-
-  async function startCameraScan() {
-    setScannerMessage('Iniciando cámara...')
-    try {
-      if (!videoRef.current) return
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      videoRef.current.srcObject = stream
-      await videoRef.current.play()
-      try {
-        const formats = ['ean_13', 'ean_8', 'code_128', 'qr_code']
-        detectorRef.current = ('BarcodeDetector' in window) ? new (window as any).BarcodeDetector({ formats }) : null
-      } catch (_) {
-        detectorRef.current = null
-      }
-      if (detectorRef.current) {
-        setScannerMessage('Escaneando con cámara...')
-        scanIntervalRef.current = window.setInterval(async () => {
-          try {
-            const results = await detectorRef.current.detect(videoRef.current)
-            if (results && results.length) {
-              const code = results[0].rawValue || results[0].displayValue
-              if (code) await handleScannedCode(code)
-            }
-          } catch (err) {
-            // ignore detection errors
-          }
-        }, 350)
-      } else {
-        setScannerMessage('Detector no disponible en este navegador. Use la entrada de teclado.')
-      }
-    } catch (err) {
-      console.error('startCameraScan failed', err)
-      setScannerMessage('No se pudo acceder a la cámara')
-    }
-  }
-
   function loadOfflineQueue() {
     try {
       const raw = localStorage.getItem(OFFLINE_KEY)
@@ -274,30 +180,6 @@ export function PosPage(): JSX.Element {
     } catch (err) {
       console.error('processOfflineQueue error', err)
     }
-  }
-
-  async function processSingleEntry(index: number) {
-    try {
-      const entry = offlineQueueEntries[index]
-      if (!entry) return
-      const items = entry.cart.map((it) => ({ listingId: it.id, quantity: it.qty }))
-      await erp.posCheckout({ items, paymentMethod: 'CASH' })
-      const copy = [...offlineQueueEntries]
-      copy.splice(index, 1)
-      localStorage.setItem(OFFLINE_KEY, JSON.stringify(copy))
-      setOfflineQueueEntries(copy)
-      setMessage('Entrada procesada')
-    } catch (err) {
-      console.error('processSingleEntry error', err)
-      setMessage('No fue posible procesar la entrada')
-    }
-  }
-
-  function removeOfflineEntry(index: number) {
-    const copy = [...offlineQueueEntries]
-    copy.splice(index, 1)
-    localStorage.setItem(OFFLINE_KEY, JSON.stringify(copy))
-    setOfflineQueueEntries(copy)
   }
 
   useEffect(() => {
@@ -391,7 +273,6 @@ export function PosPage(): JSX.Element {
       <div className="pos-controls">
         <input aria-label="buscar" placeholder="Buscar por nombre de carta" value={query} onChange={(e) => setQuery(e.target.value)} />
         <button onClick={searchCards}>Buscar</button>
-        <button style={{ marginLeft: 8 }} onClick={() => setShowScanner(true)}>Escanear GTIN</button>
         <div style={{ marginLeft: 12 }}>
           <strong>Cola offline:</strong> {offlineQueueEntries.length}
           <button style={{ marginLeft: 8 }} onClick={processOfflineQueue} disabled={!offlineQueueEntries.length}>Procesar cola</button>

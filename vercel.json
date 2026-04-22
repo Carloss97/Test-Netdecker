@@ -1,8 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/external/ygopro/:path*", "destination": "/api/external/ygopro/:path*" },
-    { "source": "/api/external/:path*", "destination": "/api/external/:path*" },
-    { "source": "/api/:path*", "destination": "https://api-erp.krumm.cl/api/:path*" },
     { "source": "/assets/:path*", "destination": "/frontend/dist/assets/:path*" },
     { "source": "/favicon.ico", "destination": "/frontend/dist/favicon.ico" },
     { "source": "/:path*", "destination": "/frontend/dist/index.html" }

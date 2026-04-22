@@ -1,3 +1,5 @@
+import { buildApiUrl } from './api';
+
 export type ColumnMapping = { [expectedField: string]: string };
 
 function splitCsvHeader(line: string): string[] {
@@ -89,12 +91,12 @@ async function postMultipart(url: string, file: File, apiKey?: string) {
 
 export async function validateWithMapping(file: File, mapping: ColumnMapping, apiKey?: string) {
   const transformed = await transformFileHeaders(file, mapping);
-  return postMultipart('/api/inventory/import-csv/validate', transformed, apiKey);
+  return postMultipart(buildApiUrl('/inventory/import-csv/validate'), transformed, apiKey);
 }
 
 export async function importWithMapping(file: File, mapping: ColumnMapping, apiKey?: string) {
   const transformed = await transformFileHeaders(file, mapping);
-  return postMultipart('/api/inventory/import-csv', transformed, apiKey);
+  return postMultipart(buildApiUrl('/inventory/import-csv'), transformed, apiKey);
 }
 
 export async function precheckImport(file: File, mapping: ColumnMapping | undefined, apiKey?: string) {
@@ -105,7 +107,7 @@ export async function precheckImport(file: File, mapping: ColumnMapping | undefi
   fd.append('precheck', 'true');
   const headers: Record<string, string> = {};
   if (apiKey) headers['x-api-key'] = apiKey;
-  const res = await fetch('/api/inventory/import-csv', { method: 'POST', headers, body: fd });
+  const res = await fetch(buildApiUrl('/inventory/import-csv'), { method: 'POST', headers, body: fd });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || res.statusText);
@@ -117,7 +119,7 @@ export async function importWithMappingAutoCheck(file: File, mapping: ColumnMapp
   // run precheck automatically and then upload (server also auto-chunks)
   const pre = await precheckImport(file, mapping, apiKey).catch(() => null);
   const transformed = mapping ? await transformFileHeaders(file, mapping) : file;
-  const result = await postMultipart('/api/inventory/import-csv', transformed, apiKey);
+  const result = await postMultipart(buildApiUrl('/inventory/import-csv'), transformed, apiKey);
   return { precheck: pre, result };
 }
 
@@ -143,11 +145,11 @@ async function postMultipartWithMapping(url: string, file: File, mapping: Column
 }
 
 export async function validateWithMappingServer(file: File, mapping: ColumnMapping | undefined, apiKey?: string) {
-  return postMultipartWithMapping('/api/inventory/import-with-mapping', file, mapping, apiKey + '' );
+  return postMultipartWithMapping(buildApiUrl('/inventory/import-with-mapping'), file, mapping, apiKey + '' );
 }
 
 export async function importWithMappingServer(file: File, mapping: ColumnMapping | undefined, apiKey?: string) {
-  return postMultipartWithMapping('/api/inventory/import-with-mapping', file, mapping, apiKey + '' );
+  return postMultipartWithMapping(buildApiUrl('/inventory/import-with-mapping'), file, mapping, apiKey + '' );
 }
 
 export default { transformFileHeaders, validateWithMapping, importWithMapping };

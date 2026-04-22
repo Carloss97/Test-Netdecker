@@ -1,11 +1,12 @@
 import axios from 'axios';
 import type { ExternalCard, ExternalEdition } from '../types';
+import { buildApiUrl } from './api';
 
 // Prefer an internal proxy when no explicit external base is configured.
 // This allows the site to route YGOPRO requests through our in-repo functions
 // which can translate set codes (e.g. RA05) to the human-friendly names
 // expected by the remote API and avoid 400 responses from the remote server.
-const YGOPRO_BASE = (import.meta.env.VITE_YGOPRO_BASE as string) || '/api/external/ygopro';
+const YGOPRO_BASE = (import.meta.env.VITE_YGOPRO_BASE as string) || buildApiUrl('/external/ygopro');
 
 function extractYgoPrice(priceEntry: any): number | undefined {
   const prices = [priceEntry.tcgplayer_price, priceEntry.cardmarket_price, priceEntry.coolstuffinc_price, priceEntry.ebay_price, priceEntry.amazon_price];

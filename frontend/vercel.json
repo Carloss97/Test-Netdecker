@@ -1,8 +1,5 @@
 {
   "rewrites": [
-    { "source": "^/api/external/ygopro/(.*)$", "destination": "/api/external/ygopro/$1" },
-    { "source": "^/api/external/(.*)$", "destination": "/api/external/$1" },
-    { "source": "/api/(.*)", "destination": "https://api-erp.krumm.cl/api/$1" },
     { "source": "(/.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true

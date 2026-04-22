@@ -37,6 +37,17 @@ try {
 } catch (_) {
   API_BASE_URL = '/api';
 }
+
+export function buildApiUrl(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedBase = API_BASE_URL.replace(/\/+$/, '');
+  return `${normalizedBase}${normalizedPath}`;
+}
+
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
+
 const RETRYABLE_METHODS = new Set(['get', 'head', 'options']);
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 350;

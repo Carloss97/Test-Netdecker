@@ -1,6 +1,6 @@
 # TCG Singles Platform
 
-Plataforma integral para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, One Piece) con precios dinámicos, inventario masivo, integración de APIs nativas y panel de administración completo.
+Plataforma integral para la venta de cartas singles (Magic, Pokémon, Yu-Gi-Oh, One Piece) con flujo de datos TCGCSV-first, precios dinámicos, inventario masivo y panel de administración completo.
 
 ## Estado Actual
 
@@ -48,14 +48,15 @@ La base activa del proyecto hoy corre con frontend en Vercel, backend en Render,
 - Filtrado por TCG (Magic, Pokémon, Yu-Gi-Oh, One Piece)
 - Separación por edición y código de carta
 - Visualización de stock disponible
-- Importación masiva de sets/cartas desde APIs externas
+- Importación masiva de sets/cartas con TCGCSV como fuente principal y conectores secundarios por TCG
 
 ### 💲 Precios Dinámicos
-- Sincronización con APIs nativas por TCG:
-  - **Magic**: Scryfall (USD)
-  - **Pokémon**: Pokémon TCG API (USD)
-  - **Yu-Gi-Oh**: YGOPRODeck (CardMarket, TCGPlayer, eBay, Amazon)
-  - **One Piece**: OPTCGAPI (USD market/inventory)
+- Sincronización TCGCSV-first para catálogo y precios de referencia
+- Fallback por proveedor cuando una fuente no responde:
+  - **Magic**: Scryfall
+  - **Pokémon**: Pokémon TCG API
+  - **Yu-Gi-Oh**: YGOPRODeck
+  - **One Piece**: OPTCGAPI
 - Conversión automática a CLP (tipo de cambio actualizado)
 - Margen configurable y control de volatilidad
 - Historial de cambios de precio y auditoría
@@ -89,6 +90,7 @@ La base activa del proyecto hoy corre con frontend en Vercel, backend en Render,
   - Crear listings: activa/desactiva creación de inventario
   - Bootstrap catálogo: carga masiva inicial
   - Sync sets nuevos: detecta e importa sets nuevos
+- Prioridad de fuentes: TCGCSV primero, proveedores nativos como respaldo
 
 ### Flujos recomendados
 1. Alta de set nuevo: dry run → sync sets nuevos → revisar → ejecutar real
@@ -98,7 +100,8 @@ La base activa del proyecto hoy corre con frontend en Vercel, backend en Render,
 
 ### One Piece: integración completa
 - Soporta search, import sets, sync automático, precios USD
-- Fuente: https://www.optcgapi.com/
+- Flujo principal: TCGCSV
+- Respaldo: https://www.optcgapi.com/
 
 ### Runbook rápido
 - Día 0: bootstrap catálogo, revisar cobertura

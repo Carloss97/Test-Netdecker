@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/adminAuth';
 import apiClient from '../services/api';
@@ -13,7 +13,7 @@ export default function AdminLogin() {
 
   // Intentionally do not fetch stores here (admin list is protected). Allow manual storeId input.
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);

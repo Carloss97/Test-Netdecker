@@ -5,17 +5,13 @@
   "description": "Monorepo runner scripts for backend and frontend",
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "start:dev": "bash scripts/start-dev.sh",
+    "start:dev": "npm run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "build": "node scripts/build.js",
     "start": "node scripts/start-wrapper.js",
-    "deploy:pages": "npm run build && npx wrangler pages deploy frontend/dist --project-name tcg-erp --branch main",
-    "deploy:wrangler": "npm run build && npx wrangler deploy",
     "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check",
     "map:ra5": "node scripts/map-ra5.js",
-    "verify:pages": "node scripts/check-pages-project.js",
-    "test:pages-smoke": "node scripts/pages-smoke-wrapper.js",
     "scan:sql": "node scripts/scan_functions_sql.js",
     "postinstall": "node scripts/postinstall.js"
   },

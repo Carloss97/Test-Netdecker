@@ -1,6 +1,5 @@
 import type { ExternalCard } from '../types';
 import * as tcgcsvClient from './tcgcsv';
-const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
 import * as scryfallClient from './scryfall';
 import * as pokemonClient from './pokemontcg';
 import * as ygoproClient from './ygopro';
@@ -47,10 +46,8 @@ function genId(prefix = 'local'): string {
 async function resolveCard(tcg: string, cardId: string): Promise<ExternalCard | null> {
   // Try TCGCSV first, then fallbacks per tcg
   try {
-    if (ALLOW_DIRECT_TCGCSV) {
-      const c = await tcgcsvClient.getCardById(tcg as any, cardId);
-      if (c) return c;
-    }
+    const c = await tcgcsvClient.getCardById(tcg as any, cardId);
+    if (c) return c;
   } catch (_) {}
 
   try {
@@ -139,23 +136,24 @@ export async function importSearchLocal(tcg: string, query: string, options: Imp
   // Search via TCGCSV primary, then fallbacks if needed
   let cards: ExternalCard[] = [];
   try {
-    if (ALLOW_DIRECT_TCGCSV) cards = await tcgcsvClient.searchCards(tcg as any, query, 100);
+    const tcgcsvCards = await tcgcsvClient.searchCards(tcg as any, query, 100);
+    cards = Array.isArray(tcgcsvCards) ? tcgcsvCards : [];
   } catch (_) { /* ignore */ }
 
   if (!cards || cards.length === 0) {
     try {
       switch (tcg) {
         case 'MAGIC':
-          cards = await scryfallClient.searchCards(query, 1, 100);
+          cards = (await scryfallClient.searchCards(query, 1, 100)) ?? [];
           break;
         case 'POKEMON':
-          cards = await pokemonClient.searchCards(query, options.setCode, 100);
+          cards = (await pokemonClient.searchCards(query, options.setCode, 100)) ?? [];
           break;
         case 'YUGIOH':
-          cards = await ygoproClient.searchCards(query, options.setCode);
+          cards = (await ygoproClient.searchCards(query, options.setCode)) ?? [];
           break;
         case 'ONE_PIECE':
-          cards = await optcgClient.searchCards(query);
+          cards = (await optcgClient.searchCards(query)) ?? [];
           break;
         default:
           cards = [];
@@ -186,7 +184,8 @@ export async function importSearchLocal(tcg: string, query: string, options: Imp
 export async function importSetLocal(tcg: string, setCode: string, options: ImportOptions = {}): Promise<BulkImportResult> {
   let cards: ExternalCard[] = [];
   try {
-    if (ALLOW_DIRECT_TCGCSV) cards = await tcgcsvClient.getSetCards(tcg as any, setCode);
+    const tcgcsvCards = await tcgcsvClient.getSetCards(tcg as any, setCode);
+    cards = Array.isArray(tcgcsvCards) ? tcgcsvCards : [];
   } catch (_) { cards = []; }
 
   if (!cards || cards.length === 0) {
@@ -194,16 +193,16 @@ export async function importSetLocal(tcg: string, setCode: string, options: Impo
     try {
       switch (tcg) {
         case 'MAGIC':
-          cards = await scryfallClient.getSetCards(setCode);
+          cards = (await scryfallClient.getSetCards(setCode)) ?? [];
           break;
         case 'POKEMON':
-          cards = await pokemonClient.getSetCards(setCode);
+          cards = (await pokemonClient.getSetCards(setCode)) ?? [];
           break;
         case 'YUGIOH':
-          cards = await ygoproClient.getSetCards(setCode);
+          cards = (await ygoproClient.getSetCards(setCode)) ?? [];
           break;
         case 'ONE_PIECE':
-          cards = await optcgClient.getSetCards(setCode);
+          cards = (await optcgClient.getSetCards(setCode)) ?? [];
           break;
         default:
           cards = [];

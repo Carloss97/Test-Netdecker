@@ -1,4 +1,5 @@
 import apiClient from './api';
+import { buildApiUrl } from './api';
 import type { EditionWithCounts, EditionInventory, Listing } from '../types';
 import * as tcgcsvClient from './tcgcsv';
 const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
@@ -461,7 +462,7 @@ export async function importInventoryCsv(file: File, importedBy: string = 'admin
     pre.append('file', file);
     pre.append('importedBy', importedBy);
     pre.append('precheck', 'true');
-    const preResp = await fetch('/api/inventory/import-csv', { method: 'POST', body: pre });
+    const preResp = await fetch(buildApiUrl('/inventory/import-csv'), { method: 'POST', body: pre });
     if (preResp && preResp.ok) {
       try { const prejson = await preResp.json(); console.info('Import precheck', prejson); } catch (_) {}
     }
