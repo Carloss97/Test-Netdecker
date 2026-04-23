@@ -690,11 +690,11 @@ Sin rate limiting, adversario puede spamear endpoints (login, import, search) ca
    ```
 
 **Criterios de Aceptación**
-- [ ] RateLimitService implementado
-- [ ] rateLimitByIp middleware funcional
-- [ ] Aplicado a: auth (5/min), search (100/min), admin updates (50/min)
-- [ ] Headers X-RateLimit-* devueltos
-- [ ] Tests: exceed limit → 429 TooManyRequests
+- [x] RateLimitService implementado
+- [x] rateLimitByIp middleware funcional
+- [x] Aplicado a: auth (5/min), search (100/min), admin updates (50/min)
+- [x] Headers X-RateLimit-* devueltos
+- [x] Tests: exceed limit → 429 TooManyRequests
 
 **Estimado**: 2-3 horas
 

@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import AdminAuthService from '../services/AdminAuthService.js';
 import requireApiKey from '../middleware/requireApiKey.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.post('/create', requireApiKey, async (req: Request, res: Response) => {
   res.json({ success: true, data: result });
 });
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', rateLimitByIp(5, 60000), async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, error: { message: 'email and password required' } });
 

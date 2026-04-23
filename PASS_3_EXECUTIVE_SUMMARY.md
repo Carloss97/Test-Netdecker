@@ -70,7 +70,7 @@ Archivo: **frontend/src/components/storefront/StorefrontComponents.tsx**
 | **#P3-005** | **API Key Security** | Hash + auto-rotation cada 90 días | 3-4 h | 🟠 Credential Theft |
 | **#P3-006** | **Webhook Retries** | Dead Letter Queue + exponential backoff | 5-6 h | 🟠 Payment Loss |
 | **#P3-007** | **MP Webhook Sig** | Validar firma de MercadoPago | 1-2 h | 🟡 Webhook Spoofing |
-| **#P3-008** | **Rate Limiting** | Per-endpoint, per-IP | 2-3 h | 🟡 DoS |
+| **#P3-008** | **Rate Limiting** | Per-endpoint, per-IP | 2-3 h | ✅ Done |
 
 **Impacto**: Asegura pagos, credenciales, y disponibilidad.
 
@@ -186,7 +186,7 @@ TOTAL:                 57-75 horas (8-10 semanas)
 - **Acción**: Webhook queue + MP sig verification + daily reconciliation
 
 ### Otros (Moderado)
-- Rate limiting: None
+- Rate limiting: Implemented on login, search, import, and admin mutation endpoints
 - Env validation: None
 - Cash reconciliation: None
 - Test coverage: ~30% para routes, ~20% para payments

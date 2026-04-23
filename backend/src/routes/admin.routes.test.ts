@@ -11,9 +11,10 @@ import adminRoutes from './admin.routes.js';
 import prisma from '../utils/db.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
+import { RateLimitService } from '../services/RateLimitService.js';
 
 function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders?: Record<string,string>) {
-  return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+  return new Promise<{ status: number; body: unknown; headers: Record<string, string | string[] | undefined> }>((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address() as AddressInfo;
@@ -29,9 +30,9 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown,
           server.close();
           const raw = Buffer.concat(chunks).toString('utf8');
           try {
-            resolve({ status: res.statusCode || 0, body: JSON.parse(raw) });
+            resolve({ status: res.statusCode || 0, body: JSON.parse(raw), headers: res.headers });
           } catch {
-            resolve({ status: res.statusCode || 0, body: raw });
+            resolve({ status: res.statusCode || 0, body: raw, headers: res.headers });
           }
         });
       });
@@ -74,6 +75,8 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
   // Stub admin session lookup so requireAdmin middleware passes in tests
   const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
   (prisma.adminSession as any).findUnique = async (_args: any) => ({ token: 'faketoken', expiresAt: null, user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true } });
+  const originalCheckLimit = RateLimitService.checkLimit;
+  RateLimitService.checkLimit = (async () => ({ allowed: true, remaining: 49, resetAt: new Date(Date.now() + 60000), source: 'redis' })) as typeof RateLimitService.checkLimit;
 
   app.use('/api/admin', adminRoutes);
   app.use(buildErrorHandler());
@@ -88,6 +91,8 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
   r = await makeRequest(app, 'POST', '/api/admin/pricing-config', { importSetSyncPricesDefault: false }, { Authorization: 'Bearer faketoken' });
   assert.equal(r.status, 200);
   assert.equal((r.body as any).success, true);
+  assert.equal(r.headers['x-ratelimit-limit'], '50');
+  assert.equal(r.headers['x-ratelimit-remaining'], '49');
 
   // The runtime value should be updated
   assert.equal(isImportSetSyncPricesDefault(), false);
@@ -104,6 +109,7 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
 
   // Restore admin session stub
   (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+  RateLimitService.checkLimit = originalCheckLimit;
 
   // Reset runtime default
   setImportSetSyncPricesDefault(true);

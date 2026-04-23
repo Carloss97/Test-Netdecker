@@ -21,6 +21,7 @@ import webhooksRoutes from './admin.webhooks.routes.js';
 import requireAdmin, { requireAdminRole } from '../middleware/requireAdmin.js';
 import adminAudit from '../middleware/adminAudit.js';
 import requirePermission from '../middleware/requirePermission.js';
+import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
 
 const router = express.Router();
 
@@ -375,7 +376,7 @@ router.get('/tcgplayer-coverage', async (_req: Request, res: Response) => {
  * POST /api/admin/catalog/bootstrap
  * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE'|'DIGIMON'|'WEISS_SCHWARZ', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
  */
-router.post('/catalog/bootstrap', requireAdminRole('ADMIN'), requirePermission('run', 'catalog-bootstrap'), async (req: Request, res: Response) => {
+router.post('/catalog/bootstrap', requireAdminRole('ADMIN'), requirePermission('run', 'catalog-bootstrap'), rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
   const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
     ? (tcgRaw as typeof SUPPORTED_TCGS[number])
@@ -401,7 +402,7 @@ router.post('/catalog/bootstrap', requireAdminRole('ADMIN'), requirePermission('
  * POST /api/admin/catalog/sync
  * Sync only new or changed external sets into the local catalog.
  */
-router.post('/catalog/sync', requireAdminRole('ADMIN'), requirePermission('run', 'catalog-sync'), async (req: Request, res: Response) => {
+router.post('/catalog/sync', requireAdminRole('ADMIN'), requirePermission('run', 'catalog-sync'), rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
   const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
     ? (tcgRaw as typeof SUPPORTED_TCGS[number])
@@ -594,7 +595,7 @@ router.get('/pricing-config', async (_req: Request, res: Response) => {
  * POST /api/admin/pricing-config
  * Body: { defaultMarginMultiplier?: number, applyMarginToExisting?: boolean, exchangeRateMode?: 'api'|'manual', manualUsdToClp?: number }
  */
-router.post('/pricing-config', async (req: Request, res: Response) => {
+router.post('/pricing-config', rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
   const {
     defaultMarginMultiplier,
     applyMarginToExisting,
@@ -653,7 +654,7 @@ router.post('/pricing-config', async (req: Request, res: Response) => {
  * Preserves TCG records and exchange rates.
  * Body: { confirm: true } (safety check)
  */
-router.post('/catalog/reset', async (req: Request, res: Response) => {
+router.post('/catalog/reset', rateLimitByIp(20, 60000), async (req: Request, res: Response) => {
   if (req.body?.confirm !== true) {
     return res.status(400).json({
       success: false,

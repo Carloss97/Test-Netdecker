@@ -10,9 +10,10 @@ import 'express-async-errors';
 import externalRoutes from './external.routes.js';
 import { CardDatabaseService } from '../services/CardDatabaseService.js';
 import { ExternalImportService } from '../services/ExternalImportService.js';
+import { RateLimitService } from '../services/RateLimitService.js';
 
 function makeRequest(app: Express, method: string, path: string, body?: unknown) {
-  return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+  return new Promise<{ status: number; body: unknown; headers: Record<string, string | string[] | undefined> }>((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address() as AddressInfo;
@@ -28,9 +29,9 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown)
           server.close();
           const raw = Buffer.concat(chunks).toString('utf8');
           try {
-            resolve({ status: res.statusCode || 0, body: JSON.parse(raw) });
+            resolve({ status: res.statusCode || 0, body: JSON.parse(raw), headers: res.headers });
           } catch {
-            resolve({ status: res.statusCode || 0, body: raw });
+            resolve({ status: res.statusCode || 0, body: raw, headers: res.headers });
           }
         });
       });
@@ -59,28 +60,35 @@ function buildErrorHandler() {
 test('POST /api/external/import/set defaults createListing to true', async () => {
   const originalGetSetCards = CardDatabaseService.getSetCards;
   const originalImportSet = ExternalImportService.importSet;
+  const originalCheckLimit = RateLimitService.checkLimit;
+  try {
+    CardDatabaseService.getSetCards = async () => ([
+      { externalId: 'c1', source: 'tcgcsv', tcg: 'MAGIC', cardName: 'Card 1', editionCode: 'SET1', editionName: 'Set 1' },
+    ] as any);
 
-  CardDatabaseService.getSetCards = async () => ([
-    { externalId: 'c1', source: 'tcgcsv', tcg: 'MAGIC', cardName: 'Card 1', editionCode: 'SET1', editionName: 'Set 1' },
-  ] as any);
+    RateLimitService.checkLimit = (async () => ({ allowed: true, remaining: 99, resetAt: new Date(Date.now() + 60000), source: 'redis' })) as typeof RateLimitService.checkLimit;
 
-  let receivedOptions: any = null;
-  ExternalImportService.importSet = (async (_tcg: any, _setCode: string, options: any) => {
-    receivedOptions = options;
-    return { total: 1, created: 1, updated: 0, skipped: 0, errors: [], results: [] };
-  }) as typeof ExternalImportService.importSet;
+    let receivedOptions: any = null;
+    ExternalImportService.importSet = (async (_tcg: any, _setCode: string, options: any) => {
+      receivedOptions = options;
+      return { total: 1, created: 1, updated: 0, skipped: 0, errors: [], results: [] };
+    }) as typeof ExternalImportService.importSet;
 
-  const app = express();
-  app.use(express.json());
-  app.use('/api/external', externalRoutes);
-  app.use(buildErrorHandler());
+    const app = express();
+    app.use(express.json());
+    app.use('/api/external', externalRoutes);
+    app.use(buildErrorHandler());
 
-  const res = await makeRequest(app, 'POST', '/api/external/import/set', { tcg: 'MAGIC', setCode: 'SET1' });
+    const res = await makeRequest(app, 'POST', '/api/external/import/set', { tcg: 'MAGIC', setCode: 'SET1' });
 
-  assert.equal(res.status, 200);
-  assert.equal((res.body as any).success, true);
-  assert.equal(receivedOptions?.createListing, true);
-
-  CardDatabaseService.getSetCards = originalGetSetCards;
-  ExternalImportService.importSet = originalImportSet;
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal(receivedOptions?.createListing, true);
+    assert.equal(res.headers['x-ratelimit-limit'], '100');
+    assert.equal(res.headers['x-ratelimit-remaining'], '99');
+  } finally {
+    CardDatabaseService.getSetCards = originalGetSetCards;
+    ExternalImportService.importSet = originalImportSet;
+    RateLimitService.checkLimit = originalCheckLimit;
+  }
 });

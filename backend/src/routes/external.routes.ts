@@ -7,6 +7,7 @@ import { ExternalImportService } from '../services/ExternalImportService.js';
 import { isImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { CardCondition } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
+import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ function parseTCG(raw: unknown): TCGParam | null {
  * GET /api/external/search?tcg=MAGIC&query=Lightning+Bolt&setCode=...&page=1
  * Search cards in external database without importing them.
  */
-router.get('/search', async (req: Request, res: Response) => {
+router.get('/search', rateLimitByIp(100, 60000), async (req: Request, res: Response) => {
   const tcg = parseTCG(req.query.tcg);
   if (!tcg) throw new ValidationError('tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ');
 
@@ -101,7 +102,7 @@ router.get('/cards/:tcg/:cardId', async (req: Request, res: Response) => {
  * Import a single card from an external database into the local DB.
  * Body: { tcg, cardId, createListing?, referencePrice?, marginMultiplier?, quantity?, condition? }
  */
-router.post('/import/card', async (req: Request, res: Response) => {
+router.post('/import/card', rateLimitByIp(100, 60000), async (req: Request, res: Response) => {
   const tcg = parseTCG(req.body.tcg);
   if (!tcg) throw new ValidationError('tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ');
 
@@ -133,7 +134,7 @@ router.post('/import/card', async (req: Request, res: Response) => {
  * Search external DB and import matching cards.
  * Body: { tcg, query, setCode?, page?, createListing?, referencePrice?, marginMultiplier? }
  */
-router.post('/import/search', async (req: Request, res: Response) => {
+router.post('/import/search', rateLimitByIp(100, 60000), async (req: Request, res: Response) => {
   const tcg = parseTCG(req.body.tcg);
   if (!tcg) throw new ValidationError('tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ');
 
@@ -157,7 +158,7 @@ router.post('/import/search', async (req: Request, res: Response) => {
  * Import all cards from a set/edition from the external database.
  * Body: { tcg, setCode, createListing?, marginMultiplier? }
  */
-router.post('/import/set', async (req: Request, res: Response) => {
+router.post('/import/set', rateLimitByIp(100, 60000), async (req: Request, res: Response) => {
   const tcg = parseTCG(req.body.tcg);
   if (!tcg) throw new ValidationError('tcg must be one of: MAGIC, POKEMON, YUGIOH, ONE_PIECE, DIGIMON, WEISS_SCHWARZ');
 

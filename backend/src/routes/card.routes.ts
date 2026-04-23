@@ -2,6 +2,7 @@
 import express, { Request, Response } from 'express';
 import { CardService } from '../services/CardService.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
  * GET /api/cards/search?name=xxx or /api/cards/search?code=xxx
  * Search cards by name or by card code
  */
-router.get('/search', async (req: Request, res: Response) => {
+router.get('/search', rateLimitByIp(100, 60000), async (req: Request, res: Response) => {
   try {
     const { name, code, tcgId, limit } = req.query;
 

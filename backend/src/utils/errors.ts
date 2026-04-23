@@ -32,6 +32,13 @@ export class ConflictError extends ApplicationError {
   }
 }
 
+export class TooManyRequestsError extends ApplicationError {
+  constructor(message: string = 'Rate limit exceeded') {
+    super(429, message, 'TOO_MANY_REQUESTS');
+    this.name = 'TooManyRequestsError';
+  }
+}
+
 export class UnauthorizedError extends ApplicationError {
   constructor(message: string = 'Unauthorized') {
     super(401, message, 'UNAUTHORIZED');
