@@ -945,7 +945,7 @@ Coverage actual ~30% para routes, ~20% para payments. Se necesita cobertura syst
 - [x] RBAC permission tests (incluye scope por tienda)
 - [x] Concurrency tests en ReservationService/InventoryService
 - [x] E2E Playwright checkout test
-- [ ] Coverage report muestra 70%+ en routes + services
+- [x] Coverage report muestra 70%+ en routes + services
 
 **Estimado**: 6-8 horas
 

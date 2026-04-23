@@ -130,6 +130,7 @@ model Store {
   journalEntries JournalEntry[]
   invoices    Invoice[]
   cashSessions CashSession[]
+  cashDiscrepancyLogs CashDiscrepancyLog[]
   fiscalPeriods FiscalPeriod[]
 }
 
@@ -884,6 +885,8 @@ model CashSession {
   discrepancy  Float?
 
   status       POSSessionStatus @default(OPEN)
+
+  discrepancyLogs CashDiscrepancyLog[]
 
   createdAt    DateTime @default(now())
   closedAt     DateTime?

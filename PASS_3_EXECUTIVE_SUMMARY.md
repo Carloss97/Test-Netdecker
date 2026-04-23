@@ -80,7 +80,7 @@ Archivo: **frontend/src/components/storefront/StorefrontComponents.tsx**
 |---|-------|-------------|-------|--------|
 | **#P3-009** | **Env Validation** | Validar vars en boot con Zod | Done | ✅ Done |
 | **#P3-010** | **Payment Reconciliation** | Daily job comparando Stripe vs DB | Done | ✅ Done |
-| **#P3-011** | **Test Coverage 70%+** | Admin routes + concurrency tests + E2E | In Progress | 🟡 Regressions |
+| **#P3-011** | **Test Coverage 70%+** | Admin routes + concurrency tests + E2E | Done | ✅ Done |
 | **#P3-012** | **Cash Reconciliation** | POS session closing con discrepancia report | Done | ✅ Done |
 
 **Impacto**: Validación, auditoría, y confiabilidad de tests.

@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "predev": "npm run prisma:generate:safe || true",
     "dev:sqlite": "USE_SQLITE=true DATABASE_URL=\"file:./dev.sqlite\" tsx watch src/index.ts",
+    "prebuild": "npm run prisma:generate",
     "build": "tsc -p tsconfig.build.json && node scripts/copy-shared-functions.cjs",
     "start": "node dist/server.js",
     "prestart": "npm run prisma:generate:safe || true",
