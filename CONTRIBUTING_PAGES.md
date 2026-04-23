@@ -33,6 +33,19 @@ Required permissions by endpoint family:
 - `GET /api/admin/approvals/pending` -> `view:price-approval`
 - `POST /api/admin/approvals/:id/approve` -> `approve:price`
 - `POST /api/admin/approvals/:id/reject` -> `reject:price`
+- `GET /api/admin/audit` -> `view:audit`
+
+## Optimistic Locking Rules
+
+- `Reservation` and `OrderItem` use a `version` field for concurrency control.
+- Mutations that can race must update with version checks (`updateMany where id + version`) and throw `ConflictError` when the row was modified concurrently.
+- API clients must handle HTTP `409` as a recoverable conflict (reload cart/state and retry).
+
+## Audit Entity-Change Rules
+
+- For business mutations in `PriceService`, `ListingService`, and `OrderService`, call `AuditService.auditEntityChange(...)` with `oldValue`, `newValue`, and `operation`.
+- Use `GET /api/admin/audit?entityType=<type>&entityId=<id>` to inspect before/after change history.
+- `PriceHistory.changedBy` must reference a valid `AdminUser.id`; non-user/system updates should persist `changedBy` as `null`.
 
 ## Validation
 

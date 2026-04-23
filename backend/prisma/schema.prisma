@@ -277,13 +277,15 @@ model PriceHistory {
   reason         PriceUpdateReason
   percentChange  Float    // (newPrice - oldPrice) / oldPrice * 100
   
-  changedBy      String?  // User ID or "system"
+  changedBy      String?  // AdminUser.id when available
+  changedByUser  AdminUser? @relation("PriceChanges", fields: [changedBy], references: [id], onDelete: SetNull)
   notes          String?
   
   createdAt      DateTime  @default(now())
   
   @@index([listingId])
   @@index([createdAt])
+  @@index([changedBy])
 }
 
 // ============================================
@@ -437,6 +439,7 @@ model AdminUser {
 
   sessions     AdminSession[]
   auditTrails  AuditTrail[]
+  priceChanges PriceHistory[] @relation("PriceChanges")
 }
 
 model AdminSession {
@@ -459,8 +462,13 @@ model AuditTrail {
   userId     String?
   user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
   action     String
+  operation  String?
   entity     String?
+  entityType String?
   entityId   String?
+  oldValue   Json?
+  newValue   Json?
+  diff       Json?
   ip         String?
   userAgent  String?
   data       Json?
@@ -468,6 +476,8 @@ model AuditTrail {
 
   @@index([userId])
   @@index([action])
+  @@index([operation])
+  @@index([entityType, entityId])
 }
 
 // ============================================
@@ -575,6 +585,7 @@ model Reservation {
   warehouse    Warehouse?         @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
 
   quantity     Int
+  version      Int                @default(1)
   reservedBy   String?            // orderId, cart session, or user id
   status       ReservationStatus  @default(ACTIVE)
   expiresAt    DateTime?
@@ -694,6 +705,7 @@ model OrderItem {
   listing        Listing   @relation(fields: [listingId], references: [id], onDelete: Restrict)
   
   quantity       Int
+  version        Int      @default(1)
   pricePerUnit   Float    // Snapshot of price at time of add-to-cart
   subtotal       Float    // quantity * pricePerUnit
   

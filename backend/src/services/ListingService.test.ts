@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import prisma from '../utils/db.js';
 import { ListingService } from './ListingService.js';
+import AuditService from './AuditService.js';
 
 test('getListing returns listing', async () => {
   const originalFindFirst = prisma.listing.findFirst;
@@ -50,13 +51,19 @@ test('decreaseQuantity throws when listing missing', async () => {
 });
 
 test('updateQuantity clamps negative and sets everHadStock', async () => {
+  const originalFindUnique = prisma.listing.findUnique;
   const originalUpdate = prisma.listing.update;
+  const originalAudit = AuditService.auditEntityChange;
   try {
+    prisma.listing.findUnique = (async () => ({ id: 'L1', quantity: 4 })) as any;
     prisma.listing.update = (async (args: any) => ({ id: args.where.id, quantity: args.data.quantity })) as any;
+    AuditService.auditEntityChange = (async () => undefined) as any;
     const updated = await ListingService.updateQuantity('L1', -5);
     assert.equal(updated.quantity, 0);
   } finally {
+    prisma.listing.findUnique = originalFindUnique;
     prisma.listing.update = originalUpdate;
+    AuditService.auditEntityChange = originalAudit;
   }
 });
 

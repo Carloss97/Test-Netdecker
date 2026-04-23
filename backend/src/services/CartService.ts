@@ -125,14 +125,18 @@ export class CartService {
     }
 
     if (existingItem) {
-      await prisma.orderItem.update({
-        where: { id: existingItem.id },
+      const updated = await prisma.orderItem.updateMany({
+        where: { id: existingItem.id, version: existingItem.version },
         data: {
           quantity: desiredTotal,
           subtotal: desiredTotal * listing.finalPrice,
-          pricePerUnit: listing.finalPrice
+          pricePerUnit: listing.finalPrice,
+          version: { increment: 1 },
         }
       });
+      if (!updated || updated.count === 0) {
+        throw new ConflictError('Cart item was modified by another request. Please refresh and retry.');
+      }
     } else {
       await prisma.orderItem.create({
         data: {
@@ -192,14 +196,18 @@ export class CartService {
       throw new ConflictError(`Insufficient stock. Available: ${availableForSession}, requested: ${quantity}`);
     }
 
-    await prisma.orderItem.update({
-      where: { id: itemId },
+    const updated = await prisma.orderItem.updateMany({
+      where: { id: itemId, version: item.version },
       data: {
         quantity,
         subtotal: quantity * item.listing.finalPrice,
-        pricePerUnit: item.listing.finalPrice
+        pricePerUnit: item.listing.finalPrice,
+        version: { increment: 1 },
       }
     });
+    if (!updated || updated.count === 0) {
+      throw new ConflictError('Cart item was modified by another request. Please refresh and retry.');
+    }
 
     return this.getOrCreateCart(sessionId, storeId);
   }

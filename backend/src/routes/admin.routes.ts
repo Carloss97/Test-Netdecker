@@ -8,6 +8,7 @@ import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { PriceService } from '../services/PriceService.js';
+import AuditService from '../services/AuditService.js';
 import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
@@ -152,6 +153,31 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (_req: Re
     // ignore cache store errors
   }
   res.json(responsePayload);
+});
+
+/**
+ * GET /api/admin/audit?entityType=listing&entityId=abc&take=50
+ * Returns audit entries ordered by recency.
+ */
+router.get('/audit', requirePermission('view', 'audit'), async (req: Request, res: Response) => {
+  const entityType = req.query.entityType ? String(req.query.entityType).trim() : undefined;
+  const entityId = req.query.entityId ? String(req.query.entityId).trim() : undefined;
+  const take = Number(req.query.take || 50);
+
+  if ((entityType && !entityId) || (!entityType && entityId)) {
+    throw new ValidationError('entityType and entityId must be provided together');
+  }
+
+  if (!Number.isFinite(take) || take <= 0) {
+    throw new ValidationError('take must be a positive number');
+  }
+
+  const audits = await AuditService.getEntityAuditTrail({ entityType, entityId, take });
+  res.json({
+    success: true,
+    total: audits.length,
+    audits,
+  });
 });
 
 /**

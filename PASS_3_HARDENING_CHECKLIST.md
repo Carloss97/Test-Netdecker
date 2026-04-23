@@ -210,12 +210,12 @@ En operaciones de inventario y checkout, existe **race condition** entre lectura
    - Muestra: "Tu carrito cambió, por favor revisar cantidades"
 
 **Criterios de Aceptación**
-- [ ] Migración agrega `version` fields
-- [ ] ReservationService uses optimistic locking
-- [ ] CartService uses optimistic locking
-- [ ] Tests de concurrencia: 10 requests paralelos compiten por 1 item → solo 1 gana
-- [ ] API retorna 409 Conflict con descripción clara
-- [ ] Frontend tests manejan 409 gracefully
+- [x] Migración agrega `version` fields
+- [x] ReservationService uses optimistic locking
+- [x] CartService uses optimistic locking
+- [x] Tests de concurrencia: 10 requests paralelos compiten por 1 item → solo 1 gana
+- [x] API retorna 409 Conflict con descripción clara
+- [x] Frontend tests manejan 409 gracefully
 
 **Estimado**: 4-5 horas
 
@@ -295,12 +295,12 @@ AuditTrail registra requests pero sin detalles de qué cambió exactamente. Pric
    - Devuelve histórico de cambios de esa entidad
 
 **Criterios de Aceptación**
-- [ ] Schema.prisma expandido con entityType, oldValue, newValue, diff
-- [ ] PriceHistory.changedBy es FK a AdminUser
-- [ ] AuditHelper implementado
-- [ ] PriceService, ListingService, OrderService usan auditEntityChange()
-- [ ] GET /admin/audit retorna cambios con antes/después
-- [ ] Tests: Verify audit trail registra cambios correctamente
+- [x] Schema.prisma expandido con entityType, oldValue, newValue, diff
+- [x] PriceHistory.changedBy es FK a AdminUser
+- [x] AuditHelper implementado
+- [x] PriceService, ListingService, OrderService usan auditEntityChange()
+- [x] GET /admin/audit retorna cambios con antes/después
+- [x] Tests: Verify audit trail registra cambios correctamente
 
 **Estimado**: 4-5 horas
 

@@ -412,13 +412,27 @@ export async function getCart(sessionId: string) {
 }
 
 export async function addToCart(sessionId: string, listingId: string, quantity: number) {
-  const { data } = await apiClient.post(`/cart/${sessionId}/add`, { listingId, quantity });
-  return data;
+  try {
+    const { data } = await apiClient.post(`/cart/${sessionId}/add`, { listingId, quantity });
+    return data;
+  } catch (err: any) {
+    if (err?.response?.status === 409) {
+      throw new Error('Tu carrito cambio, por favor revisa cantidades y vuelve a intentar.');
+    }
+    throw err;
+  }
 }
 
 export async function updateCartItemQuantity(sessionId: string, itemId: string, quantity: number) {
-  const { data } = await apiClient.patch(`/cart/${sessionId}/item/${itemId}`, { quantity });
-  return data;
+  try {
+    const { data } = await apiClient.patch(`/cart/${sessionId}/item/${itemId}`, { quantity });
+    return data;
+  } catch (err: any) {
+    if (err?.response?.status === 409) {
+      throw new Error('Tu carrito cambio, por favor revisa cantidades y vuelve a intentar.');
+    }
+    throw err;
+  }
 }
 
 export async function removeCartItem(sessionId: string, itemId: string) {

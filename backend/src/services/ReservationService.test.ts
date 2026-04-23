@@ -29,15 +29,26 @@ test('commitReservation creates stock movement and updates listing', async () =>
   try {
     let movementCreated = false;
     let listingUpdated: any = null;
+    let reservationReads = 0;
 
     const tx = {
       reservation: {
-        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L200', warehouseId: 'W2', quantity: 3, status: 'ACTIVE' }),
-        update: async ({ where, data }: any) => { return { id: where.id, ...data }; }
+        findUnique: async ({ where }: any) => {
+          reservationReads += 1;
+          return {
+            id: where.id,
+            listingId: 'L200',
+            warehouseId: 'W2',
+            quantity: 3,
+            status: reservationReads > 1 ? 'COMMITTED' : 'ACTIVE',
+            version: reservationReads > 1 ? 2 : 1,
+          };
+        },
+        updateMany: async () => ({ count: 1 }),
       },
       listing: {
         findUnique: async ({ where }: any) => ({ id: where.id, quantity: 5 }),
-        update: async ({ where, data }: any) => { listingUpdated = { where, data }; return { id: where.id, ...data }; }
+        updateMany: async ({ where, data }: any) => { listingUpdated = { where, data }; return { count: 1 }; }
       },
       stockMovement: {
         create: async ({ data }: any) => { movementCreated = true; return { id: 'mov-r', ...data }; }
@@ -49,7 +60,7 @@ test('commitReservation creates stock movement and updates listing', async () =>
     const updated: any = await ReservationService.commitReservation('res-1');
 
     assert.equal(movementCreated, true);
-    assert.equal(listingUpdated.data.quantity, 2);
+    assert.equal(listingUpdated.data.quantity.decrement, 3);
     assert.equal(updated.status, 'COMMITTED');
   } finally {
     prisma.$transaction = originalTx;
@@ -64,12 +75,12 @@ test('commitReservation creates journal entries when accounts exist', async () =
 
     const tx = {
       reservation: {
-        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L500', warehouseId: 'W5', quantity: 2, status: 'ACTIVE' }),
-        update: async ({ where, data }: any) => ({ id: where.id, ...data })
+        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L500', warehouseId: 'W5', quantity: 2, status: 'ACTIVE', version: 1 }),
+        updateMany: async () => ({ count: 1 }),
       },
       listing: {
         findUnique: async ({ where }: any) => ({ id: where.id, quantity: 10, finalPrice: 2000, costPrice: 1200, storeId: 'S1' }),
-        update: async ({ where, data }: any) => ({ id: where.id, ...data })
+        updateMany: async ({ where, data }: any) => ({ count: 1, where, data })
       },
       stockMovement: { create: async ({ data }: any) => ({ id: 'mov-je', ...data }) },
       account: {
@@ -117,8 +128,15 @@ test('commitReservation fails on insufficient stock', async () => {
 
   try {
     const tx = {
-      reservation: { findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L300', warehouseId: 'W3', quantity: 8, status: 'ACTIVE' }) },
-      listing: { findUnique: async ({ where }: any) => ({ id: where.id, quantity: 5 }) }
+      reservation: {
+        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L300', warehouseId: 'W3', quantity: 8, status: 'ACTIVE', version: 1 }),
+        updateMany: async () => ({ count: 1 }),
+      },
+      listing: {
+        findUnique: async ({ where }: any) => ({ id: where.id, quantity: 5 }),
+        updateMany: async () => ({ count: 0 }),
+      },
+      stockMovement: { create: async () => ({ id: 'mov-r' }) },
     } as any;
 
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
@@ -126,6 +144,69 @@ test('commitReservation fails on insufficient stock', async () => {
     await assert.rejects(async () => {
       await ReservationService.commitReservation('res-2');
     }, /Insufficient stock/);
+  } finally {
+    prisma.$transaction = originalTx;
+  }
+});
+
+test('commitReservation fails with conflict when reservation version changed', async () => {
+  const originalTx = prisma.$transaction;
+
+  try {
+    const tx = {
+      reservation: {
+        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L400', warehouseId: 'W4', quantity: 1, status: 'ACTIVE', version: 5 }),
+        updateMany: async () => ({ count: 0 }),
+      },
+    } as any;
+
+    prisma.$transaction = (async (fn: any) => fn(tx)) as any;
+
+    await assert.rejects(async () => {
+      await ReservationService.commitReservation('res-3');
+    }, /modified/);
+  } finally {
+    prisma.$transaction = originalTx;
+  }
+});
+
+test('10 parallel commit attempts allow only one success', async () => {
+  const originalTx = prisma.$transaction;
+
+  try {
+    let claimAttempts = 0;
+    const tx = {
+      reservation: {
+        findUnique: async ({ where }: any) => ({
+          id: where.id,
+          listingId: 'L900',
+          warehouseId: 'W9',
+          quantity: 1,
+          status: 'ACTIVE',
+          version: 10,
+        }),
+        updateMany: async () => {
+          claimAttempts += 1;
+          return { count: claimAttempts === 1 ? 1 : 0 };
+        },
+      },
+      listing: {
+        findUnique: async () => ({ id: 'L900', quantity: 1, finalPrice: 1000, costPrice: 500, storeId: 'S1' }),
+        updateMany: async () => ({ count: 1 }),
+      },
+      stockMovement: { create: async ({ data }: any) => ({ id: 'mov-10', ...data }) },
+      account: { findFirst: async () => null },
+      journalEntry: { create: async () => ({ id: 'je-10' }) },
+    } as any;
+
+    prisma.$transaction = (async (fn: any) => fn(tx)) as any;
+
+    const attempts = await Promise.allSettled(
+      Array.from({ length: 10 }, () => ReservationService.commitReservation('res-10')),
+    );
+
+    const successCount = attempts.filter((result) => result.status === 'fulfilled').length;
+    assert.equal(successCount, 1);
   } finally {
     prisma.$transaction = originalTx;
   }

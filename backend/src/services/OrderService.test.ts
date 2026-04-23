@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import prisma from '../utils/db.js';
 import { OrderService } from './OrderService.js';
+import AuditService from './AuditService.js';
 
 test('listOrders returns orders and total', async () => {
   const originalFindMany = prisma.order.findMany;
@@ -42,6 +43,7 @@ test('getOrder throws when not found', async () => {
 test('cancelOrder restores stock and marks order cancelled', async () => {
   const originalTransaction = prisma.$Transaction || prisma.$transaction;
   const originalTx = prisma.$transaction;
+  const originalAudit = AuditService.auditEntityChange;
 
   try {
     const tx = {
@@ -59,12 +61,14 @@ test('cancelOrder restores stock and marks order cancelled', async () => {
     } as any;
 
     let txCalled = false;
+    AuditService.auditEntityChange = (async () => undefined) as any;
     prisma.$transaction = (async (fn: any) => { txCalled = true; return fn(tx); }) as any;
 
     const updated = await OrderService.cancelOrder('o1', 'tester');
     assert.equal(txCalled, true);
     assert.equal((updated as { status: string }).status, 'CANCELLED');
   } finally {
+    AuditService.auditEntityChange = originalAudit;
     prisma.$transaction = originalTx;
     if (originalTransaction) (prisma as any).$Transaction = originalTransaction;
   }
@@ -93,6 +97,7 @@ test('cancelOrder throws on already cancelled order', async () => {
 
 test('shipOrder updates status to SHIPPED', async () => {
   const originalTx = prisma.$transaction;
+  const originalAudit = AuditService.auditEntityChange;
   try {
     const tx = {
       order: {
@@ -101,16 +106,19 @@ test('shipOrder updates status to SHIPPED', async () => {
       }
     } as any;
 
+    AuditService.auditEntityChange = (async () => undefined) as any;
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
     const updated = await OrderService.shipOrder('o1');
     assert.equal((updated as { status: string }).status, 'SHIPPED');
   } finally {
+    AuditService.auditEntityChange = originalAudit;
     prisma.$transaction = originalTx;
   }
 });
 
 test('deliverOrder updates status to DELIVERED', async () => {
   const originalTx = prisma.$transaction;
+  const originalAudit = AuditService.auditEntityChange;
   try {
     const tx = {
       order: {
@@ -119,10 +127,12 @@ test('deliverOrder updates status to DELIVERED', async () => {
       }
     } as any;
 
+    AuditService.auditEntityChange = (async () => undefined) as any;
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
     const updated = await OrderService.deliverOrder('o1');
     assert.equal((updated as { status: string }).status, 'DELIVERED');
   } finally {
+    AuditService.auditEntityChange = originalAudit;
     prisma.$transaction = originalTx;
   }
 });

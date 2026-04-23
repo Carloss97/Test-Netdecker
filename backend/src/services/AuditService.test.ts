@@ -22,3 +22,46 @@ test('logAction writes audit trail entry', async () => {
     prisma.auditTrail.create = originalCreate;
   }
 });
+
+test('computeDiff returns changed keys', () => {
+  const diff = AuditService.computeDiff(
+    { price: 100, quantity: 2, unchanged: 'x' },
+    { price: 120, quantity: 2, unchanged: 'x', status: 'manual' },
+  );
+
+  assert.deepEqual(diff, {
+    price: { from: 100, to: 120 },
+    status: { from: undefined, to: 'manual' },
+  });
+});
+
+test('auditEntityChange writes structured audit payload', async () => {
+  const originalCreate = prisma.auditTrail.create;
+
+  try {
+    let created: any = null;
+    prisma.auditTrail.create = (async (args: any) => {
+      created = args;
+      return { id: 'a2', ...args.data };
+    }) as any;
+
+    await AuditService.auditEntityChange({
+      entityType: 'listing',
+      entityId: 'L1',
+      oldValue: { quantity: 1 },
+      newValue: { quantity: 0 },
+      changedBy: 'u1',
+      action: 'LISTING.QUANTITY.UPDATE',
+    });
+
+    assert.ok(created, 'audit create called');
+    assert.equal(created.data.entityType, 'listing');
+    assert.equal(created.data.entityId, 'L1');
+    assert.equal(created.data.operation, 'UPDATE');
+    assert.deepEqual(created.data.diff, {
+      quantity: { from: 1, to: 0 },
+    });
+  } finally {
+    prisma.auditTrail.create = originalCreate;
+  }
+});

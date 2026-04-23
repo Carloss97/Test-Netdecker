@@ -1,5 +1,6 @@
 import prisma from '../utils/db.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
+import AuditService from './AuditService.js';
 
 export class OrderService {
   static async listOrders(params: { take?: number; skip?: number; status?: string; storeId?: string } = {}) {
@@ -97,11 +98,22 @@ export class OrderService {
       }
 
       const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' }, include: { items: true } });
+
+      await AuditService.auditEntityChange({
+        entityType: 'order',
+        entityId: order.id,
+        operation: 'UPDATE',
+        oldValue: { status: order.status },
+        newValue: { status: 'CANCELLED' },
+        changedBy: performedBy || null,
+        action: 'ORDER.CANCEL',
+      });
+
       return updated;
     });
   }
 
-  static async shipOrder(orderId: string, _performedBy?: string | null, storeId?: string) {
+  static async shipOrder(orderId: string, performedBy?: string | null, storeId?: string) {
     return prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findFirst({
         where: {
@@ -118,11 +130,22 @@ export class OrderService {
       }
 
       const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'SHIPPED' } });
+
+      await AuditService.auditEntityChange({
+        entityType: 'order',
+        entityId: order.id,
+        operation: 'UPDATE',
+        oldValue: { status: order.status },
+        newValue: { status: 'SHIPPED' },
+        changedBy: performedBy || null,
+        action: 'ORDER.SHIP',
+      });
+
       return updated;
     });
   }
 
-  static async deliverOrder(orderId: string, _performedBy?: string | null, storeId?: string) {
+  static async deliverOrder(orderId: string, performedBy?: string | null, storeId?: string) {
     return prisma.$transaction(async (tx: any) => {
       const order = await tx.order.findFirst({
         where: {
@@ -139,6 +162,17 @@ export class OrderService {
       }
 
       const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'DELIVERED' } });
+
+      await AuditService.auditEntityChange({
+        entityType: 'order',
+        entityId: order.id,
+        operation: 'UPDATE',
+        oldValue: { status: order.status },
+        newValue: { status: 'DELIVERED' },
+        changedBy: performedBy || null,
+        action: 'ORDER.DELIVER',
+      });
+
       return updated;
     });
   }

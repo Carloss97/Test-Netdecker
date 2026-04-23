@@ -4,6 +4,7 @@ import { ExchangeRateService } from './ExchangeRateService.js';
 import { PriceUpdateReason } from '@prisma/client';
 import PriceThresholdService from './PriceThresholdService.js';
 import { NotFoundError } from '../utils/errors.js';
+import AuditService from './AuditService.js';
 
 interface PriceCalculationInput {
   referencePrice: number; // USD
@@ -29,6 +30,16 @@ interface PriceCalculationDetailedOutput extends PriceCalculationOutput {
 }
 
 export class PriceService {
+  private static async resolveChangedByUserId(changedBy?: string): Promise<string | null> {
+    const raw = String(changedBy || '').trim();
+    if (!raw || raw.toLowerCase() === 'system') {
+      return null;
+    }
+
+    const admin = await prisma.adminUser.findUnique({ where: { id: raw }, select: { id: true } });
+    return admin?.id || null;
+  }
+
   static resolveRoundingMultiple(overrideRounding?: number): number {
     if (typeof overrideRounding === 'number' && Number.isFinite(overrideRounding) && overrideRounding >= 1) {
       return Math.max(1, Math.round(overrideRounding));
@@ -107,6 +118,7 @@ export class PriceService {
     if (!listing) {
       throw new NotFoundError(`Listing not found: ${listingId}`);
     }
+    const changedByUserId = await this.resolveChangedByUserId(changedBy);
 
     const oldPrice = listing.finalPrice;
 
@@ -147,11 +159,36 @@ export class PriceService {
           newExchangeRate: calculation.exchangeRate,
           reason,
           percentChange,
-          changedBy,
+          changedBy: changedByUserId,
           notes,
         }
       })
     ]);
+
+    await AuditService.auditEntityChange({
+      entityType: 'price',
+      entityId: listingId,
+      operation: 'UPDATE',
+      oldValue: {
+        finalPrice: oldPrice,
+        referencePrice: listing.referencePrice,
+        exchangeRate: listing.exchangeRate,
+        marginMultiplier: listing.marginMultiplier,
+      },
+      newValue: {
+        finalPrice: calculation.finalPrice,
+        referencePrice: newReferencePrice,
+        exchangeRate: calculation.exchangeRate,
+        marginMultiplier,
+      },
+      changedBy: changedByUserId,
+      action: 'PRICE.UPDATE',
+      data: {
+        reason,
+        notes: notes || null,
+        changedByRaw: changedBy || null,
+      },
+    });
   }
 
   /**

@@ -1,4 +1,5 @@
 import prisma from '../utils/db.js';
+import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
 
 export class ReservationService {
   static async createReservation(input: {
@@ -11,9 +12,9 @@ export class ReservationService {
     return prisma.$transaction(async (tx: any) => {
       // Basic validation
       const listing = await tx.listing.findUnique({ where: { id: input.listingId } });
-      if (!listing) throw new Error('Listing not found');
+      if (!listing) throw new NotFoundError('Listing not found');
 
-      if (input.quantity <= 0) throw new Error('Quantity must be > 0');
+      if (input.quantity <= 0) throw new ValidationError('Quantity must be > 0');
 
       const reservation = await tx.reservation.create({
         data: {
@@ -33,10 +34,18 @@ export class ReservationService {
   static async releaseReservation(reservationId: string) {
     return prisma.$transaction(async (tx: any) => {
       const existing = await tx.reservation.findUnique({ where: { id: reservationId } });
-      if (!existing) throw new Error('Reservation not found');
+      if (!existing) throw new NotFoundError('Reservation not found');
       if (existing.status !== 'ACTIVE') return existing;
 
-      const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status: 'RELEASED' } });
+      const updatedCount = await tx.reservation.updateMany({
+        where: { id: reservationId, status: 'ACTIVE', version: existing.version },
+        data: { status: 'RELEASED', version: { increment: 1 } },
+      });
+      if (!updatedCount || updatedCount.count === 0) {
+        throw new ConflictError('Reservation was modified, please retry');
+      }
+
+      const updated = await tx.reservation.findUnique({ where: { id: reservationId } });
       return updated;
     });
   }
@@ -44,12 +53,26 @@ export class ReservationService {
   static async commitReservation(reservationId: string) {
     return prisma.$transaction(async (tx: any) => {
       const reservation = await tx.reservation.findUnique({ where: { id: reservationId } });
-      if (!reservation) throw new Error('Reservation not found');
-      if (reservation.status !== 'ACTIVE') throw new Error('Reservation not active');
+      if (!reservation) throw new NotFoundError('Reservation not found');
+      if (reservation.status !== 'ACTIVE') throw new ConflictError('Reservation not active');
+
+      const claimed = await tx.reservation.updateMany({
+        where: {
+          id: reservationId,
+          status: 'ACTIVE',
+          version: reservation.version,
+        },
+        data: {
+          status: 'COMMITTED',
+          version: { increment: 1 },
+        },
+      });
+      if (!claimed || claimed.count === 0) {
+        throw new ConflictError('Reservation was modified, please retry');
+      }
 
       const listing = await tx.listing.findUnique({ where: { id: reservation.listingId } });
-      if (!listing) throw new Error('Listing not found');
-      if (Number(listing.quantity || 0) < reservation.quantity) throw new Error('Insufficient stock to commit reservation');
+      if (!listing) throw new NotFoundError('Listing not found');
 
       // Create an OUT movement to represent the committed sale
       await tx.stockMovement.create({
@@ -62,11 +85,21 @@ export class ReservationService {
         }
       });
 
-      // Decrease global listing quantity
-      await tx.listing.update({ where: { id: reservation.listingId }, data: { quantity: Number(listing.quantity || 0) - reservation.quantity } });
+      // Decrease global listing quantity in a conflict-safe way.
+      const reduced = await tx.listing.updateMany({
+        where: {
+          id: reservation.listingId,
+          quantity: { gte: reservation.quantity },
+        },
+        data: {
+          quantity: { decrement: reservation.quantity },
+        },
+      });
+      if (!reduced || reduced.count === 0) {
+        throw new ConflictError('Insufficient stock to commit reservation');
+      }
 
-      // Mark reservation as committed
-      const updated = await tx.reservation.update({ where: { id: reservationId }, data: { status: 'COMMITTED' } });
+      const updated = await tx.reservation.findUnique({ where: { id: reservationId } });
 
       // --- Accounting integration (best-effort): create journal entries for revenue and COGS if accounts exist ---
       try {

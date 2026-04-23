@@ -6,6 +6,7 @@ import { PriceService } from './PriceService.js';
 import { CardCondition, PriceUpdateReason } from '@prisma/client';
 import { resolveMarginMultiplier } from '../config/pricing.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import AuditService from './AuditService.js';
 
 interface CreateListingInput {
   storeId: string;
@@ -18,6 +19,16 @@ interface CreateListingInput {
 }
 
 export class ListingService {
+  private static async resolveChangedByUserId(changedBy?: string): Promise<string | null> {
+    const raw = String(changedBy || '').trim();
+    if (!raw || raw.toLowerCase() === 'system') {
+      return null;
+    }
+
+    const admin = await prisma.adminUser.findUnique({ where: { id: raw }, select: { id: true } });
+    return admin?.id || null;
+  }
+
   /**
    * Create a new listing
    */
@@ -157,9 +168,14 @@ export class ListingService {
   /**
    * Update listing quantity (e.g., after purchase)
    */
-  static async updateQuantity(id: string, quantity: number) {
+  static async updateQuantity(id: string, quantity: number, changedBy?: string) {
     const safeQty = Math.max(0, quantity);
-    return prisma.listing.update({
+    const existing = await prisma.listing.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundError(`Listing not found: ${id}`);
+    }
+
+    const updated = await prisma.listing.update({
       where: { id },
       data: {
         quantity: safeQty,
@@ -168,17 +184,29 @@ export class ListingService {
       },
       include: { card: true }
     });
+
+    await AuditService.auditEntityChange({
+      entityType: 'listing',
+      entityId: id,
+      operation: 'UPDATE',
+      oldValue: { quantity: existing.quantity },
+      newValue: { quantity: safeQty },
+      changedBy: await this.resolveChangedByUserId(changedBy),
+      action: 'LISTING.QUANTITY.UPDATE',
+    });
+
+    return updated;
   }
 
   /**
    * Decrease quantity (for purchases)
    */
-  static async decreaseQuantity(id: string, amount: number) {
+  static async decreaseQuantity(id: string, amount: number, changedBy?: string) {
     const listing = await this.getListing(id);
     if (!listing) throw new NotFoundError(`Listing not found: ${id}`);
 
     const newQuantity = Math.max(0, listing.quantity - amount);
-    return this.updateQuantity(id, newQuantity);
+    return this.updateQuantity(id, newQuantity, changedBy);
   }
 
   /**
@@ -298,6 +326,7 @@ export class ListingService {
     }
 
     const oldPrice = listing.finalPrice;
+    const changedByUserId = await this.resolveChangedByUserId(changedBy);
     const percentChange = oldPrice === 0
       ? (manualFinalPrice > 0 ? 100 : 0)
       : ((manualFinalPrice - oldPrice) / oldPrice) * 100;
@@ -322,11 +351,25 @@ export class ListingService {
           newExchangeRate: listing.exchangeRate,
           reason: PriceUpdateReason.MANUAL_UPDATE,
           percentChange,
-          changedBy,
+          changedBy: changedByUserId,
           notes: notes || 'Manual price override enabled',
         },
       }),
     ]);
+
+    await AuditService.auditEntityChange({
+      entityType: 'listing',
+      entityId: id,
+      operation: 'UPDATE',
+      oldValue: { finalPrice: oldPrice, status: listing.status },
+      newValue: { finalPrice: manualFinalPrice, status: 'manual' },
+      changedBy: changedByUserId,
+      action: 'LISTING.PRICE.MANUAL_OVERRIDE',
+      data: {
+        notes: notes || 'Manual price override enabled',
+        changedByRaw: changedBy || null,
+      },
+    });
 
     return this.getListing(id);
   }
@@ -346,6 +389,7 @@ export class ListingService {
     });
 
     const oldPrice = listing.finalPrice;
+    const changedByUserId = await this.resolveChangedByUserId(changedBy);
     const percentChange = oldPrice === 0
       ? (calculation.finalPrice > 0 ? 100 : 0)
       : ((calculation.finalPrice - oldPrice) / oldPrice) * 100;
@@ -371,11 +415,25 @@ export class ListingService {
           newExchangeRate: calculation.exchangeRate,
           reason: PriceUpdateReason.MANUAL_UPDATE,
           percentChange,
-          changedBy,
+          changedBy: changedByUserId,
           notes: notes || 'Manual override disabled, API pricing restored',
         },
       }),
     ]);
+
+    await AuditService.auditEntityChange({
+      entityType: 'listing',
+      entityId: id,
+      operation: 'UPDATE',
+      oldValue: { finalPrice: oldPrice, status: listing.status },
+      newValue: { finalPrice: calculation.finalPrice, status: 'active' },
+      changedBy: changedByUserId,
+      action: 'LISTING.PRICE.API_MODE_RESTORE',
+      data: {
+        notes: notes || 'Manual override disabled, API pricing restored',
+        changedByRaw: changedBy || null,
+      },
+    });
 
     return this.getListing(id);
   }
