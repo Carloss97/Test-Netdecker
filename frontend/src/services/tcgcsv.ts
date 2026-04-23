@@ -12,6 +12,30 @@ const TCGCSV_CATEGORY_IDS: Record<TCGCsvTcg, number> = {
   ONE_PIECE: 68,
 };
 
+function normalizeTcg(tcg: string): TCGCsvTcg | undefined {
+  const normalized = String(tcg || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+
+  const aliases: Record<string, TCGCsvTcg> = {
+    MAGIC: 'MAGIC',
+    MTG: 'MAGIC',
+    POKEMON: 'POKEMON',
+    YUGIOH: 'YUGIOH',
+    YU_GI_OH: 'YUGIOH',
+    ONEPIECE: 'ONE_PIECE',
+    ONE_PIECE: 'ONE_PIECE',
+    DIGIMON: 'DIGIMON',
+    WEISS_SCHWARZ: 'WEISS_SCHWARZ',
+  };
+
+  return aliases[normalized];
+}
+
 function getTcgCsvBase(): string {
   return (import.meta.env.VITE_TCGCSV_BASE as string) || 'https://tcgcsv.com/tcgplayer';
 }
@@ -174,7 +198,11 @@ function tcgCsvToExternal(
 }
 
 async function getGroups(tcg: TCGCsvTcg): Promise<TcgCsvGroup[]> {
-  const categoryId = TCGCSV_CATEGORY_IDS[tcg];
+  const resolvedTcg = normalizeTcg(tcg);
+  if (!resolvedTcg) {
+    throw new Error(`Unsupported TCG for tcgcsv: ${tcg}`);
+  }
+  const categoryId = TCGCSV_CATEGORY_IDS[resolvedTcg];
   const base = getTcgCsvBase();
   const url = `${base}/${categoryId}/groups`;
   const { data } = await axios.get<TcgCsvListResponse<TcgCsvGroup>>(url, { timeout: 20000 });
@@ -182,7 +210,11 @@ async function getGroups(tcg: TCGCsvTcg): Promise<TcgCsvGroup[]> {
 }
 
 async function getGroupProducts(tcg: TCGCsvTcg, groupId: number): Promise<TcgCsvProduct[]> {
-  const categoryId = TCGCSV_CATEGORY_IDS[tcg];
+  const resolvedTcg = normalizeTcg(tcg);
+  if (!resolvedTcg) {
+    throw new Error(`Unsupported TCG for tcgcsv: ${tcg}`);
+  }
+  const categoryId = TCGCSV_CATEGORY_IDS[resolvedTcg];
   const base = getTcgCsvBase();
   const url = `${base}/${categoryId}/${groupId}/products`;
   const { data } = await axios.get<TcgCsvListResponse<TcgCsvProduct>>(url, { timeout: 20000 });
@@ -190,7 +222,11 @@ async function getGroupProducts(tcg: TCGCsvTcg, groupId: number): Promise<TcgCsv
 }
 
 async function getGroupPrices(tcg: TCGCsvTcg, groupId: number): Promise<TcgCsvPrice[]> {
-  const categoryId = TCGCSV_CATEGORY_IDS[tcg];
+  const resolvedTcg = normalizeTcg(tcg);
+  if (!resolvedTcg) {
+    throw new Error(`Unsupported TCG for tcgcsv: ${tcg}`);
+  }
+  const categoryId = TCGCSV_CATEGORY_IDS[resolvedTcg];
   const base = getTcgCsvBase();
   const url = `${base}/${categoryId}/${groupId}/prices`;
   const { data } = await axios.get<TcgCsvListResponse<TcgCsvPrice>>(url, { timeout: 20000 });

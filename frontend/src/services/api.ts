@@ -70,6 +70,18 @@ function hydrateAuthHeader(): void {
   }
 }
 
+function readAuthStoreId(): string | null {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const v = localStorage.getItem('auth_store');
+    if (!v) return null;
+    const trimmed = v.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
 function navigateToLoginFromClient(): void {
   try {
     if (typeof window === 'undefined') return;
@@ -157,6 +169,17 @@ apiClient.interceptors.request.use(
       }
     } catch (e) {
       // ignore cookie parsing errors
+    }
+
+    // Send tenant context when available so listing/inventory endpoints can
+    // resolve store scope without forcing extra per-page header plumbing.
+    try {
+      const storeId = readAuthStoreId();
+      if (storeId && !config.headers['x-store-id']) {
+        config.headers['x-store-id'] = storeId;
+      }
+    } catch (_) {
+      // ignore storage access failures
     }
     return config;
   },

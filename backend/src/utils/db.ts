@@ -29,7 +29,6 @@ console.log(`[DB] USE_SQLITE=${process.env.USE_SQLITE ?? 'unset'}; using SQLite 
 // Minimal Prisma-like surface used by the app. We intentionally avoid
 // importing concrete generated Prisma client types here because we may
 // dynamically load either the Postgres or SQLite client at runtime.
-import { v4 as uuidv4 } from 'uuid';
 type MinimalPrisma = {
 	$connect: () => Promise<void>;
 	$disconnect: () => Promise<void>;

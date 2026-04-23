@@ -139,6 +139,76 @@ test('tenantResolver resolves store by x-api-key header', async () => {
   }
 });
 
+test('tenantResolver resolves store by x-store-id header', async () => {
+  const slug = `test-store-id-${Date.now()}`;
+  const store = await prisma.store.create({ data: { slug, name: 'Test Store Id Header', apiKeyHash: `ak-${Date.now()}` } });
+
+  const app = express();
+  app.get('/ping', tenantResolver, (req: Request, res: Response) => {
+    res.json({ store: (req as any).store ?? null });
+  });
+  app.use(buildErrorHandler());
+
+  try {
+    const { status, body } = await makeRequest(app, 'GET', '/ping', undefined, { 'x-store-id': store.id });
+    assert.equal(status, 200);
+    const b = body as any;
+    assert.ok(b.store, 'store should be present');
+    assert.equal(b.store.id, store.id);
+  } finally {
+    await prisma.store.delete({ where: { id: store.id } });
+  }
+});
+
+test('tenantResolver resolves store by admin bearer token session', async () => {
+  const suffix = Date.now();
+  const store = await prisma.store.create({
+    data: {
+      slug: `test-admin-session-${suffix}`,
+      name: 'Test Admin Session Store',
+      apiKeyHash: `ak-session-${suffix}`,
+    },
+  });
+
+  const user = await prisma.adminUser.create({
+    data: {
+      email: `tenant-resolver-${suffix}@example.com`,
+      passwordHash: 'hash',
+      passwordSalt: 'salt',
+      role: 'ADMIN',
+      isActive: true,
+    },
+  });
+
+  const token = `tenant-resolver-token-${suffix}`;
+  await prisma.adminSession.create({
+    data: {
+      token,
+      userId: user.id,
+      storeId: store.id,
+      expiresAt: new Date(Date.now() + 60_000),
+    },
+  });
+
+  const app = express();
+  app.get('/ping', tenantResolver, (req: Request, res: Response) => {
+    res.json({ store: (req as any).store ?? null });
+  });
+  app.use(buildErrorHandler());
+
+  try {
+    const { status, body } = await makeRequest(app, 'GET', '/ping', undefined, { authorization: `Bearer ${token}` });
+    assert.equal(status, 200);
+    const b = body as any;
+    assert.ok(b.store, 'store should be present');
+    assert.equal(b.store.id, store.id);
+  } finally {
+    await prisma.adminSession.deleteMany({ where: { userId: user.id } });
+    await prisma.adminUser.delete({ where: { id: user.id } });
+    await prisma.store.delete({ where: { id: store.id } });
+  }
+});
+
 test('requireTenant blocks when no tenant resolved', async () => {
   const app = express();
   app.get('/secure', tenantResolver, requireTenant, (req: Request, res: Response) => {

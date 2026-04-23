@@ -62,7 +62,7 @@ type PriceHistoryWithListing = {
   listing: {
     card: { cardName: string; cardCode: string };
     edition: { editionCode: string; editionName: string };
-  };
+  } | null;
 };
 
 /**
@@ -322,8 +322,8 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
     events: volatileChanges.map((h: PriceHistoryWithListing) => ({
       priceHistoryId: h.id,
       listingId: h.listingId,
-      cardName: h.listing.card.cardName,
-      editionCode: h.listing.edition.editionCode,
+      cardName: h.listing?.card.cardName ?? 'Unknown card',
+      editionCode: h.listing?.edition.editionCode ?? 'UNKNOWN',
       oldPrice: h.oldPrice,
       newPrice: h.newPrice,
       percentChange: h.percentChange,

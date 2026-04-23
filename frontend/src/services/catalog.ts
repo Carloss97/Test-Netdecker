@@ -7,6 +7,34 @@ import * as localImports from './localImports';
 
 const DEFAULT_USD_TO_CLP = Number(import.meta.env.VITE_MANUAL_USD_TO_CLP || import.meta.env.VITE_USD_TO_CLP) || 1000;
 
+function normalizeTcgId(value?: string | null): 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ' | undefined {
+  const raw = String(value || '').trim();
+  if (!raw) return undefined;
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+
+  const aliases: Record<string, 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = {
+    MAGIC: 'MAGIC',
+    MTG: 'MAGIC',
+    POKEMON: 'POKEMON',
+    POKEMON_TCG: 'POKEMON',
+    YUGIOH: 'YUGIOH',
+    YU_GI_OH: 'YUGIOH',
+    YU_GI_OH_TCG: 'YUGIOH',
+    ONEPIECE: 'ONE_PIECE',
+    ONE_PIECE: 'ONE_PIECE',
+    DIGIMON: 'DIGIMON',
+    WEISS_SCHWARZ: 'WEISS_SCHWARZ',
+    WEISS: 'WEISS_SCHWARZ',
+  };
+
+  return aliases[normalized];
+}
+
 function getUsdToClpRate(): number {
   // Priority: runtime stored manual rate -> env var -> default
   try {
@@ -945,16 +973,62 @@ export async function getEditionCardsWithStock(editionId: string, editionCode?: 
     const response = await apiClient.get(`/editions/${editionId}/cards-with-stock`);
     return response.data;
   } catch (_) {
+    if (!ALLOW_DIRECT_TCGCSV) {
+      const all = localImports.listLocalListings();
+      const matched = all.filter((l) => l.card.editionCode === editionId || l.card.editionCode === editionId.split(':').pop());
+      const byCard: Record<string, any[]> = {};
+      for (const l of matched) {
+        const key = l.card.externalId;
+        byCard[key] = byCard[key] || [];
+        byCard[key].push(l);
+      }
+
+      const cards = Object.keys(byCard).map((cardId) => {
+        const group = byCard[cardId];
+        const first = group[0];
+        const listings = group.map((li) => ({
+          id: li.id,
+          condition: li.condition ?? 'NM',
+          quantity: li.quantity,
+          referencePrice: li.referencePrice ?? 0,
+          marginMultiplier: li.marginMultiplier ?? 1,
+          finalPrice: Math.round((li.referencePrice ?? 0) * (li.marginMultiplier ?? 1) * getUsdToClpRate()),
+          currency: 'CLP',
+          lastSyncedAt: undefined,
+          status: 'manual',
+        }));
+
+        return {
+          id: first.card.externalId,
+          cardCode: first.card.cardNumber ?? first.card.externalId,
+          cardName: first.card.cardName,
+          cardNumber: first.card.cardNumber,
+          rarity: first.card.rarity,
+          colorIdentity: first.card.colorIdentity,
+          imageUrl: first.card.imageUrl,
+          tags: first.card.tags,
+          listings,
+        } as any;
+      });
+
+      const resolvedSetCode = editionCode || (editionId.includes(':') ? editionId.split(':').slice(1).join(':') : editionId);
+      const resolvedTcg = normalizeTcgId(tcgId || (editionId.includes(':') ? editionId.split(':')[0] : undefined));
+      const edition: any = { id: editionId, editionCode: resolvedSetCode, editionName: resolvedSetCode, tcg: { id: resolvedTcg || 'LOCAL', name: resolvedTcg || 'LOCAL', displayName: resolvedTcg || 'Local' } };
+
+      return { edition, totalCards: cards.length, cardsWithStock: cards.filter((c) => (c.listings?.[0]?.quantity ?? 0) > 0).length, cards } as EditionInventory;
+    }
+
     const resolvedSetCode = editionCode || (editionId.includes(':') ? editionId.split(':').slice(1).join(':') : editionId);
-    const resolvedTcg = tcgId || (editionId.includes(':') ? editionId.split(':')[0] : undefined);
+    const resolvedTcg = normalizeTcgId(tcgId || (editionId.includes(':') ? editionId.split(':')[0] : undefined));
 
     const externalCards: any[] = [];
 
     const tryFetch = async (tryTcg?: string) => {
       if (!resolvedSetCode) return [];
-      const t = (tryTcg || resolvedTcg || 'MAGIC') as any;
+      const normalized = normalizeTcgId(tryTcg || resolvedTcg || 'MAGIC');
+      if (!normalized) return [];
       try {
-        const cards = await tcgcsvClient.getSetCards(t, resolvedSetCode);
+        const cards = await tcgcsvClient.getSetCards(normalized, resolvedSetCode);
         return Array.isArray(cards) ? cards : [];
       } catch (_) {
         return [];

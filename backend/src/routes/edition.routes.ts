@@ -118,19 +118,36 @@ router.get('/:id', async (req: Request, res: Response) => {
  * Key endpoint for the inventory management workflow.
  */
 router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
-  const edition = await prisma.edition.findUnique({
-    where: { id: req.params.id },
+  const idOrCode = String(req.params.id || '').trim();
+
+  let edition = await prisma.edition.findUnique({
+    where: { id: idOrCode },
     include: {
       tcg: { select: { id: true, name: true, displayName: true } },
     },
   });
 
   if (!edition) {
+    edition = await prisma.edition.findFirst({
+      where: {
+        OR: [
+          { editionCode: idOrCode },
+          { editionCode: idOrCode.toUpperCase() },
+        ],
+      },
+      include: {
+        tcg: { select: { id: true, name: true, displayName: true } },
+      },
+      orderBy: { releaseDate: 'desc' },
+    });
+  }
+
+  if (!edition) {
     throw new NotFoundError('Edition not found');
   }
 
   const cards = await prisma.card.findMany({
-    where: { editionId: req.params.id },
+    where: { editionId: edition.id },
     include: {
       listings: {
         select: {
