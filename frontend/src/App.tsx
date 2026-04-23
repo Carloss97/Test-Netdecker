@@ -56,7 +56,7 @@ function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/" element={<Navigate to="/admin/login" replace />} />
           <Route path="/inventario" element={<InventoryPage />} />
           <Route path="/precios" element={<PricingPage />} />
           <Route path="/importar" element={<ImportPage />} />

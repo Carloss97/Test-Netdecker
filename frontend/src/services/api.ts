@@ -70,6 +70,21 @@ function hydrateAuthHeader(): void {
   }
 }
 
+function navigateToAdminLoginFromClient(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    const { pathname, search, hash } = window.location;
+    if (pathname.startsWith('/admin/login')) return;
+
+    const next = encodeURIComponent(`${pathname}${search}${hash}`);
+    const target = `/admin/login?next=${next}`;
+    window.history.replaceState({}, '', target);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  } catch (_) {
+    // ignore navigation failures
+  }
+}
+
 export function buildApiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const normalizedBase = API_BASE_URL.replace(/\/+$/, '');
@@ -187,35 +202,26 @@ apiClient.interceptors.response.use(
         try { localStorage.removeItem('auth_token'); } catch (_) { /* ignore */ }
         // Also attempt to clear cookie-based token so UI flows can retry cleanly
         try { if (typeof document !== 'undefined') document.cookie = 'auth_token=; Path=/; Max-Age=0;'; } catch (_) { /* ignore */ }
-        const RELOAD_KEY = 'netdecker.auth_reload_ts';
-        const COOLDOWN_MS = 60_000; // 1 minute
-        const now = Date.now();
-        let last = 0;
-        try {
-          last = Number(localStorage.getItem(RELOAD_KEY) || '0');
-        } catch (e) {
-          // storage blocked — treat as no previous reload
-          // eslint-disable-next-line no-console
-          console.warn('[api] localStorage.getItem blocked for reload guard', e);
-          last = 0;
-        }
+        try { if (typeof document !== 'undefined') document.cookie = 'auth_token_js=; Path=/; Max-Age=0;'; } catch (_) { /* ignore */ }
 
-        if (!last || now - last > COOLDOWN_MS) {
-          try { localStorage.setItem(RELOAD_KEY, String(now)); } catch (e) { /* ignore */ }
-          // Log for diagnostics and perform a single reload to trigger
-          // external auth flows.
-          // eslint-disable-next-line no-console
-          console.warn('[api] 401 received — reloading once to trigger auth flow');
-          try { window.location.reload(); } catch (_) { /* ignore */ }
-        } else {
-          // eslint-disable-next-line no-console
-          console.warn('[api] 401 received — reload suppressed by guard');
+        const requestUrl = String(config.url || '');
+        const isAdminRequest = requestUrl.includes('/admin');
+        if (isAdminRequest) {
+          navigateToAdminLoginFromClient();
         }
       } catch (err) {
-        // Ensure we still attempt a reload if storage operations completely fail
         // eslint-disable-next-line no-console
-        console.warn('[api] failed handling 401 reload guard', err);
-        try { window.location.reload(); } catch { /* ignore */ }
+        console.warn('[api] failed handling 401 redirect flow', err);
+      }
+
+      try {
+        const requestUrl = String(config.url || '');
+        if (requestUrl.includes('/admin')) {
+          navigateToAdminLoginFromClient();
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[api] failed handling 401 redirect fallback', err);
       }
     }
     return Promise.reject(error);

@@ -21,7 +21,7 @@ COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/dist ./dist
 
 EXPOSE 3333
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server.js"]
 
 # Docker healthcheck using Node to avoid relying on curl/wget availability
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
