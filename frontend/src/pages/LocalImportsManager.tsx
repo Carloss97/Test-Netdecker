@@ -115,16 +115,21 @@ export default function LocalImportsManager() {
   return (
     <div className="section-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Local Imports Manager</h2>
+        <div>
+          <h2 style={{ marginBottom: 4 }}>Importaciones locales</h2>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>
+            Estas importaciones viven solo en este navegador cuando el backend no responde o cuando quieres trabajar en modo local.
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleExportJson} style={{ padding: '6px 10px' }}>Export JSON</button>
-          <button onClick={handleExportCsv} style={{ padding: '6px 10px' }}>Export CSV</button>
+          <button onClick={handleExportJson} style={{ padding: '6px 10px' }}>Exportar JSON</button>
+          <button onClick={handleExportCsv} style={{ padding: '6px 10px' }}>Exportar CSV</button>
           <label style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, cursor: 'pointer' }}>
-            Import JSON
+            Importar JSON
             <input type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => handleImportJsonFile(e.target.files ? e.target.files[0] : null)} />
           </label>
-          <button onClick={handleSendAllToBackend} disabled={loading || listings.length===0} style={{ padding: '6px 10px' }}>Send All to Backend</button>
-          <button onClick={handleClearAll} style={{ padding: '6px 10px', background: '#f44336', color: '#fff' }}>Clear All</button>
+          <button onClick={handleSendAllToBackend} disabled={loading || listings.length===0} style={{ padding: '6px 10px' }}>Enviar al backend</button>
+          <button onClick={handleClearAll} style={{ padding: '6px 10px', background: '#f44336', color: '#fff' }}>Vaciar todo</button>
         </div>
       </div>
 

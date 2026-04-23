@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { to: '/importar', icon: '📥', label: 'Importar' },
   { to: '/buscar', icon: '🔍', label: 'Buscar Carta' },
   { to: '/admin', icon: '⚙️', label: 'Admin' },
-  { to: '/local-imports', icon: '🗂️', label: 'Local Imports' },
+  { to: '/local-imports', icon: '🗂️', label: 'Importaciones locales' },
 ];
 
 interface LayoutProps {
@@ -28,6 +28,7 @@ export function Layout({ children }: LayoutProps) {
     if (path === '/importar') return { title: 'Importar', sub: 'Catálogos y stock por CSV' };
     if (path === '/buscar') return { title: 'Buscar Carta', sub: 'Busca por nombre o código · Ve todas las rarezas' };
     if (path === '/admin') return { title: 'Admin', sub: 'Parámetros avanzados de catálogo y precios' };
+    if (path === '/local-imports') return { title: 'Importaciones locales', sub: 'Respaldo y edición de listings guardados en el navegador' };
     return { title: 'TCG Platform', sub: '' };
   };
 

@@ -501,30 +501,6 @@ export async function exportInventoryCsv(params?: {
   return response.data as Blob;
 }
 
-export async function exportInventoryXlsxDavid(params?: {
-  scope?: 'edition' | 'tcg' | 'all';
-  editionId?: string;
-  tcgId?: string;
-}) {
-  const response = await apiClient.get('/inventory/export-david-xlsx', {
-    params,
-    responseType: 'blob',
-  });
-
-  const ct = (response.headers && (response.headers['content-type'] || response.headers['Content-Type'] || '')) as string;
-  // Defensive: if server returned JSON (error) instead of XLSX, surface as error instead of saving a corrupt file
-  if (!ct || !ct.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-    try {
-      const text = await (response.data as Blob).text();
-      throw new Error(`Export failed: unexpected content-type=${ct}. Body: ${text.slice(0, 500)}`);
-    } catch (err) {
-      throw new Error(`Export failed: unexpected content-type=${ct}`);
-    }
-  }
-
-  return response.data as Blob;
-}
-
 export async function getInventoryImports(params?: {
   page?: number;
   pageSize?: number;
@@ -789,12 +765,17 @@ export async function importExternalSet(params: {
   createListing?: boolean;
   marginMultiplier?: number;
 }) {
+  const createListing = params.createListing ?? true;
+
   try {
-    const { data } = await apiClient.post('/external/import/set', params);
+    const { data } = await apiClient.post('/external/import/set', {
+      ...params,
+      createListing,
+    });
     return data;
   } catch (err) {
     const res = await localImports.importSetLocal(params.tcg, params.setCode, {
-      createListing: params.createListing,
+      createListing,
       marginMultiplier: params.marginMultiplier,
     });
     return { success: true, total: res.total, created: res.created, updated: res.updated, skipped: res.skipped, errors: res.errors, results: res.results };

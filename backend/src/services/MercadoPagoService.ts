@@ -1,6 +1,35 @@
+import crypto from 'crypto';
 import prisma from '../utils/db.js';
 
 export class MercadoPagoService {
+  static computeWebhookSignature(payload: string): string {
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+    if (!token) {
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured');
+    }
+
+    return crypto.createHmac('sha256', token).update(payload).digest('hex');
+  }
+
+  static verifyWebhookSignature(payload: string, signature: string): boolean {
+    const rawSignature = String(signature || '').trim();
+    if (!rawSignature) return false;
+
+    let computed: string;
+    try {
+      computed = this.computeWebhookSignature(payload);
+    } catch {
+      return false;
+    }
+
+    const normalizedSignature = rawSignature.replace(/^sha256=/i, '').toLowerCase();
+    if (normalizedSignature.length !== computed.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(Buffer.from(computed, 'utf8'), Buffer.from(normalizedSignature, 'utf8'));
+  }
+
   static async createPreference(params: { items: Array<{ id: string; title: string; quantity: number; unit_price: number }>; back_urls?: Record<string,string>; external_reference?: string }) {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
     if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured');
@@ -33,6 +62,10 @@ export class MercadoPagoService {
       items: params.items.map((it) => ({ id: it.id, title: it.title, quantity: it.quantity, unit_price: it.unit_price })),
       back_urls: params.back_urls || {},
       external_reference: params.external_reference || undefined,
+      metadata: {
+        items: JSON.stringify(params.items.map((it) => ({ listingId: it.id, quantity: it.quantity }))),
+        storeId: params.external_reference || undefined,
+      },
       auto_return: 'approved',
     } as any;
 
@@ -54,6 +87,10 @@ export class MercadoPagoService {
     }
 
     throw new Error('Unsupported mercadopago SDK API shape');
+  }
+
+  static async handleWebhook(payload: unknown) {
+    return payload;
   }
 }
 

@@ -4,8 +4,8 @@ import PaymentService from '../services/PaymentService.js';
 import { ValidationError } from '../utils/errors.js';
 import StripeService from '../services/StripeService.js';
 import MercadoPagoService from '../services/MercadoPagoService.js';
-import prisma from '../utils/db.js';
 import tenantResolver from '../middleware/tenantResolver.js';
+import WebhookQueueService from '../services/WebhookQueueService.js';
 
 const router = express.Router();
 router.use(tenantResolver);
@@ -66,36 +66,19 @@ router.post('/mercadopago/create-preference', async (req, res) => {
 
 // Stripe webhook receiver - use raw body for signature verification
 export async function handleStripeWebhookEvent(event: any) {
-  if (event.type !== 'payment_intent.succeeded') return { received: true };
-
-  const intent = event.data.object as any;
-
-  // Parse items from metadata
-  const itemsJson = intent.metadata?.items || intent.metadata?.Items || null;
-  if (!itemsJson) {
-    // No items metadata, ignore
-    return { received: true };
-  }
-
-  let items: Array<{ listingId: string; quantity: number }> = [];
   try {
-    items = JSON.parse(itemsJson as string);
-  } catch (err) {
-    return { success: false, message: 'Invalid items metadata' };
+    return await WebhookQueueService.processWebhookPayload('STRIPE', event);
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : 'Webhook error' };
   }
+}
 
-  const paymentIntentId = intent.id as string;
-
-  // Idempotency: ensure we haven't already created an order for this payment intent
-  const existing = await prisma.order.findFirst({ where: { notes: String(`stripe_intent:${paymentIntentId}`) } });
-  if (existing) {
-    return { received: true, note: 'Already processed' };
+export async function handleMercadoPagoWebhookEvent(payload: any) {
+  try {
+    return await WebhookQueueService.processWebhookPayload('MERCADOPAGO', payload);
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : 'Webhook error' };
   }
-
-  // Process the sale and attach externalReference
-  await PaymentService.processPosSale({ items, storeId: intent.metadata?.storeId || null, paymentMethod: 'CARD', externalReference: `stripe_intent:${paymentIntentId}` } as any);
-
-  return { received: true };
 }
 
 router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -104,11 +87,30 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async 
 
   try {
     const event: any = await StripeService.verifyWebhookSignature(req.body as Buffer, sig, endpointSecret);
-    const result = await handleStripeWebhookEvent(event);
-    if ((result as any).success === false) return res.status(400).json(result);
-    return res.json(result);
+    await WebhookQueueService.enqueueWebhook('STRIPE', String(event.type || 'stripe.event'), event);
+    return res.status(202).json({ success: true, accepted: true });
   } catch (err: any) {
     console.error('Stripe webhook error', err?.message || err);
+    res.status(400).json({ success: false, message: 'Webhook error' });
+  }
+});
+
+router.post('/mercadopago/webhook', express.raw({ type: 'application/json', limit: '1mb' }), async (req, res) => {
+  try {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '');
+    const signatureHeader = req.headers['x-signature'];
+    const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+
+    if (!MercadoPagoService.verifyWebhookSignature(rawBody, signature)) {
+      console.warn('[payments] MercadoPago webhook signature validation failed');
+      return res.status(403).json({ success: false, message: 'Invalid MercadoPago signature' });
+    }
+
+    const payload = rawBody ? JSON.parse(rawBody) : {};
+    await WebhookQueueService.enqueueWebhook('MERCADOPAGO', String(payload?.type || payload?.topic || 'mercadopago.event'), payload);
+    return res.status(202).json({ success: true, accepted: true });
+  } catch (err: any) {
+    console.error('MercadoPago webhook error', err?.message || err);
     res.status(400).json({ success: false, message: 'Webhook error' });
   }
 });

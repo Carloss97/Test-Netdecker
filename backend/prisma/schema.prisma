@@ -440,6 +440,8 @@ model AdminUser {
   sessions     AdminSession[]
   auditTrails  AuditTrail[]
   priceChanges PriceHistory[] @relation("PriceChanges")
+  apiKeyRotationLogs ApiKeyRotationLog[] @relation("ApiKeyRotationLogs")
+  resolvedDeadLetters DeadLetterQueue[] @relation("ResolvedDeadLetters")
 }
 
 model AdminSession {
@@ -455,6 +457,71 @@ model AdminSession {
 
   @@index([userId])
   @@index([storeId])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String
+  keyHash   String
+  keyType   String
+  createdAt DateTime @default(now())
+  rotatedAt DateTime @default(now())
+  expiresAt DateTime?
+  isActive  Boolean  @default(true)
+
+  rotationLogs ApiKeyRotationLog[]
+
+  @@unique([name, keyType])
+  @@index([keyType, isActive])
+}
+
+model ApiKeyRotationLog {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  apiKey      ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  oldKeyHash  String
+  newKeyHash  String
+  reason      String
+  rotatedAt   DateTime @default(now())
+  rotatedBy   String?
+  rotatedByUser AdminUser? @relation("ApiKeyRotationLogs", fields: [rotatedBy], references: [id], onDelete: SetNull)
+
+  @@index([apiKeyId])
+  @@index([rotatedBy])
+}
+
+model WebhookJob {
+  id           String   @id @default(cuid())
+  provider     String
+  eventType    String
+  payload      Json
+  status       String
+  attempts     Int      @default(0)
+  maxAttempts  Int      @default(5)
+  nextRetryAt  DateTime?
+  error        String?
+  createdAt    DateTime @default(now())
+  processedAt  DateTime?
+
+  deadLetter   DeadLetterQueue?
+
+  @@index([provider, status])
+  @@index([status, nextRetryAt])
+}
+
+model DeadLetterQueue {
+  id            String   @id @default(cuid())
+  webhookJobId  String   @unique
+  webhookJob    WebhookJob @relation(fields: [webhookJobId], references: [id], onDelete: Cascade)
+  provider      String
+  error         String
+  createdAt     DateTime @default(now())
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  resolvedByUser AdminUser? @relation("ResolvedDeadLetters", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([provider])
+  @@index([resolvedBy])
 }
 
 model AuditTrail {

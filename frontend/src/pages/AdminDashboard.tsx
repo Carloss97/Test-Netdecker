@@ -2,50 +2,16 @@ import { useEffect, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import {
   bootstrapCatalog,
-  getAdminDashboard,
   getAdminPricingConfig,
-  getPriceVolatility,
-  getStockAlerts,
-  getTcgplayerCoverage,
   syncCatalog,
   resetCatalog,
   updateAdminPricingConfig,
 } from '../services/catalog';
-import type { AdminDashboard, CatalogBootstrapResponse, CatalogSyncResponse, TcgplayerCoverage } from '../types';
+import type { CatalogBootstrapResponse, CatalogSyncResponse } from '../types';
 import { DEFAULT_MARGIN_INPUT, parsePositiveNumberInput } from '../constants/pricing';
 
 const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
 type SupportedTcg = (typeof SUPPORTED_TCGS)[number];
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  color?: string;
-}) {
-  return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid #e0e0e0',
-        borderLeft: `4px solid ${color ?? '#1976d2'}`,
-        borderRadius: 8,
-        padding: '16px 20px',
-        minWidth: 160,
-        flex: '1 1 160px',
-      }}
-    >
-      <div style={{ fontSize: 26, fontWeight: 700 }}>{value}</div>
-      <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
-}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -59,13 +25,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function AdminDashboardPage() {
-  const dashboardQuery = useAsync(() => getAdminDashboard());
-  const alertsQuery = useAsync(() => getStockAlerts(5));
-  const coverageQuery = useAsync(() => getTcgplayerCoverage());
   const pricingConfigQuery = useAsync(() => getAdminPricingConfig());
-  const [volatilityWindow, setVolatilityWindow] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
-  const [volatileLoading, setVolatileLoading] = useState(false);
-  const [volatileEvents, setVolatileEvents] = useState<Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }>>([]);
   const [catalogTcg, setCatalogTcg] = useState<SupportedTcg | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
@@ -93,8 +53,6 @@ export function AdminDashboardPage() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
 
-  const dashboard = dashboardQuery.data as { success: boolean } & AdminDashboard | null;
-  const coverage = coverageQuery.data as { success: boolean } & TcgplayerCoverage | null;
   const pricingConfigData = pricingConfigQuery.data as {
     success: boolean;
     config?: {
@@ -102,21 +60,6 @@ export function AdminDashboardPage() {
       exchangeRate: { mode: 'api' | 'manual'; activeRate: number };
     };
   } | null;
-  const alerts = (alertsQuery.data as { alerts?: Array<{ listingId: string; cardName: string; editionCode: string; condition: string; quantity: number; finalPrice: number }> } | null)?.alerts ?? [];
-
-  useEffect(() => {
-    setVolatileLoading(true);
-    getPriceVolatility(20, volatilityWindow)
-      .then((data) => {
-        const events = (data as { events?: Array<{ priceHistoryId: string; cardName: string; editionCode: string; oldPrice: number; newPrice: number; percentChange: number; createdAt: string }> }).events ?? [];
-        setVolatileEvents(events);
-      })
-      .catch(() => {
-        setVolatileEvents([]);
-      })
-      .finally(() => setVolatileLoading(false));
-  }, [volatilityWindow]);
-
   const handleRefresh = () => window.location.reload();
 
   const handleSavePricingConfig = async () => {
@@ -147,7 +90,6 @@ export function AdminDashboardPage() {
 
       setPricingConfigMsg(`Configuración guardada. Margen actualizado en ${(result as { updatedMargins?: number }).updatedMargins ?? 0} listing(s).`);
       pricingConfigQuery.execute();
-      dashboardQuery.execute();
     } catch (err: unknown) {
       setPricingConfigErr(err instanceof Error ? err.message : 'No se pudo guardar configuración');
     } finally {
@@ -254,12 +196,9 @@ export function AdminDashboardPage() {
         </div>
       </div>
 
-      {dashboardQuery.status === 'pending' && <p>Cargando panel…</p>}
-      {dashboardQuery.status === 'error' && (
-        <p style={{ color: 'red' }}>
-          No se pudo cargar el panel. Verifica que el backend esté corriendo.
-        </p>
-      )}
+      <p style={{ marginTop: 0, color: 'var(--text-muted)' }}>
+        Los resúmenes, alertas y sincronizaciones recientes se muestran en Dashboard. Aquí quedan solo los controles administrativos y de catálogo.
+      </p>
 
       {/* Reset Database Modal */}
       {showResetConfirm && (
@@ -332,6 +271,9 @@ export function AdminDashboardPage() {
 
       <Section title="🗂️ Consola de Catálogo">
         <div className="surface-card" style={{ padding: 16, marginBottom: 16 }}>
+          <p style={{ marginTop: 0, fontSize: 12, color: '#666' }}>
+            Usa estos controles para hacer la carga inicial del catálogo o sincronizar sets nuevos sin duplicar métricas que ya viven en Dashboard.
+          </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>TCG</label>
@@ -502,308 +444,7 @@ export function AdminDashboardPage() {
         </div>
       </Section>
 
-      {dashboard && (
-        <>
-          {/* KPI cards */}
-          <Section title="Resumen del Catálogo">
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <KpiCard
-                label="Cartas Totales"
-                value={dashboard.kpis.catalog.totalCards.toLocaleString()}
-                color="#1976d2"
-              />
-              <KpiCard
-                label="Listings Activos"
-                value={dashboard.kpis.catalog.activeListings.toLocaleString()}
-                sub={`de ${dashboard.kpis.catalog.totalListings} total`}
-                color="#388e3c"
-              />
-              <KpiCard
-                label="Stock Bajo"
-                value={dashboard.kpis.catalog.lowStockListings.toLocaleString()}
-                sub="≤5 unidades"
-                color="#f57c00"
-              />
-              <KpiCard
-                label="Sin Stock"
-                value={dashboard.kpis.catalog.outOfStockListings.toLocaleString()}
-                color="#d32f2f"
-              />
-              <KpiCard
-                label="Valor Inventario"
-                value={`$${Math.round(dashboard.kpis.inventory.totalValueCLP / 1000).toLocaleString()}K`}
-                sub="CLP (listings activos)"
-                color="#7b1fa2"
-              />
-              <KpiCard
-                label="Órdenes"
-                value={dashboard.kpis.orders.total.toLocaleString()}
-                sub={`${dashboard.kpis.orders.pending} pendientes`}
-                color="#0288d1"
-              />
-            </div>
-          </Section>
-
-          {coverage && (
-            <Section title="📊 Cobertura de Cartas y Fuentes de Precio">
-              <p style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
-                <strong>Cartas totales:</strong> {coverage?.global.totalCards.toLocaleString()} importadas en todos los TCG.<br/>
-                <strong>Fuentes:</strong> Magic (Scryfall), Pokémon (PokemonTCG API), Yu-Gi-Oh! (YGOPRODeck), One Piece (OPTCGAPI).
-              </p>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-                <KpiCard
-                  label="Cobertura Global"
-                  value={`${Number(coverage.global.coveragePercent ?? 0).toFixed(2)}%`}
-                  sub={`${coverage.global.coveredCards ?? 0} / ${coverage.global.totalCards ?? 0} cartas`}
-                  color="#5d4037"
-                />
-                <KpiCard
-                  label="IDs Faltantes"
-                  value={coverage.global.uncoveredCards.toLocaleString()}
-                  sub="Cartas pendientes de productId"
-                  color="#8d6e63"
-                />
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f5f5f5' }}>
-                    <th style={thStyle}>TCG</th>
-                    <th style={thStyle}>Cobertura</th>
-                    <th style={thStyle}>Cubiertas</th>
-                    <th style={thStyle}>Faltantes</th>
-                    <th style={thStyle}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coverage.byTcg.map((item) => (
-                    <tr key={item.tcg} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={tdStyle}>{item.tcgDisplayName}</td>
-                      <td style={tdStyle}>{Number(item.coveragePercent ?? 0).toFixed(2)}%</td>
-                      <td style={tdStyle}>{item.coveredCards}</td>
-                      <td style={tdStyle}>{item.uncoveredCards}</td>
-                      <td style={tdStyle}>{item.totalCards}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Section>
-          )}
-
-          {/* Exchange rate */}
-          {dashboard.kpis.exchangeRate && (
-            <Section title="Tipo de Cambio">
-              <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, padding: 16, display: 'inline-block' }}>
-                <strong>1 USD = {dashboard.kpis.exchangeRate.usdToCLP.toLocaleString()} CLP</strong>
-                <span style={{ marginLeft: 16, color: '#888', fontSize: 12 }}>
-                  Fuente: {dashboard.kpis.exchangeRate.source}
-                  {dashboard.kpis.exchangeRate.fetchedAt
-                    ? ` · ${new Date(dashboard.kpis.exchangeRate.fetchedAt).toLocaleString()}`
-                    : ''}
-                </span>
-              </div>
-            </Section>
-          )}
-
-          {/* Recent imports */}
-          {dashboard.recentImports.length > 0 && (
-            <Section title="Importaciones Recientes">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f5f5f5' }}>
-                    <th style={thStyle}>Archivo</th>
-                    <th style={thStyle}>Estado</th>
-                    <th style={thStyle}>Registros</th>
-                    <th style={thStyle}>OK</th>
-                    <th style={thStyle}>Errores</th>
-                    <th style={thStyle}>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dashboard.recentImports.map((imp) => (
-                    <tr key={imp.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={tdStyle}>{imp.fileName}</td>
-                      <td style={tdStyle}>
-                        <span
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            background:
-                              imp.status === 'completed' ? '#e8f5e9' : imp.status === 'failed' ? '#ffebee' : '#fff3e0',
-                            color:
-                              imp.status === 'completed' ? '#2e7d32' : imp.status === 'failed' ? '#c62828' : '#e65100',
-                            fontSize: 11,
-                          }}
-                        >
-                          {imp.status}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>{imp.totalRecords}</td>
-                      <td style={tdStyle}>{imp.successCount}</td>
-                      <td style={tdStyle}>{imp.failureCount}</td>
-                      <td style={tdStyle}>{new Date(imp.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Section>
-          )}
-
-          {/* Recent price sync runs */}
-          {dashboard.recentSyncRuns.length > 0 && (
-            <Section title="Sincronizaciones de Precio Recientes">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f5f5f5' }}>
-                    <th style={thStyle}>Fuente</th>
-                    <th style={thStyle}>Estado</th>
-                    <th style={thStyle}>Total</th>
-                    <th style={thStyle}>Actualizados</th>
-                    <th style={thStyle}>Volátiles</th>
-                    <th style={thStyle}>Fallidos</th>
-                    <th style={thStyle}>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dashboard.recentSyncRuns.map((run) => (
-                    <tr key={run.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={tdStyle}>{run.source}</td>
-                      <td style={tdStyle}>
-                        <span
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: 12,
-                            background:
-                              run.status === 'completed' ? '#e8f5e9' : run.status === 'failed' ? '#ffebee' : '#fff3e0',
-                            color:
-                              run.status === 'completed' ? '#2e7d32' : run.status === 'failed' ? '#c62828' : '#e65100',
-                            fontSize: 11,
-                          }}
-                        >
-                          {run.status}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>{run.total}</td>
-                      <td style={tdStyle}>{run.updated}</td>
-                      <td style={tdStyle}>{run.volatile}</td>
-                      <td style={tdStyle}>{run.failed}</td>
-                      <td style={tdStyle}>{new Date(run.startedAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Section>
-          )}
-        </>
-      )}
-
-      {/* Stock alerts */}
-      {alertsQuery.status !== 'error' && alerts.length > 0 && (
-        <Section title={`Alertas de Stock Bajo (≤5 unidades)`}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#fff8e1' }}>
-                <th style={thStyle}>Carta</th>
-                <th style={thStyle}>Edición</th>
-                <th style={thStyle}>Condición</th>
-                <th style={thStyle}>Stock</th>
-                <th style={thStyle}>Precio (CLP)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.map((a) => (
-                <tr key={a.listingId} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tdStyle}>{a.cardName}</td>
-                  <td style={tdStyle}>{a.editionCode}</td>
-                  <td style={tdStyle}>{a.condition}</td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      color: a.quantity === 0 ? '#d32f2f' : '#f57c00',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {a.quantity}
-                  </td>
-                  <td style={tdStyle}>{Math.round(a.finalPrice).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
-      )}
-
-      {/* Volatile price changes */}
-      {(volatileLoading || volatileEvents.length > 0) && (
-        <Section title="Cambios de Precio Volátiles Recientes">
-          <div style={{ marginBottom: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ fontSize: 12, color: '#666' }}>Ventana</label>
-            <select
-              value={volatilityWindow}
-              onChange={(e) => setVolatilityWindow(e.target.value as '24h' | '7d' | '30d' | '90d')}
-              style={{ padding: '6px 8px', borderRadius: 4, border: '1px solid #ddd' }}
-            >
-              <option value="24h">24 horas</option>
-              <option value="7d">7 días</option>
-              <option value="30d">30 días</option>
-              <option value="90d">90 días</option>
-            </select>
-            <span style={{ fontSize: 12, color: '#666' }}>
-              Solo cambios API con precio anterior mayor a 0.
-            </span>
-          </div>
-          {volatileLoading ? (
-            <div style={{ fontSize: 13, color: '#666' }}>⏳ Cargando cambios volátiles…</div>
-          ) : volatileEvents.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#666' }}>Sin cambios volátiles para la ventana seleccionada.</div>
-          ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#fce4ec' }}>
-                <th style={thStyle}>Carta</th>
-                <th style={thStyle}>Edición</th>
-                <th style={thStyle}>Precio Anterior</th>
-                <th style={thStyle}>Precio Nuevo</th>
-                <th style={thStyle}>Cambio %</th>
-                <th style={thStyle}>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {volatileEvents.map((e) => (
-                <tr key={e.priceHistoryId} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tdStyle}>{e.cardName}</td>
-                  <td style={tdStyle}>{e.editionCode}</td>
-                  <td style={tdStyle}>{Math.round(e.oldPrice).toLocaleString()}</td>
-                  <td style={tdStyle}>{Math.round(e.newPrice).toLocaleString()}</td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      color: e.percentChange > 0 ? '#d32f2f' : '#388e3c',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {e.percentChange > 0 ? '+' : ''}
-                    {Number(e.percentChange ?? 0).toFixed(1)}%
-                  </td>
-                  <td style={tdStyle}>{new Date(e.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          )}
-        </Section>
-      )}
     </div>
   );
 }
 
-const thStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  textAlign: 'left',
-  fontWeight: 600,
-  fontSize: 12,
-  borderBottom: '1px solid #e0e0e0',
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: '8px 12px',
-};

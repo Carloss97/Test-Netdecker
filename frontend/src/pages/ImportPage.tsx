@@ -9,7 +9,6 @@ import {
   importInventoryCsv,
   getInventoryImports,
   exportInventoryCsv,
-  exportInventoryXlsxDavid,
   resetCatalog,
 } from '../services/catalog';
 import type { EditionWithCounts } from '../types';
@@ -70,7 +69,7 @@ export function ImportPage() {
   const [loadingLocalEditions, setLoadingLocalEditions] = useState(false);
   const [exportTcg, setExportTcg] = useState('');
   const [selectedExportEditionId, setSelectedExportEditionId] = useState('');
-  const [exportingScope, setExportingScope] = useState<'edition' | 'tcg' | 'all' | 'david' | null>(null);
+  const [exportingScope, setExportingScope] = useState<'edition' | 'tcg' | 'all' | null>(null);
   const [setSearch, setSetSearch] = useState('');
   const [sortColumn, setSortColumn] = useState<'code' | 'name' | 'cards' | 'releaseDate'>('code');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -170,33 +169,6 @@ export function ImportPage() {
       setImportError('Error al cargar sets externos');
     } finally {
       setLoadingSets(false);
-    }
-  };
-
-  const handleExportDavid = async () => {
-    setExportingScope('david');
-    setImportError(null);
-    setImportMsg(null);
-
-    try {
-        if (!selectedExportEditionId) {
-        setImportError('Selecciona una edición para exportar en formato David');
-        return;
-      }
-
-      const blob = await exportInventoryXlsxDavid({ scope: 'edition', editionId: selectedExportEditionId });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `inventory-edition-${selectedExportEditionId}-david.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setImportMsg('XLSX exportado correctamente (David format)');
-    } catch (err) {
-      setImportError('Error al exportar formato David');
-    } finally {
-      setExportingScope(null);
     }
   };
 
@@ -443,11 +415,6 @@ export function ImportPage() {
               <button className="btn btn-secondary" onClick={() => handleExportInventory('edition')} disabled={exportingScope !== null} title="Exporta solo la edición seleccionada">
                 {exportingScope === 'edition' ? '⏳ Exportando…' : '⬇ Exportar Set'}
               </button>
-              {exportTcg === 'YUGIOH' && (
-                <button className="btn btn-secondary" onClick={handleExportDavid} disabled={exportingScope !== null || !selectedExportEditionId} title="Exporta la edición en formato David">
-                  {exportingScope === 'david' ? '⏳ Exportando…' : 'exportar David'}
-                </button>
-              )}
               <button className="btn btn-secondary" onClick={() => handleExportInventory('tcg')} disabled={exportingScope !== null} title="Exporta todas las ediciones del TCG seleccionado">
                 {exportingScope === 'tcg' ? '⏳ Exportando…' : '⬇ Exportar TCG'}
               </button>
@@ -456,7 +423,7 @@ export function ImportPage() {
               </button>
             </div>
             <p style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Este CSV usa el formato de importación full-upsert para restauración tras reset de base de datos.
+              Exporta CSV para restaurar inventario o mover datos entre entornos. El flujo especial de Yu-Gi-Oh fue retirado.
             </p>
           </div>
 

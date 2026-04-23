@@ -164,12 +164,16 @@ router.post('/import/set', async (req: Request, res: Response) => {
   const setCode = String(req.body.setCode || '').trim();
   if (!setCode) throw new ValidationError('setCode is required');
 
+  const createListing = req.body.createListing === undefined
+    ? true
+    : (req.body.createListing === true || req.body.createListing === 'true');
+
   const syncPrices = req.body.syncPrices === undefined
     ? isImportSetSyncPricesDefault()
     : (req.body.syncPrices === true || req.body.syncPrices === 'true');
 
   const result = await ExternalImportService.importSet(tcg, setCode, {
-    createListing: req.body.createListing === true || req.body.createListing === 'true',
+    createListing,
     marginMultiplier: req.body.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
     syncPrices,
   });

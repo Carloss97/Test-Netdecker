@@ -20,6 +20,14 @@ import StoresList from './pages/admin/StoresList';
 import LocalImportsManager from './pages/LocalImportsManager';
 import apiClient from './services/api';
 
+function readAdminToken(): string | null {
+  try {
+    return localStorage.getItem('auth_token') || null;
+  } catch {
+    return null;
+  }
+}
+
 function ProtectedLayout() {
   return (
     <Layout>
@@ -30,10 +38,16 @@ function ProtectedLayout() {
 
 function RequireAdmin() {
   const location = useLocation();
-  const [status, setStatus] = useState<'pending' | 'ok' | 'denied'>('pending');
+  const [status, setStatus] = useState<'pending' | 'ok' | 'denied'>(() => (readAdminToken() ? 'ok' : 'pending'));
 
   useEffect(() => {
+    if (status !== 'pending') return;
+
     let mounted = true;
+    const timeoutId = window.setTimeout(() => {
+      if (mounted) setStatus('denied');
+    }, 8000);
+
     apiClient
       .get('/admin/auth/me')
       .then(() => {
@@ -45,8 +59,9 @@ function RequireAdmin() {
 
     return () => {
       mounted = false;
+      window.clearTimeout(timeoutId);
     };
-  }, [location.pathname]);
+  }, [status]);
 
   if (status === 'pending') {
     return <div style={{ padding: 24 }}>Validando sesión admin…</div>;
