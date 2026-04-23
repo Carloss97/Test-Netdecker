@@ -285,6 +285,62 @@ router.get('/editions', async (_req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/admin/tcgplayer-coverage
+ * Returns card coverage by TCG based on cards that already have at least one listing.
+ * This keeps the admin dashboard contract stable even when provider-specific IDs are unavailable.
+ */
+router.get('/tcgplayer-coverage', async (_req: Request, res: Response) => {
+  const tcgs = await prisma.tCG.findMany({
+    select: { id: true, name: true, displayName: true },
+    orderBy: { name: 'asc' },
+  });
+
+  const byTcg = await Promise.all(
+    tcgs.map(async (tcg) => {
+      const [totalCards, coveredCards] = await Promise.all([
+        prisma.card.count({ where: { tcgId: tcg.id } }),
+        prisma.card.count({ where: { tcgId: tcg.id, listings: { some: {} } } }),
+      ]);
+
+      const uncoveredCards = Math.max(totalCards - coveredCards, 0);
+      const coveragePercent = totalCards > 0 ? (coveredCards / totalCards) * 100 : 0;
+
+      return {
+        tcg: tcg.name,
+        tcgDisplayName: tcg.displayName,
+        totalCards,
+        coveredCards,
+        uncoveredCards,
+        coveragePercent,
+      };
+    }),
+  );
+
+  const global = byTcg.reduce(
+    (acc, item) => {
+      acc.totalCards += item.totalCards;
+      acc.coveredCards += item.coveredCards;
+      return acc;
+    },
+    { totalCards: 0, coveredCards: 0 },
+  );
+
+  const uncoveredCards = Math.max(global.totalCards - global.coveredCards, 0);
+  const coveragePercent = global.totalCards > 0 ? (global.coveredCards / global.totalCards) * 100 : 0;
+
+  res.json({
+    success: true,
+    global: {
+      totalCards: global.totalCards,
+      coveredCards: global.coveredCards,
+      uncoveredCards,
+      coveragePercent,
+    },
+    byTcg,
+  });
+});
+
+/**
  * POST /api/admin/catalog/bootstrap
  * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE'|'DIGIMON'|'WEISS_SCHWARZ', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
  */

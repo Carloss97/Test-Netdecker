@@ -70,14 +70,14 @@ function hydrateAuthHeader(): void {
   }
 }
 
-function navigateToAdminLoginFromClient(): void {
+function navigateToLoginFromClient(): void {
   try {
     if (typeof window === 'undefined') return;
     const { pathname, search, hash } = window.location;
-    if (pathname.startsWith('/admin/login')) return;
+    if (pathname.startsWith('/login') || pathname.startsWith('/admin/login')) return;
 
     const next = encodeURIComponent(`${pathname}${search}${hash}`);
-    const target = `/admin/login?next=${next}`;
+    const target = `/login?next=${next}`;
     window.history.replaceState({}, '', target);
     window.dispatchEvent(new PopStateEvent('popstate'));
   } catch (_) {
@@ -204,21 +204,14 @@ apiClient.interceptors.response.use(
         try { if (typeof document !== 'undefined') document.cookie = 'auth_token=; Path=/; Max-Age=0;'; } catch (_) { /* ignore */ }
         try { if (typeof document !== 'undefined') document.cookie = 'auth_token_js=; Path=/; Max-Age=0;'; } catch (_) { /* ignore */ }
 
-        const requestUrl = String(config.url || '');
-        const isAdminRequest = requestUrl.includes('/admin');
-        if (isAdminRequest) {
-          navigateToAdminLoginFromClient();
-        }
+        navigateToLoginFromClient();
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn('[api] failed handling 401 redirect flow', err);
       }
 
       try {
-        const requestUrl = String(config.url || '');
-        if (requestUrl.includes('/admin')) {
-          navigateToAdminLoginFromClient();
-        }
+        navigateToLoginFromClient();
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn('[api] failed handling 401 redirect fallback', err);

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'rea
 import { useEffect, useState } from 'react';
 import './App.css';
 import { Layout } from './components/Layout';
+import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PricingPage } from './pages/PricingPage';
 import { ImportPage } from './pages/ImportPage';
@@ -18,6 +19,14 @@ import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import StoresList from './pages/admin/StoresList';
 import LocalImportsManager from './pages/LocalImportsManager';
 import apiClient from './services/api';
+
+function ProtectedLayout() {
+  return (
+    <Layout>
+      <Outlet />
+    </Layout>
+  );
+}
 
 function RequireAdmin() {
   const location = useLocation();
@@ -45,7 +54,7 @@ function RequireAdmin() {
 
   if (status === 'denied') {
     const next = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
-    return <Navigate to={`/admin/login?next=${next}`} replace />;
+    return <Navigate to={`/login?next=${next}`} replace />;
   }
 
   return <Outlet />;
@@ -54,28 +63,31 @@ function RequireAdmin() {
 function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/admin/login" replace />} />
-          <Route path="/inventario" element={<InventoryPage />} />
-          <Route path="/precios" element={<PricingPage />} />
-          <Route path="/importar" element={<ImportPage />} />
-          <Route path="/import-mapper" element={<ImportMapper />} />
-          <Route path="/buscar" element={<CardSearchPage />} />
-          <Route path="/stock-bajo" element={<LowStockPage />} />
-          <Route path="/pos" element={<PosPage />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route element={<RequireAdmin />}>
+      <Routes>
+        <Route path="/login" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+
+        <Route element={<RequireAdmin />}>
+          <Route element={<ProtectedLayout />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/inventario" element={<InventoryPage />} />
+            <Route path="/precios" element={<PricingPage />} />
+            <Route path="/importar" element={<ImportPage />} />
+            <Route path="/import-mapper" element={<ImportMapper />} />
+            <Route path="/buscar" element={<CardSearchPage />} />
+            <Route path="/stock-bajo" element={<LowStockPage />} />
+            <Route path="/pos" element={<PosPage />} />
             <Route path="/admin/accounts" element={<AdminAccountsPage />} />
             <Route path="/admin/stores" element={<StoresList />} />
             <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />
             <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
             <Route path="/admin/approvals" element={<ApprovalsPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/local-imports" element={<LocalImportsManager />} />
           </Route>
-          <Route path="/local-imports" element={<LocalImportsManager />} />
-        </Routes>
-      </Layout>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }
