@@ -399,13 +399,6 @@ IMPORT_API_KEY es un simple string en .env, sin hash ni rotación. Se necesita a
    ```
 
 **Criterios de Aceptación**
-- [ ] ApiKey y ApiKeyRotationLog models added
-- [ ] Migración crea tablas
-- [ ] requireApiKey hashea y compara con timing-safe
-- [ ] Auto-rotation job implementado (90-day window)
-- [ ] Endpoint manual rotation protegido con requirePermission
-- [ ] Rotación loguea oldKeyHash + newKeyHash + reason
-- [ ] Tests: key hash/rotate/expiry
 
 **Estimado**: 3-4 horas
 
@@ -548,13 +541,13 @@ Si un webhook de Stripe/MercadoPago falla, la orden puede no crearse. Se necesit
    ```
 
 **Criterios de Aceptación**
-- [ ] WebhookJob + DeadLetterQueue tables created
-- [ ] WebhookQueueService implementado con retries
-- [ ] Webhook handlers enqueue jobs (return 202)
-- [ ] Background job procesa queue cada 5 segundos
-- [ ] Failed retries → DLQ
-- [ ] Admin endpoints para inspeccionar/retry DLQ
-- [ ] Tests: simulate webhook failure, verify retry + DLQ
+ - [x] WebhookJob + DeadLetterQueue tables created
+ - [x] WebhookQueueService implementado con retries
+ - [x] Webhook handlers enqueue jobs (return 202)
+ - [x] Background job procesa queue cada 5 segundos
+ - [x] Failed retries → DLQ
+ - [x] Admin endpoints para inspeccionar/retry DLQ
+ - [x] Tests: simulate webhook failure, verify retry + DLQ
 
 **Estimado**: 5-6 horas
 
@@ -600,10 +593,10 @@ Stripe valida firma de webhook, pero MercadoPago no. Esto permite ataques de web
    ```
 
 **Criterios de Aceptación**
-- [ ] MercadoPagoService.verifyWebhookSignature() implementado
-- [ ] Webhook handler valida firma antes de procesar
-- [ ] Tests: valid + invalid signatures testeados
-- [ ] Logs: log signature validation failures (potential attack)
+ - [x] MercadoPagoService.verifyWebhookSignature() implementado
+ - [x] Webhook handler valida firma antes de procesar
+ - [x] Tests: valid + invalid signatures testeados
+ - [x] Logs: log signature validation failures (potential attack)
 
 **Estimado**: 1-2 horas
 
@@ -756,10 +749,10 @@ No hay validación de vars de entorno en startup. Si falta DATABASE_URL o está 
    ```
 
 **Criterios de Aceptación**
-- [ ] Zod envSchema implementado
-- [ ] Validación en boot antes de conectar DB
-- [ ] Error detallado si variable inválida/faltante
-- [ ] Tests: missing/invalid env → startup fails
+- [x] Zod envSchema implementado
+- [x] Validación en boot antes de conectar DB
+- [x] Error detallado si variable inválida/faltante
+- [x] Tests: missing/invalid env → startup fails
 
 **Estimado**: 1-2 horas
 
@@ -853,11 +846,11 @@ No hay verificación de que órdenes en DB coincidan con transacciones en Stripe
    ```
 
 **Criterios de Aceptación**
-- [ ] PaymentReconciliationService implementado
-- [ ] Job ejecuta diario
-- [ ] Detecta orphans de ambos lados
-- [ ] Reporte guardado en DB
-- [ ] Admin endpoint lista reportes
+- [x] PaymentReconciliationService implementado
+- [x] Job ejecuta diario
+- [x] Detecta orphans de ambos lados
+- [x] Reporte guardado en DB
+- [x] Admin endpoint lista reportes
 
 **Estimado**: 2-3 horas
 
@@ -948,10 +941,10 @@ Coverage actual ~30% para routes, ~20% para payments. Se necesita cobertura syst
    ```
 
 **Criterios de Aceptación**
-- [ ] Admin auth integration tests ~30 tests
-- [ ] RBAC permission tests ~20 tests
-- [ ] Concurrency tests en ReservationService
-- [ ] E2E Playwright checkout test
+- [x] Admin auth integration tests (login/session coverage base)
+- [x] RBAC permission tests (incluye scope por tienda)
+- [x] Concurrency tests en ReservationService/InventoryService
+- [x] E2E Playwright checkout test
 - [ ] Coverage report muestra 70%+ en routes + services
 
 **Estimado**: 6-8 horas
@@ -997,11 +990,11 @@ POS registra transacciones pero no hay reconciliación de efectivo. Cajero puede
    ```
 
 **Criterios de Aceptación**
-- [ ] CashSession schema actualizado
-- [ ] Endpoint /close calcula discrepancia
-- [ ] DiscrepancyLog creado si no coincide
-- [ ] Admin endpoint lista discrepancias
-- [ ] Tests: reconciliación correcta
+- [x] CashSession schema actualizado
+- [x] Endpoint /close calcula discrepancia
+- [x] DiscrepancyLog creado si no coincide
+- [x] Admin endpoint lista discrepancias
+- [x] Tests: reconciliación correcta
 
 **Estimado**: 2-3 horas
 

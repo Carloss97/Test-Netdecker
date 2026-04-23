@@ -55,3 +55,45 @@ test('requirePermission allows when permission exists', async () => {
     PermissionService.checkPermission = originalCheck;
   }
 });
+
+test('requirePermission denies MANAGER when request store differs', async () => {
+  const mw = requirePermission('manage', 'inventory');
+  const req: any = {
+    path: '/api/admin/inventory',
+    adminUser: { id: 'u4', role: 'MANAGER', storeId: 'store-A' },
+    store: { id: 'store-B' },
+  };
+
+  let threw = false;
+  try {
+    await mw(req as any, {} as any, () => undefined);
+  } catch (err: any) {
+    threw = true;
+    assert.ok(String(err.message).toLowerCase().includes('insufficient permissions'));
+  }
+
+  assert.equal(threw, true);
+});
+
+test('requirePermission allows MANAGER in same store when permission exists', async () => {
+  const originalCheck = PermissionService.checkPermission;
+  try {
+    PermissionService.checkPermission = (async () => true) as any;
+
+    const mw = requirePermission('manage', 'inventory');
+    const req: any = {
+      path: '/api/admin/inventory',
+      adminUser: { id: 'u5', role: 'MANAGER', storeId: 'store-A' },
+      store: { id: 'store-A' },
+    };
+
+    let nextCalled = false;
+    await mw(req as any, {} as any, () => {
+      nextCalled = true;
+    });
+
+    assert.equal(nextCalled, true);
+  } finally {
+    PermissionService.checkPermission = originalCheck;
+  }
+});

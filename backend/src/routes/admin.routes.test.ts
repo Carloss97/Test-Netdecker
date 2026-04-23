@@ -4,12 +4,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'net';
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import 'express-async-errors';
 
 import adminRoutes from './admin.routes.js';
 import prisma from '../utils/db.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
+import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
+import CashSessionService from '../services/CashSessionService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { RateLimitService } from '../services/RateLimitService.js';
 
@@ -45,7 +47,7 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown,
 }
 
 function buildErrorHandler() {
-  return (err: unknown, _req: Request, res: Response) => {
+  return (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const isAppError = false;
     const statusCode = typeof (err as any)?.statusCode === 'number' ? (err as any).statusCode : 500;
     const message = err instanceof Error ? err.message : 'Internal Server Error';
@@ -113,4 +115,150 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
 
   // Reset runtime default
   setImportSetSyncPricesDefault(true);
+});
+
+test('GET /api/admin/reconciliation/reports returns recent reports', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalListReports = PaymentReconciliationService.listReports;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+
+    PaymentReconciliationService.listReports = (async (_limit = 30) => [
+      {
+        id: 'rep_1',
+        provider: 'STRIPE',
+        status: 'completed',
+        totalStripeTransactions: 12,
+        totalLocalOrders: 11,
+        totalDiscrepancies: 1,
+        discrepancies: [{ type: 'STRIPE_ORPHAN' }],
+        windowStart: new Date('2026-04-10T00:00:00.000Z'),
+        windowEnd: new Date('2026-04-11T00:00:00.000Z'),
+        createdAt: new Date('2026-04-11T02:00:00.000Z'),
+      },
+    ]) as typeof PaymentReconciliationService.listReports;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/reconciliation/reports?limit=20', undefined, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).total, 1);
+    assert.equal((res.body as any).reports[0].id, 'rep_1');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    PaymentReconciliationService.listReports = originalListReports;
+  }
+});
+
+test('GET /api/admin/reconciliation/reports validates limit query', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/reconciliation/reports?limit=0', undefined, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 400);
+    assert.equal((res.body as any).success, false);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+  }
+});
+
+test('POST /api/admin/pos/sessions/:id/close records cash discrepancy', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalCloseSession = CashSessionService.closeSession;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+
+    CashSessionService.closeSession = (async (_sessionId: string, params: any) => ({
+      id: 'cash-1',
+      sessionId: 'cash-1',
+      ...params,
+      theoreticalAmount: 750,
+      discrepancy: -50,
+      status: 'DISCREPANCY',
+    })) as typeof CashSessionService.closeSession;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'POST', '/api/admin/pos/sessions/cash-1/close', { actualCashAmount: 700, closedBy: 'admin@test' }, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).session.discrepancy, -50);
+    assert.equal((res.body as any).session.status, 'DISCREPANCY');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    CashSessionService.closeSession = originalCloseSession;
+  }
+});
+
+test('GET /api/admin/pos/discrepancies returns logs', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalListDiscrepancies = CashSessionService.listDiscrepancies;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+
+    CashSessionService.listDiscrepancies = (async () => [
+      {
+        id: 'disc-1',
+        cashSessionId: 'cash-1',
+        storeId: 'store-1',
+        actualCashAmount: 700,
+        theoreticalAmount: 750,
+        discrepancy: -50,
+        status: 'OPEN',
+        notes: 'cash discrepancy',
+        createdAt: new Date('2026-04-23T09:00:00.000Z'),
+      },
+    ]) as typeof CashSessionService.listDiscrepancies;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/pos/discrepancies?limit=10', undefined, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).total, 1);
+    assert.equal((res.body as any).discrepancies[0].id, 'disc-1');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    CashSessionService.listDiscrepancies = originalListDiscrepancies;
+  }
 });

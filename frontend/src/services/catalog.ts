@@ -3,10 +3,6 @@ import { buildApiUrl } from './api';
 import type { EditionWithCounts, EditionInventory, Listing } from '../types';
 import * as tcgcsvClient from './tcgcsv';
 const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
-import * as scryfallClient from './scryfall';
-import * as pokemonClient from './pokemontcg';
-import * as ygoproClient from './ygopro';
-import * as optcgClient from './optcg';
 import * as localImports from './localImports';
 
 const DEFAULT_USD_TO_CLP = Number(import.meta.env.VITE_MANUAL_USD_TO_CLP || import.meta.env.VITE_USD_TO_CLP) || 1000;
@@ -944,62 +940,35 @@ export async function getEditionById(id: string): Promise<EditionWithCounts> {
 }
 
 /** Retrieves all cards in an edition along with their listings — used for inventory management. */
-export async function getEditionCardsWithStock(editionId: string): Promise<EditionInventory> {
+export async function getEditionCardsWithStock(editionId: string, editionCode?: string, tcgId?: string): Promise<EditionInventory> {
   try {
     const response = await apiClient.get(`/editions/${editionId}/cards-with-stock`);
     return response.data;
   } catch (_) {
-    // Try to fetch set cards from external sources (TCGCSV, Scryfall, PokemonTCG, YGOPRO, OPTCG)
-    let tcg: string | undefined;
-    let setCode = editionId;
-    if (editionId.includes(':')) {
-      const parts = editionId.split(':');
-      tcg = parts[0];
-      setCode = parts.slice(1).join(':');
-    }
+    const resolvedSetCode = editionCode || (editionId.includes(':') ? editionId.split(':').slice(1).join(':') : editionId);
+    const resolvedTcg = tcgId || (editionId.includes(':') ? editionId.split(':')[0] : undefined);
 
     const externalCards: any[] = [];
 
     const tryFetch = async (tryTcg?: string) => {
+      if (!resolvedSetCode) return [];
+      const t = (tryTcg || resolvedTcg || 'MAGIC') as any;
       try {
-        if ((tryTcg || tcg) && setCode) {
-          const t = (tryTcg || tcg) as any;
-          // Prefer tcgcsv when available (server-side), otherwise use public APIs
-          try {
-            if (ALLOW_DIRECT_TCGCSV) {
-              const cards = await tcgcsvClient.getSetCards(t, setCode);
-              if (cards && cards.length > 0) return cards;
-            }
-          } catch (_) {}
-
-          switch (t) {
-            case 'MAGIC':
-              return await scryfallClient.getSetCards(setCode);
-            case 'POKEMON':
-              return await pokemonClient.getSetCards(setCode);
-            case 'YUGIOH':
-              return await ygoproClient.getSetCards(setCode);
-            case 'ONE_PIECE':
-              return await optcgClient.getSetCards(setCode);
-            default:
-              return [];
-          }
-        }
-        return [];
+        const cards = await tcgcsvClient.getSetCards(t, resolvedSetCode);
+        return Array.isArray(cards) ? cards : [];
       } catch (_) {
         return [];
       }
     };
 
-    if (tcg) {
-      externalCards.push(...(await tryFetch(tcg)));
+    if (resolvedTcg) {
+      externalCards.push(...(await tryFetch(resolvedTcg)));
     } else {
       const allTcgs = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
       for (const t of allTcgs) {
         const found = await tryFetch(t);
         if (found && found.length > 0) {
           externalCards.push(...found);
-          tcg = t;
           break;
         }
       }
@@ -1018,7 +987,7 @@ export async function getEditionCardsWithStock(editionId: string): Promise<Editi
         listings: [],
       } as any));
 
-      const edition: any = { id: editionId, editionCode: setCode, editionName: setCode, tcg: { id: tcg || 'EXTERNAL', name: tcg || 'External', displayName: tcg || 'External' } };
+      const edition: any = { id: editionId, editionCode: resolvedSetCode, editionName: resolvedSetCode, tcg: { id: resolvedTcg || 'EXTERNAL', name: resolvedTcg || 'External', displayName: resolvedTcg || 'External' } };
 
       return { edition, totalCards: cards.length, cardsWithStock: 0, cards } as EditionInventory;
     }
@@ -1061,7 +1030,7 @@ export async function getEditionCardsWithStock(editionId: string): Promise<Editi
       } as any;
     });
 
-    const edition: any = { id: editionId, editionCode: editionId, editionName: editionId, tcg: { id: 'LOCAL', name: 'LOCAL', displayName: 'Local' } };
+    const edition: any = { id: editionId, editionCode: resolvedSetCode, editionName: resolvedSetCode, tcg: { id: resolvedTcg || 'LOCAL', name: resolvedTcg || 'LOCAL', displayName: resolvedTcg || 'Local' } };
 
     return { edition, totalCards: cards.length, cardsWithStock: cards.filter((c) => (c.listings?.[0]?.quantity ?? 0) > 0).length, cards } as EditionInventory;
   }

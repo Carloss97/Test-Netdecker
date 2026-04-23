@@ -76,3 +76,57 @@ test('local concurrent decrements do not oversell (mocked DB)', async () => {
   assert.strictEqual(successCount, 10, 'Only 10 decrements should succeed');
   assert(finalQty >= 0, 'Final quantity must be non-negative');
 });
+
+test('local concurrent decrements with one stock allows only one success', async () => {
+  const listingId = 'local-listing-single';
+  const store = new Map<string, { quantity: number }>([[listingId, { quantity: 1 }]]);
+
+  let mutex = Promise.resolve();
+  const withLock = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const previous = mutex;
+    let release: () => void;
+    mutex = new Promise<void>((res) => (release = res));
+    await previous;
+    try {
+      return await fn();
+    } finally {
+      release!();
+    }
+  };
+
+  const fakeTx = {
+    listing: {
+      updateMany: async ({ where, data }: any) => {
+        return withLock(async () => {
+          const current = store.get(where.id);
+          const needed = where.quantity?.gte ?? 0;
+          if (!current || current.quantity < needed) return { count: 0 };
+          current.quantity -= Number(data?.quantity?.decrement || 0);
+          return { count: 1 };
+        });
+      },
+    },
+    stockMovement: {
+      create: async () => ({ id: 'm-single' }),
+    },
+  };
+
+  const fakePrisma = {
+    $transaction: async (cb: any) => cb(fakeTx),
+  };
+
+  const attempts = 10;
+  const results = await Promise.all(
+    Array.from({ length: attempts }).map(async () => {
+      try {
+        return await InventoryService.decreaseListingQuantity(listingId, 1, fakePrisma);
+      } catch (err: any) {
+        return { error: true, message: err.message };
+      }
+    })
+  );
+
+  const successCount = results.filter((r: any) => r && !r.error).length;
+  assert.strictEqual(successCount, 1, 'Only one decrement should succeed for single stock');
+  assert.strictEqual(store.get(listingId)!.quantity, 0, 'Stock should end at zero');
+});

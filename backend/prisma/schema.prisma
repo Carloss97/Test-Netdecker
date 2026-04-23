@@ -81,6 +81,7 @@ enum POSSessionStatus {
   OPEN
   CLOSED
   CANCELLED
+  DISCREPANCY
 }
 
 enum PaymentStatus {
@@ -878,6 +879,9 @@ model CashSession {
 
   startingCash Float    @default(0.0)
   endingCash   Float?
+  actualCashAmount Float?
+  theoreticalAmount Float?
+  discrepancy  Float?
 
   status       POSSessionStatus @default(OPEN)
 
@@ -886,6 +890,26 @@ model CashSession {
 
   @@index([sessionId])
   @@index([storeId])
+}
+
+model CashDiscrepancyLog {
+  id                String   @id @default(cuid())
+  cashSessionId     String
+  cashSession       CashSession @relation(fields: [cashSessionId], references: [id], onDelete: Cascade)
+
+  storeId           String?
+  store             Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  actualCashAmount  Float
+  theoreticalAmount Float
+  discrepancy       Float
+  status            String   @default("OPEN")
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  @@index([cashSessionId])
+  @@index([storeId])
+  @@index([createdAt])
 }
 
 model PaymentTransaction {
@@ -953,4 +977,21 @@ model PriceSyncRun {
   @@index([startedAt])
   @@index([source])
   @@index([status])
+}
+
+model PaymentReconciliationReport {
+  id                      String   @id @default(cuid())
+  provider                String   @default("STRIPE")
+  status                  String   @default("completed")
+  windowStart             DateTime
+  windowEnd               DateTime
+  totalStripeTransactions Int      @default(0)
+  totalLocalOrders        Int      @default(0)
+  totalDiscrepancies      Int      @default(0)
+  discrepancies           Json
+  notes                   String?
+  createdAt               DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([windowStart, windowEnd])
 }

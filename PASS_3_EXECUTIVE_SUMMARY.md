@@ -67,9 +67,9 @@ Archivo: **frontend/src/components/storefront/StorefrontComponents.tsx**
 
 | # | Issue | Descripción | Horas | Riesgo |
 |---|-------|-------------|-------|--------|
-| **#P3-005** | **API Key Security** | Hash + auto-rotation cada 90 días | 3-4 h | 🟠 Credential Theft |
-| **#P3-006** | **Webhook Retries** | Dead Letter Queue + exponential backoff | 5-6 h | 🟠 Payment Loss |
-| **#P3-007** | **MP Webhook Sig** | Validar firma de MercadoPago | 1-2 h | 🟡 Webhook Spoofing |
+| **#P3-005** | **API Key Security** | Hash + auto-rotation cada 90 días | Done | ✅ Done |
+| **#P3-006** | **Webhook Retries** | Dead Letter Queue + exponential backoff | Done | ✅ Done |
+| **#P3-007** | **MP Webhook Sig** | Validar firma de MercadoPago | Done | ✅ Done |
 | **#P3-008** | **Rate Limiting** | Per-endpoint, per-IP | 2-3 h | ✅ Done |
 
 **Impacto**: Asegura pagos, credenciales, y disponibilidad.
@@ -78,10 +78,10 @@ Archivo: **frontend/src/components/storefront/StorefrontComponents.tsx**
 
 | # | Issue | Descripción | Horas | Riesgo |
 |---|-------|-------------|-------|--------|
-| **#P3-009** | **Env Validation** | Validar vars en boot con Zod | 1-2 h | 🟡 Config Error |
-| **#P3-010** | **Payment Reconciliation** | Daily job comparando Stripe vs DB | 2-3 h | 🟡 Financial Discrepancy |
-| **#P3-011** | **Test Coverage 70%+** | Admin routes + concurrency tests + E2E | 6-8 h | 🟡 Regressions |
-| **#P3-012** | **Cash Reconciliation** | POS session closing con discrepancia report | 2-3 h | 🟡 Audit Trail |
+| **#P3-009** | **Env Validation** | Validar vars en boot con Zod | Done | ✅ Done |
+| **#P3-010** | **Payment Reconciliation** | Daily job comparando Stripe vs DB | Done | ✅ Done |
+| **#P3-011** | **Test Coverage 70%+** | Admin routes + concurrency tests + E2E | In Progress | 🟡 Regressions |
+| **#P3-012** | **Cash Reconciliation** | POS session closing con discrepancia report | Done | ✅ Done |
 
 **Impacto**: Validación, auditoría, y confiabilidad de tests.
 

@@ -22,7 +22,13 @@ import apiClient from './services/api';
 
 function readAdminToken(): string | null {
   try {
-    return localStorage.getItem('auth_token') || null;
+    const localToken = localStorage.getItem('auth_token');
+    if (localToken) return localToken;
+    const cookieToken = document.cookie
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith('auth_token_js='));
+    return cookieToken ? decodeURIComponent(cookieToken.slice('auth_token_js='.length)) : null;
   } catch {
     return null;
   }

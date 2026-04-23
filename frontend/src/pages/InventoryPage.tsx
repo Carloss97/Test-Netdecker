@@ -148,6 +148,8 @@ export function InventoryPage() {
       .finally(() => setLoadingEditions(false));
   }, [selectedTcg]);
 
+  const selectedEditionObj = editions.find((e) => e.id === selectedEdition);
+
   useEffect(() => {
     if (!selectedEdition) return;
     setLoadingCards(true);
@@ -155,11 +157,15 @@ export function InventoryPage() {
     setDirtyRows(new Map());
     setPreviewCardId(null);
     setPinnedPreviewCardId(null);
-    getEditionCardsWithStock(selectedEdition)
+    getEditionCardsWithStock(
+      selectedEdition,
+      selectedEditionObj?.editionCode,
+      selectedTcg || selectedEditionObj?.tcgId || undefined,
+    )
       .then((inv) => setCards(inv.cards))
       .catch(() => setError('Error al cargar cartas'))
       .finally(() => setLoadingCards(false));
-  }, [selectedEdition]);
+  }, [selectedEdition, selectedEditionObj, selectedTcg]);
 
   useEffect(() => {
     if (!cards.length) {
@@ -391,8 +397,6 @@ export function InventoryPage() {
 
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-
-  const selectedEditionObj = editions.find((e) => e.id === selectedEdition);
 
   const fallbackTcgs: TCG[] = Object.keys(TCG_META).map((k) => ({
     id: k,

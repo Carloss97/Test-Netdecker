@@ -15,9 +15,6 @@ if (fs.existsSync(envPath)) {
 	dotenv.config();
 }
 
-// If DATABASE_URL is missing, warn the developer. Postgres is the canonical
-// database for this project; SQLite is only used when explicitly enabled
-// via `USE_SQLITE=true` or by providing a file-based `DATABASE_URL`.
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
 	console.warn('[DB] No DATABASE_URL found; Postgres is the default. Set `DATABASE_URL` to a Postgres DSN or set `USE_SQLITE=true` to opt into SQLite.');
 } else {

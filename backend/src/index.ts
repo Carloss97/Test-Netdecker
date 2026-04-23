@@ -57,6 +57,7 @@ import { startInvoiceCleanupJob } from './jobs/invoiceCleanup.job.js';
 import { startReservationCleanupCron } from './jobs/reservationCleanup.job.js';
 import { startApiKeyRotationJob } from './jobs/apiKeyRotation.job.js';
 import { startWebhookQueueCron } from './jobs/webhookQueue.job.js';
+import { startPaymentReconciliationCron } from './jobs/paymentReconciliation.job.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3333;
@@ -191,6 +192,7 @@ export function startServer(portArg?: number | string) {
     startInvoiceCleanupJob();
     startApiKeyRotationJob();
     startWebhookQueueCron();
+    startPaymentReconciliationCron();
 
     // Preconnect to Redis in background (non-blocking). This starts the client
     // connect attempt but does not block server startup — failures degrade gracefully.

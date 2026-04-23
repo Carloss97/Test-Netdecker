@@ -29,6 +29,12 @@ export default function AdminLogin() {
           console.warn('[AdminLogin] localStorage.setItem blocked', err);
         }
 
+        try {
+          document.cookie = `auth_token_js=${encodeURIComponent(resp.data.token)}; Path=/; SameSite=Lax`;
+        } catch (err) {
+          // ignore cookie persistence failures
+        }
+
         // Ensure apiClient uses the token for subsequent requests even if storage is blocked
         try {
           apiClient.defaults.headers.common.Authorization = `Bearer ${resp.data.token}`;

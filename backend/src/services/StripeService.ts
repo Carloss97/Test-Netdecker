@@ -52,6 +52,34 @@ export class StripeService {
       return stripe.webhooks.constructEvent(rawBody, sigHeader || '', endpointSecret);
     });
   }
+
+  static async listCharges(range: { gte: Date; lt: Date }) {
+    // @ts-ignore - allow runtime import when stripe package/types are missing in some test setups
+    const StripeMod: any = await import('stripe').catch(() => null);
+    if (!StripeMod) throw new Error('Stripe SDK not available. Install stripe package to use this connector.');
+    const Stripe = StripeMod.default || StripeMod;
+    const stripe = new Stripe(process.env.STRIPE_SECRET || '', { apiVersion: '2022-11-15' });
+
+    const created = {
+      gte: Math.floor(range.gte.getTime() / 1000),
+      lt: Math.floor(range.lt.getTime() / 1000),
+    };
+
+    const charges = await stripe.charges.list({ created, limit: 100 });
+
+    return (charges?.data || [])
+      .filter((charge: any) => charge && typeof charge.id === 'string')
+      .map((charge: any) => ({
+        id: String(charge.id),
+        amount: Number(charge.amount || 0),
+        created: Number(charge.created || 0),
+        currency: charge.currency ? String(charge.currency).toUpperCase() : null,
+        paymentIntentId:
+          typeof charge.payment_intent === 'string' && charge.payment_intent.trim().length > 0
+            ? String(charge.payment_intent)
+            : String(charge.id),
+      }));
+  }
 }
 
 export default StripeService;

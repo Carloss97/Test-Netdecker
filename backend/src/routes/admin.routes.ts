@@ -2,12 +2,15 @@
 // Admin dashboard endpoints: KPIs, stock alerts, price sync history.
 
 import express, { Request, Response } from 'express';
+import { z } from 'zod';
 import prisma from '../utils/db.js';
 import { PriceSyncService } from '../services/PriceSyncService.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { PriceService } from '../services/PriceService.js';
+import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
+import CashSessionService from '../services/CashSessionService.js';
 import AuditService from '../services/AuditService.js';
 import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
@@ -183,6 +186,57 @@ router.get('/audit', requirePermission('view', 'audit'), async (req: Request, re
     total: audits.length,
     audits,
   });
+});
+
+/**
+ * GET /api/admin/reconciliation/reports?limit=30
+ * Lists payment reconciliation reports ordered by recency.
+ */
+router.get('/reconciliation/reports', requirePermission('view', 'reconciliation'), async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit || 30);
+  if (!Number.isFinite(limit) || limit <= 0) {
+    throw new ValidationError('limit must be a positive number');
+  }
+
+  const reports = await PaymentReconciliationService.listReports(limit);
+  res.json({
+    success: true,
+    total: reports.length,
+    reports,
+  });
+});
+
+const closeCashSessionSchema = z.object({
+  actualCashAmount: z.coerce.number().min(0),
+  closedBy: z.string().optional(),
+});
+
+/**
+ * POST /api/admin/pos/sessions/:id/close
+ * Closes a cash session and records discrepancy data when the physical amount differs.
+ */
+router.post('/pos/sessions/:id/close', requirePermission('update', 'cash-session'), async (req: Request, res: Response) => {
+  const parsed = closeCashSessionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues[0]?.message || 'Invalid request payload');
+  }
+
+  const session = await CashSessionService.closeSession(String(req.params.id), parsed.data);
+  res.json({ success: true, session });
+});
+
+/**
+ * GET /api/admin/pos/discrepancies?limit=50
+ * Lists cash session discrepancy logs.
+ */
+router.get('/pos/discrepancies', requirePermission('view', 'cash-discrepancies'), async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit || 50);
+  if (!Number.isFinite(limit) || limit <= 0) {
+    throw new ValidationError('limit must be a positive number');
+  }
+
+  const discrepancies = await CashSessionService.listDiscrepancies(limit);
+  res.json({ success: true, total: discrepancies.length, discrepancies });
 });
 
 /**
