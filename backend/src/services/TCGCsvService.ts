@@ -471,6 +471,55 @@ export class TCGCsvService {
   }
 
   /**
+   * Fetch a compact per-set price lookup keyed by productId.
+   * Optimized for sync flows that only need reference prices.
+   */
+  static async getSetPriceSnapshot(tcg: TCGCsvTcg, setCode: string): Promise<Record<string, number>> {
+    const cacheKey = `tcgcsv:set-price-snapshot:${TCGCSV_CATEGORY_IDS[tcg]}:${setCode.toUpperCase()}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached && typeof cached === 'object') {
+      return cached as Record<string, number>;
+    }
+
+    const groups = await this.getGroups(tcg);
+    const group = resolveGroupBySetCode(groups, setCode);
+    if (!group) {
+      return {};
+    }
+
+    const prices = await this.getGroupPrices(tcg, group.groupId);
+    if (!prices.length) {
+      await cacheSet(cacheKey, {}, 60);
+      return {};
+    }
+
+    const bestByProductId = new Map<number, TcgCsvPrice>();
+    for (const price of prices) {
+      const existing = bestByProductId.get(price.productId);
+      if (!existing) {
+        bestByProductId.set(price.productId, price);
+        continue;
+      }
+
+      const currentBest = pickBestPrice([existing, price]);
+      if (currentBest) {
+        bestByProductId.set(price.productId, currentBest);
+      }
+    }
+
+    const snapshot: Record<string, number> = {};
+    for (const [productId, price] of bestByProductId.entries()) {
+      const best = bestPrice(price);
+      if (typeof best === 'number' && Number.isFinite(best) && best > 0) {
+        snapshot[String(productId)] = best;
+      }
+    }
+
+    await cacheSet(cacheKey, snapshot, CACHE_TTL);
+    return snapshot;
+  }
+
+  /**
    * Search cards by name within a TCG (searches across all sets, cached per-set).
    */
   static async searchCards(tcg: TCGCsvTcg, query: string): Promise<ExternalCard[]> {

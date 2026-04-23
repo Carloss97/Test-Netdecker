@@ -928,4 +928,11 @@ export class CardDatabaseService {
   ): Promise<number | null> {
     return TCGCsvService.getSetCardCount(tcg, setCode);
   }
+
+  static async getSetPriceSnapshot(
+    tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ',
+    setCode: string,
+  ): Promise<Record<string, number>> {
+    return TCGCsvService.getSetPriceSnapshot(tcg, setCode);
+  }
 }

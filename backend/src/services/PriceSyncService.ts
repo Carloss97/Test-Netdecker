@@ -126,7 +126,7 @@ function normalizeSetCodeForTcg(tcgName: SyncTcgName, editionCode: string): stri
   return editionCode;
 }
 
-// NOTE: `fetchSetPriceLookup` removed — code now uses CardDatabaseService.getSetCards directly.
+// NOTE: set-level synchronization now uses CardDatabaseService.getSetPriceSnapshot.
 
 function estimateFallbackReferencePrice(tcgName: string, rarity?: string): number {
   const baseByTcg: Record<string, number> = {
@@ -334,34 +334,16 @@ export class PriceSyncService {
 
                 await sleep(SET_SYNC_DELAY_MS[tcgName] ?? 100);
 
-                const setCards = await CardDatabaseService.getSetCards(
+                const setPriceSnapshot = await CardDatabaseService.getSetPriceSnapshot(
                   tcgName,
                   normalizeSetCodeForTcg(tcgName, editionCode),
-                ).catch(() => []);
-
-                const setPriceLookup = new Map<string, number>();
-                const setPriceByName = new Map<string, number>();
-
-                for (const card of setCards) {
-                  const price = card.priceMarket ?? card.priceMid ?? card.priceLow;
-                  if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
-                    continue;
-                  }
-
-                  setPriceLookup.set(card.externalId, price);
-
-                  const nameKey = card.cardName.trim().toLowerCase();
-                  const existingByName = setPriceByName.get(nameKey);
-                  if (!existingByName || price > existingByName) {
-                    setPriceByName.set(nameKey, price);
-                  }
-                }
+                ).catch(() => ({} as Record<string, number>));
 
                 for (const card of groupedCards) {
-                  const externalPrice =
-                    setPriceLookup.get(card.cardCode) ??
-                    setPriceByName.get(card.cardName.trim().toLowerCase()) ??
-                    null;
+                  const normalizedCode = String(card.cardCode || '').trim();
+                  const externalPrice = normalizedCode
+                    ? (setPriceSnapshot[normalizedCode] ?? null)
+                    : null;
                   const fallbackRef = estimateFallbackReferencePrice(
                     card.tcg.name,
                     card.rarity ?? undefined,
@@ -443,34 +425,16 @@ export class PriceSyncService {
               // Respect provider-specific limits by spacing set-level calls.
               await sleep(SET_SYNC_DELAY_MS[tcgName] ?? 100);
 
-              const setCards = await CardDatabaseService.getSetCards(
+              const setPriceSnapshot = await CardDatabaseService.getSetPriceSnapshot(
                 tcgName,
                 normalizeSetCodeForTcg(tcgName, editionCode),
-              ).catch(() => []);
-
-              const setPriceLookup = new Map<string, number>();
-              const setPriceByName = new Map<string, number>();
-
-              for (const card of setCards) {
-                const price = card.priceMarket ?? card.priceMid ?? card.priceLow;
-                if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
-                  continue;
-                }
-
-                setPriceLookup.set(card.externalId, price);
-
-                const nameKey = card.cardName.trim().toLowerCase();
-                const existingByName = setPriceByName.get(nameKey);
-                if (!existingByName || price > existingByName) {
-                  setPriceByName.set(nameKey, price);
-                }
-              }
+              ).catch(() => ({} as Record<string, number>));
 
               for (const listing of groupedListings) {
-                const externalPrice =
-                  setPriceLookup.get(listing.card.cardCode) ??
-                  setPriceByName.get(listing.card.cardName.trim().toLowerCase()) ??
-                  null;
+                const normalizedCode = String(listing.card.cardCode || '').trim();
+                const externalPrice = normalizedCode
+                  ? (setPriceSnapshot[normalizedCode] ?? null)
+                  : null;
                 const safeStoredRef = listing.referencePrice > 0 ? listing.referencePrice : null;
                 const fallbackRef = estimateFallbackReferencePrice(
                   listing.card.tcg.name,
