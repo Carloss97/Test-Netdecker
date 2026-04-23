@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { login } from '../services/adminAuth';
 import apiClient from '../services/api';
 
@@ -10,6 +10,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Intentionally do not fetch stores here (admin list is protected). Allow manual storeId input.
 
@@ -45,7 +46,8 @@ export default function AdminLogin() {
           // ignore storage errors for store id
         }
 
-        navigate('/admin');
+        const next = searchParams.get('next');
+        navigate(next && next.startsWith('/') ? next : '/admin');
         return;
       }
       setError('Credenciales inválidas');

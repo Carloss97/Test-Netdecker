@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import './App.css';
 import { Layout } from './components/Layout';
-import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PricingPage } from './pages/PricingPage';
 import { ImportPage } from './pages/ImportPage';
@@ -17,13 +17,46 @@ import { PosPage } from './pages/PosPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import StoresList from './pages/admin/StoresList';
 import LocalImportsManager from './pages/LocalImportsManager';
+import apiClient from './services/api';
+
+function RequireAdmin() {
+  const location = useLocation();
+  const [status, setStatus] = useState<'pending' | 'ok' | 'denied'>('pending');
+
+  useEffect(() => {
+    let mounted = true;
+    apiClient
+      .get('/admin/auth/me')
+      .then(() => {
+        if (mounted) setStatus('ok');
+      })
+      .catch(() => {
+        if (mounted) setStatus('denied');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [location.pathname]);
+
+  if (status === 'pending') {
+    return <div style={{ padding: 24 }}>Validando sesión admin…</div>;
+  }
+
+  if (status === 'denied') {
+    const next = encodeURIComponent(`${location.pathname}${location.search}${location.hash}`);
+    return <Navigate to={`/admin/login?next=${next}`} replace />;
+  }
+
+  return <Outlet />;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/admin" replace />} />
           <Route path="/inventario" element={<InventoryPage />} />
           <Route path="/precios" element={<PricingPage />} />
           <Route path="/importar" element={<ImportPage />} />
@@ -31,13 +64,15 @@ function App() {
           <Route path="/buscar" element={<CardSearchPage />} />
           <Route path="/stock-bajo" element={<LowStockPage />} />
           <Route path="/pos" element={<PosPage />} />
-          <Route path="/admin/accounts" element={<AdminAccountsPage />} />
-          <Route path="/admin/stores" element={<StoresList />} />
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />
-          <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
-          <Route path="/admin/approvals" element={<ApprovalsPage />} />
-          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+            <Route path="/admin/stores" element={<StoresList />} />
+            <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />
+            <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
+            <Route path="/admin/approvals" element={<ApprovalsPage />} />
+            <Route path="/admin" element={<AdminDashboardPage />} />
+          </Route>
           <Route path="/local-imports" element={<LocalImportsManager />} />
         </Routes>
       </Layout>

@@ -20,13 +20,11 @@ import adminAudit from '../middleware/adminAudit.js';
 
 const router = express.Router();
 
-// Expose store management endpoints via API key (used for onboarding/automation)
-router.use('/stores', storesRoutes);
-
 // Protect the remaining admin routes with admin authentication + audit
 router.use(requireAdmin, adminAudit);
 
 // All routes mounted after this point require admin auth (role checks applied where needed)
+router.use('/stores', storesRoutes);
 router.use('/accounts', accountsRoutes);
 router.use('/pricing/thresholds', thresholdsRoutes);
 router.use('/approvals', approvalsRoutes);
