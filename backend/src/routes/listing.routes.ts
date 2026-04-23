@@ -5,8 +5,11 @@ import { PriceService } from '../services/PriceService.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { PriceSyncService } from '../services/PriceSyncService.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import tenantResolver from '../middleware/tenantResolver.js';
+import requireTenant from '../middleware/requireTenant.js';
 
 const router = express.Router();
+router.use(tenantResolver, requireTenant);
 
 function getActorFromRequest(req: Request): string {
   const fromHeader = req.header('x-admin-user') || req.header('x-user-id');
@@ -20,9 +23,11 @@ function getActorFromRequest(req: Request): string {
  */
 router.get('/available', async (req: Request, res: Response) => {
   const { tcgId, editionId } = req.query;
+  const storeId = req.store!.id;
   const listings = await ListingService.getAvailableListings(
     tcgId as string | undefined,
-    editionId as string | undefined
+    editionId as string | undefined,
+    storeId,
   );
   res.json(listings);
 });
@@ -33,8 +38,10 @@ router.get('/available', async (req: Request, res: Response) => {
  */
 router.get('/low-stock', async (req: Request, res: Response) => {
   const { threshold } = req.query;
+  const storeId = req.store!.id;
   const listings = await ListingService.getLowStockAlerts(
-    parseInt(threshold as string) || 5
+    parseInt(threshold as string) || 5,
+    storeId,
   );
   res.json(listings);
 });
@@ -44,7 +51,7 @@ router.get('/low-stock', async (req: Request, res: Response) => {
  * Get total inventory value
  */
 router.get('/inventory-value', async (_req: Request, res: Response) => {
-  const value = await ListingService.getInventoryValue();
+  const value = await ListingService.getInventoryValue(_req.store!.id);
   res.json(value);
 });
 
@@ -57,8 +64,9 @@ router.get('/', async (req: Request, res: Response) => {
   const skip = parseInt(String(req.query.skip || '0')) || 0;
   const tcgId = req.query.tcgId as string | undefined;
   const editionId = req.query.editionId as string | undefined;
+  const storeId = req.store!.id;
 
-  const listings = await ListingService.listListings({ take, skip, tcgId, editionId });
+  const listings = await ListingService.listListings({ take, skip, tcgId, editionId, storeId });
   res.json(listings);
 });
 
@@ -239,7 +247,7 @@ router.get('/price-history/export', async (req: Request, res: Response) => {
  * Get listings by card
  */
 router.get('/card/:cardId', async (req: Request, res: Response) => {
-  const listings = await ListingService.getListingsByCard(req.params.cardId);
+  const listings = await ListingService.getListingsByCard(req.params.cardId, req.store!.id);
   res.json(listings);
 });
 
@@ -248,7 +256,7 @@ router.get('/card/:cardId', async (req: Request, res: Response) => {
  * Show how current listing price compares against a recalculation with current USD/CLP.
  */
 router.get('/:id/price-debug', async (req: Request, res: Response) => {
-  const listing = await ListingService.getListing(req.params.id);
+  const listing = await ListingService.getListing(req.params.id, req.store!.id);
   if (!listing) {
     throw new NotFoundError('Listing not found');
   }
@@ -303,7 +311,7 @@ router.get('/:id/price-debug', async (req: Request, res: Response) => {
  * Get listing by ID
  */
 router.get('/:id', async (req: Request, res: Response) => {
-  const listing = await ListingService.getListing(req.params.id);
+  const listing = await ListingService.getListing(req.params.id, req.store!.id);
   if (!listing) {
     throw new NotFoundError('Listing not found');
   }
@@ -343,7 +351,7 @@ router.patch('/:id/stock', async (req: Request, res: Response) => {
   if (!['set','inc','dec'].includes(op) || typeof value !== 'number') {
     throw new ValidationError('Invalid op or value');
   }
-  const listing = await ListingService.getListing(req.params.id);
+  const listing = await ListingService.getListing(req.params.id, req.store!.id);
   if (!listing) throw new NotFoundError('Listing not found');
   let newQty = listing.quantity;
   if (op === 'set') newQty = value;

@@ -28,6 +28,23 @@ test('createUser stores hashed password and returns user info', async () => {
   }
 });
 
+test('createUser accepts MANAGER role', async () => {
+  const originalFindUnique = prisma.adminUser.findUnique;
+  const originalCreate = prisma.adminUser.create;
+
+  try {
+    prisma.adminUser.findUnique = (async () => null) as any;
+    prisma.adminUser.create = (async (_args: any) => ({ id: 'u2', email: _args.data.email, role: _args.data.role })) as any;
+
+    const res = await AdminAuthService.createUser('manager@example.com', 's3cret', 'MANAGER');
+    assert.equal(res.email, 'manager@example.com');
+    assert.equal(res.role, 'MANAGER');
+  } finally {
+    prisma.adminUser.findUnique = originalFindUnique;
+    prisma.adminUser.create = originalCreate;
+  }
+});
+
 test('authenticate creates session and validateToken works; logout deletes session', async () => {
   const originalFindUniqueUser = prisma.adminUser.findUnique;
   const originalSessionCreate = prisma.adminSession.create;

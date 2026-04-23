@@ -20,7 +20,8 @@ export class ListingController {
    */
   static async createListing(req: Request, res: Response) {
     try {
-      const { cardId, condition, quantity, referencePrice, marginMultiplier, costPrice } = req.body;
+      const { cardId, condition, quantity, referencePrice, marginMultiplier, costPrice, storeId: bodyStoreId } = req.body;
+      const storeId = (req.store?.id || bodyStoreId) as string | undefined;
 
       // Validate
       if (!cardId || !condition || quantity === undefined || !referencePrice) {
@@ -39,6 +40,10 @@ export class ListingController {
         throw new ValidationError('Reference price must be a positive number');
       }
 
+      if (!storeId || !String(storeId).trim()) {
+        throw new ValidationError('storeId is required');
+      }
+
       // Verify card exists
       const card = await CardService.getCard(cardId);
       if (!card) {
@@ -47,6 +52,7 @@ export class ListingController {
 
       // Create listing
       const listing = await ListingService.createListing({
+        storeId: String(storeId),
         cardId,
         condition,
         quantity,

@@ -1,18 +1,19 @@
 import express, { Request, Response } from 'express';
 import prisma from '../utils/db.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
+import requirePermission from '../middleware/requirePermission.js';
 
 const router = express.Router();
 
 // GET /api/admin/accounts?storeId=...
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', requirePermission('view', 'account'), async (req: Request, res: Response) => {
   const storeId = typeof req.query.storeId === 'string' && req.query.storeId ? String(req.query.storeId) : undefined;
   const accounts = await prisma.account.findMany({ where: { storeId: storeId ?? undefined }, orderBy: { code: 'asc' } });
   res.json({ success: true, total: accounts.length, accounts });
 });
 
 // POST /api/admin/accounts
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requirePermission('create', 'account'), async (req: Request, res: Response) => {
   const { storeId, code, name, type, description } = req.body as { storeId?: string; code?: string; name?: string; type?: string; description?: string };
 
   if (!code || !name || !type) throw new ValidationError('code, name and type are required');
@@ -25,7 +26,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/admin/accounts/:id
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', requirePermission('update', 'account'), async (req: Request, res: Response) => {
   const id = req.params.id;
   const { storeId, code, name, type, description } = req.body as { storeId?: string; code?: string; name?: string; type?: string; description?: string };
 
@@ -51,7 +52,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/admin/accounts/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('delete', 'account'), async (req: Request, res: Response) => {
   const id = req.params.id;
 
   const existing = await prisma.account.findUnique({ where: { id } });

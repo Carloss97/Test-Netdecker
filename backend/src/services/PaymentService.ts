@@ -48,8 +48,32 @@ export class PaymentService {
     const order = await prisma.$transaction(async (tx: any) => {
       // Fetch listings referenced by the cart
       const listingIds = input.items.map((it) => it.listingId);
-      const listings = await tx.listing.findMany({ where: { id: { in: listingIds } } });
+      const listings = await tx.listing.findMany({
+        where: {
+          id: { in: listingIds },
+          ...(input.storeId ? { storeId: input.storeId } : {}),
+        },
+      });
       const listingMap: Map<string, any> = new Map(listings.map((l: any) => [String((l as any).id), l as any]));
+
+      const listingStoreIds = Array.from(new Set(
+        listings
+          .map((listing: { storeId?: string | null }) => listing.storeId)
+          .filter((storeId: string | null | undefined): storeId is string => typeof storeId === 'string' && storeId.length > 0),
+      ));
+
+      if (listingStoreIds.length === 0) {
+        throw new ValidationError('Cannot process sale without tenant store context');
+      }
+
+      if (listingStoreIds.length > 1) {
+        throw new ValidationError('Cannot process sale across multiple stores in one order');
+      }
+
+      const effectiveStoreId = listingStoreIds[0];
+      if (input.storeId && input.storeId !== effectiveStoreId) {
+        throw new ValidationError('Provided storeId does not match listing tenant');
+      }
 
       let subtotal = 0;
       let totalCOGS = 0;
@@ -74,7 +98,7 @@ export class PaymentService {
 
       const order = await tx.order.create({
         data: {
-          storeId: input.storeId || null,
+          storeId: effectiveStoreId,
           orderNumber,
           customerEmail: input.customerEmail || 'POS',
           status: 'CONFIRMED',
@@ -118,7 +142,7 @@ export class PaymentService {
 
       // Accounting (best-effort): revenue and COGS
       try {
-        const storeId = input.storeId || null;
+        const storeId = effectiveStoreId;
         const revenueAccount = await tx.account.findFirst({ where: { storeId, type: 'REVENUE' } });
         const assetAccount = await tx.account.findFirst({ where: { storeId, type: 'ASSET' } });
         const expenseAccount = await tx.account.findFirst({ where: { storeId, type: 'EXPENSE' } });

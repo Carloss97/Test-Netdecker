@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import StoreService from '../services/StoreServiceImpl.js';
 import { ValidationError } from '../utils/errors.js';
+import requirePermission from '../middleware/requirePermission.js';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
  * Body: { slug, name, description? }
  * Returns: { store: { id, slug, name }, apiKey }
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requirePermission('create', 'store'), async (req: Request, res: Response) => {
   const slug = req.body?.slug ? String(req.body.slug).trim().toLowerCase() : undefined;
   const name = req.body?.name ? String(req.body.name).trim() : undefined;
   const description = req.body?.description ? String(req.body.description) : undefined;
@@ -31,7 +32,7 @@ router.post('/', async (req: Request, res: Response) => {
  * POST /api/admin/stores/:id/rotate-key
  * Returns: { apiKey }
  */
-router.post('/:id/rotate-key', async (req: Request, res: Response) => {
+router.post('/:id/rotate-key', requirePermission('rotate', 'store-key'), async (req: Request, res: Response) => {
   const storeId = req.params.id;
   if (!storeId) throw new ValidationError('store id required');
 
@@ -43,13 +44,13 @@ router.post('/:id/rotate-key', async (req: Request, res: Response) => {
  * GET /api/admin/stores
  * List known stores
  */
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', requirePermission('view', 'store'), async (_req: Request, res: Response) => {
   const stores = await StoreService.listStores();
   res.json({ success: true, total: stores.length, stores: stores.map((s: any) => ({ id: s.id, slug: s.slug, name: s.name })) });
 });
 
 // PATCH /api/admin/stores/:id - update store configuration (currency, taxRate, settings, name, description)
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', requirePermission('update', 'store'), async (req: Request, res: Response) => {
   const storeId = req.params.id;
   if (!storeId) throw new ValidationError('store id required');
 

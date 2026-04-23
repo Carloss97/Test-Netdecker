@@ -1,11 +1,12 @@
 import express, { Request, Response } from 'express';
 import prisma from '../utils/db.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
+import requirePermission from '../middleware/requirePermission.js';
 
 const router = express.Router();
 
 // GET /api/admin/pricing/thresholds?tcg=MAGIC&editionId=...
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', requirePermission('view', 'threshold'), async (req: Request, res: Response) => {
   const tcg = typeof req.query.tcg === 'string' && req.query.tcg ? String(req.query.tcg) : undefined;
   const editionId = typeof req.query.editionId === 'string' && req.query.editionId ? String(req.query.editionId) : undefined;
 
@@ -18,7 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /api/admin/pricing/thresholds
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requirePermission('create', 'threshold'), async (req: Request, res: Response) => {
   const { tcg, editionId, thresholdPercent } = req.body as { tcg?: string; editionId?: string; thresholdPercent?: number };
 
   if (typeof thresholdPercent !== 'number' || !Number.isFinite(thresholdPercent) || thresholdPercent <= 0) {
@@ -30,7 +31,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/admin/pricing/thresholds/:id
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', requirePermission('update', 'threshold'), async (req: Request, res: Response) => {
   const id = String(req.params.id);
   const { tcg, editionId, thresholdPercent } = req.body as { tcg?: string; editionId?: string; thresholdPercent?: number };
 
@@ -56,7 +57,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/admin/pricing/thresholds/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('delete', 'threshold'), async (req: Request, res: Response) => {
   const id = String(req.params.id);
   const existing = await prisma.priceVolatilityThreshold.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError('Threshold not found');

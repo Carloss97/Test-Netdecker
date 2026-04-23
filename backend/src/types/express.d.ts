@@ -7,6 +7,14 @@ declare global {
         slug: string;
         name: string;
       };
+
+      /** Minimal admin user attached by requireAdmin middleware */
+      adminUser?: {
+        id: string;
+        email: string;
+        role: 'ADMIN' | 'MANAGER' | 'STAFF';
+        storeId?: string | null;
+      };
     }
   }
 }

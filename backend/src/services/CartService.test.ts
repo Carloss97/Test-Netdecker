@@ -17,13 +17,13 @@ test('addToCart creates order item when stock available', async () => {
     let createdData: any = null;
 
     ListingService.getListing = (async (id: string) => ({ id, finalPrice: 100, quantity: 5 })) as any;
-    CartService.getOrCreateCart = (async (sessionId: string) => ({ id: 'c1', sessionId, items: [] })) as any;
+    CartService.getOrCreateCart = (async (sessionId: string, storeId: string) => ({ id: 'c1', sessionId, storeId, items: [] })) as any;
     prisma.listing.findUnique = (async () => ({ quantity: 5 })) as any;
     prisma.orderItem.aggregate = (async () => ({ _sum: { quantity: 0 } })) as any;
     prisma.orderItem.findFirst = (async () => null) as any;
     prisma.orderItem.create = (async (args: any) => { createCalled = true; createdData = args.data; return { id: 'oi1', ...args.data }; }) as any;
 
-    await CartService.addToCart({ sessionId: 'sess1', listingId: 'L1', quantity: 2 });
+    await CartService.addToCart({ storeId: 'S1', sessionId: 'sess1', listingId: 'L1', quantity: 2 });
 
     assert.equal(createCalled, true);
     assert.equal(createdData.listingId, 'L1');
@@ -50,14 +50,14 @@ test('addToCart throws when insufficient stock', async () => {
 
   try {
     ListingService.getListing = (async (id: string) => ({ id, finalPrice: 100, quantity: 1 })) as any;
-    CartService.getOrCreateCart = (async (sessionId: string) => ({ id: 'c1', sessionId, items: [] })) as any;
+    CartService.getOrCreateCart = (async (sessionId: string, storeId: string) => ({ id: 'c1', sessionId, storeId, items: [] })) as any;
     prisma.listing.findUnique = (async () => ({ quantity: 1 })) as any;
     prisma.orderItem.aggregate = (async () => ({ _sum: { quantity: 0 } })) as any;
     prisma.orderItem.findFirst = (async () => null) as any;
 
     let threw = false;
     try {
-      await CartService.addToCart({ sessionId: 'sess1', listingId: 'L1', quantity: 2 });
+      await CartService.addToCart({ storeId: 'S1', sessionId: 'sess1', listingId: 'L1', quantity: 2 });
     } catch (err: any) {
       threw = true;
       assert.ok(String(err.message).includes('Insufficient stock'));
@@ -80,7 +80,7 @@ test('getOrCreateCart exposes ttlSeconds and expiresAt', async () => {
     prisma.cart.findFirst = (async () => ({ id: 'c1', sessionId: 's1', items: [], updatedAt })) as any;
 
     process.env.CART_EXPIRY_MINUTES = '1';
-    const cart: any = await CartService.getOrCreateCart('s1');
+    const cart: any = await CartService.getOrCreateCart('s1', 'S1');
 
     assert.equal(typeof cart.ttlSeconds, 'number');
     assert.ok(cart.ttlSeconds <= 60 && cart.ttlSeconds >= 0);

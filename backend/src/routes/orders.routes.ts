@@ -3,21 +3,28 @@ import { z } from 'zod';
 import OrderService from '../services/OrderService.js';
 import { ValidationError } from '../utils/errors.js';
 import OrderReceiptPdfService from '../services/OrderReceiptPdfService.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 
 const router = express.Router();
+router.use(tenantResolver);
 
 router.get('/', async (req: Request, res: Response) => {
   const take = Math.min(Number(req.query.take ? Number(req.query.take) : 20), 100);
   const skip = Number(req.query.skip ? Number(req.query.skip) : 0);
   const status = req.query.status ? String(req.query.status).toUpperCase() : undefined;
 
-  const { orders, total } = await OrderService.listOrders({ take, skip, status });
+  const { orders, total } = await OrderService.listOrders({
+    take,
+    skip,
+    status,
+    storeId: req.store?.id,
+  });
   res.json({ success: true, total, orders });
 });
 
 router.get('/:id', async (req: Request, res: Response) => {
   const id = String(req.params.id);
-  const order = await OrderService.getOrder(id);
+  const order = await OrderService.getOrder(id, req.store?.id);
   res.json({ success: true, order });
 });
 
@@ -28,19 +35,19 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0]?.message || 'Invalid payload');
 
   const id = String(req.params.id);
-  const updated = await OrderService.cancelOrder(id, parsed.data.performedBy || null);
+  const updated = await OrderService.cancelOrder(id, parsed.data.performedBy || null, req.store?.id);
   res.json({ success: true, order: updated });
 });
 
 router.post('/:id/ship', async (req: Request, res: Response) => {
   const id = String(req.params.id);
-  const updated = await OrderService.shipOrder(id, null);
+  const updated = await OrderService.shipOrder(id, null, req.store?.id);
   res.json({ success: true, order: updated });
 });
 
 router.post('/:id/deliver', async (req: Request, res: Response) => {
   const id = String(req.params.id);
-  const updated = await OrderService.deliverOrder(id, null);
+  const updated = await OrderService.deliverOrder(id, null, req.store?.id);
   res.json({ success: true, order: updated });
 });
 

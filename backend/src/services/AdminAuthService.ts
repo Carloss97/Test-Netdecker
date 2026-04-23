@@ -29,13 +29,13 @@ async function verifyPassword(password: string, salt: string, expectedHash: stri
 }
 
 export class AdminAuthService {
-  static async createUser(email: string, password: string, role: 'ADMIN' | 'STAFF' = 'ADMIN') {
+  static async createUser(email: string, password: string, role: 'ADMIN' | 'MANAGER' | 'STAFF' = 'ADMIN') {
     const existing = await prisma.adminUser.findUnique({ where: { email } });
     if (existing) throw new ConflictError('Admin user already exists');
 
     const { salt, hash } = await hashPassword(password);
     const user = await prisma.adminUser.create({
-      data: { email, passwordHash: hash, passwordSalt: salt, role },
+      data: { email, passwordHash: hash, passwordSalt: salt, role: role as any },
     });
 
     return { id: user.id, email: user.email, role: user.role };

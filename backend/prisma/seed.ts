@@ -76,6 +76,45 @@ async function main() {
     console.log(`✓ ${tcg.displayName}`);
   }
 
+  const defaultRolePermissions = [
+    // MANAGER
+    { role: 'MANAGER', action: 'view', resource: '*' },
+    { role: 'MANAGER', action: 'approve', resource: 'price' },
+    { role: 'MANAGER', action: 'reject', resource: 'price' },
+    { role: 'MANAGER', action: 'manage', resource: 'inventory' },
+    { role: 'MANAGER', action: 'update', resource: 'store' },
+    { role: 'MANAGER', action: 'create', resource: 'account' },
+    { role: 'MANAGER', action: 'update', resource: 'account' },
+    { role: 'MANAGER', action: 'delete', resource: 'account' },
+    { role: 'MANAGER', action: 'create', resource: 'threshold' },
+    { role: 'MANAGER', action: 'update', resource: 'threshold' },
+    { role: 'MANAGER', action: 'delete', resource: 'threshold' },
+    // STAFF
+    { role: 'STAFF', action: 'view', resource: 'dashboard' },
+    { role: 'STAFF', action: 'view', resource: 'stock-alerts' },
+    { role: 'STAFF', action: 'view', resource: 'price-volatility' },
+    { role: 'STAFF', action: 'view', resource: 'edition' },
+    { role: 'STAFF', action: 'view', resource: 'price' },
+  ];
+
+  for (const permission of defaultRolePermissions) {
+    try {
+      await (prisma as any).rolePermission.upsert({
+        where: {
+          role_action_resource: {
+            role: permission.role,
+            action: permission.action,
+            resource: permission.resource,
+          },
+        },
+        update: {},
+        create: permission,
+      });
+    } catch {
+      // Ignore when RolePermission model/table is not present in target DB yet.
+    }
+  }
+
   console.log('Seed complete!');
 }
 

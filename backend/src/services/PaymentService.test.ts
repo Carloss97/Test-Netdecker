@@ -48,7 +48,7 @@ test('processPosSale fails on insufficient stock and does not create order', asy
 
     const tx = {
       listing: {
-        findMany: async () => [{ id: 'LX', quantity: 1, finalPrice: 1000, costPrice: 400 }],
+        findMany: async () => [{ id: 'LX', quantity: 1, finalPrice: 1000, costPrice: 400, storeId: 'S1' }],
         update: async () => { orderCreated = true; }
       },
       order: { create: async () => { orderCreated = true; return {}; } },

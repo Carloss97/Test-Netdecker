@@ -12,6 +12,7 @@ import { PriceSyncService } from './PriceSyncService.js';
 import { NotFoundError } from '../utils/errors.js';
 
 export interface ImportExternalCardOptions {
+  storeId?: string;
   createListing?: boolean;
   referencePrice?: number;     // USD — overrides the external price
   marginMultiplier?: number;
@@ -173,6 +174,14 @@ export class ExternalImportService {
     let listingId: string | undefined;
 
     if (options.createListing) {
+      const resolvedStoreId = options.storeId ?? (await prisma.store.findFirst({
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      }))?.id;
+      if (!resolvedStoreId) {
+        throw new NotFoundError('Store not found to create listing');
+      }
+
       // Determine the reference price: prefer passed option, then external market price, then default
       const externalPrice = externalCard.priceMarket ?? externalCard.priceMid ?? externalCard.priceLow;
       const refPrice = options.referencePrice ?? externalPrice ?? this.getDefaultPrice(externalCard.tcg as TCGType, rarity);
@@ -213,6 +222,7 @@ export class ExternalImportService {
       } else {
         const created = await prisma.listing.create({
           data: {
+            storeId: resolvedStoreId,
             cardId: card.id,
             editionId: edition.id,
             condition,

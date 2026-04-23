@@ -8,6 +8,7 @@ import { resolveMarginMultiplier } from '../config/pricing.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 interface CreateListingInput {
+  storeId: string;
   cardId: string;
   condition: CardCondition;
   quantity: number;
@@ -21,6 +22,16 @@ export class ListingService {
    * Create a new listing
    */
   static async createListing(input: CreateListingInput) {
+    const storeId = String(input.storeId || '').trim();
+    if (!storeId) {
+      throw new ValidationError('storeId is required to create a listing');
+    }
+
+    const store = await prisma.store.findUnique({ where: { id: storeId }, select: { id: true } });
+    if (!store) {
+      throw new NotFoundError(`Store not found: ${storeId}`);
+    }
+
     const card = await prisma.card.findUnique({
       where: { id: input.cardId },
       select: { editionId: true, rarity: true }
@@ -38,6 +49,7 @@ export class ListingService {
 
     return prisma.listing.create({
       data: {
+        storeId,
         cardId: input.cardId,
         condition: input.condition,
         rarity: card.rarity,
@@ -56,9 +68,12 @@ export class ListingService {
   /**
    * Get listing by ID
    */
-  static async getListing(id: string) {
-    return prisma.listing.findUnique({
-      where: { id },
+  static async getListing(id: string, storeId?: string) {
+    return prisma.listing.findFirst({
+      where: {
+        id,
+        ...(storeId ? { storeId } : {}),
+      },
       include: {
         card: {
           include: { tcg: true, edition: true }
@@ -70,9 +85,12 @@ export class ListingService {
   /**
    * Get all listings for a card
    */
-  static async getListingsByCard(cardId: string) {
+  static async getListingsByCard(cardId: string, storeId?: string) {
     return prisma.listing.findMany({
-      where: { cardId },
+      where: {
+        cardId,
+        ...(storeId ? { storeId } : {}),
+      },
       include: { card: true }
     });
   }
@@ -80,7 +98,7 @@ export class ListingService {
   /**
    * Get available listings (with stock > 0)
    */
-  static async getAvailableListings(tcgId?: string, editionId?: string) {
+  static async getAvailableListings(tcgId?: string, editionId?: string, storeId?: string) {
     const where: Prisma.ListingWhereInput = {
       AND: [
         { quantity: { gt: 0 } },
@@ -92,6 +110,10 @@ export class ListingService {
       where.card = {};
       if (tcgId) where.card.tcgId = tcgId;
       if (editionId) where.card.editionId = editionId;
+    }
+
+    if (storeId) {
+      where.storeId = storeId;
     }
 
     return prisma.listing.findMany({
@@ -108,7 +130,7 @@ export class ListingService {
   /**
    * List listings with pagination and optional filtering.
    */
-  static async listListings(options?: { take?: number; skip?: number; tcgId?: string; editionId?: string }) {
+  static async listListings(options?: { take?: number; skip?: number; tcgId?: string; editionId?: string; storeId?: string }) {
     const take = options?.take ?? 20;
     const skip = options?.skip ?? 0;
 
@@ -117,6 +139,10 @@ export class ListingService {
       where.card = {} as any;
       if (options?.tcgId) (where.card as any).tcgId = options.tcgId;
       if (options?.editionId) (where.card as any).editionId = options.editionId;
+    }
+
+    if (options?.storeId) {
+      where.storeId = options.storeId;
     }
 
     return prisma.listing.findMany({
@@ -182,13 +208,14 @@ export class ListingService {
   /**
    * Get low stock alerts
    */
-  static async getLowStockAlerts(threshold: number = 5) {
+  static async getLowStockAlerts(threshold: number = 5, storeId?: string) {
     return prisma.listing.findMany({
       where: {
         AND: [
           { quantity: { lte: threshold, gt: 0 } },
           { status: { in: ['active', 'manual'] } }
-        ]
+        ],
+        ...(storeId ? { storeId } : {}),
       },
       include: {
         card: {
@@ -205,9 +232,12 @@ export class ListingService {
   /**
    * Get out of stock listings
    */
-  static async getOutOfStock() {
+  static async getOutOfStock(storeId?: string) {
     return prisma.listing.findMany({
-      where: { quantity: 0 },
+      where: {
+        quantity: 0,
+        ...(storeId ? { storeId } : {}),
+      },
       include: { card: true }
     });
   }
@@ -228,9 +258,12 @@ export class ListingService {
   /**
    * Get total inventory value (cost basis)
    */
-  static async getInventoryValue() {
+  static async getInventoryValue(storeId?: string) {
     const listings = await prisma.listing.findMany({
-      where: { quantity: { gt: 0 } },
+      where: {
+        quantity: { gt: 0 },
+        ...(storeId ? { storeId } : {}),
+      },
       select: {
         quantity: true,
         costPrice: true,

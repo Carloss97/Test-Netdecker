@@ -5,8 +5,10 @@ import { ValidationError } from '../utils/errors.js';
 import StripeService from '../services/StripeService.js';
 import MercadoPagoService from '../services/MercadoPagoService.js';
 import prisma from '../utils/db.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 
 const router = express.Router();
+router.use(tenantResolver);
 
 const posSaleSchema = z.object({
   items: z.array(z.object({ listingId: z.string().trim().min(1), quantity: z.coerce.number().int().min(1) })).min(1),
@@ -25,7 +27,8 @@ function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
 
 router.post('/pos-sale', async (req, res) => {
   const body = parseBodyOrThrow(posSaleSchema, req.body);
-  const order = await PaymentService.processPosSale(body as any);
+  const storeId = body.storeId || req.store?.id || null;
+  const order = await PaymentService.processPosSale({ ...body, storeId } as any);
   res.json({ success: true, order });
 });
 
@@ -38,7 +41,8 @@ const createIntentSchema = z.object({
 
 router.post('/stripe/create-intent', async (req, res) => {
   const body = parseBodyOrThrow(createIntentSchema, req.body);
-  const intent = await StripeService.createPaymentIntent({ items: body.items as any, storeId: body.storeId || null, currency: body.currency || 'CLP' });
+  const storeId = body.storeId || req.store?.id || null;
+  const intent = await StripeService.createPaymentIntent({ items: body.items as any, storeId, currency: body.currency || 'CLP' });
   res.json({ success: true, clientSecret: intent.clientSecret, paymentIntentId: intent.id, amount: intent.amount, currency: intent.currency });
 });
 

@@ -150,11 +150,20 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
   });
 
   // Ensure each card has at least one listing. If not, create one.
+  const resolvedStoreId = req.store?.id ?? (await prisma.store.findFirst({
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+  }))?.id;
+  if (!resolvedStoreId) {
+    throw new NotFoundError('Store not found to create default listings for edition');
+  }
+
   for (const card of cards as CardWithListings[]) {
     if (card.listings.length === 0) {
       try {
         const newListing = await prisma.listing.create({
           data: {
+            storeId: resolvedStoreId,
             cardId: card.id,
             editionId: edition.id,
             condition: 'NM',

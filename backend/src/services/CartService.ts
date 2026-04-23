@@ -4,6 +4,7 @@ import { ListingService } from './ListingService.js';
 import { ValidationError, NotFoundError, ConflictError } from '../utils/errors.js';
 
 interface AddToCartInput {
+  storeId: string;
   sessionId: string;
   listingId: string;
   quantity: number;
@@ -45,9 +46,9 @@ export class CartService {
     const reserved = reservedByOthers._sum.quantity ?? 0;
     return Math.max(listing.quantity - reserved, 0);
   }
-  static async getOrCreateCart(sessionId: string) {
+  static async getOrCreateCart(sessionId: string, storeId: string) {
     const existing = await prisma.cart.findFirst({
-      where: { sessionId },
+      where: { sessionId, storeId },
       orderBy: { updatedAt: 'desc' },
       include: {
         items: {
@@ -68,7 +69,7 @@ export class CartService {
     }
 
     const created = await prisma.cart.create({
-      data: { sessionId },
+      data: { sessionId, storeId },
       include: {
         items: {
           include: {
@@ -86,8 +87,8 @@ export class CartService {
     return { ...created, expiresAt, ttlSeconds } as any;
   }
 
-  static async getCart(sessionId: string) {
-    return this.getOrCreateCart(sessionId);
+  static async getCart(sessionId: string, storeId: string) {
+    return this.getOrCreateCart(sessionId, storeId);
   }
 
   static async addToCart(input: AddToCartInput) {
@@ -95,12 +96,12 @@ export class CartService {
       throw new ValidationError('Quantity must be greater than 0');
     }
 
-    const listing = await ListingService.getListing(input.listingId);
+    const listing = await ListingService.getListing(input.listingId, input.storeId);
     if (!listing) {
       throw new NotFoundError('Listing not found');
     }
 
-    const cart = await this.getOrCreateCart(input.sessionId);
+    const cart = await this.getOrCreateCart(input.sessionId, input.storeId);
 
     const existingItem = await prisma.orderItem.findFirst({
       where: {
@@ -144,11 +145,11 @@ export class CartService {
       });
     }
 
-    return this.getOrCreateCart(input.sessionId);
+    return this.getOrCreateCart(input.sessionId, input.storeId);
   }
 
-  static async removeFromCart(sessionId: string, itemId: string) {
-    const cart = await this.getOrCreateCart(sessionId);
+  static async removeFromCart(sessionId: string, itemId: string, storeId: string) {
+    const cart = await this.getOrCreateCart(sessionId, storeId);
 
     await prisma.orderItem.deleteMany({
       where: {
@@ -158,15 +159,15 @@ export class CartService {
       }
     });
 
-    return this.getOrCreateCart(sessionId);
+    return this.getOrCreateCart(sessionId, storeId);
   }
 
-  static async updateItemQuantity(sessionId: string, itemId: string, quantity: number) {
+  static async updateItemQuantity(sessionId: string, itemId: string, quantity: number, storeId: string) {
     if (quantity <= 0) {
-      return this.removeFromCart(sessionId, itemId);
+      return this.removeFromCart(sessionId, itemId, storeId);
     }
 
-    const cart = await this.getOrCreateCart(sessionId);
+    const cart = await this.getOrCreateCart(sessionId, storeId);
     const item = await prisma.orderItem.findFirst({
       where: {
         id: itemId,
@@ -200,11 +201,11 @@ export class CartService {
       }
     });
 
-    return this.getOrCreateCart(sessionId);
+    return this.getOrCreateCart(sessionId, storeId);
   }
 
-  static async checkout(sessionId: string, customerEmail: string, shippingAddress?: string, notes?: string) {
-    const cart = await this.getOrCreateCart(sessionId);
+  static async checkout(sessionId: string, customerEmail: string, storeId: string, shippingAddress?: string, notes?: string) {
+    const cart = await this.getOrCreateCart(sessionId, storeId);
     if (!cart.items.length) {
       throw new ValidationError('Cart is empty');
     }
@@ -231,6 +232,7 @@ export class CartService {
     const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const createdOrder = await tx.order.create({
         data: {
+          storeId: cart.storeId,
           orderNumber,
           customerEmail,
           status: 'PENDING',

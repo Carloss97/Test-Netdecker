@@ -583,8 +583,17 @@ export class PriceSyncService {
         }
 
         if (update.cardId) {
+          const defaultStore = await prisma.store.findFirst({
+            select: { id: true },
+            orderBy: { createdAt: 'asc' },
+          });
+          if (!defaultStore) {
+            throw new NotFoundError('No store available to create listing during sync');
+          }
+
           const resolvedMargin = update.marginMultiplier || DEFAULT_MARGIN_MULTIPLIER;
           const createdListing = await ListingService.createListing({
+            storeId: defaultStore.id,
             cardId: update.cardId,
             condition: CardCondition.NM,
             quantity: 0,

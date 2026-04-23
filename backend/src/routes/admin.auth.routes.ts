@@ -9,7 +9,8 @@ router.post('/create', requireApiKey, async (req: Request, res: Response) => {
   const { email, password, role } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, error: { message: 'email and password required' } });
 
-  const result = await AdminAuthService.createUser(String(email), String(password), (role === 'STAFF' ? 'STAFF' : 'ADMIN'));
+  const normalizedRole = role === 'STAFF' || role === 'MANAGER' ? role : 'ADMIN';
+  const result = await AdminAuthService.createUser(String(email), String(password), normalizedRole);
   res.json({ success: true, data: result });
 });
 

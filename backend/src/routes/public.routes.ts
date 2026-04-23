@@ -27,7 +27,9 @@ router.get('/:slug/catalogo', (req, res) => {
       <script>
         async function load() {
           try {
-            const res = await fetch('/api/listings/available');
+            const res = await fetch('/api/listings/available', {
+              headers: { 'x-store-slug': '${slug}' }
+            });
             if (!res.ok) throw new Error('Network response not ok');
             const data = await res.json();
             const container = document.getElementById('catalog');

@@ -4,15 +4,32 @@ import prisma from '../utils/db.js';
 import { ListingService } from './ListingService.js';
 
 test('getListing returns listing', async () => {
-  const originalFindUnique = prisma.listing.findUnique;
+  const originalFindFirst = prisma.listing.findFirst;
   try {
-    prisma.listing.findUnique = (async () => ({ id: 'L1', finalPrice: 100 })) as any;
+    prisma.listing.findFirst = (async () => ({ id: 'L1', finalPrice: 100 })) as any;
     const listing = await ListingService.getListing('L1');
     assert.equal(listing.id, 'L1');
     assert.equal(listing.finalPrice, 100);
   } finally {
-    prisma.listing.findUnique = originalFindUnique;
+    prisma.listing.findFirst = originalFindFirst;
   }
+});
+
+test('createListing rejects when storeId is missing', async () => {
+  let threw = false;
+  try {
+    await ListingService.createListing({
+      storeId: '',
+      cardId: 'C1',
+      condition: 'NM' as any,
+      quantity: 0,
+      referencePrice: 1,
+    });
+  } catch (err: any) {
+    threw = true;
+    assert.ok(String(err.message).includes('storeId is required'));
+  }
+  assert.equal(threw, true);
 });
 
 test('decreaseQuantity throws when listing missing', async () => {

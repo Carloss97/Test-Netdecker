@@ -2,15 +2,18 @@
 import express, { Request, Response } from 'express';
 import { CartService } from '../services/CartService.js';
 import { ValidationError } from '../utils/errors.js';
+import tenantResolver from '../middleware/tenantResolver.js';
+import requireTenant from '../middleware/requireTenant.js';
 
 const router = express.Router();
+router.use(tenantResolver, requireTenant);
 
 /**
  * GET /api/cart/:sessionId
  * Get cart by session ID
  */
 router.get('/:sessionId', async (req: Request, res: Response) => {
-  const cart = await CartService.getCart(req.params.sessionId);
+  const cart = await CartService.getCart(req.params.sessionId, req.store!.id);
   res.json(cart);
 });
 
@@ -25,6 +28,7 @@ router.post('/:sessionId/add', async (req: Request, res: Response) => {
   }
 
   const cart = await CartService.addToCart({
+    storeId: req.store!.id,
     sessionId: req.params.sessionId,
     listingId,
     quantity: Number(quantity)
@@ -46,6 +50,7 @@ router.post('/:sessionId/checkout', async (req: Request, res: Response) => {
   const order = await CartService.checkout(
     req.params.sessionId,
     customerEmail,
+    req.store!.id,
     shippingAddress,
     notes
   );
@@ -66,7 +71,8 @@ router.patch('/:sessionId/item/:itemId', async (req: Request, res: Response) => 
   const cart = await CartService.updateItemQuantity(
     req.params.sessionId,
     req.params.itemId,
-    Number(quantity)
+    Number(quantity),
+    req.store!.id,
   );
 
   res.json(cart);
@@ -79,7 +85,8 @@ router.patch('/:sessionId/item/:itemId', async (req: Request, res: Response) => 
 router.delete('/:sessionId/item/:itemId', async (req: Request, res: Response) => {
   const cart = await CartService.removeFromCart(
     req.params.sessionId,
-    req.params.itemId
+    req.params.itemId,
+    req.store!.id,
   );
 
   res.json(cart);

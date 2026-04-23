@@ -22,9 +22,9 @@ test('listOrders returns orders and total', async () => {
 });
 
 test('getOrder throws when not found', async () => {
-  const originalFindUnique = prisma.order.findUnique;
+  const originalFindFirst = prisma.order.findFirst;
   try {
-    prisma.order.findUnique = (async () => null) as any;
+    prisma.order.findFirst = (async () => null) as any;
 
     let threw = false;
     try {
@@ -35,7 +35,7 @@ test('getOrder throws when not found', async () => {
     }
     assert.equal(threw, true);
   } finally {
-    prisma.order.findUnique = originalFindUnique;
+    prisma.order.findFirst = originalFindFirst;
   }
 });
 
@@ -46,7 +46,7 @@ test('cancelOrder restores stock and marks order cancelled', async () => {
   try {
     const tx = {
       order: {
-        findUnique: async () => ({ id: 'o1', status: 'CONFIRMED', items: [{ listingId: 'L1', quantity: 2 }] }),
+        findFirst: async () => ({ id: 'o1', status: 'CONFIRMED', items: [{ listingId: 'L1', quantity: 2 }] }),
         update: async (args: any) => ({ id: args.where.id, status: args.data.status, items: [] }),
       },
       listing: {
@@ -74,7 +74,7 @@ test('cancelOrder throws on already cancelled order', async () => {
   const originalTx = prisma.$transaction;
   try {
     const tx = {
-      order: { findUnique: async () => ({ id: 'o1', status: 'CANCELLED', items: [] }) },
+      order: { findFirst: async () => ({ id: 'o1', status: 'CANCELLED', items: [] }) },
     } as any;
     prisma.$transaction = (async (fn: any) => fn(tx)) as any;
 
@@ -96,7 +96,7 @@ test('shipOrder updates status to SHIPPED', async () => {
   try {
     const tx = {
       order: {
-        findUnique: async () => ({ id: 'o1', status: 'PENDING' }),
+        findFirst: async () => ({ id: 'o1', status: 'PENDING' }),
         update: async (args: any) => ({ id: args.where.id, status: args.data.status })
       }
     } as any;
@@ -114,7 +114,7 @@ test('deliverOrder updates status to DELIVERED', async () => {
   try {
     const tx = {
       order: {
-        findUnique: async () => ({ id: 'o1', status: 'SHIPPED' }),
+        findFirst: async () => ({ id: 'o1', status: 'SHIPPED' }),
         update: async (args: any) => ({ id: args.where.id, status: args.data.status })
       }
     } as any;

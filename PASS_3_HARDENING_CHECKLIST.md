@@ -32,14 +32,14 @@ El campo `storeId` en Listing, Order, y Cart es actualmente nullable (`String?`)
 6. Verificar rutas públicas no exponen listings sin filtro
 
 **Criterios de Aceptación**
-- [ ] Migración Prisma crea campo obligatorio
-- [ ] Backfill de registros null → store por defecto (o rechazo si data inconsistente)
-- [ ] ListingService.createListing() rechaza si storeId no está en req context
-- [ ] GET /public/catalog filtra listingsbyStore (si es privado por store)
-- [ ] Todas queries a Listing tienen `.where({ storeId: req.store.id })`
-- [ ] Type-check y build pasan sin errors
-- [ ] Tests: ListingService.test.ts valida storeId enforcement
-- [ ] Documentation: CONTRIBUTING_PAGES.md actualiza que storeId es mandatory
+- [x] Migración Prisma crea campo obligatorio
+- [x] Backfill de registros null → store por defecto (o rechazo si data inconsistente)
+- [x] ListingService.createListing() rechaza si storeId no está en req context
+- [x] GET /public/catalog filtra listingsbyStore (si es privado por store)
+- [x] Todas queries a Listing tienen `.where({ storeId: req.store.id })`
+- [x] Type-check y build pasan sin errors
+- [x] Tests: ListingService.test.ts valida storeId enforcement
+- [x] Documentation: CONTRIBUTING_PAGES.md actualiza que storeId es mandatory
 
 **Estimado**: 3-4 horas
 
@@ -126,14 +126,14 @@ Los roles ADMIN/STAFF existen en DB pero no hay validación real de permisos. re
    ```
 
 **Criterios de Aceptación**
-- [ ] RolePermission model agregado a schema.prisma
-- [ ] Migración Prisma crea tabla y seed inicial
-- [ ] requirePermission middleware implementado y testeado
-- [ ] Todas rutas admin usan requirePermission() apropiadamente
-- [ ] ADMIN tiene all perms, MANAGER limitado a su store, STAFF read-only
-- [ ] Tests: AdminAuthService.test.ts + nuevos tests de permisos
-- [ ] API docs actualizado con permisos requeridos por endpoint
-- [ ] Logs muestran `reason: "insufficient permissions"` en 403
+- [x] RolePermission model agregado a schema.prisma
+- [x] Migración Prisma crea tabla y seed inicial
+- [x] requirePermission middleware implementado y testeado
+- [x] Todas rutas admin usan requirePermission() apropiadamente
+- [x] ADMIN tiene all perms, MANAGER limitado a su store, STAFF read-only
+- [x] Tests: AdminAuthService.test.ts + nuevos tests de permisos
+- [x] API docs actualizado con permisos requeridos por endpoint
+- [x] Logs muestran `reason: "insufficient permissions"` en 403
 
 **Estimado**: 5-6 horas
 

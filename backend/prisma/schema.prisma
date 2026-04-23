@@ -208,9 +208,9 @@ model Card {
 model Listing {
   id             String    @id @default(cuid())
   
-  // Optional store scoping for multitenancy. Nullable for backwards compatibility.
-  storeId        String?
-  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  // Mandatory tenant scoping.
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   
   cardId         String
   card           Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
@@ -408,7 +408,20 @@ model PriceVolatilityThreshold {
 // Admin authentication + audit models
 enum AdminRole {
   ADMIN
+  MANAGER
   STAFF
+}
+
+model RolePermission {
+  id        String    @id @default(cuid())
+  role      AdminRole
+  action    String
+  resource  String
+  createdAt DateTime  @default(now())
+
+  @@unique([role, action, resource])
+  @@index([role])
+  @@index([resource])
 }
 
 model AdminUser {
@@ -653,9 +666,9 @@ model FiscalPeriod {
 model Cart {
   id             String    @id @default(cuid())
   
-  // Which store this cart belongs to (nullable for existing sessions)
-  storeId        String?
-  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  // Which store this cart belongs to
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   
   sessionId      String    // Session or user ID
   
@@ -691,8 +704,8 @@ model Order {
   id             String    @id @default(cuid())
   
   // Tenant scoping
-  storeId        String?
-  store          Store?    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   
   orderNumber    String    @unique
   customerEmail  String
