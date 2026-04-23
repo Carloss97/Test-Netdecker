@@ -34,6 +34,11 @@ router.post('/login', async (req: Request, res: Response) => {
       path: '/',
     };
     res.cookie('auth_token', result.token, cookieOptions);
+    // Keep a JS-readable copy for browsers that block or clear localStorage.
+    res.cookie('auth_token_js', result.token, {
+      ...cookieOptions,
+      httpOnly: false,
+    });
   } catch (e) {
     // Non-fatal: continue returning token in body so clients without cookie support still work.
     console.warn('Failed to set auth cookie', e?.message || e);
@@ -49,6 +54,7 @@ router.post('/logout', requireAdmin, async (req: Request, res: Response) => {
   try {
     const isProd = process.env.NODE_ENV === 'production';
     res.clearCookie('auth_token', { path: '/', sameSite: isProd ? 'none' : 'lax', secure: isProd });
+    res.clearCookie('auth_token_js', { path: '/', sameSite: isProd ? 'none' : 'lax', secure: isProd });
   } catch (_) {}
   res.json({ success: true });
 });

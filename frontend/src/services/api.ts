@@ -38,6 +38,38 @@ try {
   API_BASE_URL = '/api';
 }
 
+function readCookie(name: string): string | null {
+  try {
+    if (typeof document === 'undefined' || !document.cookie) return null;
+    const match = document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`));
+    if (!match) return null;
+    return decodeURIComponent(match.substring(name.length + 1));
+  } catch {
+    return null;
+  }
+}
+
+function hydrateAuthHeader(): void {
+  try {
+    const existing = apiClient.defaults.headers.common.Authorization;
+    if (existing) return;
+    const token = (() => {
+      try {
+        const stored = localStorage.getItem('auth_token');
+        if (stored) return stored;
+      } catch (_) {
+        // ignore storage failures
+      }
+      return readCookie('auth_token_js');
+    })();
+    if (token) {
+      apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    }
+  } catch (_) {
+    // ignore hydration failures
+  }
+}
+
 export function buildApiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const normalizedBase = API_BASE_URL.replace(/\/+$/, '');
@@ -85,6 +117,7 @@ const apiClient = axios.create({
 
 // Ensure cookies are sent for cross-origin requests when needed
 apiClient.defaults.withCredentials = true;
+hydrateAuthHeader();
 
 // Request interceptor
 apiClient.interceptors.request.use(
@@ -100,15 +133,12 @@ apiClient.interceptors.request.use(
       // eslint-disable-next-line no-console
       console.warn('[api] localStorage access blocked in request interceptor', err);
     }
-    
-    // Fallback: try to extract auth_token from cookies when localStorage is unavailable
+
+    // Fallback: try to extract a JS-readable token from cookies when localStorage is unavailable
     try {
       if (!config.headers.Authorization && typeof document !== 'undefined' && document.cookie) {
-        const match = document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith('auth_token='));
-        if (match) {
-          const cookieVal = decodeURIComponent(match.substring('auth_token='.length));
-          if (cookieVal) config.headers.Authorization = `Bearer ${cookieVal}`;
-        }
+        const cookieVal = readCookie('auth_token_js');
+        if (cookieVal) config.headers.Authorization = `Bearer ${cookieVal}`;
       }
     } catch (e) {
       // ignore cookie parsing errors
