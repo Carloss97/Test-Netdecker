@@ -33,7 +33,7 @@ function useThemeMode() {
 }
 
 export default function StorefrontPage() {
-  const { status, error, filteredProducts, filters, setFilters, suggestions, tcgOptions, rarityOptions } = useStorefront();
+  const { status, error, filteredProducts, filters, setFilters, suggestions, tcgOptions, rarityOptions, reload } = useStorefront();
   const cart = useCartPersist();
   const [selected, setSelected] = useState<StorefrontProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -103,7 +103,21 @@ export default function StorefrontPage() {
 
           <section className="sf-content-shell">
             {status === 'loading' && <p>Cargando catalogo...</p>}
-            {error && <div className="sf-status warn">{error}</div>}
+            {error && (
+              <div className="sf-status warn">
+                {error}
+                <button
+                  type="button"
+                  className="sf-ghost-btn"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => {
+                    void reload();
+                  }}
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
             <ProductGrid
               products={filteredProducts}
               onView={(product) => setSelected(product)}

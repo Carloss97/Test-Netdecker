@@ -6,6 +6,48 @@ const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '
 import * as localImports from './localImports';
 
 const DEFAULT_USD_TO_CLP = Number(import.meta.env.VITE_MANUAL_USD_TO_CLP || import.meta.env.VITE_USD_TO_CLP) || 1000;
+type SupportedTcgId = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
+
+const DEFAULT_TCG_OPTIONS: Array<{ id: SupportedTcgId; name: SupportedTcgId; displayName: string }> = [
+  { id: 'MAGIC', name: 'MAGIC', displayName: 'Magic: The Gathering' },
+  { id: 'POKEMON', name: 'POKEMON', displayName: 'Pokémon' },
+  { id: 'YUGIOH', name: 'YUGIOH', displayName: 'Yu-Gi-Oh!' },
+  { id: 'ONE_PIECE', name: 'ONE_PIECE', displayName: 'One Piece' },
+  { id: 'DIGIMON', name: 'DIGIMON', displayName: 'Digimon' },
+  { id: 'WEISS_SCHWARZ', name: 'WEISS_SCHWARZ', displayName: 'Weiss Schwarz' },
+];
+
+function normalizeTcgEntry(entry: unknown): { id: SupportedTcgId; name: SupportedTcgId; displayName: string } | null {
+  if (!entry || typeof entry !== 'object') return null;
+  const candidate = entry as { id?: string | null; name?: string | null; displayName?: string | null };
+  const normalizedId = normalizeTcgId(candidate.id || candidate.name || undefined);
+  if (!normalizedId) return null;
+
+  return {
+    id: normalizedId,
+    name: normalizedId,
+    displayName: String(candidate.displayName || candidate.name || normalizedId),
+  };
+}
+
+function mergeWithDefaultTcgs(entries: unknown[]): Array<{ id: SupportedTcgId; name: SupportedTcgId; displayName: string }> {
+  const byId = new Map<SupportedTcgId, { id: SupportedTcgId; name: SupportedTcgId; displayName: string }>();
+
+  for (const entry of entries) {
+    const normalized = normalizeTcgEntry(entry);
+    if (normalized) {
+      byId.set(normalized.id, normalized);
+    }
+  }
+
+  for (const fallback of DEFAULT_TCG_OPTIONS) {
+    if (!byId.has(fallback.id)) {
+      byId.set(fallback.id, fallback);
+    }
+  }
+
+  return DEFAULT_TCG_OPTIONS.map((tcg) => byId.get(tcg.id) as { id: SupportedTcgId; name: SupportedTcgId; displayName: string });
+}
 
 function normalizeTcgId(value?: string | null): 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ' | undefined {
   const raw = String(value || '').trim();
@@ -144,20 +186,13 @@ export async function getTCGs() {
   try {
     const { data } = await apiClient.get('/tcgs');
     // Backend may return an object like { success, total, tcgs: [...] }
-    if (!data) return [] as any;
-    if (Array.isArray(data)) return data;
-    if (Array.isArray((data as any).tcgs)) return (data as any).tcgs;
-    return [] as any;
+    if (!data) return [...DEFAULT_TCG_OPTIONS] as any;
+    if (Array.isArray(data)) return mergeWithDefaultTcgs(data) as any;
+    if (Array.isArray((data as any).tcgs)) return mergeWithDefaultTcgs((data as any).tcgs) as any;
+    return [...DEFAULT_TCG_OPTIONS] as any;
   } catch (err) {
-    // Offline fallback: return a minimal known TCG list
-    return [
-      { id: 'MAGIC', name: 'MAGIC', displayName: 'Magic: The Gathering' },
-      { id: 'POKEMON', name: 'POKEMON', displayName: 'Pokémon' },
-      { id: 'YUGIOH', name: 'YUGIOH', displayName: 'Yu-Gi-Oh!' },
-      { id: 'ONE_PIECE', name: 'ONE_PIECE', displayName: 'One Piece' },
-      { id: 'DIGIMON', name: 'DIGIMON', displayName: 'Digimon' },
-      { id: 'WEISS_SCHWARZ', name: 'WEISS_SCHWARZ', displayName: 'Weiss Schwarz' },
-    ] as any;
+    // Offline fallback: return known supported TCG list
+    return [...DEFAULT_TCG_OPTIONS] as any;
   }
 }
 

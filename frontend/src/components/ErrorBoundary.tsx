@@ -1,4 +1,5 @@
 import React from 'react';
+import { logClientError } from '../utils/observability';
 
 type Props = { children: React.ReactNode };
 type State = { hasError: boolean; error?: Error | null };
@@ -14,9 +15,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log for diagnostics
-    // eslint-disable-next-line no-console
-    console.error('Unhandled error caught by ErrorBoundary:', error, info);
+    logClientError({
+      area: 'react-error-boundary',
+      action: 'component-did-catch',
+      message: 'Unhandled render error captured by ErrorBoundary',
+      context: { componentStack: info.componentStack },
+      error,
+    });
   }
 
   render() {

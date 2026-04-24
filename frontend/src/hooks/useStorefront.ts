@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '../services/api';
+import { logClientError, logClientInfo } from '../utils/observability';
 
 export type StorefrontProduct = {
   id: string;
@@ -27,45 +28,6 @@ const PLACEHOLDER_IMAGE =
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 448"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#0f172a"/><stop offset="100%" stop-color="#1e293b"/></linearGradient></defs><rect width="320" height="448" rx="24" fill="url(#g)"/><rect x="28" y="28" width="264" height="392" rx="18" fill="none" stroke="#94a3b8" stroke-opacity="0.4" stroke-width="3"/><circle cx="160" cy="150" r="52" fill="#38bdf8" fill-opacity="0.14"/><path d="M160 108l14 30 33 4-24 23 6 33-29-15-29 15 6-33-24-23 33-4z" fill="#f8fafc" fill-opacity="0.88"/><text x="160" y="332" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#e2e8f0">TCGCSV</text></svg>',
   );
-
-const FALLBACK_PRODUCTS: StorefrontProduct[] = [
-  {
-    id: 'demo-1',
-    cardName: 'Lightning Bolt',
-    editionName: 'Limited Edition Alpha',
-    tcgId: 'MAGIC',
-    rarity: 'U',
-    condition: 'NM',
-    quantity: 8,
-    finalPrice: 3990,
-    referencePrice: 4.2,
-    imageUrl: PLACEHOLDER_IMAGE,
-  },
-  {
-    id: 'demo-2',
-    cardName: 'Black Lotus',
-    editionName: 'Limited Edition Alpha',
-    tcgId: 'MAGIC',
-    rarity: 'R',
-    condition: 'LP',
-    quantity: 1,
-    finalPrice: 5299000,
-    referencePrice: 5600,
-    imageUrl: PLACEHOLDER_IMAGE,
-  },
-  {
-    id: 'demo-3',
-    cardName: 'Charizard',
-    editionName: 'Base Set',
-    tcgId: 'POKEMON',
-    rarity: 'R',
-    condition: 'NM',
-    quantity: 12,
-    finalPrice: 179990,
-    referencePrice: 189.5,
-    imageUrl: PLACEHOLDER_IMAGE,
-  },
-];
 
 function toNumber(value: unknown, fallback = 0): number {
   const n = Number(value);
@@ -110,7 +72,7 @@ function extractProducts(payload: any): StorefrontProduct[] {
     [];
 
   if (arrayCandidate.length === 0) {
-    return FALLBACK_PRODUCTS;
+    return [];
   }
 
   return arrayCandidate.map((entry: any, index: number) => normalizeProduct(entry, index));
@@ -128,29 +90,55 @@ export default function useStorefront() {
     maxPrice: '',
   });
 
+  const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' = 'initial-load') => {
+    setStatus('loading');
+    setError(null);
+
+    try {
+      const resp = await apiClient.get('/listings/available');
+      const normalized = extractProducts(resp?.data);
+      setProducts(normalized);
+      setStatus('ready');
+      logClientInfo({
+        area: 'storefront-hook',
+        action: 'load-products',
+        message: 'Storefront products loaded',
+        context: { reason, count: normalized.length },
+      });
+    } catch (err) {
+      setProducts([]);
+      setStatus('error');
+      setError('No se pudo cargar catálogo remoto.');
+      logClientError({
+        area: 'storefront-hook',
+        action: 'load-products',
+        message: 'Failed loading storefront products from API',
+        context: { reason },
+        error: err,
+      });
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-    setStatus('loading');
 
-    apiClient
-      .get('/listings/available')
-      .then((resp) => {
-        if (!mounted) return;
-        const normalized = extractProducts(resp?.data);
-        setProducts(normalized);
-        setStatus('ready');
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setProducts(FALLBACK_PRODUCTS);
-        setStatus('error');
-        setError('No se pudo cargar catálogo remoto. Mostrando catálogo demo local.');
-      });
+    const load = async () => {
+      if (!mounted) return;
+      await loadProducts('initial-load');
+    };
 
+    void load();
+
+    const onStoreChanged = () => {
+      void loadProducts('store-change');
+    };
+
+    window.addEventListener('netdecker:store-changed', onStoreChanged as EventListener);
     return () => {
       mounted = false;
+      window.removeEventListener('netdecker:store-changed', onStoreChanged as EventListener);
     };
-  }, []);
+  }, [loadProducts]);
 
   const suggestions = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
@@ -193,5 +181,6 @@ export default function useStorefront() {
     setFilters,
     tcgOptions,
     rarityOptions,
+    reload: () => loadProducts('manual-retry'),
   };
 }

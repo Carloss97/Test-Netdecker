@@ -111,7 +111,13 @@ export function PosPage(): JSX.Element {
       setMessage('Venta encolada para reintento offline')
       setOfflineQueueEntries(list)
     } catch (err) {
-      console.error('offline save failed', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'enqueue-offline-sale',
+        message: 'Failed enqueueing offline sale',
+        context: { saleCount: sale.length },
+        error: err,
+      })
       setMessage('No fue posible encolar la venta')
     }
   }
@@ -158,7 +164,12 @@ export function PosPage(): JSX.Element {
       const list = raw ? JSON.parse(raw) as Array<{ createdAt: string; cart: CartItem[] }> : []
       setOfflineQueueEntries(list)
     } catch (err) {
-      console.error('loadOfflineQueue failed', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'load-offline-queue',
+        message: 'Failed loading offline queue',
+        error: err,
+      })
       setOfflineQueueEntries([])
     }
   }
@@ -176,7 +187,13 @@ export function PosPage(): JSX.Element {
           const items = entry.cart.map((it) => ({ listingId: it.id, quantity: it.qty }))
           await erp.posCheckout({ items, paymentMethod: 'CASH' })
         } catch (err) {
-          console.error('offline replay failed for entry', entry, err)
+          logClientError({
+            area: 'pos-page',
+            action: 'offline-replay-entry',
+            message: 'Failed replaying offline queue entry',
+            context: { createdAt: entry.createdAt, itemCount: entry.cart.length },
+            error: err,
+          })
           remaining.push(entry)
         }
       }
@@ -189,7 +206,12 @@ export function PosPage(): JSX.Element {
       }
       loadOfflineQueue()
     } catch (err) {
-      console.error('processOfflineQueue error', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'process-offline-queue',
+        message: 'Failed processing offline queue',
+        error: err,
+      })
     }
   }
 
@@ -203,7 +225,13 @@ export function PosPage(): JSX.Element {
       const { data } = await apiClient.get('/cards/search', { params: { name: query, limit: 20 } })
       setSearchResults(data || [])
     } catch (err) {
-      console.error('searchCards error', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'search-cards',
+        message: 'Failed searching cards in POS',
+        context: { query },
+        error: err,
+      })
       setMessage('Error buscando cartas')
     }
   }
@@ -213,7 +241,13 @@ export function PosPage(): JSX.Element {
       const items = await getListingsByCard(cardId)
       setListings(items || [])
     } catch (err) {
-      console.error('loadListingsForCard error', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'load-listings-for-card',
+        message: 'Failed loading listings for POS card',
+        context: { cardId },
+        error: err,
+      })
       setMessage('Error cargando listings')
     }
   }
@@ -242,7 +276,13 @@ export function PosPage(): JSX.Element {
       }
       setMessage('No fue posible crear el listing')
     } catch (err) {
-      console.error('create listing failed', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'create-listing-from-pos',
+        message: 'Failed creating listing from POS',
+        context: { gtin: newListingForm.gtin, cardId: newListingForm.cardId || null },
+        error: err,
+      })
       setMessage('Error creando listing')
     }
   }
@@ -272,7 +312,13 @@ export function PosPage(): JSX.Element {
       }
       setMessage('No se encontraron datos externos para este GTIN')
     } catch (err) {
-      console.error('autofill failed', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'autofill-from-gtin',
+        message: 'Failed auto-filling listing from GTIN',
+        context: { gtin: newListingForm.gtin },
+        error: err,
+      })
       setMessage('Error en auto-llenado')
     }
   }

@@ -12,6 +12,7 @@ import {
   resetCatalog,
 } from '../services/catalog';
 import type { EditionWithCounts } from '../types';
+import { logClientError } from '../utils/observability';
 
 type TcgCode = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
 
@@ -88,8 +89,11 @@ export function ImportPage() {
   const [resetMsg, setResetMsg] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
 
-  const { data: tcgs } = useAsync(() => getTCGs());
-  const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 10 }));
+  const tcgsQuery = useAsync(() => getTCGs());
+  const importsQuery = useAsync(() => getInventoryImports({ pageSize: 10 }));
+
+  const { data: tcgs, status: tcgsStatus, error: tcgsLoadError, execute: reloadTcgs } = tcgsQuery;
+  const { data: imports, status: importsStatus, error: importsLoadError, execute: reloadImports } = importsQuery;
 
   const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
   const selectedCatalogTcgDisplay = tcgList.find((t) => t.id === catalogTcg)?.displayName;
@@ -110,6 +114,12 @@ export function ImportPage() {
       })
       .catch(() => {
         setLocalEditions([]);
+        logClientError({
+          area: 'import-page',
+          action: 'load-local-editions',
+          message: 'Failed loading local editions for selected TCG',
+          context: { exportTcg },
+        });
       })
       .finally(() => setLoadingLocalEditions(false));
   }, [exportTcg, tcgs]);
@@ -141,8 +151,15 @@ export function ImportPage() {
             .filter((set) => set.code && set.name),
         );
       })
-      .catch(() => {
+      .catch((err) => {
         setImportError('Error al cargar sets externos');
+        logClientError({
+          area: 'import-page',
+          action: 'load-external-sets',
+          message: 'Failed loading external sets',
+          context: { catalogTcg },
+          error: err,
+        });
       })
       .finally(() => setLoadingSets(false));
   }, [catalogTcg]);
@@ -165,8 +182,15 @@ export function ImportPage() {
           }))
           .filter((set) => set.code && set.name),
       );
-    } catch {
+    } catch (err) {
       setImportError('Error al cargar sets externos');
+      logClientError({
+        area: 'import-page',
+        action: 'manual-reload-external-sets',
+        message: 'Failed manually reloading external sets',
+        context: { catalogTcg },
+        error: err,
+      });
     } finally {
       setLoadingSets(false);
     }
@@ -179,8 +203,15 @@ export function ImportPage() {
     try {
       await importExternalSet({ tcg: catalogTcg as TcgCode, setCode: code });
       setImportMsg(`Set "${code}" importado correctamente`);
-    } catch {
+    } catch (err) {
       setImportError(`Error al importar set "${code}"`);
+      logClientError({
+        area: 'import-page',
+        action: 'import-external-set',
+        message: 'Failed importing external set',
+        context: { catalogTcg, setCode: code },
+        error: err,
+      });
     } finally {
       setImportingSet(null);
     }
@@ -222,8 +253,15 @@ export function ImportPage() {
       a.click();
       URL.revokeObjectURL(url);
       setImportMsg('CSV de inventario exportado correctamente');
-    } catch {
+    } catch (err) {
       setImportError('Error al exportar inventario');
+      logClientError({
+        area: 'import-page',
+        action: 'export-inventory',
+        message: 'Failed exporting inventory CSV',
+        context: { scope, exportTcg, selectedExportEditionId },
+        error: err,
+      });
     } finally {
       setExportingScope(null);
     }
@@ -247,8 +285,15 @@ export function ImportPage() {
         totalRows: apiResult?.total,
         errors: apiResult?.errors?.map((e) => `Fila ${e.row}: ${e.message}`) ?? [],
       });
-    } catch {
+    } catch (err) {
       setCsvError('Error al validar archivo CSV');
+      logClientError({
+        area: 'import-page',
+        action: 'validate-csv',
+        message: 'Failed validating CSV file',
+        context: { fileName: file.name, size: file.size },
+        error: err,
+      });
     } finally {
       setValidating(false);
     }
@@ -266,8 +311,15 @@ export function ImportPage() {
       setValidationResult(null);
       if (fileRef.current) fileRef.current.value = '';
       reloadImports();
-    } catch {
+    } catch (err) {
       setCsvError('Error al importar CSV');
+      logClientError({
+        area: 'import-page',
+        action: 'import-csv',
+        message: 'Failed importing CSV file',
+        context: { fileName: csvFile?.name },
+        error: err,
+      });
     } finally {
       setImporting(false);
     }
@@ -281,8 +333,14 @@ export function ImportPage() {
     try {
       const res = await resetCatalog();
       setResetMsg(res.message);
-    } catch {
+    } catch (err) {
       setResetError('Error al resetear catálogo');
+      logClientError({
+        area: 'import-page',
+        action: 'reset-catalog',
+        message: 'Failed resetting catalog from import page',
+        error: err,
+      });
     } finally {
       setResetting(false);
     }
@@ -341,6 +399,27 @@ export function ImportPage() {
       {/* ── Catalog Tab ── */}
       {activeTab === 'catalog' && (
         <div>
+          {tcgsStatus === 'pending' && (
+            <div className="surface-card" style={{ padding: 12, marginBottom: 12 }}>
+              ⏳ Cargando lista de TCGs...
+            </div>
+          )}
+          {tcgsStatus === 'error' && (
+            <div className="error-message" style={{ marginBottom: 12 }}>
+              ⚠ No se pudo cargar la lista de TCGs.
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ marginLeft: 8 }}
+                onClick={() => { void reloadTcgs(); }}
+                title="Reintentar carga de juegos"
+              >
+                Reintentar
+              </button>
+              {tcgsLoadError?.message ? <div style={{ marginTop: 6, fontSize: '0.8rem' }}>{tcgsLoadError.message}</div> : null}
+            </div>
+          )}
+
           {importMsg && (
             <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 16, color: '#15803d', fontSize: '0.875rem' }}>
               ✓ {importMsg}
@@ -487,6 +566,27 @@ export function ImportPage() {
       {/* ── CSV Tab ── */}
       {activeTab === 'csv' && (
         <div>
+          {importsStatus === 'pending' && (
+            <div className="surface-card" style={{ padding: 12, marginBottom: 12 }}>
+              ⏳ Cargando historial de importaciones...
+            </div>
+          )}
+          {importsStatus === 'error' && (
+            <div className="error-message" style={{ marginBottom: 12 }}>
+              ⚠ No se pudo cargar el historial de importaciones.
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{ marginLeft: 8 }}
+                onClick={() => { void reloadImports(); }}
+                title="Reintentar carga del historial"
+              >
+                Reintentar
+              </button>
+              {importsLoadError?.message ? <div style={{ marginTop: 6, fontSize: '0.8rem' }}>{importsLoadError.message}</div> : null}
+            </div>
+          )}
+
           {csvMsg && (
             <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 16, color: '#15803d', fontSize: '0.875rem' }}>
               ✓ {csvMsg}
@@ -553,7 +653,7 @@ export function ImportPage() {
 
           <div className="card">
             <div className="section-title" style={{ marginBottom: 12 }}>Historial de Importaciones</div>
-            {importList.length === 0 ? (
+            {importsStatus !== 'error' && importList.length === 0 ? (
               <div className="empty-state" style={{ padding: '20px 0' }}>
                 <div>Sin importaciones previas</div>
               </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/adminAccounts'
 import type { AccountType } from '../services/adminAccounts'
+import { logClientError } from '../utils/observability'
 
 export function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<any[]>([])
@@ -17,7 +18,13 @@ export function AdminAccountsPage() {
       const res = await getAccounts()
       setAccounts(res || [])
     } catch (err) {
-      console.error(err)
+      logClientError({
+        area: 'admin-accounts-page',
+        action: 'load-accounts',
+        message: 'Failed loading accounting accounts',
+        error: err,
+      })
+      setMessage('Error cargando cuentas')
     } finally {
       setLoading(false)
     }

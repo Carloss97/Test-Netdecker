@@ -37,6 +37,9 @@
 - In progress: [frontend/src/pages/CardSearchPage.tsx](frontend/src/pages/CardSearchPage.tsx) now exposes retry for failed searches and shows explicit per-card listing load errors instead of silently falling back to empty tables.
 - In progress: [frontend/src/pages/AdminDashboard.tsx](frontend/src/pages/AdminDashboard.tsx) now shows explicit loading/error blocks for pricing configuration fetch with retry action.
 - Delivered bugfix: storefront checkout is now connected to backend order creation in [frontend/src/pages/CheckoutPage.tsx](frontend/src/pages/CheckoutPage.tsx) instead of mock-only local clear.
+- In progress: [frontend/src/pages/StorefrontPage.tsx](frontend/src/pages/StorefrontPage.tsx) now offers explicit retry for catalog load failures and reacts to store changes without manual refresh.
+- In progress: [frontend/src/pages/ImportPage.tsx](frontend/src/pages/ImportPage.tsx) now surfaces loading/error/retry states for TCG and import-history base fetches.
+- Delivered bugfix: [frontend/src/services/catalog.ts](frontend/src/services/catalog.ts) now merges API TCG responses with the full supported TCG baseline so Import/Catalog selectors still show all integrated games even when backend only returns partial rows.
 
 **Why**
 - Several API-consuming pages still assume success-path data too early.
@@ -55,6 +58,9 @@
 - In progress: POS checkout failures now emit structured logs with cart context in [frontend/src/pages/PosPage.tsx](frontend/src/pages/PosPage.tsx).
 - In progress: API client interceptor now emits structured diagnostics for HTML API responses and 401 redirect handling in [frontend/src/services/api.ts](frontend/src/services/api.ts).
 - Delivered bugfix: store switching now remounts page content and dispatches a store-changed event from [frontend/src/components/Layout.tsx](frontend/src/components/Layout.tsx) so UI changes apply immediately without manual refresh.
+- In progress: global runtime and render errors are now emitted through structured observability in [frontend/src/main.tsx](frontend/src/main.tsx) and [frontend/src/components/ErrorBoundary.tsx](frontend/src/components/ErrorBoundary.tsx).
+- In progress: remaining POS operational flows now use structured observability in [frontend/src/pages/PosPage.tsx](frontend/src/pages/PosPage.tsx), and admin accounts load errors are logged via [frontend/src/pages/AdminAccountsPage.tsx](frontend/src/pages/AdminAccountsPage.tsx).
+- Delivered bugfix: storefront fallback demo dataset was removed in [frontend/src/hooks/useStorefront.ts](frontend/src/hooks/useStorefront.ts) to avoid exposing sample cards (Lightning Bolt / Black Lotus / Pokémon demo content) during API failures.
 
 **Why**
 - API issues are still hard to distinguish from rendering issues in the browser.

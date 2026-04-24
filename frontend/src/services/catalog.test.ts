@@ -230,7 +230,14 @@ describe('catalog cart conflict handling', () => {
 
   it('returns tcg arrays and fallback lists for getTCGs', async () => {
     (apiClient.get as any).mockResolvedValueOnce({ data: { tcgs: [{ id: 'MAGIC' }, { id: 'POKEMON' }] } });
-    await expect(svc.getTCGs()).resolves.toEqual([{ id: 'MAGIC' }, { id: 'POKEMON' }]);
+    await expect(svc.getTCGs()).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'MAGIC' }),
+      expect.objectContaining({ id: 'POKEMON' }),
+      expect.objectContaining({ id: 'YUGIOH' }),
+      expect.objectContaining({ id: 'ONE_PIECE' }),
+      expect.objectContaining({ id: 'DIGIMON' }),
+      expect.objectContaining({ id: 'WEISS_SCHWARZ' }),
+    ]));
 
     (apiClient.get as any).mockRejectedValueOnce(new Error('offline'));
     await expect(svc.getTCGs()).resolves.toEqual(expect.arrayContaining([

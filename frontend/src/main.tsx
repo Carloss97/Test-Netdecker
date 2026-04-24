@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './App.css'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { logClientError } from './utils/observability'
 
 function showGlobalError(message: string) {
   try {
@@ -32,14 +33,23 @@ function showGlobalError(message: string) {
 
 window.addEventListener('error', (ev) => {
   // Show a visible overlay for errors that escape React boundaries
-  // eslint-disable-next-line no-console
-  console.error('Global window error:', ev.error || ev.message, ev);
+  logClientError({
+    area: 'window-runtime',
+    action: 'window-error',
+    message: 'Global window error event',
+    context: { filename: ev.filename, lineno: ev.lineno, colno: ev.colno },
+    error: ev.error || ev.message,
+  });
   showGlobalError('Se produjo un error inesperado. Revisa la consola para más detalles.');
 });
 
 window.addEventListener('unhandledrejection', (ev) => {
-  // eslint-disable-next-line no-console
-  console.error('Unhandled promise rejection:', ev.reason);
+  logClientError({
+    area: 'window-runtime',
+    action: 'unhandled-rejection',
+    message: 'Unhandled promise rejection event',
+    error: ev.reason,
+  });
   showGlobalError('Se produjo un error (rejection). Revisa la consola para más detalles.');
 });
 
