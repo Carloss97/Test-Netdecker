@@ -92,10 +92,10 @@ export function ImportPage() {
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 10 }));
 
   const tcgList = (tcgs as { id: string; name: string; displayName: string }[] | null) ?? [];
-  const selectedCatalogTcgDisplay = tcgList.find((t) => t.name === catalogTcg)?.displayName;
+  const selectedCatalogTcgDisplay = tcgList.find((t) => t.id === catalogTcg)?.displayName;
 
   useEffect(() => {
-    const selected = tcgList.find((t) => t.name === exportTcg);
+    const selected = tcgList.find((t) => t.id === exportTcg);
     if (!selected) {
       setLocalEditions([]);
       setSelectedExportEditionId('');
@@ -192,7 +192,7 @@ export function ImportPage() {
     setImportMsg(null);
 
     try {
-      const selected = tcgList.find((t) => t.name === exportTcg);
+      const selected = tcgList.find((t) => t.id === exportTcg);
 
       if (scope === 'tcg' && !selected?.id) {
         setImportError('Selecciona un TCG para exportar por TCG');
@@ -362,7 +362,7 @@ export function ImportPage() {
                 >
                   <option value="">-- Selecciona un TCG --</option>
                   {((tcgs as { id: string; name: string; displayName: string }[] | null) ?? []).map((t) => (
-                    <option key={t.id} value={t.name}>{t.displayName}</option>
+                    <option key={t.id} value={t.id}>{t.displayName}</option>
                   ))}
                 </select>
               </div>
@@ -393,7 +393,7 @@ export function ImportPage() {
                 >
                   <option value="">-- Selecciona un TCG --</option>
                   {((tcgs as { id: string; name: string; displayName: string }[] | null) ?? []).map((t) => (
-                    <option key={t.id} value={t.name}>{t.displayName}</option>
+                    <option key={t.id} value={t.id}>{t.displayName}</option>
                   ))}
                 </select>
               </div>

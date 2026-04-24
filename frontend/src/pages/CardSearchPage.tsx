@@ -3,6 +3,7 @@ import { searchCards, searchCardsByCode, getListingsByCard, updateListingPricing
 import type { Card, Listing } from '../types';
 import { parsePositiveNumberInput } from '../constants/pricing';
 import { formatInventoryIdentifier } from '../utils/cardIdentifier';
+import { logClientError } from '../utils/observability';
 
 const RARITY_BADGE: Record<string, string> = {
   common: 'badge-gray',
@@ -125,6 +126,7 @@ export function CardSearchPage() {
   const [listingSortDir, setListingSortDir] = useState<'asc' | 'desc'>('desc');
   const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
+  const [listingsErrors, setListingsErrors] = useState<Record<string, string>>({});
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +139,7 @@ export function CardSearchPage() {
     setSearched(true);
     setExpandedCard(null);
     setCardListings({});
+    setListingsErrors({});
 
     try {
       const data: CardWithListings[] =
@@ -144,8 +147,15 @@ export function CardSearchPage() {
           ? await searchCardsByCode(q)
           : await searchCards(q, undefined, 50);
       setResults(data);
-    } catch {
+    } catch (err) {
       setError('Error al buscar cartas. Revisa que el servidor esté activo.');
+      logClientError({
+        area: 'card-search-page',
+        action: 'search-cards',
+        message: 'Failed searching cards from CardSearchPage',
+        context: { query: q, mode: searchMode },
+        error: err,
+      });
     } finally {
       setLoading(false);
     }
@@ -184,11 +194,27 @@ export function CardSearchPage() {
     if (cardListings[card.id]) return; // already loaded
 
     setLoadingListings(card.id);
+    setListingsErrors((prev) => {
+      const next = { ...prev };
+      delete next[card.id];
+      return next;
+    });
     try {
       const listings: Listing[] = await getListingsByCard(card.id);
       setCardListings((prev) => ({ ...prev, [card.id]: listings }));
-    } catch {
+    } catch (err) {
       setCardListings((prev) => ({ ...prev, [card.id]: [] }));
+      setListingsErrors((prev) => ({
+        ...prev,
+        [card.id]: 'No se pudieron cargar los listings de esta carta.',
+      }));
+      logClientError({
+        area: 'card-search-page',
+        action: 'load-card-listings',
+        message: 'Failed loading listings for selected card',
+        context: { cardId: card.id },
+        error: err,
+      });
     } finally {
       setLoadingListings(null);
     }
@@ -228,8 +254,15 @@ export function CardSearchPage() {
       const refreshed = await getListingsByCard(cardId);
       setCardListings((prev) => ({ ...prev, [cardId]: refreshed }));
       return true;
-    } catch {
+    } catch (err) {
       setError('No se pudo actualizar el modo de precio del listing');
+      logClientError({
+        area: 'card-search-page',
+        action: 'set-pricing-mode',
+        message: 'Failed updating listing pricing mode',
+        context: { cardId, listingId: listing.id, mode },
+        error: err,
+      });
       return false;
     } finally {
       setUpdatingPricingId(null);
@@ -256,11 +289,45 @@ export function CardSearchPage() {
       });
 
       return true;
-    } catch {
+    } catch (err) {
       setError('No se pudo actualizar el stock del listing');
+      logClientError({
+        area: 'card-search-page',
+        action: 'set-listing-stock',
+        message: 'Failed updating listing stock',
+        context: { cardId, listingId: listing.id, nextQuantity },
+        error: err,
+      });
       return false;
     } finally {
       setUpdatingStockId(null);
+    }
+  };
+
+  const retrySearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data: CardWithListings[] =
+        searchMode === 'code'
+          ? await searchCardsByCode(q)
+          : await searchCards(q, undefined, 50);
+      setResults(data);
+    } catch (err) {
+      setError('Error al buscar cartas. Revisa que el servidor esté activo.');
+      logClientError({
+        area: 'card-search-page',
+        action: 'retry-search-cards',
+        message: 'Retry failed while searching cards',
+        context: { query: q, mode: searchMode },
+        error: err,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -413,6 +480,15 @@ export function CardSearchPage() {
       {error && (
         <div className="error-message" style={{ marginBottom: 16 }}>
           ⚠️ {error}
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{ marginLeft: 8 }}
+            onClick={() => { void retrySearch(); }}
+            disabled={loading || !query.trim()}
+          >
+            Reintentar
+          </button>
         </div>
       )}
 
@@ -506,6 +582,18 @@ export function CardSearchPage() {
               <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
                 {loadingListings === first.id ? (
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>⏳ Cargando listings…</div>
+                ) : listingsErrors[first.id] ? (
+                  <div className="error-message" style={{ marginTop: 8 }}>
+                    ⚠️ {listingsErrors[first.id]}
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => { void toggleListings(first); }}
+                    >
+                      Reintentar
+                    </button>
+                  </div>
                 ) : (cardListings[first.id] ?? []).length === 0 ? (
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sin listings en inventario</div>
                 ) : (

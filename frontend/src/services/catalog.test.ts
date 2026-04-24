@@ -336,6 +336,76 @@ describe('catalog cart conflict handling', () => {
     expect(byCard[0].card.edition?.editionCode).toBe('SET2');
   });
 
+  it('normalizes wrapped listing payload for getListingsByCard and falls back to local filtered listings', async () => {
+    (apiClient.get as any).mockResolvedValueOnce({
+      data: {
+        listings: [
+          {
+            id: 'listing-3',
+            quantity: 3,
+            card: {
+              cardCode: 'C003',
+              editionId: 'MAGIC:SET3',
+              tcgId: 'MAGIC',
+            },
+          },
+        ],
+      },
+    });
+
+    const wrapped = await svc.getListingsByCard('card-3');
+    expect(wrapped).toHaveLength(1);
+    expect(wrapped[0].card.tcg?.id).toBe('MAGIC');
+    expect(wrapped[0].card.edition?.editionCode).toBe('SET3');
+
+    (apiClient.get as any).mockRejectedValueOnce(new Error('offline'));
+    (localImports.listLocalListings as any).mockReturnValueOnce([
+      {
+        id: 'local-by-card-match',
+        tcg: 'MAGIC',
+        quantity: 2,
+        referencePrice: 4,
+        marginMultiplier: 1.1,
+        condition: 'NM',
+        card: {
+          externalId: 'card-3',
+          editionCode: 'SET3',
+          cardNumber: '003',
+          cardName: 'Matched Local Card',
+          rarity: 'Rare',
+          colorIdentity: null,
+          imageUrl: null,
+          tags: null,
+          description: null,
+        },
+      },
+      {
+        id: 'local-by-card-other',
+        tcg: 'MAGIC',
+        quantity: 1,
+        referencePrice: 4,
+        marginMultiplier: 1,
+        condition: 'LP',
+        card: {
+          externalId: 'card-x',
+          editionCode: 'SET3',
+          cardNumber: '999',
+          cardName: 'Other Local Card',
+          rarity: 'Common',
+          colorIdentity: null,
+          imageUrl: null,
+          tags: null,
+          description: null,
+        },
+      },
+    ] as any);
+
+    const fallback = await svc.getListingsByCard('card-3');
+    expect(fallback).toHaveLength(1);
+    expect(fallback[0].id).toBe('local-by-card-match');
+    expect(fallback[0].card.cardName).toBe('Matched Local Card');
+  });
+
   it('filters low stock listings and clears the catalog locally when resetCatalog fails', async () => {
     (apiClient.get as any).mockRejectedValueOnce(new Error('offline'));
     (localImports.listLocalListings as any).mockReturnValueOnce([

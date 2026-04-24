@@ -4,6 +4,7 @@ import apiClient, { buildApiUrl } from '../services/api'
 import { getListingsByCard } from '../services/catalog'
 import * as erp from '../services/erp'
 import StripeCheckout from '../components/StripeCheckout'
+import { logClientError } from '../utils/observability'
 
 export type CartItem = {
   id: string
@@ -130,7 +131,17 @@ export function PosPage(): JSX.Element {
       setCart([])
       setMessage('Venta registrada correctamente')
     } catch (err: any) {
-      console.error('checkout error', err)
+      logClientError({
+        area: 'pos-page',
+        action: 'checkout-pos-cash',
+        message: 'POS checkout failed',
+        context: {
+          items: cart.map((it) => ({ listingId: it.id, quantity: it.qty })),
+          cartSize: cart.length,
+          total,
+        },
+        error: err,
+      })
       const isNetwork = !err?.response
       if (isNetwork) {
         await enqueueOfflineSale(cart)

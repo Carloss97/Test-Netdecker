@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import useCartPersist from '../hooks/useCartPersist';
+import { posCheckout } from '../services/erp';
+import { logClientError } from '../utils/observability';
 import './storefront.css';
 
 function formatClp(value: number): string {
@@ -14,6 +16,8 @@ function formatClp(value: number): string {
 export default function CheckoutPage() {
   const cart = useCartPersist();
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
@@ -26,15 +30,54 @@ export default function CheckoutPage() {
 
   const canSubmit = useMemo(() => cart.items.length > 0 && form.name && form.email && form.address, [cart.items.length, form]);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit) {
       setFormError('Completa nombre, email y direccion para continuar.');
       return;
     }
+
+    const invalidDemoItems = cart.items.filter((item) => String(item.id).startsWith('demo-'));
+    if (invalidDemoItems.length > 0) {
+      setFormError('Algunos items del carrito son de demo y no se pueden procesar en inventario real.');
+      return;
+    }
+
+    setSubmitting(true);
     setFormError(null);
-    setSubmitted(true);
-    cart.clearCart();
+    try {
+      const paymentMethod =
+        form.paymentMethod === 'card'
+          ? 'CARD'
+          : form.paymentMethod === 'transfer'
+            ? 'TRANSFER'
+            : 'CASH';
+
+      const order = await posCheckout({
+        items: cart.items.map((item) => ({ listingId: item.id, quantity: item.quantity })),
+        customerEmail: form.email,
+        paymentMethod,
+      });
+
+      setSubmitted(true);
+      setCreatedOrderId(String((order as { id?: string }).id || ''));
+      cart.clearCart();
+    } catch (err) {
+      setFormError('No se pudo crear el pedido. Revisa stock y vuelve a intentar.');
+      logClientError({
+        area: 'storefront-checkout-page',
+        action: 'submit-checkout',
+        message: 'Storefront checkout failed',
+        context: {
+          cartSize: cart.items.length,
+          total: cart.total,
+          paymentMethod: form.paymentMethod,
+        },
+        error: err,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -47,7 +90,8 @@ export default function CheckoutPage() {
 
         {submitted && (
           <div className="sf-status ok">
-            Pedido simulado generado correctamente. No se realizo ningun cobro real.
+            Pedido creado correctamente en el backend.
+            {createdOrderId ? ` ID: ${createdOrderId}` : ''}.
           </div>
         )}
 
@@ -84,8 +128,8 @@ export default function CheckoutPage() {
               <option value="card">Tarjeta en tienda</option>
             </select>
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={4} placeholder="Notas adicionales" />
-            <button className="sf-primary-btn" type="submit" disabled={!canSubmit}>
-              Confirmar pedido (mock)
+            <button className="sf-primary-btn" type="submit" disabled={!canSubmit || submitting}>
+              {submitting ? 'Procesando pedido...' : 'Confirmar pedido'}
             </button>
           </section>
         </div>

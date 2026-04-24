@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { logClientError, logClientWarn } from '../utils/observability';
 
 let API_BASE_URL = (import.meta.env.VITE_API_URL as string) || '/api';
 
@@ -175,8 +176,12 @@ apiClient.interceptors.request.use(
       }
     } catch (err) {
       // Storage may be blocked by Tracking Prevention or similar; continue without token
-      // eslint-disable-next-line no-console
-      console.warn('[api] localStorage access blocked in request interceptor', err);
+      logClientWarn({
+        area: 'api-client',
+        action: 'read-auth-token-localstorage',
+        message: 'localStorage access blocked in request interceptor',
+        error: err,
+      });
     }
 
     // Fallback: try to extract a JS-readable token from cookies when localStorage is unavailable
@@ -223,6 +228,17 @@ apiClient.interceptors.response.use(
         const e = new Error('Unexpected HTML response from API; check backend or _redirects rules');
         // attach the response for diagnostics
         (e as any).response = response;
+        logClientError({
+          area: 'api-client',
+          action: 'unexpected-html-response',
+          message: 'Received HTML response for API request',
+          context: {
+            url: response.config?.url,
+            method: response.config?.method,
+            status: response.status,
+          },
+          error: e,
+        });
         return Promise.reject(e);
       }
     } catch (_) {
@@ -260,15 +276,25 @@ apiClient.interceptors.response.use(
 
         navigateToLoginFromClient();
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn('[api] failed handling 401 redirect flow', err);
+        logClientWarn({
+          area: 'api-client',
+          action: 'handle-401-redirect',
+          message: 'Failed handling 401 redirect flow',
+          context: { requestPath },
+          error: err,
+        });
       }
 
       try {
         navigateToLoginFromClient();
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn('[api] failed handling 401 redirect fallback', err);
+        logClientWarn({
+          area: 'api-client',
+          action: 'handle-401-redirect-fallback',
+          message: 'Failed handling 401 redirect fallback',
+          context: { requestPath },
+          error: err,
+        });
       }
     }
     return Promise.reject(error);

@@ -89,7 +89,11 @@ export function Layout({ children }: LayoutProps) {
       } else {
         localStorage.removeItem('auth_store');
       }
-      window.dispatchEvent(new StorageEvent('storage'));
+      window.dispatchEvent(
+        new CustomEvent('netdecker:store-changed', {
+          detail: { storeId: nextStoreId || null },
+        }),
+      );
     } catch {
       // ignore storage failures
     }
@@ -195,7 +199,7 @@ export function Layout({ children }: LayoutProps) {
             </button>
           </div>
         </header>
-        <main className="page-content">
+        <main className="page-content" key={activeStoreId || 'no-store'}>
           {children}
         </main>
       </div>

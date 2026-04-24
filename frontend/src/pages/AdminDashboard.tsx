@@ -10,6 +10,7 @@ import {
 } from '../services/catalog';
 import type { CatalogBootstrapResponse, CatalogSyncResponse } from '../types';
 import { DEFAULT_MARGIN_INPUT, parsePositiveNumberInput } from '../constants/pricing';
+import { logClientError } from '../utils/observability';
 
 const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
 type SupportedTcg = (typeof SUPPORTED_TCGS)[number];
@@ -93,6 +94,12 @@ export function AdminDashboardPage() {
       pricingConfigQuery.execute();
     } catch (err: unknown) {
       setPricingConfigErr(err instanceof Error ? err.message : 'No se pudo guardar configuración');
+      logClientError({
+        area: 'admin-dashboard-page',
+        action: 'save-pricing-config',
+        message: 'Failed saving pricing configuration',
+        error: err,
+      });
     } finally {
       setSavingPricingConfig(false);
     }
@@ -130,6 +137,13 @@ export function AdminDashboardPage() {
       setCatalogActionResult({ kind: 'bootstrap', payload });
     } catch (err: unknown) {
       setCatalogActionError(err instanceof Error ? err.message : 'Error en carga inicial de catálogo');
+      logClientError({
+        area: 'admin-dashboard-page',
+        action: 'bootstrap-catalog',
+        message: 'Failed running catalog bootstrap',
+        context: { tcg: catalogTcg || null, setCode: setCode || null, dryRun, createListings },
+        error: err,
+      });
     } finally {
       setCatalogActionLoading(null);
     }
@@ -153,6 +167,13 @@ export function AdminDashboardPage() {
       setCatalogActionResult({ kind: 'sync', payload });
     } catch (err: unknown) {
       setCatalogActionError(err instanceof Error ? err.message : 'Error al sincronizar catálogo');
+      logClientError({
+        area: 'admin-dashboard-page',
+        action: 'sync-catalog',
+        message: 'Failed syncing catalog',
+        context: { tcg: catalogTcg || null, dryRun, createListings },
+        error: err,
+      });
     } finally {
       setCatalogActionLoading(null);
     }
@@ -172,6 +193,12 @@ export function AdminDashboardPage() {
       }, 2000);
     } catch (err: unknown) {
       setResetError(err instanceof Error ? err.message : 'Error al resetear base de datos');
+      logClientError({
+        area: 'admin-dashboard-page',
+        action: 'reset-catalog',
+        message: 'Failed resetting catalog',
+        error: err,
+      });
     } finally {
       setResetLoading(false);
     }
@@ -200,6 +227,28 @@ export function AdminDashboardPage() {
       <p style={{ marginTop: 0, color: 'var(--text-muted)' }}>
         Los resúmenes, alertas y sincronizaciones recientes se muestran en Dashboard. Aquí quedan solo los controles administrativos y de catálogo.
       </p>
+
+      {pricingConfigQuery.status === 'pending' && (
+        <div className="surface-card" style={{ padding: 12, marginBottom: 16 }}>
+          ⏳ Cargando configuración de pricing...
+        </div>
+      )}
+
+      {pricingConfigQuery.status === 'error' && (
+        <div className="error-message" style={{ marginBottom: 16 }}>
+          ⚠️ No se pudo cargar la configuración de pricing.
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{ marginLeft: 8 }}
+            onClick={() => {
+              pricingConfigQuery.execute();
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Reset Database Modal */}
       {showResetConfirm && (

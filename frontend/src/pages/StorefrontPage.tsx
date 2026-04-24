@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useStorefront, { type StorefrontProduct } from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
 import FilterSidebar from '../components/storefront/FilterSidebar';
@@ -39,12 +39,29 @@ export default function StorefrontPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const { theme, updateTheme } = useThemeMode();
 
-  const activeStore = useMemo(() => {
+  const [activeStore, setActiveStore] = useState(() => {
     try {
       return localStorage.getItem('auth_store') || 'sin tienda activa';
     } catch {
       return 'sin tienda activa';
     }
+  });
+
+  useEffect(() => {
+    const refreshStore = () => {
+      try {
+        setActiveStore(localStorage.getItem('auth_store') || 'sin tienda activa');
+      } catch {
+        setActiveStore('sin tienda activa');
+      }
+    };
+
+    window.addEventListener('storage', refreshStore);
+    window.addEventListener('netdecker:store-changed', refreshStore as EventListener);
+    return () => {
+      window.removeEventListener('storage', refreshStore);
+      window.removeEventListener('netdecker:store-changed', refreshStore as EventListener);
+    };
   }, []);
 
   return (
