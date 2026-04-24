@@ -175,6 +175,97 @@ describe('catalog cart conflict handling', () => {
     expect(result.cards[0].cardCode).toBe('001');
   });
 
+  it('builds inventory from local listings when cards-with-stock API returns 404 for all candidates', async () => {
+    (apiClient.get as any).mockImplementation(async (url: string) => {
+      if (url === '/editions/MAGIC:SET1/cards-with-stock') throw { response: { status: 404 } };
+      if (url === '/editions/SET1/cards-with-stock') throw { response: { status: 404 } };
+      throw new Error(`Unexpected GET ${url}`);
+    });
+
+    (localImports.listLocalListings as any).mockReturnValueOnce([
+      {
+        id: 'local-1',
+        tcg: 'MAGIC',
+        quantity: 2,
+        referencePrice: 4,
+        marginMultiplier: 1.5,
+        condition: 'NM',
+        card: {
+          externalId: 'card-1',
+          editionCode: 'SET1',
+          cardNumber: '001',
+          cardName: 'Local Fallback Card',
+          rarity: 'Rare',
+          colorIdentity: null,
+          imageUrl: null,
+          tags: null,
+        },
+      },
+      {
+        id: 'local-2',
+        tcg: 'MAGIC',
+        quantity: 1,
+        referencePrice: 4,
+        marginMultiplier: 1.2,
+        condition: 'LP',
+        card: {
+          externalId: 'card-1',
+          editionCode: 'SET1',
+          cardNumber: '001',
+          cardName: 'Local Fallback Card',
+          rarity: 'Rare',
+          colorIdentity: null,
+          imageUrl: null,
+          tags: null,
+        },
+      },
+    ] as any);
+
+    const result = await svc.getEditionCardsWithStock('MAGIC:SET1', 'SET1', 'MAGIC');
+
+    expect(result.edition.editionCode).toBe('SET1');
+    expect(result.edition.tcg.id).toBe('MAGIC');
+    expect(result.totalCards).toBe(1);
+    expect(result.cardsWithStock).toBe(1);
+    expect(result.cards[0].cardName).toBe('Local Fallback Card');
+    expect(result.cards[0].listings).toHaveLength(2);
+  });
+
+  it('falls back to local listings when cards-with-stock API fails with non-404 error', async () => {
+    (apiClient.get as any).mockImplementation(async (url: string) => {
+      if (url === '/editions/SET1/cards-with-stock') throw { response: { status: 500 } };
+      throw new Error(`Unexpected GET ${url}`);
+    });
+
+    (localImports.listLocalListings as any).mockReturnValueOnce([
+      {
+        id: 'local-3',
+        tcg: 'MAGIC',
+        quantity: 0,
+        referencePrice: 4,
+        marginMultiplier: 1,
+        condition: 'NM',
+        card: {
+          externalId: 'card-2',
+          editionCode: 'SET1',
+          cardNumber: '002',
+          cardName: 'Zero Stock Card',
+          rarity: 'Common',
+          colorIdentity: null,
+          imageUrl: null,
+          tags: null,
+        },
+      },
+    ] as any);
+
+    const result = await svc.getEditionCardsWithStock('SET1', 'SET1', 'MAGIC');
+
+    expect((apiClient.get as any)).toHaveBeenCalledTimes(1);
+    expect(result.totalCards).toBe(1);
+    expect(result.cardsWithStock).toBe(0);
+    expect(result.cards[0].cardCode).toBe('002');
+  });
+
   it('returns tcg arrays and fallback lists for getTCGs', async () => {
     (apiClient.get as any).mockResolvedValueOnce({ data: { tcgs: [{ id: 'MAGIC' }, { id: 'POKEMON' }] } });
     await expect(svc.getTCGs()).resolves.toEqual([{ id: 'MAGIC' }, { id: 'POKEMON' }]);

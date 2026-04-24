@@ -119,3 +119,60 @@ test('GET /api/editions/:id/cards-with-stock falls back to editionCode when id l
     (prisma.listing as any).create = originalListingCreate;
   }
 });
+
+test('GET /api/editions/:id/cards-with-stock returns inventory even when no store exists', async () => {
+  const originalFindUnique = (prisma.edition as any).findUnique;
+  const originalFindFirst = (prisma.edition as any).findFirst;
+  const originalCardFindMany = (prisma.card as any).findMany;
+  const originalStoreFindFirst = (prisma.store as any).findFirst;
+  const originalListingCreate = (prisma.listing as any).create;
+
+  try {
+    (prisma.edition as any).findUnique = async ({ where }: any) => ({
+      id: 'edition-1',
+      editionCode: 'SET1',
+      editionName: 'Set 1',
+      releaseDate: null,
+      isActive: true,
+      tcgId: 'MAGIC',
+      tcg: { id: 'MAGIC', name: 'MAGIC', displayName: 'Magic: The Gathering' },
+      _count: { cards: 1, listings: 0 },
+    });
+
+    (prisma.edition as any).findFirst = async () => null;
+    (prisma.card as any).findMany = async () => ([
+      {
+        id: 'card-1',
+        cardCode: 'C001',
+        cardName: 'Test Card',
+        cardNumber: '001',
+        rarity: 'Rare',
+        colorIdentity: null,
+        imageUrl: null,
+        tags: null,
+        listings: [],
+      },
+    ]);
+    (prisma.store as any).findFirst = async () => null;
+    (prisma.listing as any).create = async () => {
+      throw new Error('should not create listings without a store');
+    };
+
+    const app = express();
+    app.use('/api/editions', editionRoutes);
+
+    const res = await makeRequest(app, 'GET', '/api/editions/SET1/cards-with-stock');
+
+    assert.equal(res.status, 200);
+    const body = res.body as any;
+    assert.equal(body.edition.editionCode, 'SET1');
+    assert.equal(body.totalCards, 1);
+    assert.equal(body.cards[0].listings.length, 0);
+  } finally {
+    (prisma.edition as any).findUnique = originalFindUnique;
+    (prisma.edition as any).findFirst = originalFindFirst;
+    (prisma.card as any).findMany = originalCardFindMany;
+    (prisma.store as any).findFirst = originalStoreFindFirst;
+    (prisma.listing as any).create = originalListingCreate;
+  }
+});

@@ -304,31 +304,48 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
     },
     orderBy: { createdAt: 'desc' },
     take: limit,
-    include: {
-      listing: {
-        include: {
+    select: {
+      id: true,
+      listingId: true,
+      oldPrice: true,
+      newPrice: true,
+      percentChange: true,
+      createdAt: true,
+    },
+  });
+
+  const listingIds = Array.from(new Set(volatileChanges.map((entry) => entry.listingId)));
+  const listings = listingIds.length > 0
+    ? await prisma.listing.findMany({
+        where: { id: { in: listingIds } },
+        select: {
+          id: true,
           card: { select: { cardName: true, cardCode: true } },
           edition: { select: { editionCode: true, editionName: true } },
         },
-      },
-    },
-  });
+      })
+    : [];
+
+  const listingById = new Map(listings.map((listing) => [listing.id, listing]));
 
   res.json({
     success: true,
     window: windowParam,
     from: fromDate,
     total: volatileChanges.length,
-    events: volatileChanges.map((h: PriceHistoryWithListing) => ({
-      priceHistoryId: h.id,
-      listingId: h.listingId,
-      cardName: h.listing?.card.cardName ?? 'Unknown card',
-      editionCode: h.listing?.edition.editionCode ?? 'UNKNOWN',
-      oldPrice: h.oldPrice,
-      newPrice: h.newPrice,
-      percentChange: h.percentChange,
-      createdAt: h.createdAt,
-    })),
+    events: volatileChanges.map((h) => {
+      const listing = listingById.get(h.listingId);
+      return {
+        priceHistoryId: h.id,
+        listingId: h.listingId,
+        cardName: listing?.card.cardName ?? 'Unknown card',
+        editionCode: listing?.edition.editionCode ?? 'UNKNOWN',
+        oldPrice: h.oldPrice,
+        newPrice: h.newPrice,
+        percentChange: h.percentChange,
+        createdAt: h.createdAt,
+      };
+    }),
   });
 });
 

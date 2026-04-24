@@ -262,3 +262,61 @@ test('GET /api/admin/pos/discrepancies returns logs', async () => {
     CashSessionService.listDiscrepancies = originalListDiscrepancies;
   }
 });
+
+test('GET /api/admin/price-volatility returns events even when listing relations are missing', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalPriceHistoryFindMany = (prisma.priceHistory as any).findMany;
+  const originalListingFindMany = (prisma.listing as any).findMany;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+
+    (prisma.priceHistory as any).findMany = async () => ([
+      {
+        id: 'ph-1',
+        listingId: 'listing-1',
+        oldPrice: 100,
+        newPrice: 150,
+        percentChange: 50,
+        createdAt: new Date('2026-04-23T10:00:00.000Z'),
+      },
+      {
+        id: 'ph-2',
+        listingId: 'listing-2',
+        oldPrice: 200,
+        newPrice: 120,
+        percentChange: -40,
+        createdAt: new Date('2026-04-23T11:00:00.000Z'),
+      },
+    ]);
+
+    (prisma.listing as any).findMany = async () => ([
+      {
+        id: 'listing-1',
+        card: { cardName: 'Card One', cardCode: '001' },
+        edition: { editionCode: 'SET1', editionName: 'Set One' },
+      },
+    ]);
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/price-volatility?limit=20&window=7d', undefined, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).total, 2);
+    assert.equal((res.body as any).events[0].cardName, 'Card One');
+    assert.equal((res.body as any).events[1].cardName, 'Unknown card');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    (prisma.priceHistory as any).findMany = originalPriceHistoryFindMany;
+    (prisma.listing as any).findMany = originalListingFindMany;
+  }
+});

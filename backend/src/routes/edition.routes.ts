@@ -166,51 +166,51 @@ router.get('/:id/cards-with-stock', async (req: Request, res: Response) => {
     orderBy: [{ cardNumber: 'asc' }, { cardName: 'asc' }],
   });
 
-  // Ensure each card has at least one listing. If not, create one.
+  // If a store exists, ensure each card has at least one listing.
+  // Otherwise, return the inventory view without mutating data.
   const resolvedStoreId = req.store?.id ?? (await prisma.store.findFirst({
     select: { id: true },
     orderBy: { createdAt: 'asc' },
   }))?.id;
-  if (!resolvedStoreId) {
-    throw new NotFoundError('Store not found to create default listings for edition');
-  }
 
-  for (const card of cards as CardWithListings[]) {
-    if (card.listings.length === 0) {
-      try {
-        const newListing = await prisma.listing.create({
-          data: {
-            storeId: resolvedStoreId,
-            cardId: card.id,
-            editionId: edition.id,
-            condition: 'NM',
-            rarity: card.rarity ?? 'Unknown',
-            quantity: 0,
-            referencePrice: 0,
-            marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,
-            exchangeRate: 1.0,
-            finalPrice: 0,
-            currency: 'CLP',
-            status: 'active',
-          },
-          select: {
-            id: true,
-            condition: true,
-            quantity: true,
-            referencePrice: true,
-            marginMultiplier: true,
-            finalPrice: true,
-            currency: true,
-            lastSyncedAt: true,
-            status: true,
-          },
-        });
-        card.listings.push(newListing);
-      } catch (e) {
+  if (resolvedStoreId) {
+    for (const card of cards as CardWithListings[]) {
+      if (card.listings.length === 0) {
         try {
-          console.error('[edition.routes] failed creating listing', { editionId: edition.id, cardId: card.id, cardCode: card.cardCode, err: (e as any)?.message || e });
-        } catch (_) {}
-        throw e;
+          const newListing = await prisma.listing.create({
+            data: {
+              storeId: resolvedStoreId,
+              cardId: card.id,
+              editionId: edition.id,
+              condition: 'NM',
+              rarity: card.rarity ?? 'Unknown',
+              quantity: 0,
+              referencePrice: 0,
+              marginMultiplier: DEFAULT_MARGIN_MULTIPLIER,
+              exchangeRate: 1.0,
+              finalPrice: 0,
+              currency: 'CLP',
+              status: 'active',
+            },
+            select: {
+              id: true,
+              condition: true,
+              quantity: true,
+              referencePrice: true,
+              marginMultiplier: true,
+              finalPrice: true,
+              currency: true,
+              lastSyncedAt: true,
+              status: true,
+            },
+          });
+          card.listings.push(newListing);
+        } catch (e) {
+          try {
+            console.error('[edition.routes] failed creating listing', { editionId: edition.id, cardId: card.id, cardCode: card.cardCode, err: (e as any)?.message || e });
+          } catch (_) {}
+          throw e;
+        }
       }
     }
   }
