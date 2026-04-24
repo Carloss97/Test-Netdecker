@@ -168,6 +168,41 @@ button, input, select, textarea { font: inherit; }
   gap: 10px;
 }
 
+.store-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--primary-soft);
+  border-radius: 999px;
+  padding: 6px 10px;
+  max-width: 340px;
+}
+
+.store-chip-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.store-chip-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.store-switcher {
+  min-width: 220px;
+  max-width: 300px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 10px;
+}
+
 .page-content {
   flex: 1;
   padding: 28px 32px;
@@ -745,4 +780,27 @@ table.data-table {
 .alert-row-danger {
   background: #fff1f2;
   border-color: #fecdd3;
+}
+
+@media (max-width: 1024px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .store-chip {
+    width: 100%;
+    max-width: none;
+  }
+
+  .store-switcher {
+    flex: 1;
+    min-width: 170px;
+    max-width: none;
+  }
 }

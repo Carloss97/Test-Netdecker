@@ -122,7 +122,7 @@ export async function searchCards(name: string, tcgId?: string, limit?: number) 
     });
     return data;
   } catch (_) {
-    // Fallback: search external sources directly from the browser
+    // Fallback: search only through TCGCSV when direct access is enabled.
     const max = limit ?? 50;
     const results: any[] = [];
 
@@ -141,32 +141,16 @@ export async function searchCards(name: string, tcgId?: string, limit?: number) 
     });
 
     const tryTcg = async (tcg: any) => {
+      try {
+        let cards: any[] = [];
         try {
-          let cards: any[] = [];
-          try {
-            if (ALLOW_DIRECT_TCGCSV) {
-              cards = await tcgcsvClient.searchCards(tcg as any, name, max);
-            } else {
-              cards = [];
-            }
-          } catch (_) { cards = []; }
-        if (!cards || cards.length === 0) {
-          switch (tcg) {
-            case 'MAGIC':
-              cards = await scryfallClient.searchCards(name, 1, max);
-              break;
-            case 'POKEMON':
-              cards = await pokemonClient.searchCards(name, undefined, max);
-              break;
-            case 'YUGIOH':
-              cards = await ygoproClient.searchCards(name);
-              break;
-            case 'ONE_PIECE':
-              cards = await optcgClient.searchCards(name);
-              break;
-            default:
-              cards = [];
+          if (ALLOW_DIRECT_TCGCSV) {
+            cards = await tcgcsvClient.searchCards(tcg as any, name, max);
+          } else {
+            cards = [];
           }
+        } catch (_) {
+          cards = [];
         }
         for (const c of (cards || [])) {
           results.push(toCard(c));
@@ -609,7 +593,7 @@ export async function searchExternalCards(
 ) {
   const limit = (options as any).limit ?? 50;
 
-  // Primary: backend API (/api/external/search) — fallback to direct TCGCSV and then other public APIs
+  // Primary: backend API (/api/external/search) — fallback to direct TCGCSV only.
   try {
     const { data } = await apiClient.get('/external/search', {
       params: { tcg, query, setCode: (options as any).setCode, page: (options as any).page, limit },
@@ -621,7 +605,7 @@ export async function searchExternalCards(
     // ignore and try fallbacks
   }
 
-    // Fallback 1: TCGCSV client in-browser (only if explicitly enabled)
+  // Fallback: TCGCSV client in-browser (only if explicitly enabled)
   if (ALLOW_DIRECT_TCGCSV) {
     try {
       const tcgcsvRes = await tcgcsvClient.searchCards(tcg as any, query, limit);
@@ -629,31 +613,7 @@ export async function searchExternalCards(
     } catch (_) {}
   }
 
-  // Fallback 2: Other public APIs per TCG
-  try {
-    switch (tcg) {
-      case 'MAGIC': {
-        const res = await scryfallClient.searchCards(query, 1, limit);
-        return { success: true, tcg, query, total: res.length, cards: res };
-      }
-      case 'POKEMON': {
-        const res = await pokemonClient.searchCards(query, (options as any).setCode, limit);
-        return { success: true, tcg, query, total: res.length, cards: res };
-      }
-      case 'YUGIOH': {
-        const res = await ygoproClient.searchCards(query, (options as any).setCode);
-        return { success: true, tcg, query, total: res.length, cards: res };
-      }
-      case 'ONE_PIECE': {
-        const res = await optcgClient.searchCards(query);
-        return { success: true, tcg, query, total: res.length, cards: res };
-      }
-      default:
-        return { success: true, tcg, query, total: 0, cards: [] };
-    }
-  } catch (_) {
-    return { success: true, tcg, query, total: 0, cards: [] };
-  }
+  return { success: true, tcg, query, total: 0, cards: [] };
 }
 
 
@@ -672,31 +632,7 @@ export async function listExternalSets(tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ON
     } catch (_) {}
   }
 
-  // Final fallback: other public APIs per TCG
-  try {
-    switch (tcg) {
-      case 'MAGIC': {
-        const res = await scryfallClient.listSets();
-        return { success: true, tcg, total: res.length, sets: res };
-      }
-      case 'POKEMON': {
-        const res = await pokemonClient.listSets();
-        return { success: true, tcg, total: res.length, sets: res };
-      }
-      case 'YUGIOH': {
-        const res = await ygoproClient.listSets();
-        return { success: true, tcg, total: res.length, sets: res };
-      }
-      case 'ONE_PIECE': {
-        const res = await optcgClient.listSets();
-        return { success: true, tcg, total: res.length, sets: res };
-      }
-      default:
-        return { success: true, tcg, total: 0, sets: [] };
-    }
-  } catch (_) {
-    return { success: true, tcg, total: 0, sets: [] };
-  }
+  return { success: true, tcg, total: 0, sets: [] };
 }
 
 
@@ -712,22 +648,7 @@ export async function getExternalCardById(
     } catch (_) {}
   }
 
-  try {
-    switch (tcg) {
-      case 'MAGIC':
-        return { success: true, card: await scryfallClient.getCardById(cardId) };
-      case 'POKEMON':
-        return { success: true, card: await pokemonClient.getCardById(cardId) };
-      case 'YUGIOH':
-        return { success: true, card: await ygoproClient.getCardById(cardId) };
-      case 'ONE_PIECE':
-        return { success: true, card: await optcgClient.getCardById(cardId) };
-      default:
-        return { success: true, card: null };
-    }
-  } catch (_) {
-    return { success: true, card: null };
-  }
+  return { success: true, card: null };
 }
 
 

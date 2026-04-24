@@ -52,11 +52,7 @@ La base activa del proyecto hoy corre con frontend en Vercel, backend en Render,
 
 ### 💲 Precios Dinámicos
 - Sincronización TCGCSV-first para catálogo y precios de referencia
-- Fallback por proveedor cuando una fuente no responde:
-  - **Magic**: Scryfall
-  - **Pokémon**: Pokémon TCG API
-  - **Yu-Gi-Oh**: YGOPRODeck
-  - **One Piece**: OPTCGAPI
+- Fuente única: **TCGCSV**
 - Conversión automática a CLP (tipo de cambio actualizado)
 - Margen configurable y control de volatilidad
 - Historial de cambios de precio y auditoría
@@ -90,7 +86,7 @@ La base activa del proyecto hoy corre con frontend en Vercel, backend en Render,
   - Crear listings: activa/desactiva creación de inventario
   - Bootstrap catálogo: carga masiva inicial
   - Sync sets nuevos: detecta e importa sets nuevos
-- Prioridad de fuentes: TCGCSV primero, proveedores nativos como respaldo
+- Política de fuentes: TCGCSV-only
 
 ### Flujos recomendados
 1. Alta de set nuevo: dry run → sync sets nuevos → revisar → ejecutar real
@@ -101,7 +97,6 @@ La base activa del proyecto hoy corre con frontend en Vercel, backend en Render,
 ### One Piece: integración completa
 - Soporta search, import sets, sync automático, precios USD
 - Flujo principal: TCGCSV
-- Respaldo: https://www.optcgapi.com/
 
 ### Runbook rápido
 - Día 0: bootstrap catálogo, revisar cobertura
@@ -284,7 +279,7 @@ Ejemplos:
 ## Próximos Pasos
 
 - [x] Implementar endpoints base de checkout y órdenes
-- [x] Integración de APIs nativas por TCG (Scryfall, Pokémon TCG API, YGOPRODeck, OPTCGAPI)
+- [x] Integración de catálogo/precios centralizada en TCGCSV
 - [x] Job de sincronización automática de precios (cada 6 horas)
 - [x] Soporte completo para One Piece
 - [ ] Integración con pagos (Stripe, Mercado Pago)

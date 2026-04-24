@@ -170,6 +170,56 @@ test('commitReservation fails with conflict when reservation version changed', a
   }
 });
 
+test('releaseReservation marks active reservations as released', async () => {
+  const originalTx = prisma.$transaction;
+
+  try {
+    let updateArgs: any = null;
+    const tx = {
+      reservation: {
+        findUnique: async ({ where }: any) => ({ id: where.id, listingId: 'L700', warehouseId: 'W7', quantity: 1, status: 'ACTIVE', version: 4 }),
+        updateMany: async ({ where, data }: any) => {
+          updateArgs = { where, data };
+          return { count: 1 };
+        },
+      },
+    } as any;
+
+    prisma.$transaction = (async (fn: any) => fn(tx)) as any;
+
+    const released: any = await ReservationService.releaseReservation('res-rel-1');
+
+    assert.equal(released.id, 'res-rel-1');
+    assert.equal(updateArgs.where.status, 'ACTIVE');
+    assert.equal(updateArgs.data.status, 'RELEASED');
+  } finally {
+    prisma.$transaction = originalTx;
+  }
+});
+
+test('releaseReservation returns existing record when already released', async () => {
+  const originalTx = prisma.$transaction;
+
+  try {
+    const existing = { id: 'res-rel-2', listingId: 'L701', warehouseId: 'W7', quantity: 1, status: 'RELEASED', version: 8 };
+    const tx = {
+      reservation: {
+        findUnique: async () => existing,
+        updateMany: async () => ({ count: 0 }),
+      },
+    } as any;
+
+    prisma.$transaction = (async (fn: any) => fn(tx)) as any;
+
+    const released: any = await ReservationService.releaseReservation('res-rel-2');
+
+    assert.equal(released.status, 'RELEASED');
+    assert.equal(released.version, 8);
+  } finally {
+    prisma.$transaction = originalTx;
+  }
+});
+
 test('10 parallel commit attempts allow only one success', async () => {
   const originalTx = prisma.$transaction;
 

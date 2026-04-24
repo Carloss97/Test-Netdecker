@@ -210,24 +210,14 @@ private static lastRequestAt = 0;
 **TCGCsvService is the default provider for:**
 - `DIGIMON` (no native API)
 - `WEISS_SCHWARZ` (no native API)
-- Fallback for all TCGs if other providers fail
-
-**Other providers (prioritized):**
-- `MAGIC` → Scryfall
-- `POKEMON` → Pokémon TCG API
-- `YUGIOH` → YGOPRODeck
-- `ONE_PIECE` → OPTCGAPI
+- Primary source for all supported TCGs in this project
 
 ### **Service Composition**
 
 ```
 CardDatabaseService (unified facade)
   ↓
-  ├─→ ScryfallService (MAGIC)
-  ├─→ PokemonTCGService (POKEMON)
-  ├─→ YGOProDeckService (YUGIOH)
-  ├─→ OptcgapiService (ONE_PIECE)
-  └─→ TCGCsvService (DIGIMON, WEISS_SCHWARZ, + fallback)
+  └─→ TCGCsvService (all supported TCGs)
 ```
 
 ### **Consumers**
@@ -303,12 +293,11 @@ for (const group of groups) {
 **Impact:** Negligible (<1% of total sync time)
 **Solution:** Pre-sort in cache layer (unlikely needed)
 
-### **5. No Fallback Provider Strategy**
+### **5. No Secondary Provider Strategy**
 
-**Issue:** If TCGCSV API is down, DIGIMON and WEISS_SCHWARZ imports fail entirely
-- No fallback to Scryfall, PokemonTCG, etc.
+**Current policy:** If TCGCSV API is down, imports depending on external catalog/pricing data are unavailable.
 
-**Solution:** Could implement a fallback chain (e.g., TCGCSV → fallback to generic import with default prices)
+**Decision:** Keep TCGCSV as single source of truth to simplify operations and avoid cross-provider divergence.
 
 ---
 

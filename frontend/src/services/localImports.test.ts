@@ -6,10 +6,6 @@ vi.mock('./tcgcsv', () => ({
   searchCards: vi.fn(),
   getSetCards: vi.fn(),
 }));
-vi.mock('./scryfall', () => ({ getCardById: vi.fn(), searchCards: vi.fn(), getSetCards: vi.fn() }));
-vi.mock('./pokemontcg', () => ({ getCardById: vi.fn(), searchCards: vi.fn(), getSetCards: vi.fn() }));
-vi.mock('./ygopro', () => ({ getCardById: vi.fn(), searchCards: vi.fn(), getSetCards: vi.fn() }));
-vi.mock('./optcg', () => ({ getCardById: vi.fn(), searchCards: vi.fn(), getSetCards: vi.fn() }));
 
 import * as tcgcsv from './tcgcsv';
 import * as localImports from './localImports';

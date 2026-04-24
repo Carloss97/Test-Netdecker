@@ -19,6 +19,9 @@ import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import StoresList from './pages/admin/StoresList';
 import LocalImportsManager from './pages/LocalImportsManager';
 import apiClient from './services/api';
+import StorefrontPage from './pages/StorefrontPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import CheckoutPage from './pages/CheckoutPage';
 
 function readAdminToken(): string | null {
   try {
@@ -87,6 +90,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+        <Route path="/storefront" element={<StorefrontPage />} />
+        <Route path="/storefront/product/:productId" element={<ProductDetailPage />} />
+        <Route path="/storefront/checkout" element={<CheckoutPage />} />
 
         <Route element={<RequireAdmin />}>
           <Route element={<ProtectedLayout />}>

@@ -3,10 +3,6 @@ import * as svc from './catalog';
 import apiClient from './api';
 import * as localImports from './localImports';
 import * as tcgcsvClient from './tcgcsv';
-import * as scryfallClient from './scryfall';
-import * as pokemonClient from './pokemontcg';
-import * as ygoproClient from './ygopro';
-import * as optcgClient from './optcg';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -50,34 +46,6 @@ vi.mock('./tcgcsv', () => ({
   listSets: vi.fn(),
 }));
 
-vi.mock('./scryfall', () => ({
-  getSetCards: vi.fn(),
-  searchCards: vi.fn(),
-  getCardById: vi.fn(),
-  listSets: vi.fn(),
-}));
-
-vi.mock('./pokemontcg', () => ({
-  getSetCards: vi.fn(),
-  searchCards: vi.fn(),
-  getCardById: vi.fn(),
-  listSets: vi.fn(),
-}));
-
-vi.mock('./ygopro', () => ({
-  getSetCards: vi.fn(),
-  searchCards: vi.fn(),
-  getCardById: vi.fn(),
-  listSets: vi.fn(),
-}));
-
-vi.mock('./optcg', () => ({
-  getSetCards: vi.fn(),
-  searchCards: vi.fn(),
-  getCardById: vi.fn(),
-  listSets: vi.fn(),
-}));
-
 describe('catalog cart conflict handling', () => {
   it('maps 409 from addToCart to user-friendly retry message', async () => {
     (apiClient.post as any).mockRejectedValueOnce({ response: { status: 409 } });
@@ -104,7 +72,7 @@ describe('catalog cart conflict handling', () => {
     expect(localImports.importSetLocal).toHaveBeenCalledWith('MAGIC', 'SET1', expect.objectContaining({ createListing: true }));
   });
 
-  it('resolves edition metadata before falling back and prefers tcgcsv for set cards', async () => {
+  it('resolves edition metadata and uses tcgcsv for set cards', async () => {
     (apiClient.get as any).mockImplementation(async (url: string) => {
       if (url === '/editions/edition-1/cards-with-stock') {
         throw { response: { status: 404 } };
@@ -159,17 +127,11 @@ describe('catalog cart conflict handling', () => {
       },
     ]);
 
-    (scryfallClient.getSetCards as any).mockResolvedValue([]);
-    (pokemonClient.getSetCards as any).mockResolvedValue([]);
-    (ygoproClient.getSetCards as any).mockResolvedValue([]);
-    (optcgClient.getSetCards as any).mockResolvedValue([]);
-
     const result = await svc.getEditionCardsWithStock('edition-1', 'SET1', 'MAGIC');
 
-  expect((apiClient.get as any)).toHaveBeenCalledWith('/editions/edition-1/cards-with-stock');
-  expect((apiClient.get as any)).toHaveBeenCalledWith('/editions/SET1/cards-with-stock');
+    expect((apiClient.get as any)).toHaveBeenCalledWith('/editions/edition-1/cards-with-stock');
+    expect((apiClient.get as any)).toHaveBeenCalledWith('/editions/SET1/cards-with-stock');
     expect((tcgcsvClient.getSetCards as any)).not.toHaveBeenCalled();
-    expect((scryfallClient.getSetCards as any)).not.toHaveBeenCalled();
     expect(result.edition.editionCode).toBe('SET1');
     expect(result.totalCards).toBe(1);
     expect(result.cards[0].cardCode).toBe('001');
@@ -457,15 +419,15 @@ describe('catalog cart conflict handling', () => {
     await expect(svc.resetCatalog()).resolves.toEqual({ success: true, message: 'reset' });
   });
 
-  it('covers external search/set graceful fallback paths', async () => {
+  it('covers tcgcsv search/set graceful fallback paths', async () => {
     (apiClient.get as any).mockImplementation(async (url: string) => {
       if (url === '/external/search') return { data: { cards: [] } };
       if (url === '/external/sets') throw new Error('offline');
       throw new Error(`Unexpected GET ${url}`);
     });
 
-    (scryfallClient.searchCards as any).mockResolvedValue([{ externalId: 'm1' }]);
-    (scryfallClient.listSets as any).mockResolvedValue([{ code: 'SET1', name: 'Set One' }]);
+    (tcgcsvClient.searchCards as any).mockResolvedValue([{ externalId: 'm1' }]);
+    (tcgcsvClient.listSets as any).mockResolvedValue([{ code: 'SET1', name: 'Set One' }]);
 
     await expect(svc.searchExternalCards('MAGIC', 'bolt')).resolves.toEqual(
       expect.objectContaining({ success: true, tcg: 'MAGIC', query: 'bolt' }),
@@ -478,7 +440,7 @@ describe('catalog cart conflict handling', () => {
   it('covers external card/import defensive fallbacks', async () => {
     (apiClient.post as any).mockRejectedValue(new Error('offline'));
 
-    (scryfallClient.getCardById as any).mockResolvedValue({ externalId: 'card-1' });
+    (tcgcsvClient.getCardById as any).mockResolvedValue({ externalId: 'card-1' });
     (localImports.importCardLocal as any).mockResolvedValue({
       result: {
         cardId: 'card-1',

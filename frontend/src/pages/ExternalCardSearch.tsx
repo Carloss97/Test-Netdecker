@@ -23,10 +23,6 @@ const TCG_LABELS: Record<TCGParam, string> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  scryfall: 'Scryfall',
-  pokemontcg: 'Pokémon TCG API',
-  ygoprodeck: 'YGOPRODeck',
-  onepiecetcg: 'One Piece TCG',
   tcgcsv: 'TCGCsv (TCGplayer)',
 };
 
@@ -311,8 +307,8 @@ export function ExternalCardSearch() {
       {/* TCG selector */}
       <div className="surface-card" style={{ marginBottom: 16, padding: 16 }}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 10, color: '#333' }}>Select TCG</label>
-        <p style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
-          <strong>💡</strong> Search and import cards from Magic, Pokémon, Yu-Gi-Oh!, One Piece, Digimon, and Weiss Schwarz. Each TCG uses its native API for accurate data.
+          <p style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
+          <strong>💡</strong> Search and import cards from Magic, Pokémon, Yu-Gi-Oh!, One Piece, Digimon, and Weiss Schwarz using TCGCSV as the single card source.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {(Object.keys(TCG_LABELS) as TCGParam[]).map((t) => (

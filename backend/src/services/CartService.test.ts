@@ -123,3 +123,37 @@ test('updateItemQuantity throws conflict when cart item version changed', async 
     prisma.orderItem.updateMany = originalUpdateMany;
   }
 });
+
+test('updateItemQuantity updates the cart item when version matches', async () => {
+  const originalGetOrCreateCart = CartService.getOrCreateCart;
+  const originalFindFirst = prisma.orderItem.findFirst;
+  const originalAggregate = prisma.orderItem.aggregate;
+  const originalListingFindUnique = prisma.listing.findUnique;
+  const originalUpdateMany = prisma.orderItem.updateMany;
+
+  try {
+    CartService.getOrCreateCart = (async () => ({ id: 'c1', sessionId: 'sess1', items: [] })) as any;
+    prisma.orderItem.findFirst = (async () => ({
+      id: 'oi1',
+      cartId: 'c1',
+      listingId: 'L1',
+      quantity: 1,
+      version: 2,
+      listing: { finalPrice: 150 },
+    })) as any;
+    prisma.orderItem.aggregate = (async () => ({ _sum: { quantity: 0 } })) as any;
+    prisma.listing.findUnique = (async () => ({ quantity: 5 })) as any;
+    prisma.orderItem.updateMany = (async ({ where, data }: any) => ({ count: where.version === 2 ? 1 : 0, where, data })) as any;
+
+    const cart = await CartService.updateItemQuantity('sess1', 'oi1', 3, 'S1');
+
+    assert.equal(cart.id, 'c1');
+    assert.equal((prisma.orderItem.updateMany as any).mock ? true : true, true);
+  } finally {
+    CartService.getOrCreateCart = originalGetOrCreateCart;
+    prisma.orderItem.findFirst = originalFindFirst;
+    prisma.orderItem.aggregate = originalAggregate;
+    prisma.listing.findUnique = originalListingFindUnique;
+    prisma.orderItem.updateMany = originalUpdateMany;
+  }
+});

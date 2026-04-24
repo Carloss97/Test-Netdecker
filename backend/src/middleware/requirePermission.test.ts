@@ -15,6 +15,29 @@ test('requirePermission allows ADMIN', async () => {
   assert.equal(nextCalled, true);
 });
 
+test('requirePermission allows ADMIN even when store context differs', async () => {
+  const originalCheck = PermissionService.checkPermission;
+  try {
+    PermissionService.checkPermission = (async () => false) as any;
+
+    const mw = requirePermission('delete', 'listing');
+    const req: any = {
+      path: '/api/admin/listings/1/delete',
+      adminUser: { id: 'u1', role: 'ADMIN', storeId: 'store-a' },
+      store: { id: 'store-b' },
+    };
+
+    let nextCalled = false;
+    await mw(req as any, {} as any, () => {
+      nextCalled = true;
+    });
+
+    assert.equal(nextCalled, true);
+  } finally {
+    PermissionService.checkPermission = originalCheck;
+  }
+});
+
 test('requirePermission denies STAFF without permission', async () => {
   const originalCheck = PermissionService.checkPermission;
   try {

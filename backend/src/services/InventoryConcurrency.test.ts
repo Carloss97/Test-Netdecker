@@ -14,6 +14,8 @@ if (process.env.SKIP_DB_INIT) {
     const existingTcg = await prisma.tCG.findUnique({ where: { name: 'MAGIC' } });
     const tcgId = existingTcg?.id;
     if (!tcgId) throw new Error('Expected seeded TCG "MAGIC" to exist for tests');
+    const store = await prisma.store.findFirst({ orderBy: { createdAt: 'asc' } });
+    if (!store) throw new Error('Expected at least one seeded store for tests');
 
     // Create or reuse a unique edition/card/listing for this test (avoid colliding with seeded data)
     const edition = await prisma.edition.upsert({
@@ -32,7 +34,7 @@ if (process.env.SKIP_DB_INIT) {
     const listing = await prisma.listing.upsert({
       where: { cardId_condition_rarity: { cardId: card.id, condition: 'NM', rarity: 'TEST-R' } },
       update: { quantity: 10, referencePrice: 1, finalPrice: 1000 },
-      create: { cardId: card.id, editionId: edition.id, condition: 'NM', rarity: 'TEST-R', quantity: 10, referencePrice: 1, finalPrice: 1000 }
+      create: { storeId: store.id, cardId: card.id, editionId: edition.id, condition: 'NM', rarity: 'TEST-R', quantity: 10, referencePrice: 1, finalPrice: 1000 }
     });
 
     const decrementAmount = 1;

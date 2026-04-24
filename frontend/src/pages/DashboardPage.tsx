@@ -1,6 +1,7 @@
 import { useAsync } from '../hooks/useAsync';
 import { getAdminDashboard } from '../services/catalog';
 import type { AdminDashboard } from '../types';
+import { Link } from 'react-router-dom';
 
 export function DashboardPage() {
   const { data, status, error } = useAsync<AdminDashboard>(() => getAdminDashboard());
@@ -152,10 +153,10 @@ export function DashboardPage() {
       <div className="card">
         <div className="section-title" style={{ marginBottom: 16 }}>Accesos Rápidos</div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <a href="/inventario" className="btn btn-primary">📦 Gestionar Inventario</a>
-          <a href="/precios" className="btn btn-secondary">💰 Ver Precios</a>
-          <a href="/importar" className="btn btn-secondary">📥 Importar Catálogo</a>
-          <a href="/admin" className="btn btn-secondary">⚙️ Parámetros Admin</a>
+          <Link to="/inventario" className="btn btn-primary">📦 Gestionar Inventario</Link>
+          <Link to="/precios" className="btn btn-secondary">💰 Ver Precios</Link>
+          <Link to="/importar" className="btn btn-secondary">📥 Importar Catálogo</Link>
+          <Link to="/admin" className="btn btn-secondary">⚙️ Parámetros Admin</Link>
         </div>
       </div>
     </div>

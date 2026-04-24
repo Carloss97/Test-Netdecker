@@ -1,6 +1,9 @@
 {
   "buildCommand": "npm --prefix frontend ci --include=dev --no-audit --progress=false && npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],

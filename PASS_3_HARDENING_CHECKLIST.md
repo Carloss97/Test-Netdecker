@@ -1041,15 +1041,15 @@ frontend/src/hooks/
 ```
 
 **Criterios de Aceptación**
-- [ ] Landing page con hero section
-- [ ] Catálogo con grid de cartas
-- [ ] Filtros por TCG, rarity, precio (min-max)
-- [ ] Search bar con autocomplete
-- [ ] Product modal con imagen grande + detalles
-- [ ] Carrito flotante
-- [ ] Checkout form (no payment processing)
-- [ ] Responsive mobile + desktop
-- [ ] Dark/light mode support
+- [x] Landing page con hero section
+- [x] Catálogo con grid de cartas
+- [x] Filtros por TCG, rarity, precio (min-max)
+- [x] Search bar con autocomplete
+- [x] Product modal con imagen grande + detalles
+- [x] Carrito flotante
+- [x] Checkout form (no payment processing)
+- [x] Responsive mobile + desktop
+- [x] Dark/light mode support
 
 **Estimado**: 2-3 días (opcional, depende de prioridad)
 

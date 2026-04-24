@@ -75,7 +75,7 @@ export interface InventoryValue {
 // External card database types
 export interface ExternalCard {
   externalId: string;
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg' | 'tcgcsv';
+  source: 'tcgcsv';
   tcg: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   cardName: string;
   cardNumber?: string;
@@ -96,7 +96,7 @@ export interface ExternalEdition {
   name: string;
   releaseDate?: string;
   totalCards?: number;
-  source: 'scryfall' | 'pokemontcg' | 'ygoprodeck' | 'onepiecetcg' | 'tcgcsv';
+  source: 'tcgcsv';
 }
 
 export interface AdminDashboard {

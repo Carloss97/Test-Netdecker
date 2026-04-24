@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
+import { Link } from 'react-router-dom';
 import {
   bootstrapCatalog,
   getAdminPricingConfig,
@@ -184,12 +185,12 @@ export function AdminDashboardPage() {
           <button onClick={handleRefresh} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #ddd', background: '#fff' }}>
             🔄 Recargar
           </button>
-          <a href="/admin/pricing/thresholds" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #1976d2', background: '#e8f0ff', color: '#1976d2', textDecoration: 'none', display: 'inline-block' }}>
+          <Link to="/admin/pricing/thresholds" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #1976d2', background: '#e8f0ff', color: '#1976d2', textDecoration: 'none', display: 'inline-block' }}>
             ⚖️ Umbrales
-          </a>
-          <a href="/admin/approvals" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #ff9800', background: '#fff4e5', color: '#ff9800', textDecoration: 'none', display: 'inline-block' }}>
+          </Link>
+          <Link to="/admin/approvals" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #ff9800', background: '#fff4e5', color: '#ff9800', textDecoration: 'none', display: 'inline-block' }}>
             🛟 Aprobaciones
-          </a>
+          </Link>
           <button onClick={() => setShowResetConfirm(true)} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #d32f2f', background: '#ffebee', color: '#d32f2f', fontWeight: 500 }}>
             🗑️ Resetear BD
           </button>

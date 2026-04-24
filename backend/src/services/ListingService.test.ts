@@ -63,6 +63,30 @@ test('getAvailableListings builds combined card, stock and store filters', async
   }
 });
 
+test('getAvailableListings omits store filter when none is provided', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  try {
+    let receivedArgs: any = null;
+    prisma.listing.findMany = (async (args: any) => {
+      receivedArgs = args;
+      return [{ id: 'L3b' }];
+    }) as any;
+
+    const listings = await ListingService.getAvailableListings('MAGIC', 'ED1');
+
+    assert.equal(listings.length, 1);
+    assert.deepEqual(receivedArgs.where, {
+      AND: [
+        { quantity: { gt: 0 } },
+        { status: { in: ['active', 'manual'] } },
+      ],
+      card: { tcgId: 'MAGIC', editionId: 'ED1' },
+    });
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+  }
+});
+
 test('listListings applies pagination and optional store filters', async () => {
   const originalFindMany = prisma.listing.findMany;
   try {
@@ -112,6 +136,62 @@ test('getLowStockAlerts and getOutOfStock query the expected stock filters', asy
     });
   } finally {
     prisma.listing.findMany = originalFindMany;
+  }
+});
+
+test('getLowStockAlerts omits store filter when none is provided', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  try {
+    let receivedArgs: any = null;
+    prisma.listing.findMany = (async (args: any) => {
+      receivedArgs = args;
+      return [];
+    }) as any;
+
+    await ListingService.getLowStockAlerts(2);
+
+    assert.deepEqual(receivedArgs.where, {
+      AND: [
+        { quantity: { lte: 2, gt: 0 } },
+        { status: { in: ['active', 'manual'] } },
+      ],
+    });
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+  }
+});
+
+test('createListing persists the store and computed pricing data', async () => {
+  const originalStoreFindUnique = prisma.store.findUnique;
+  const originalCardFindUnique = prisma.card.findUnique;
+  const originalListingCreate = prisma.listing.create;
+  const originalCalculateFinalPrice = PriceService.calculateFinalPrice;
+
+  try {
+    prisma.store.findUnique = (async () => ({ id: 'S1' })) as any;
+    prisma.card.findUnique = (async () => ({ editionId: 'ED1', rarity: 'Rare' })) as any;
+    PriceService.calculateFinalPrice = (async () => ({ finalPrice: 2500, exchangeRate: 900, rawFinalPrice: 2500, referencePrice: 10, roundingMultiple: 1 })) as any;
+    prisma.listing.create = (async (args: any) => ({ id: 'LIST-1', ...args.data })) as any;
+
+    const created = await ListingService.createListing({
+      storeId: 'S1',
+      cardId: 'C1',
+      condition: 'NM' as any,
+      quantity: 3,
+      referencePrice: 10,
+      marginMultiplier: 1.25,
+      costPrice: 7,
+    });
+
+    assert.equal(created.id, 'LIST-1');
+    assert.equal(created.storeId, 'S1');
+    assert.equal(created.rarity, 'Rare');
+    assert.equal(created.finalPrice, 2500);
+  } finally {
+    prisma.store.findUnique = originalStoreFindUnique;
+    prisma.card.findUnique = originalCardFindUnique;
+    prisma.listing.create = originalListingCreate;
+    PriceService.calculateFinalPrice = originalCalculateFinalPrice;
   }
 });
 

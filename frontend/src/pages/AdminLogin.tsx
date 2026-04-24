@@ -43,8 +43,12 @@ export default function AdminLogin() {
         }
 
         try {
-          if (resp.data.user && resp.data.user.storeId) {
-            localStorage.setItem('auth_store', String(resp.data.user.storeId));
+          const sessionStoreId = resp.data.user?.storeId ? String(resp.data.user.storeId) : null;
+          const chosenStoreId = storeId ? String(storeId).trim() : '';
+          if (sessionStoreId) {
+            localStorage.setItem('auth_store', sessionStoreId);
+          } else if (chosenStoreId) {
+            localStorage.setItem('auth_store', chosenStoreId);
           } else {
             try { localStorage.removeItem('auth_store'); } catch (_) { /* ignore */ }
           }

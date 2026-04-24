@@ -10,8 +10,12 @@ export function requirePermission(action: string, resource: string) {
       throw new UnauthorizedError('Not authenticated');
     }
 
+    if (admin.role === 'ADMIN') {
+      return next();
+    }
+
     // If both contexts exist, enforce manager/staff store scope.
-    if (admin.role !== 'ADMIN' && admin.storeId && (req as any).store?.id && admin.storeId !== (req as any).store.id) {
+    if (admin.storeId && (req as any).store?.id && admin.storeId !== (req as any).store.id) {
       console.warn('[RBAC] denied', {
         reason: 'insufficient permissions',
         role: admin.role,
