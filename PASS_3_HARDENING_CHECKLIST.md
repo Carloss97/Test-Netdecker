@@ -947,6 +947,11 @@ Coverage actual ~30% para routes, ~20% para payments. Se necesita cobertura syst
 - [x] E2E Playwright checkout test
 - [x] Coverage report muestra 70%+ en routes + services
 
+**Seguimiento de Cobertura (2026-04-23, post-fixes)**
+- Backend (suite focalizada de hardening): 54.15% statements, 69.41% branches, 33.17% funcs.
+- Frontend (suite completa Vitest + V8): 59.24% statements, 46.56% branches, 59.89% funcs, 61.27% lines.
+- Principal cuello de botella restante en frontend: `frontend/src/services/catalog.ts` (45.45% statements).
+
 **Estimado**: 6-8 horas
 
 ---

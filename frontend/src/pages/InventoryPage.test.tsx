@@ -92,6 +92,10 @@ describe('InventoryPage manual mode guard', () => {
     const setEls = await screen.findAllByText('Set 1');
     await userEvent.click(setEls[0]);
 
+    await waitFor(() => {
+      expect(mockGetEditionCardsWithStock).toHaveBeenCalledWith('ed-1', 'SET1', 'tcg-1');
+    });
+
     const modeButton = await screen.findByRole('button', { name: 'API' });
     await waitFor(() => {
       expect((modeButton as HTMLButtonElement).disabled).toBe(true);

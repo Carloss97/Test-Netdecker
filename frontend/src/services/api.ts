@@ -97,6 +97,21 @@ function navigateToLoginFromClient(): void {
   }
 }
 
+function hasClientAuthToken(): boolean {
+  try {
+    const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (fromStorage && fromStorage.trim().length > 0) return true;
+  } catch {
+    // ignore storage access failures
+  }
+
+  try {
+    return Boolean(readCookie('auth_token_js'));
+  } catch {
+    return false;
+  }
+}
+
 export function buildApiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const normalizedBase = API_BASE_URL.replace(/\/+$/, '');
@@ -154,6 +169,9 @@ apiClient.interceptors.request.use(
       const token = localStorage.getItem('auth_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        if (!config.headers['x-admin-token']) {
+          config.headers['x-admin-token'] = token;
+        }
       }
     } catch (err) {
       // Storage may be blocked by Tracking Prevention or similar; continue without token
@@ -165,7 +183,12 @@ apiClient.interceptors.request.use(
     try {
       if (!config.headers.Authorization && typeof document !== 'undefined' && document.cookie) {
         const cookieVal = readCookie('auth_token_js');
-        if (cookieVal) config.headers.Authorization = `Bearer ${cookieVal}`;
+        if (cookieVal) {
+          config.headers.Authorization = `Bearer ${cookieVal}`;
+          if (!config.headers['x-admin-token']) {
+            config.headers['x-admin-token'] = cookieVal;
+          }
+        }
       }
     } catch (e) {
       // ignore cookie parsing errors
@@ -221,6 +244,14 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
+      const requestPath = String(config.url || '').split('?')[0];
+      const isAuthProbeRequest = requestPath === '/admin/auth/me' || requestPath.startsWith('/admin/auth/');
+      const shouldForceLogout = isAuthProbeRequest || !hasClientAuthToken();
+
+      if (!shouldForceLogout) {
+        return Promise.reject(error);
+      }
+
       try {
         try { localStorage.removeItem('auth_token'); } catch (_) { /* ignore */ }
         // Also attempt to clear cookie-based token so UI flows can retry cleanly

@@ -969,9 +969,25 @@ export async function getEditionById(id: string): Promise<EditionWithCounts> {
 
 /** Retrieves all cards in an edition along with their listings — used for inventory management. */
 export async function getEditionCardsWithStock(editionId: string, editionCode?: string, tcgId?: string): Promise<EditionInventory> {
+  const editionCandidates = Array.from(new Set([
+    editionId,
+    editionCode && editionCode !== editionId ? editionCode : undefined,
+    editionId.includes(':') ? editionId.split(':').slice(1).join(':') : undefined,
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0)));
+
   try {
-    const response = await apiClient.get(`/editions/${editionId}/cards-with-stock`);
-    return response.data;
+    for (const candidate of editionCandidates) {
+      try {
+        const response = await apiClient.get(`/editions/${candidate}/cards-with-stock`);
+        return response.data;
+      } catch (error) {
+        const status = (error as any)?.response?.status;
+        if (status !== 404 || candidate === editionCandidates[editionCandidates.length - 1]) {
+          throw error;
+        }
+      }
+    }
+    throw new Error('Edition not found');
   } catch (_) {
     if (!ALLOW_DIRECT_TCGCSV) {
       const all = localImports.listLocalListings();

@@ -337,7 +337,11 @@ export function InventoryPage() {
       setSuccessMsg('CSV importado correctamente. Recargando…');
       if (selectedEdition) {
         setLoadingCards(true);
-        getEditionCardsWithStock(selectedEdition)
+        getEditionCardsWithStock(
+          selectedEdition,
+          selectedEditionObj?.editionCode,
+          selectedTcg || selectedEditionObj?.tcgId || undefined,
+        )
           .then((inv) => setCards(inv.cards))
           .catch(() => setError('Error al recargar cartas'))
           .finally(() => setLoadingCards(false));

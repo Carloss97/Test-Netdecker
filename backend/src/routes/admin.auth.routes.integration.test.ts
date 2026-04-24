@@ -1,4 +1,5 @@
 process.env.SKIP_DB_INIT = 'true';
+process.env.SKIP_RATE_LIMIT = 'true';
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

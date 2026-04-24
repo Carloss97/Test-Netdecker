@@ -106,6 +106,12 @@ Sprint 4 (Demo):       16-24 horas (2-3 días opcional)
 TOTAL:                 57-75 horas (8-10 semanas)
 ```
 
+## 📈 Cobertura Actualizada (2026-04-23)
+
+- Frontend (Vitest + V8, suite completa): **59.24% statements**, **46.56% branches**, **59.89% funcs**, **61.27% lines**.
+- Backend (suite focalizada hardening): **54.15% statements**, **69.41% branches**, **33.17% funcs**.
+- Área prioritaria para seguir subiendo rápido: `frontend/src/services/catalog.ts`.
+
 ---
 
 ## 🛒 Propuesta Storefront (Resumen)
