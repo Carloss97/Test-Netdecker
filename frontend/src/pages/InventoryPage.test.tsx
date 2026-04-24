@@ -10,6 +10,7 @@ const mockBatchUpdateStock = vi.fn();
 const mockDownloadEditionCsvTemplate = vi.fn();
 const mockImportInventoryCsv = vi.fn();
 const mockUpdateListingPricingMode = vi.fn();
+const mockLogClientError = vi.fn();
 
 vi.mock('../services/catalog', () => ({
   getTCGs: (...args: unknown[]) => mockGetTCGs(...args),
@@ -19,6 +20,10 @@ vi.mock('../services/catalog', () => ({
   downloadEditionCsvTemplate: (...args: unknown[]) => mockDownloadEditionCsvTemplate(...args),
   importInventoryCsv: (...args: unknown[]) => mockImportInventoryCsv(...args),
   updateListingPricingMode: (...args: unknown[]) => mockUpdateListingPricingMode(...args),
+}));
+
+vi.mock('../utils/observability', () => ({
+  logClientError: (...args: unknown[]) => mockLogClientError(...args),
 }));
 
 describe('InventoryPage manual mode guard', () => {
@@ -103,6 +108,104 @@ describe('InventoryPage manual mode guard', () => {
 
     expect(modeButton).toHaveAttribute('title', 'El modo manual solo se habilita para cartas con stock activo (> 0)');
     expect(mockUpdateListingPricingMode).not.toHaveBeenCalled();
+  });
+
+  it('shows retry when TCG list fails and recovers on retry', async () => {
+    mockGetTCGs.mockReset();
+    mockGetTCGs
+      .mockRejectedValueOnce(new Error('tcg down'))
+      .mockResolvedValueOnce([{ id: 'tcg-1', name: 'MAGIC', displayName: 'Magic: The Gathering' }]);
+
+    render(<InventoryPage />);
+
+    expect(await screen.findByText('No se pudo cargar la lista de juegos.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Magic: The Gathering')).toBeTruthy();
+    expect(mockGetTCGs).toHaveBeenCalledTimes(2);
+    expect(mockLogClientError).toHaveBeenCalled();
+  });
+
+  it('shows retry when editions fail and reloads after retry', async () => {
+    mockGetEditions.mockReset();
+    mockGetEditions
+      .mockRejectedValueOnce(new Error('editions down'))
+      .mockResolvedValueOnce([
+        {
+          id: 'ed-1',
+          tcgId: 'tcg-1',
+          editionCode: 'SET1',
+          editionName: 'Set 1',
+          isActive: true,
+          tcg: { id: 'tcg-1', name: 'MAGIC', displayName: 'Magic: The Gathering' },
+          cardCount: 1,
+          listingCount: 1,
+        },
+      ]);
+
+    render(<InventoryPage />);
+
+    const tcgEls = await screen.findAllByText('Magic: The Gathering');
+    await userEvent.click(tcgEls[0]);
+
+    expect(await screen.findByText('No se pudieron cargar las ediciones para el juego seleccionado.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findAllByText('Set 1')).toBeTruthy();
+    expect(mockGetEditions).toHaveBeenCalledTimes(2);
+    expect(mockLogClientError).toHaveBeenCalled();
+  });
+
+  it('shows retry when cards fail and reloads cards after retry', async () => {
+    mockGetEditionCardsWithStock.mockReset();
+    mockGetEditionCardsWithStock
+      .mockRejectedValueOnce(new Error('cards down'))
+      .mockResolvedValueOnce({
+        edition: {
+          id: 'ed-1',
+          tcgId: 'tcg-1',
+          editionCode: 'SET1',
+          editionName: 'Set 1',
+          isActive: true,
+          tcg: { id: 'tcg-1', name: 'MAGIC', displayName: 'Magic: The Gathering' },
+        },
+        totalCards: 1,
+        cardsWithStock: 1,
+        cards: [
+          {
+            id: 'card-1',
+            cardCode: 'C001',
+            cardName: 'Recovered Card',
+            rarity: 'Rare',
+            listings: [
+              {
+                id: 'listing-1',
+                condition: 'NM',
+                quantity: 1,
+                referencePrice: 5,
+                marginMultiplier: 1,
+                finalPrice: 3000,
+                currency: 'CLP',
+                status: 'active',
+              },
+            ],
+          },
+        ],
+      });
+
+    render(<InventoryPage />);
+
+    const tcgEls = await screen.findAllByText('Magic: The Gathering');
+    await userEvent.click(tcgEls[0]);
+    const setEls = await screen.findAllByText('Set 1');
+    await userEvent.click(setEls[0]);
+
+    expect(await screen.findByText('No se pudieron cargar las cartas de la edición seleccionada.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect((await screen.findAllByText('Recovered Card')).length).toBeGreaterThan(0);
+    expect(mockGetEditionCardsWithStock).toHaveBeenCalledTimes(2);
+    expect(mockLogClientError).toHaveBeenCalled();
   });
 
   it('saves manual CLP price on Enter when listing has active stock', async () => {

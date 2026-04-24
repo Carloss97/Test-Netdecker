@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { login } from '../services/adminAuth';
 import apiClient from '../services/api';
+import { logClientWarn } from '../utils/observability';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -25,8 +26,12 @@ export default function AdminLogin() {
           localStorage.setItem('auth_token', resp.data.token);
         } catch (err) {
           // Storage may be blocked by browser; continue without persisting
-          // eslint-disable-next-line no-console
-          console.warn('[AdminLogin] localStorage.setItem blocked', err);
+          logClientWarn({
+            area: 'admin-login',
+            action: 'persist-auth-token',
+            message: 'localStorage.setItem blocked while persisting auth token',
+            error: err,
+          });
         }
 
         try {

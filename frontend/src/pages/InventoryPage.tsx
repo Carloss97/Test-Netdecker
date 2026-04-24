@@ -10,6 +10,7 @@ import {
 } from '../services/catalog';
 import type { TCG, EditionWithCounts, CardWithStock } from '../types';
 import { parsePositiveNumberInput } from '../constants/pricing';
+import { logClientError } from '../utils/observability';
 const TCG_META: Record<string, { emoji: string; label: string }> = {
   MAGIC: { emoji: '🧙', label: 'Magic: The Gathering' },
   POKEMON: { emoji: '🎮', label: 'Pokémon' },
@@ -111,6 +112,9 @@ export function InventoryPage() {
   const [loadingTcgs, setLoadingTcgs] = useState(false);
   const [loadingEditions, setLoadingEditions] = useState(false);
   const [loadingCards, setLoadingCards] = useState(false);
+  const [tcgsLoadError, setTcgsLoadError] = useState<string | null>(null);
+  const [editionsLoadError, setEditionsLoadError] = useState<string | null>(null);
+  const [cardsLoadError, setCardsLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [dirtyRows, setDirtyRows] = useState<Map<string, number>>(new Map());
@@ -127,45 +131,99 @@ export function InventoryPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const loadTcgs = useCallback(async (reason: 'initial-load' | 'manual-retry') => {
     setLoadingTcgs(true);
-    getTCGs()
-      .then((data: TCG[]) => setTcgs(data))
-      .catch(() => setError('Error al cargar TCGs'))
-      .finally(() => setLoadingTcgs(false));
+    setTcgsLoadError(null);
+    try {
+      const data = await getTCGs();
+      setTcgs(data);
+    } catch (err) {
+      setTcgsLoadError('No se pudo cargar la lista de juegos.');
+      logClientError({
+        area: 'inventory-page',
+        action: 'load-tcgs',
+        message: 'Failed loading TCG options in inventory page',
+        context: { reason },
+        error: err,
+      });
+    } finally {
+      setLoadingTcgs(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!selectedTcg) return;
+    void loadTcgs('initial-load');
+  }, [loadTcgs]);
+
+  const loadEditions = useCallback(async (tcgId: string, reason: 'tcg-change' | 'manual-retry') => {
     setLoadingEditions(true);
+    setEditionsLoadError(null);
     setEditions([]);
     setSelectedEdition(null);
     setCards([]);
     setDirtyRows(new Map());
-    getEditions({ tcgId: selectedTcg })
-      .then(setEditions)
-      .catch(() => setError('Error al cargar ediciones'))
-      .finally(() => setLoadingEditions(false));
-  }, [selectedTcg]);
+    try {
+      const data = await getEditions({ tcgId });
+      setEditions(data);
+    } catch (err) {
+      setEditionsLoadError('No se pudieron cargar las ediciones para el juego seleccionado.');
+      logClientError({
+        area: 'inventory-page',
+        action: 'load-editions',
+        message: 'Failed loading editions for selected TCG',
+        context: { tcgId, reason },
+        error: err,
+      });
+    } finally {
+      setLoadingEditions(false);
+    }
+  }, []);
+
+  const loadCards = useCallback(async (
+    editionId: string,
+    editionCode: string | undefined,
+    tcgId: string | undefined,
+    reason: 'edition-change' | 'csv-refresh' | 'manual-retry',
+  ) => {
+    setLoadingCards(true);
+    setCardsLoadError(null);
+    setCards([]);
+    setDirtyRows(new Map());
+    setPreviewCardId(null);
+    setPinnedPreviewCardId(null);
+    try {
+      const inv = await getEditionCardsWithStock(editionId, editionCode, tcgId);
+      setCards(inv.cards);
+    } catch (err) {
+      setCardsLoadError('No se pudieron cargar las cartas de la edición seleccionada.');
+      logClientError({
+        area: 'inventory-page',
+        action: 'load-cards',
+        message: 'Failed loading cards with stock for selected edition',
+        context: { editionId, editionCode, tcgId, reason },
+        error: err,
+      });
+    } finally {
+      setLoadingCards(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTcg) return;
+    void loadEditions(selectedTcg, 'tcg-change');
+  }, [selectedTcg, loadEditions]);
 
   const selectedEditionObj = editions.find((e) => e.id === selectedEdition);
 
   useEffect(() => {
     if (!selectedEdition) return;
-    setLoadingCards(true);
-    setCards([]);
-    setDirtyRows(new Map());
-    setPreviewCardId(null);
-    setPinnedPreviewCardId(null);
-    getEditionCardsWithStock(
+    void loadCards(
       selectedEdition,
       selectedEditionObj?.editionCode,
       selectedTcg || selectedEditionObj?.tcgId || undefined,
-    )
-      .then((inv) => setCards(inv.cards))
-      .catch(() => setError('Error al cargar cartas'))
-      .finally(() => setLoadingCards(false));
-  }, [selectedEdition, selectedEditionObj, selectedTcg]);
+      'edition-change',
+    );
+  }, [selectedEdition, selectedEditionObj, selectedTcg, loadCards]);
 
   useEffect(() => {
     if (!cards.length) {
@@ -326,6 +384,12 @@ export function InventoryPage() {
       URL.revokeObjectURL(url);
     } catch {
       setError('Error al descargar plantilla CSV');
+      logClientError({
+        area: 'inventory-page',
+        action: 'download-template-csv',
+        message: 'Failed downloading inventory CSV template',
+        context: { selectedEdition },
+      });
     }
   };
 
@@ -336,18 +400,22 @@ export function InventoryPage() {
       await importInventoryCsv(file);
       setSuccessMsg('CSV importado correctamente. Recargando…');
       if (selectedEdition) {
-        setLoadingCards(true);
-        getEditionCardsWithStock(
+        void loadCards(
           selectedEdition,
           selectedEditionObj?.editionCode,
           selectedTcg || selectedEditionObj?.tcgId || undefined,
-        )
-          .then((inv) => setCards(inv.cards))
-          .catch(() => setError('Error al recargar cartas'))
-          .finally(() => setLoadingCards(false));
+          'csv-refresh',
+        );
       }
-    } catch {
+    } catch (err) {
       setError('Error al importar CSV');
+      logClientError({
+        area: 'inventory-page',
+        action: 'import-inventory-csv',
+        message: 'Failed importing inventory CSV in inventory page',
+        context: { selectedEdition },
+        error: err,
+      });
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -437,22 +505,39 @@ export function InventoryPage() {
           {loadingTcgs ? (
             <div className="loading-spinner" style={{ padding: 20 }}>⏳</div>
           ) : (
-            displayTcgs.map((tcg) => {
-              const meta = TCG_META[tcg.name] ?? { emoji: '🃏', label: tcg.displayName };
-              return (
-                <div
-                  key={tcg.id}
-                  className={`tcg-selector-card${selectedTcg === tcg.id ? ' active' : ''}`}
-                  onClick={() => setSelectedTcg(tcg.id)}
-                >
-                  <span className="tcg-selector-emoji">{meta.emoji}</span>
-                  <div>
-                    <div className="tcg-selector-name">{meta.label}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{tcg.name}</div>
-                  </div>
+            <>
+              {tcgsLoadError && (
+                <div className="error-message" style={{ marginBottom: 8 }}>
+                  {tcgsLoadError}
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      void loadTcgs('manual-retry');
+                    }}
+                  >
+                    Reintentar
+                  </button>
                 </div>
-              );
-            })
+              )}
+              {displayTcgs.map((tcg) => {
+                const meta = TCG_META[tcg.name] ?? { emoji: '🃏', label: tcg.displayName };
+                return (
+                  <div
+                    key={tcg.id}
+                    className={`tcg-selector-card${selectedTcg === tcg.id ? ' active' : ''}`}
+                    onClick={() => setSelectedTcg(tcg.id)}
+                  >
+                    <span className="tcg-selector-emoji">{meta.emoji}</span>
+                    <div>
+                      <div className="tcg-selector-name">{meta.label}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{tcg.name}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
           )}
         </div>
 
@@ -475,6 +560,21 @@ export function InventoryPage() {
               </div>
               {loadingEditions ? (
                 <div className="loading-spinner" style={{ padding: 20 }}>⏳</div>
+              ) : editionsLoadError ? (
+                <div className="error-message" style={{ padding: 12 }}>
+                  {editionsLoadError}
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      if (!selectedTcg) return;
+                      void loadEditions(selectedTcg, 'manual-retry');
+                    }}
+                  >
+                    Reintentar
+                  </button>
+                </div>
               ) : filteredEditions.length === 0 ? (
                 <div className="empty-state" style={{ padding: 20 }}>
                   <div>Sin ediciones disponibles</div>
@@ -584,6 +684,26 @@ export function InventoryPage() {
                 </div>
               ) : loadingCards ? (
                 <div className="loading-spinner">⏳ Cargando cartas…</div>
+              ) : cardsLoadError ? (
+                <div className="error-message" style={{ padding: 12 }}>
+                  {cardsLoadError}
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginLeft: 8 }}
+                    onClick={() => {
+                      if (!selectedEdition) return;
+                      void loadCards(
+                        selectedEdition,
+                        selectedEditionObj?.editionCode,
+                        selectedTcg || selectedEditionObj?.tcgId || undefined,
+                        'manual-retry',
+                      );
+                    }}
+                  >
+                    Reintentar
+                  </button>
+                </div>
               ) : cards.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-state-icon">🔍</div>
