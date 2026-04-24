@@ -2,6 +2,11 @@
 
 Objetivo: validar operacion end-to-end antes de piloto con usuarios reales.
 
+## 0. Provision de Tienda de Prueba
+- [ ] Ejecutar `npm --prefix backend run provision:test-store -- --email tu-email --password tu-password`.
+- [ ] Confirmar que la salida muestre `Store ID` y credenciales del admin.
+- [ ] Ingresar en `/login` con ese usuario y pegar el `Store ID` en el campo opcional de tienda.
+
 ## 1. Setup y Accesos
 - [ ] Variables de entorno configuradas en backend.
 - [ ] Base de datos accesible y con datos de prueba representativos.

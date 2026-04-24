@@ -23,6 +23,7 @@
     "backfill:tcgplayer": "tsx src/scripts/backfillTcgplayerProductId.ts",
     "backfill:tcgplayer:dry": "tsx src/scripts/backfillTcgplayerProductId.ts --dry-run",
     "catalog:bootstrap": "tsx src/scripts/bootstrapCatalog.ts",
+    "provision:test-store": "node scripts/provision-test-store.mjs",
     "prisma:push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma",
     "test:sqlite": "cross-env USE_SQLITE=true DATABASE_URL=file:./dev.sqlite tsx --test src/**/*.test.ts",
     "ci:test:sqlite": "npm run prisma:generate:sqlite || node -e \"process.exit(0)\" && npm run test:sqlite",
