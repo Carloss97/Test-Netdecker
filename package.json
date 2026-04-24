@@ -8,6 +8,7 @@
     "start:dev": "npm run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "provision:test-store": "npm --prefix backend run provision:test-store --",
     "build": "node scripts/build.js",
     "start": "node scripts/start-wrapper.js",
     "type-check": "npm --prefix backend run type-check && npm --prefix frontend run type-check",
