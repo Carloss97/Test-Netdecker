@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import prisma from '../utils/db.js';
 import { ListingService } from './ListingService.js';
 import AuditService from './AuditService.js';
+import { PriceService } from './PriceService.js';
 
 test('getListing returns listing', async () => {
   const originalFindFirst = prisma.listing.findFirst;
@@ -13,6 +14,152 @@ test('getListing returns listing', async () => {
     assert.equal(listing.finalPrice, 100);
   } finally {
     prisma.listing.findFirst = originalFindFirst;
+  }
+});
+
+test('getListingsByCard forwards store filter when provided', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  try {
+    let receivedArgs: any = null;
+    prisma.listing.findMany = (async (args: any) => {
+      receivedArgs = args;
+      return [{ id: 'L2' }];
+    }) as any;
+
+    const listings = await ListingService.getListingsByCard('C1', 'S1');
+
+    assert.equal(listings.length, 1);
+    assert.deepEqual(receivedArgs, {
+      where: { cardId: 'C1', storeId: 'S1' },
+      include: { card: true },
+    });
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+  }
+});
+
+test('getAvailableListings builds combined card, stock and store filters', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  try {
+    let receivedArgs: any = null;
+    prisma.listing.findMany = (async (args: any) => {
+      receivedArgs = args;
+      return [{ id: 'L3' }];
+    }) as any;
+
+    const listings = await ListingService.getAvailableListings('MAGIC', 'ED1', 'S1');
+
+    assert.equal(listings.length, 1);
+    assert.deepEqual(receivedArgs.where, {
+      AND: [
+        { quantity: { gt: 0 } },
+        { status: { in: ['active', 'manual'] } },
+      ],
+      card: { tcgId: 'MAGIC', editionId: 'ED1' },
+      storeId: 'S1',
+    });
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+  }
+});
+
+test('listListings applies pagination and optional store filters', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  try {
+    let receivedArgs: any = null;
+    prisma.listing.findMany = (async (args: any) => {
+      receivedArgs = args;
+      return [{ id: 'L4' }];
+    }) as any;
+
+    const listings = await ListingService.listListings({ take: 5, skip: 2, tcgId: 'MAGIC', editionId: 'ED1', storeId: 'S1' });
+
+    assert.equal(listings.length, 1);
+    assert.equal(receivedArgs.take, 5);
+    assert.equal(receivedArgs.skip, 2);
+    assert.deepEqual(receivedArgs.where, {
+      card: { tcgId: 'MAGIC', editionId: 'ED1' },
+      storeId: 'S1',
+    });
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+  }
+});
+
+test('getLowStockAlerts and getOutOfStock query the expected stock filters', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  try {
+    const calls: any[] = [];
+    prisma.listing.findMany = (async (args: any) => {
+      calls.push(args);
+      return [];
+    }) as any;
+
+    await ListingService.getLowStockAlerts(3, 'S1');
+    await ListingService.getOutOfStock('S1');
+
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[0].where, {
+      AND: [
+        { quantity: { lte: 3, gt: 0 } },
+        { status: { in: ['active', 'manual'] } },
+      ],
+      storeId: 'S1',
+    });
+    assert.deepEqual(calls[1].where, {
+      quantity: 0,
+      storeId: 'S1',
+    });
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+  }
+});
+
+test('updateMargin updates listing margin and returns updated record', async () => {
+  const originalGetListing = ListingService.getListing;
+  const originalUpdate = prisma.listing.update;
+  try {
+    ListingService.getListing = (async () => ({ id: 'L5', marginMultiplier: 1 })) as any;
+    prisma.listing.update = (async (args: any) => ({ id: args.where.id, ...args.data })) as any;
+
+    const updated = await ListingService.updateMargin('L5', 1.35);
+
+    assert.equal(updated.marginMultiplier, 1.35);
+  } finally {
+    ListingService.getListing = originalGetListing;
+    prisma.listing.update = originalUpdate;
+  }
+});
+
+test('setManualPrice and setApiPricingMode update price history and status', async () => {
+  const originalGetListing = ListingService.getListing;
+  const originalCalculateFinalPrice = PriceService.calculateFinalPrice;
+  const originalTransaction = prisma.$transaction;
+  const originalListingUpdate = prisma.listing.update;
+  const originalPriceHistoryCreate = prisma.priceHistory.create;
+  const originalAudit = AuditService.auditEntityChange;
+
+  try {
+    const txListing = { id: 'L6', finalPrice: 100, referencePrice: 10, exchangeRate: 1, status: 'active', marginMultiplier: 1 };
+    ListingService.getListing = (async () => txListing as any) as any;
+    PriceService.calculateFinalPrice = (async () => ({ finalPrice: 180, rawFinalPrice: 180, exchangeRate: 2, referencePrice: 10, roundingMultiple: 1 })) as any;
+    prisma.listing.update = (async (args: any) => ({ id: args.where.id, ...args.data })) as any;
+    prisma.priceHistory.create = (async (args: any) => ({ id: 'PH1', ...args.data })) as any;
+    prisma.$transaction = (async (operations: any[]) => Promise.all(operations)) as any;
+    AuditService.auditEntityChange = (async () => undefined) as any;
+
+    const manual = await ListingService.setManualPrice('L6', 220, 'u-1', 'manual override');
+    assert.equal(manual?.id, 'L6');
+
+    const apiMode = await ListingService.setApiPricingMode('L6', 'u-1', 'restore api mode');
+    assert.equal(apiMode?.id, 'L6');
+  } finally {
+    ListingService.getListing = originalGetListing;
+    PriceService.calculateFinalPrice = originalCalculateFinalPrice;
+    prisma.$transaction = originalTransaction;
+    prisma.listing.update = originalListingUpdate;
+    prisma.priceHistory.create = originalPriceHistoryCreate;
+    AuditService.auditEntityChange = originalAudit;
   }
 });
 

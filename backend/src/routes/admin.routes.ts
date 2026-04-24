@@ -65,6 +65,21 @@ type PriceHistoryWithListing = {
   } | null;
 };
 
+type PriceHistoryVolatilityRow = {
+  id: string;
+  listingId: string;
+  oldPrice: number;
+  newPrice: number;
+  percentChange?: number | null;
+  createdAt: Date;
+};
+
+type VolatilityListingLookup = {
+  id: string;
+  card: { cardName: string; cardCode: string };
+  edition: { editionCode: string; editionName: string };
+};
+
 /**
  * GET /api/admin/dashboard
  * Returns key business metrics for the admin overview.
@@ -296,7 +311,7 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
   const windowMs = windowMsByKey[windowParam] ?? windowMsByKey['7d'];
   const fromDate = new Date(now - windowMs);
 
-  const volatileChanges = await prisma.priceHistory.findMany({
+  const volatileChanges = (await prisma.priceHistory.findMany({
     where: {
       reason: 'VOLATILE_ALERT',
       oldPrice: { gt: 0 },
@@ -312,10 +327,10 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
       percentChange: true,
       createdAt: true,
     },
-  });
+  })) as PriceHistoryVolatilityRow[];
 
   const listingIds = Array.from(new Set(volatileChanges.map((entry) => entry.listingId)));
-  const listings = listingIds.length > 0
+  const listings = (listingIds.length > 0
     ? await prisma.listing.findMany({
         where: { id: { in: listingIds } },
         select: {
@@ -324,7 +339,7 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
           edition: { select: { editionCode: true, editionName: true } },
         },
       })
-    : [];
+    : []) as VolatilityListingLookup[];
 
   const listingById = new Map(listings.map((listing) => [listing.id, listing]));
 
