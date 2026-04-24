@@ -1,6 +1,6 @@
 import apiClient from './api';
 import { buildApiUrl } from './api';
-import type { EditionWithCounts, EditionInventory, Listing } from '../types';
+import type { Card, EditionWithCounts, EditionInventory, Listing } from '../types';
 import * as tcgcsvClient from './tcgcsv';
 const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
 import * as localImports from './localImports';
@@ -82,6 +82,62 @@ function mapLocalToListing(l: ReturnType<typeof localImports.listLocalListings>[
     status: 'manual',
     lastSyncedAt: undefined,
   } as Listing;
+}
+
+type CatalogListingCard = Partial<Card> & {
+  tcgId?: string | null;
+  editionId?: string | null;
+  tcg?: { id: string | null; name: string | null; displayName: string | null } | null;
+  edition?: { id: string; editionCode: string; editionName: string | null; tcgId: string | null } | null;
+};
+
+type CatalogListingPayload = {
+  card?: CatalogListingCard;
+  [key: string]: unknown;
+};
+
+function normalizeCatalogCard(card?: CatalogListingCard): CatalogListingCard {
+  const normalized: CatalogListingCard = { ...(card ?? {}) };
+
+  if (!normalized.tcg || !normalized.tcg.name) {
+    normalized.tcg = {
+      id: normalized.tcgId ?? null,
+      name: normalized.tcgId ?? null,
+      displayName: normalized.tcgId ?? null,
+    };
+  }
+
+  if (!normalized.edition && normalized.editionId) {
+    const parts = String(normalized.editionId).split(':');
+    normalized.edition = {
+      id: normalized.editionId,
+      editionCode: parts[1] || parts[0],
+      editionName: null,
+      tcgId: parts[0] || null,
+    };
+  }
+
+  return normalized;
+}
+
+function normalizeCatalogListings(data: unknown): Listing[] {
+  if (!data) return [];
+
+  if (Array.isArray(data)) {
+    return data.map((listing) => ({
+      ...(listing as CatalogListingPayload),
+      card: normalizeCatalogCard((listing as CatalogListingPayload).card),
+    })) as Listing[];
+  }
+
+  if (typeof data === 'object' && data !== null && Array.isArray((data as { listings?: unknown[] }).listings)) {
+    return (data as { listings: unknown[] }).listings.map((listing) => ({
+      ...(listing as CatalogListingPayload),
+      card: normalizeCatalogCard((listing as CatalogListingPayload).card),
+    })) as Listing[];
+  }
+
+  return [];
 }
 
 export async function getTCGs() {
@@ -192,27 +248,12 @@ export async function getCardById(id: string) {
   return data;
 }
 
-export async function getAvailableListings(tcgId?: string, editionId?: string) {
+export async function getAvailableListings(tcgId?: string, editionId?: string): Promise<Listing[]> {
   try {
     const { data } = await apiClient.get('/listings/available', {
       params: { tcgId, editionId }
     });
-    // Normalize: backend returns { success, total, listings } but callers expect an array of listings
-    if (data && Array.isArray(data.listings)) {
-      return (data.listings as any[]).map((l) => {
-        const card = l.card || {};
-        if (!card.tcg || !card.tcg.name) {
-          card.tcg = { id: card.tcgId || null, name: card.tcgId || null, displayName: card.tcgId || null };
-        }
-        if (!card.edition && card.editionId) {
-          const parts = String(card.editionId).split(':');
-          card.edition = { id: card.editionId, editionCode: parts[1] || parts[0], editionName: null, tcgId: parts[0] || null };
-        }
-        return { ...l, card };
-      });
-    }
-    if (Array.isArray(data)) return data;
-    return [];
+    return normalizeCatalogListings(data);
   } catch (err) {
     // Fallback to local imports saved in browser
     const all = localImports.listLocalListings();
@@ -223,24 +264,10 @@ export async function getAvailableListings(tcgId?: string, editionId?: string) {
   }
 }
 
-export async function getListingsByCard(cardId: string) {
+export async function getListingsByCard(cardId: string): Promise<Listing[]> {
   try {
     const { data } = await apiClient.get(`/listings/card/${cardId}`);
-    if (data && Array.isArray(data.listings)) {
-      return (data.listings as any[]).map((l) => {
-        const card = l.card || {};
-        if (!card.tcg || !card.tcg.name) {
-          card.tcg = { id: card.tcgId || null, name: card.tcgId || null, displayName: card.tcgId || null };
-        }
-        if (!card.edition && card.editionId) {
-          const parts = String(card.editionId).split(':');
-          card.edition = { id: card.editionId, editionCode: parts[1] || parts[0], editionName: null, tcgId: parts[0] || null };
-        }
-        return { ...l, card };
-      });
-    }
-    if (Array.isArray(data)) return data;
-    return [];
+    return normalizeCatalogListings(data);
   } catch (_) {
     const all = localImports.listLocalListings();
     const matched = all.filter((l) => String(l.card.externalId) === String(cardId));

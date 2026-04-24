@@ -296,6 +296,46 @@ describe('catalog cart conflict handling', () => {
     expect(fallbackResult[0].card.cardName).toBe('Local Card');
   });
 
+  it('normalizes raw array listing payloads consistently across catalog endpoints', async () => {
+    (apiClient.get as any).mockResolvedValueOnce({
+      data: [
+        {
+          id: 'listing-1',
+          quantity: 2,
+          card: {
+            cardCode: 'C001',
+            editionId: 'MAGIC:SET1',
+            tcgId: 'MAGIC',
+          },
+        },
+      ],
+    });
+
+    const available = await svc.getAvailableListings();
+    expect(available).toHaveLength(1);
+    expect(available[0].card.tcg?.name).toBe('MAGIC');
+    expect(available[0].card.edition?.editionCode).toBe('SET1');
+
+    (apiClient.get as any).mockResolvedValueOnce({
+      data: [
+        {
+          id: 'listing-2',
+          quantity: 1,
+          card: {
+            cardCode: 'C002',
+            editionId: 'MAGIC:SET2',
+            tcgId: 'MAGIC',
+          },
+        },
+      ],
+    });
+
+    const byCard = await svc.getListingsByCard('card-2');
+    expect(byCard).toHaveLength(1);
+    expect(byCard[0].card.tcg?.displayName).toBe('MAGIC');
+    expect(byCard[0].card.edition?.editionCode).toBe('SET2');
+  });
+
   it('filters low stock listings and clears the catalog locally when resetCatalog fails', async () => {
     (apiClient.get as any).mockRejectedValueOnce(new Error('offline'));
     (localImports.listLocalListings as any).mockReturnValueOnce([
