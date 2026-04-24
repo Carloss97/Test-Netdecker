@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { StorefrontProduct } from '../../hooks/useStorefront';
 import PriceDisplay from './PriceDisplay';
 import RarityBadge from './RarityBadge';
@@ -8,7 +9,7 @@ interface ProductCardProps {
   onAdd: (product: StorefrontProduct) => void;
 }
 
-export default function ProductCard({ product, onView, onAdd }: ProductCardProps) {
+function ProductCard({ product, onView, onAdd }: ProductCardProps) {
   return (
     <article className="sf-product-card">
       <button type="button" className="sf-image-button" onClick={() => onView(product)}>
@@ -37,3 +38,5 @@ export default function ProductCard({ product, onView, onAdd }: ProductCardProps
     </article>
   );
 }
+
+export default memo(ProductCard);

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useStorefront, { type StorefrontProduct } from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
 import FilterSidebar from '../components/storefront/FilterSidebar';
@@ -64,6 +64,32 @@ export default function StorefrontPage() {
     };
   }, []);
 
+  const handleViewProduct = useCallback((product: StorefrontProduct) => {
+    setSelected(product);
+  }, []);
+
+  const handleAddProduct = useCallback((product: StorefrontProduct) => {
+    cart.addItem(
+      {
+        id: product.id,
+        name: product.cardName,
+        imageUrl: product.imageUrl,
+        price: product.finalPrice,
+        stock: product.quantity,
+      },
+      1,
+    );
+    setCartOpen(true);
+  }, [cart]);
+
+  const handleToggleCart = useCallback(() => {
+    setCartOpen((prev) => !prev);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelected(null);
+  }, []);
+
   return (
     <div className="storefront-page">
       <div className="sf-container">
@@ -120,20 +146,8 @@ export default function StorefrontPage() {
             )}
             <ProductGrid
               products={filteredProducts}
-              onView={(product) => setSelected(product)}
-              onAdd={(product) => {
-                cart.addItem(
-                  {
-                    id: product.id,
-                    name: product.cardName,
-                    imageUrl: product.imageUrl,
-                    price: product.finalPrice,
-                    stock: product.quantity,
-                  },
-                  1
-                );
-                setCartOpen(true);
-              }}
+              onView={handleViewProduct}
+              onAdd={handleAddProduct}
             />
           </section>
         </div>
@@ -141,7 +155,7 @@ export default function StorefrontPage() {
 
       <ShoppingCart
         open={cartOpen}
-        onToggle={() => setCartOpen((prev) => !prev)}
+        onToggle={handleToggleCart}
         items={cart.items}
         itemCount={cart.itemCount}
         total={cart.total}
@@ -151,7 +165,7 @@ export default function StorefrontPage() {
       />
 
       {selected && (
-        <div className="sf-modal" onClick={() => setSelected(null)}>
+        <div className="sf-modal" onClick={handleCloseModal}>
           <div className="sf-modal-card" onClick={(e) => e.stopPropagation()}>
             <img src={selected.imageUrl} alt={selected.cardName} />
             <div>
@@ -160,7 +174,7 @@ export default function StorefrontPage() {
                   <h2>{selected.cardName}</h2>
                   <p className="sf-muted">{selected.editionName}</p>
                 </div>
-                <button className="sf-ghost-btn" onClick={() => setSelected(null)}>Cerrar</button>
+                <button className="sf-ghost-btn" onClick={handleCloseModal}>Cerrar</button>
               </div>
 
               <div style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
@@ -175,19 +189,7 @@ export default function StorefrontPage() {
               <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                 <button
                   className="sf-primary-btn"
-                  onClick={() => {
-                    cart.addItem(
-                      {
-                        id: selected.id,
-                        name: selected.cardName,
-                        imageUrl: selected.imageUrl,
-                        price: selected.finalPrice,
-                        stock: selected.quantity,
-                      },
-                      1
-                    );
-                    setCartOpen(true);
-                  }}
+                  onClick={() => handleAddProduct(selected)}
                   disabled={selected.quantity <= 0}
                 >
                   Agregar al carrito

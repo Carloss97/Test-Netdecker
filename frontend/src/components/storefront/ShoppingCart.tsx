@@ -1,12 +1,15 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { CartItem } from '../../hooks/useCartPersist';
 
+const CLP_FORMATTER = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+  maximumFractionDigits: 0,
+});
+
 function formatClp(value: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    maximumFractionDigits: 0,
-  }).format(Math.max(0, value || 0));
+  return CLP_FORMATTER.format(Math.max(0, value || 0));
 }
 
 interface ShoppingCartProps {
@@ -20,7 +23,7 @@ interface ShoppingCartProps {
   clearCart: () => void;
 }
 
-export default function ShoppingCart({
+function ShoppingCart({
   open,
   onToggle,
   items,
@@ -82,3 +85,5 @@ export default function ShoppingCart({
     </aside>
   );
 }
+
+export default memo(ShoppingCart);

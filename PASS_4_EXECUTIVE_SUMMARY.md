@@ -86,6 +86,13 @@
 
 ### #P4-004: Catalog rendering performance
 
+**Current status (2026-04-24)**
+- In progress: [frontend/src/hooks/useStorefront.ts](frontend/src/hooks/useStorefront.ts) now defers query evaluation (`useDeferredValue`) and filters against pre-indexed lowercase fields to reduce per-keystroke CPU in large catalogs.
+- In progress: storefront view handlers in [frontend/src/pages/StorefrontPage.tsx](frontend/src/pages/StorefrontPage.tsx) now use stable callbacks to avoid propagating unnecessary renders to child components.
+- In progress: storefront presentational components were memoized ([frontend/src/components/storefront/FilterSidebar.tsx](frontend/src/components/storefront/FilterSidebar.tsx), [frontend/src/components/storefront/ProductGrid.tsx](frontend/src/components/storefront/ProductGrid.tsx), [frontend/src/components/storefront/ProductCard.tsx](frontend/src/components/storefront/ProductCard.tsx), [frontend/src/components/storefront/ShoppingCart.tsx](frontend/src/components/storefront/ShoppingCart.tsx)).
+- In progress: [frontend/src/components/storefront/ShoppingCart.tsx](frontend/src/components/storefront/ShoppingCart.tsx) now reuses a hoisted CLP formatter to reduce repeated `Intl.NumberFormat` instantiation overhead.
+- Validation: `npm run type-check` passing; `vitest run src/hooks/useStorefront.test.tsx` passing (3/3).
+
 **Why**
 - The storefront is now feature-complete enough that render cost matters.
 - Search, filtering, and dense card grids can be improved without changing backend contracts.
@@ -94,6 +101,12 @@
 - Measure the current catalog page behavior.
 - Reduce unnecessary re-renders and expensive list work.
 - Split or defer heavy UI work only where the data proves it helps.
+
+**Acceptance**
+- [x] Search/filter operations avoid expensive repeated lowercase transforms over raw product fields.
+- [x] Storefront callbacks passed to dense card-grid children are stable across unrelated state changes.
+- [x] Core storefront rendering blocks are memoized to reduce avoidable rerenders.
+- [ ] Add and record lightweight render metrics baseline and post-change comparison.
 
 ---
 

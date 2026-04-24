@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import apiClient from '../services/api';
 import { logClientError, logClientInfo } from '../utils/observability';
 
@@ -21,6 +21,11 @@ export type StorefrontFilters = {
   rarity: string;
   minPrice: string;
   maxPrice: string;
+};
+
+type IndexedStorefrontProduct = StorefrontProduct & {
+  cardNameLc: string;
+  rarityLc: string;
 };
 
 const PLACEHOLDER_IMAGE =
@@ -89,6 +94,7 @@ export default function useStorefront() {
     minPrice: '',
     maxPrice: '',
   });
+  const deferredQuery = useDeferredValue(filters.query);
 
   const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' = 'initial-load') => {
     setStatus('loading');
@@ -140,33 +146,41 @@ export default function useStorefront() {
     };
   }, [loadProducts]);
 
+  const indexedProducts = useMemo<IndexedStorefrontProduct[]>(() => (
+    products.map((item) => ({
+      ...item,
+      cardNameLc: item.cardName.toLowerCase(),
+      rarityLc: item.rarity.toLowerCase(),
+    }))
+  ), [products]);
+
   const suggestions = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
+    const query = deferredQuery.trim().toLowerCase();
     if (!query) return [];
     const unique = new Set<string>();
-    for (const item of products) {
-      if (item.cardName.toLowerCase().includes(query)) {
+    for (const item of indexedProducts) {
+      if (item.cardNameLc.includes(query)) {
         unique.add(item.cardName);
       }
       if (unique.size >= 8) break;
     }
     return Array.from(unique);
-  }, [products, filters.query]);
+  }, [indexedProducts, deferredQuery]);
 
   const filteredProducts = useMemo(() => {
     const minPrice = filters.minPrice ? Number(filters.minPrice) : undefined;
     const maxPrice = filters.maxPrice ? Number(filters.maxPrice) : undefined;
-    const query = filters.query.trim().toLowerCase();
+    const query = deferredQuery.trim().toLowerCase();
 
-    return products.filter((item) => {
-      if (query && !item.cardName.toLowerCase().includes(query)) return false;
+    return indexedProducts.filter((item) => {
+      if (query && !item.cardNameLc.includes(query)) return false;
       if (filters.tcgId !== 'ALL' && item.tcgId !== filters.tcgId) return false;
-      if (filters.rarity !== 'ALL' && item.rarity !== filters.rarity) return false;
+      if (filters.rarity !== 'ALL' && item.rarityLc !== filters.rarity.toLowerCase()) return false;
       if (typeof minPrice === 'number' && Number.isFinite(minPrice) && item.finalPrice < minPrice) return false;
       if (typeof maxPrice === 'number' && Number.isFinite(maxPrice) && item.finalPrice > maxPrice) return false;
       return true;
     });
-  }, [products, filters]);
+  }, [indexedProducts, filters, deferredQuery]);
 
   const tcgOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.tcgId)))], [products]);
   const rarityOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.rarity)))], [products]);

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { StorefrontFilters } from '../../hooks/useStorefront';
 
 interface FilterSidebarProps {
@@ -8,7 +9,7 @@ interface FilterSidebarProps {
   suggestions: string[];
 }
 
-export default function FilterSidebar({
+function FilterSidebar({
   filters,
   setFilters,
   tcgOptions,
@@ -83,3 +84,5 @@ export default function FilterSidebar({
     </aside>
   );
 }
+
+export default memo(FilterSidebar);

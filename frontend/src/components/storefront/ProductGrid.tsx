@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { StorefrontProduct } from '../../hooks/useStorefront';
 import ProductCard from './ProductCard';
 
@@ -7,7 +8,7 @@ interface ProductGridProps {
   onAdd: (product: StorefrontProduct) => void;
 }
 
-export default function ProductGrid({ products, onView, onAdd }: ProductGridProps) {
+function ProductGrid({ products, onView, onAdd }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="sf-empty-state">
@@ -25,3 +26,5 @@ export default function ProductGrid({ products, onView, onAdd }: ProductGridProp
     </section>
   );
 }
+
+export default memo(ProductGrid);
