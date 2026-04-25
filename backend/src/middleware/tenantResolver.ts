@@ -76,6 +76,7 @@ export default async function tenantResolver(req: Request, _res: Response, next:
             where: { token: adminToken },
             select: {
               expiresAt: true,
+              storeId: true,
               store: {
                 select: {
                   id: true,
@@ -89,6 +90,16 @@ export default async function tenantResolver(req: Request, _res: Response, next:
           const notExpired = !session?.expiresAt || session.expiresAt.getTime() > Date.now();
           if (session?.store && notExpired) {
             store = session.store;
+          } else if (session?.storeId && notExpired) {
+            // Fallback: if store relation isn't populated, resolve by storeId directly
+            try {
+              store = await prisma.store.findUnique({ 
+                where: { id: session.storeId }, 
+                select: { id: true, slug: true, name: true } 
+              });
+            } catch (err) {
+              // ignore
+            }
           }
         } catch (err) {
           // ignore

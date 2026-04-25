@@ -64,7 +64,7 @@ export class AdminAuthService {
     }
     await prisma.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-    return { token, user: { id: user.id, email: user.email, role: user.role }, expiresAt };
+    return { token, user: { id: user.id, email: user.email, role: user.role, storeId: storeId || undefined }, expiresAt };
   }
 
   static async validateToken(token: string) {

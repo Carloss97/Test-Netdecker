@@ -88,3 +88,34 @@ test('authenticate creates session and validateToken works; logout deletes sessi
     prisma.adminSession.deleteMany = originalSessionDelete;
   }
 });
+
+test('authenticate returns storeId when provided', async () => {
+  const originalFindUniqueUser = prisma.adminUser.findUnique;
+  const originalSessionCreate = prisma.adminSession.create;
+  const originalUserUpdate = prisma.adminUser.update;
+
+  try {
+    const password = 'my-password-1';
+    const salt = crypto.randomBytes(16).toString('hex');
+    const derived = (await scryptAsync(password, salt, 64)) as Buffer;
+    const hash = derived.toString('hex');
+
+    prisma.adminUser.findUnique = (async () => ({ id: 'u1', email: 'admin@example.com', passwordSalt: salt, passwordHash: hash, role: 'ADMIN', isActive: true })) as any;
+
+    let createdSessionArgs: any = null;
+    prisma.adminSession.create = (async (_args: any) => { createdSessionArgs = _args; return { id: 's1', token: _args.data.token, userId: _args.data.userId, expiresAt: _args.data.expiresAt }; }) as any;
+    prisma.adminUser.update = (async (_args: any) => ({ id: 'u1', ..._args.data })) as any;
+
+    const storeId = 'store-abc-123';
+    const auth = await AdminAuthService.authenticate('admin@example.com', password, storeId);
+    
+    assert.ok(auth.token, 'token returned');
+    assert.equal(auth.user.email, 'admin@example.com');
+    assert.equal(auth.user.storeId, storeId, 'storeId returned in user object');
+    assert.equal(createdSessionArgs.data.storeId, storeId, 'storeId stored in session');
+  } finally {
+    prisma.adminUser.findUnique = originalFindUniqueUser;
+    prisma.adminSession.create = originalSessionCreate;
+    prisma.adminUser.update = originalUserUpdate;
+  }
+});
