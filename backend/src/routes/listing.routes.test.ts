@@ -4,12 +4,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'net';
-import express, { type Express } from 'express';
+import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import 'express-async-errors';
 
 import listingRoutes from './listing.routes.js';
 import prisma from '../utils/db.js';
 import { ListingService } from '../services/ListingService.js';
+
+function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  const statusCode = typeof (err as any)?.statusCode === 'number' ? (err as any).statusCode : 500;
+  const code = typeof (err as any)?.code === 'string' ? (err as any).code : (statusCode >= 500 ? 'INTERNAL_ERROR' : 'ERROR');
+  const message = err instanceof Error ? err.message : 'Internal Server Error';
+
+  res.status(statusCode).json({ success: false, error: { code, message, statusCode } });
+}
 
 function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) {
   return new Promise<{ status: number; body: unknown }>((resolve, reject) => {
@@ -50,7 +58,7 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown,
   });
 }
 
-test('GET /api/listings/available works without tenant credentials', async () => {
+test('GET /api/listings/available requires tenant credentials', async () => {
   const originalGetAvailableListings = ListingService.getAvailableListings;
 
   try {
@@ -59,13 +67,43 @@ test('GET /api/listings/available works without tenant credentials', async () =>
     const app = express();
     app.use(express.json());
     app.use('/api/listings', listingRoutes);
+    app.use(errorHandler);
 
     const res = await makeRequest(app, 'GET', '/api/listings/available');
 
-    assert.equal(res.status, 200);
-    assert.deepEqual(res.body, [{ id: 'listing-1', quantity: 2 }]);
+    assert.equal(res.status, 401);
+    assert.equal((res.body as any).success, false);
   } finally {
     ListingService.getAvailableListings = originalGetAvailableListings;
+  }
+});
+
+test('GET /api/listings/available resolves store context', async () => {
+  const originalGetAvailableListings = ListingService.getAvailableListings;
+  const originalStoreFindUnique = prisma.store.findUnique;
+
+  try {
+    let receivedStoreId: string | undefined;
+    ListingService.getAvailableListings = (async (_tcgId?: string, _editionId?: string, storeId?: string) => {
+      receivedStoreId = storeId;
+      return [{ id: 'listing-1', quantity: 2 } as any];
+    }) as typeof ListingService.getAvailableListings;
+
+    prisma.store.findUnique = (async () => ({ id: 'store-1', slug: 'store-one', name: 'Store One' })) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/listings', listingRoutes);
+    app.use(errorHandler);
+
+    const res = await makeRequest(app, 'GET', '/api/listings/available', undefined, { 'x-store-id': 'store-1' });
+
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, [{ id: 'listing-1', quantity: 2 }]);
+    assert.equal(receivedStoreId, 'store-1');
+  } finally {
+    ListingService.getAvailableListings = originalGetAvailableListings;
+    prisma.store.findUnique = originalStoreFindUnique;
   }
 });
 
@@ -87,6 +125,7 @@ test('GET /api/listings/low-stock resolves store context and forwards threshold'
     const app = express();
     app.use(express.json());
     app.use('/api/listings', listingRoutes);
+    app.use(errorHandler);
 
     const res = await makeRequest(app, 'GET', '/api/listings/low-stock?threshold=3', undefined, { 'x-store-id': 'store-1' });
 

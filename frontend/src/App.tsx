@@ -59,7 +59,20 @@ function RequireAdmin() {
 
     apiClient
       .get('/admin/auth/me')
-      .then(() => {
+      .then((response) => {
+        try {
+          const sessionStoreId = response?.data?.data?.storeId ? String(response.data.data.storeId).trim() : '';
+          if (sessionStoreId) {
+            const prevStoreId = localStorage.getItem('auth_store') || '';
+            if (prevStoreId !== sessionStoreId) {
+              localStorage.setItem('auth_store', sessionStoreId);
+              window.dispatchEvent(new Event('netdecker:store-changed'));
+            }
+          }
+        } catch (_) {
+          // ignore auth_store hydration failures
+        }
+
         if (mounted) setStatus('ok');
       })
       .catch(() => {

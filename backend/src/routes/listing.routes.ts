@@ -30,7 +30,7 @@ function requireStore(req: Request): string {
  */
 router.get('/available', async (req: Request, res: Response) => {
   const { tcgId, editionId } = req.query;
-  const storeId = req.store?.id;
+  const storeId = requireStore(req);
   const listings = await ListingService.getAvailableListings(
     tcgId as string | undefined,
     editionId as string | undefined,
