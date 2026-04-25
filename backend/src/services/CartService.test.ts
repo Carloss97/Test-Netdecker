@@ -41,6 +41,39 @@ test('addToCart creates order item when stock available', async () => {
   }
 });
 
+test('addToCart scopes stock lookup to the requested store', async () => {
+  const originalGetListing = ListingService.getListing;
+  const originalGetOrCreateCart = CartService.getOrCreateCart;
+  const originalOrderItemFindFirst = prisma.orderItem.findFirst;
+  const originalOrderItemCreate = prisma.orderItem.create;
+  const originalListingFindUnique = prisma.listing.findUnique;
+  const originalOrderItemAggregate = prisma.orderItem.aggregate;
+
+  try {
+    let listingLookupArgs: any = null;
+    let aggregateWhere: any = null;
+
+    ListingService.getListing = (async (id: string) => ({ id, finalPrice: 100, quantity: 5 })) as any;
+    CartService.getOrCreateCart = (async (sessionId: string, storeId: string) => ({ id: 'c1', sessionId, storeId, items: [] })) as any;
+    prisma.listing.findUnique = (async (args: any) => { listingLookupArgs = args; return { quantity: 5 }; }) as any;
+    prisma.orderItem.aggregate = (async (args: any) => { aggregateWhere = args.where; return { _sum: { quantity: 0 } }; }) as any;
+    prisma.orderItem.findFirst = (async () => null) as any;
+    prisma.orderItem.create = (async (args: any) => ({ id: 'oi1', ...args.data })) as any;
+
+    await CartService.addToCart({ storeId: 'S1', sessionId: 'sess1', listingId: 'L1', quantity: 2 });
+
+    assert.equal(listingLookupArgs.where.storeId, 'S1');
+    assert.equal(aggregateWhere.cart.storeId, 'S1');
+  } finally {
+    ListingService.getListing = originalGetListing;
+    CartService.getOrCreateCart = originalGetOrCreateCart;
+    prisma.orderItem.findFirst = originalOrderItemFindFirst;
+    prisma.orderItem.create = originalOrderItemCreate;
+    prisma.listing.findUnique = originalListingFindUnique;
+    prisma.orderItem.aggregate = originalOrderItemAggregate;
+  }
+});
+
 test('addToCart throws when insufficient stock', async () => {
   const originalGetListing = ListingService.getListing;
   const originalGetOrCreateCart = CartService.getOrCreateCart;
@@ -121,6 +154,44 @@ test('updateItemQuantity throws conflict when cart item version changed', async 
     prisma.orderItem.aggregate = originalAggregate;
     prisma.listing.findUnique = originalListingFindUnique;
     prisma.orderItem.updateMany = originalUpdateMany;
+  }
+});
+
+test('checkout decrements stock atomically inside the transaction', async () => {
+  const originalGetOrCreateCart = CartService.getOrCreateCart;
+  const originalTransaction = prisma.$transaction;
+  const originalListingFindUnique = prisma.listing.findUnique;
+
+  try {
+    CartService.getOrCreateCart = (async () => ({
+      id: 'c1',
+      sessionId: 'sess1',
+      storeId: 'S1',
+      items: [
+        { id: 'oi1', listingId: 'L1', quantity: 2, subtotal: 200 },
+      ],
+    })) as any;
+
+    prisma.listing.findUnique = (async (args: any) => ({ id: args.where.id, quantity: 5, storeId: 'S1' })) as any;
+
+    let txUpdateArgs: any = null;
+    prisma.$transaction = (async (fn: any) => fn({
+      order: { create: async ({ data }: any) => ({ id: 'o1', ...data }) },
+      listing: {
+        updateMany: async (args: any) => { txUpdateArgs = args; return { count: 1 }; },
+      },
+      orderItem: { update: async ({ data }: any) => ({ id: 'oi1', ...data }) },
+    } as any)) as any;
+
+    const order = await CartService.checkout('sess1', 'buyer@example.com', 'S1');
+
+    assert.equal(order.id, 'o1');
+    assert.equal(txUpdateArgs.where.storeId, 'S1');
+    assert.equal(txUpdateArgs.where.quantity.gte, 2);
+  } finally {
+    CartService.getOrCreateCart = originalGetOrCreateCart;
+    prisma.$transaction = originalTransaction;
+    prisma.listing.findUnique = originalListingFindUnique;
   }
 });
 

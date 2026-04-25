@@ -714,7 +714,7 @@ export class PriceSyncService {
     }
   }
 
-  static async getRecentRuns(limit: number = 20) {
+  static async getRecentRuns(limit: number = 20, storeId?: string) {
     const safeLimit = Math.min(Math.max(limit, 1), 100);
     const runDelegate = getPriceSyncRunDelegate();
 
@@ -723,6 +723,7 @@ export class PriceSyncService {
     }
 
     const runs = await runDelegate.findMany({
+      ...(storeId ? { where: { storeId } } : {}),
       orderBy: { startedAt: 'desc' },
       take: safeLimit,
     });

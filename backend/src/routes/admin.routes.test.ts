@@ -12,6 +12,7 @@ import prisma from '../utils/db.js';
 import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
 import CashSessionService from '../services/CashSessionService.js';
+import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { RateLimitService } from '../services/RateLimitService.js';
 
@@ -318,5 +319,154 @@ test('GET /api/admin/price-volatility returns events even when listing relations
     (prisma.adminSession as any).findUnique = originalAdminSessionFind;
     (prisma.priceHistory as any).findMany = originalPriceHistoryFindMany;
     (prisma.listing as any).findMany = originalListingFindMany;
+  }
+});
+
+test('GET /api/admin/stock-alerts scopes results to the admin session store', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalListingFindMany = (prisma.listing as any).findMany;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test.com', role: 'ADMIN', isActive: true },
+      storeId: 'store-a',
+      store: { id: 'store-a', slug: 'store-a', name: 'Store A' },
+    });
+
+    let capturedWhere: any = null;
+    (prisma.listing as any).findMany = async (args: any) => {
+      capturedWhere = args?.where;
+      return [
+        {
+          id: 'listing-1',
+          condition: 'NM',
+          quantity: 2,
+          finalPrice: 100,
+          card: { cardName: 'Scoped Card', cardCode: '001', imageUrl: null },
+          edition: { editionCode: 'SET1', editionName: 'Set One' },
+        },
+      ];
+    };
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/stock-alerts?threshold=3', undefined, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).total, 1);
+    assert.equal((res.body as any).alerts[0].cardName, 'Scoped Card');
+    assert.equal(capturedWhere.storeId, 'store-a');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    (prisma.listing as any).findMany = originalListingFindMany;
+  }
+});
+
+test('GET /api/admin/price-volatility scopes lookup queries to the admin session store', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalPriceHistoryFindMany = (prisma.priceHistory as any).findMany;
+  const originalListingFindMany = (prisma.listing as any).findMany;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-test', email: 'admin@test.com', role: 'ADMIN', isActive: true },
+      storeId: 'store-a',
+      store: { id: 'store-a', slug: 'store-a', name: 'Store A' },
+    });
+
+    let capturedPriceHistoryWhere: any = null;
+    (prisma.priceHistory as any).findMany = async (args: any) => {
+      capturedPriceHistoryWhere = args?.where;
+      return [
+        {
+          id: 'ph-1',
+          listingId: 'listing-1',
+          oldPrice: 100,
+          newPrice: 150,
+          percentChange: 50,
+          createdAt: new Date('2026-04-23T10:00:00.000Z'),
+        },
+      ];
+    };
+
+    let capturedListingWhere: any = null;
+    (prisma.listing as any).findMany = async (args: any) => {
+      capturedListingWhere = args?.where;
+      return [
+        {
+          id: 'listing-1',
+          card: { cardName: 'Scoped Card', cardCode: '001' },
+          edition: { editionCode: 'SET1', editionName: 'Set One' },
+        },
+      ];
+    };
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/price-volatility?limit=20&window=7d', undefined, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).total, 1);
+    assert.equal((res.body as any).events[0].cardName, 'Scoped Card');
+    assert.equal(capturedPriceHistoryWhere.listing.storeId, 'store-a');
+    assert.equal(capturedListingWhere.storeId, 'store-a');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    (prisma.priceHistory as any).findMany = originalPriceHistoryFindMany;
+    (prisma.listing as any).findMany = originalListingFindMany;
+  }
+});
+
+test('POST /api/admin/catalog/sync allows MANAGER when permission is granted', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalRolePermissionFindMany = (prisma as any).rolePermission?.findMany;
+  const originalCheckLimit = RateLimitService.checkLimit;
+  const originalSyncNewSets = CatalogSyncService.syncNewSets;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-manager', email: 'manager@test.com', role: 'MANAGER', isActive: true },
+      storeId: 'store-a',
+      store: { id: 'store-a', slug: 'store-a', name: 'Store A' },
+    });
+
+    (prisma as any).rolePermission = {
+      findMany: async () => [{ action: 'run', resource: 'catalog-sync' }],
+    };
+
+    RateLimitService.checkLimit = (async () => ({ allowed: true, remaining: 49, resetAt: new Date(Date.now() + 60000), source: 'redis' })) as typeof RateLimitService.checkLimit;
+    CatalogSyncService.syncNewSets = (async () => ({ synced: 1, createdListings: 0, updatedListings: 0 })) as typeof CatalogSyncService.syncNewSets;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'POST', '/api/admin/catalog/sync', { dryRun: true }, { Authorization: 'Bearer faketoken' });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).synced, 1);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    if (originalRolePermissionFindMany) {
+      (prisma as any).rolePermission.findMany = originalRolePermissionFindMany;
+    }
+    RateLimitService.checkLimit = originalCheckLimit;
+    CatalogSyncService.syncNewSets = originalSyncNewSets;
   }
 });

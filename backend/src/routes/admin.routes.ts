@@ -21,7 +21,7 @@ import thresholdsRoutes from './admin.thresholds.routes.js';
 import approvalsRoutes from './admin.approvals.routes.js';
 import apiKeysRoutes from './admin.api-keys.routes.js';
 import webhooksRoutes from './admin.webhooks.routes.js';
-import requireAdmin, { requireAdminRole } from '../middleware/requireAdmin.js';
+import requireAdmin from '../middleware/requireAdmin.js';
 import adminAudit from '../middleware/adminAudit.js';
 import requirePermission from '../middleware/requirePermission.js';
 import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
@@ -30,6 +30,12 @@ const router = express.Router();
 
 // Protect the remaining admin routes with admin authentication + audit
 router.use(requireAdmin, adminAudit);
+
+function getScopedStoreId(req: Request): string | undefined {
+  const storeId = (req as any).adminUser?.storeId;
+  const normalized = typeof storeId === 'string' ? storeId.trim() : '';
+  return normalized || undefined;
+}
 
 // All routes mounted after this point require admin auth (role checks applied where needed)
 router.use('/stores', storesRoutes);
@@ -40,7 +46,7 @@ router.use('/api-keys', apiKeysRoutes);
 router.use('/webhooks', webhooksRoutes);
 
 // Simple in-memory cache for the admin dashboard to keep the UI responsive
-let _adminDashboardCache: { ts: number; data: unknown } | null = null;
+let _adminDashboardCache: { ts: number; storeId?: string; data: unknown } | null = null;
 const ADMIN_DASHBOARD_CACHE_TTL_MS = Number(process.env.ADMIN_DASHBOARD_CACHE_TTL_MS || 15000);
 
 type AdminListingAlert = {
@@ -84,10 +90,12 @@ type VolatilityListingLookup = {
  * GET /api/admin/dashboard
  * Returns key business metrics for the admin overview.
  */
-router.get('/dashboard', requirePermission('view', 'dashboard'), async (_req: Request, res: Response) => {
+router.get('/dashboard', requirePermission('view', 'dashboard'), async (req: Request, res: Response) => {
+  const storeId = getScopedStoreId(req);
+
   // Serve from short-lived cache when available to keep dashboard snappy
   try {
-    if (_adminDashboardCache && Date.now() - _adminDashboardCache.ts < ADMIN_DASHBOARD_CACHE_TTL_MS) {
+    if (_adminDashboardCache && _adminDashboardCache.storeId === storeId && Date.now() - _adminDashboardCache.ts < ADMIN_DASHBOARD_CACHE_TTL_MS) {
       return res.json(_adminDashboardCache.data as Record<string, unknown>);
     }
   } catch (err) {
@@ -104,14 +112,15 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (_req: Re
     recentImports,
       exchangeRateMeta,
   ] = await Promise.all([
-    prisma.card.count(),
-    prisma.listing.count(),
-    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0 } } }),
-    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0, lte: 5 } } }),
-    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { lte: 0 }, everHadStock: true } }),
-    prisma.order.count(),
-    prisma.order.count({ where: { status: 'PENDING' } }),
+    prisma.card.count(storeId ? { where: { listings: { some: { storeId } } } } : undefined),
+    prisma.listing.count(storeId ? { where: { storeId } } : undefined),
+    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0 }, ...(storeId ? { storeId } : {}) } }),
+    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0, lte: 5 }, ...(storeId ? { storeId } : {}) } }),
+    prisma.listing.count({ where: { status: { in: ['active', 'manual'] }, quantity: { lte: 0 }, everHadStock: true, ...(storeId ? { storeId } : {}) } }),
+    prisma.order.count(storeId ? { where: { storeId } } : undefined),
+    prisma.order.count({ where: { status: 'PENDING', ...(storeId ? { storeId } : {}) } }),
     prisma.inventoryImport.findMany({
+      where: storeId ? { storeId } : undefined,
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: {
@@ -130,14 +139,14 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (_req: Re
 
   // Inventory value (sum of finalPrice * quantity for active listings)
   const inventoryValueResult = await prisma.listing.aggregate({
-    where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0 } },
+    where: { status: { in: ['active', 'manual'] }, quantity: { gt: 0 }, ...(storeId ? { storeId } : {}) },
     _sum: { finalPrice: true },
   });
 
   const inventoryValueCLP = inventoryValueResult._sum.finalPrice ?? 0;
 
   // Recent price sync runs
-  const recentSyncRuns = await PriceSyncService.getRecentRuns(5);
+  const recentSyncRuns = await PriceSyncService.getRecentRuns(5, storeId);
 
   const responsePayload = {
     success: true,
@@ -171,7 +180,7 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (_req: Re
 
   // Cache the assembled response for a short time
   try {
-    _adminDashboardCache = { ts: Date.now(), data: responsePayload };
+    _adminDashboardCache = { ts: Date.now(), storeId, data: responsePayload };
   } catch (err) {
     // ignore cache store errors
   }
@@ -260,12 +269,14 @@ router.get('/pos/discrepancies', requirePermission('view', 'cash-discrepancies')
  */
 router.get('/stock-alerts', requirePermission('view', 'stock-alerts'), async (req: Request, res: Response) => {
   const threshold = parseInt(String(req.query.threshold || '5'), 10) || 5;
+  const storeId = getScopedStoreId(req);
 
   const alerts = await prisma.listing.findMany({
     where: {
       status: { in: ['active', 'manual'] },
       everHadStock: true,
       quantity: { lte: threshold },
+      ...(storeId ? { storeId } : {}),
     },
     include: {
       card: { select: { cardName: true, cardCode: true, imageUrl: true } },
@@ -300,6 +311,7 @@ router.get('/stock-alerts', requirePermission('view', 'stock-alerts'), async (re
 router.get('/price-volatility', requirePermission('view', 'price-volatility'), async (req: Request, res: Response) => {
   const limit = Math.min(parseInt(String(req.query.limit || '20'), 10) || 20, 100);
   const windowParam = String(req.query.window || '7d').toLowerCase();
+  const storeId = getScopedStoreId(req);
 
   const now = Date.now();
   const windowMsByKey: Record<string, number> = {
@@ -316,6 +328,7 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
       reason: 'VOLATILE_ALERT',
       oldPrice: { gt: 0 },
       createdAt: { gte: fromDate },
+      ...(storeId ? { listing: { storeId } } : {}),
     },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -332,7 +345,7 @@ router.get('/price-volatility', requirePermission('view', 'price-volatility'), a
   const listingIds = Array.from(new Set(volatileChanges.map((entry) => entry.listingId)));
   const listings = (listingIds.length > 0
     ? await prisma.listing.findMany({
-        where: { id: { in: listingIds } },
+        where: { id: { in: listingIds }, ...(storeId ? { storeId } : {}) },
         select: {
           id: true,
           card: { select: { cardName: true, cardCode: true } },
@@ -462,7 +475,7 @@ router.get('/tcgplayer-coverage', async (_req: Request, res: Response) => {
  * POST /api/admin/catalog/bootstrap
  * Body: { tcg?: 'MAGIC'|'POKEMON'|'YUGIOH'|'ONE_PIECE'|'DIGIMON'|'WEISS_SCHWARZ', setCode?: string, setLimit?: number, dryRun?: boolean, createListings?: boolean, initialQuantity?: number, marginMultiplier?: number }
  */
-router.post('/catalog/bootstrap', requireAdminRole('ADMIN'), requirePermission('run', 'catalog-bootstrap'), rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
+router.post('/catalog/bootstrap', requirePermission('run', 'catalog-bootstrap'), rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
   const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
     ? (tcgRaw as typeof SUPPORTED_TCGS[number])
@@ -488,7 +501,7 @@ router.post('/catalog/bootstrap', requireAdminRole('ADMIN'), requirePermission('
  * POST /api/admin/catalog/sync
  * Sync only new or changed external sets into the local catalog.
  */
-router.post('/catalog/sync', requireAdminRole('ADMIN'), requirePermission('run', 'catalog-sync'), rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
+router.post('/catalog/sync', requirePermission('run', 'catalog-sync'), rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
   const tcgRaw = req.body?.tcg ? String(req.body.tcg).toUpperCase() : undefined;
   const tcg = tcgRaw && SUPPORTED_TCGS.includes(tcgRaw as typeof SUPPORTED_TCGS[number])
     ? (tcgRaw as typeof SUPPORTED_TCGS[number])

@@ -19,7 +19,7 @@ test('processPosSale creates order and reduces stock', async () => {
           const ids = (where && where.id && where.id.in) || [];
           return ids.map((id: string) => ({ id, quantity: 10, finalPrice: 1000, costPrice: 500, storeId: 'S1' }));
         },
-        update: async ({ where, data }: any) => { listingUpdates.push({ where, data }); return { id: where.id, ...data }; }
+        updateMany: async ({ where, data }: any) => { listingUpdates.push({ where, data }); return { count: 1 }; }
       },
       order: { create: async ({ data }: any) => ({ id: 'o-1', ...data }) },
       orderItem: { create: async ({ data }: any) => ({ id: 'oi-1', ...data }) },
@@ -34,24 +34,26 @@ test('processPosSale creates order and reduces stock', async () => {
 
     assert.equal(order.id, 'o-1');
     assert.equal(listingUpdates.length, 1);
-    assert.equal(listingUpdates[0].data.quantity, 8);
+    assert.equal(listingUpdates[0].where.storeId, 'S1');
+    assert.equal(listingUpdates[0].where.quantity.gte, 2);
+    assert.equal(listingUpdates[0].data.quantity.decrement, 2);
   } finally {
     prisma.$transaction = originalTx;
   }
 });
 
-test('processPosSale fails on insufficient stock and does not create order', async () => {
+test('processPosSale fails on insufficient stock before transaction work', async () => {
   const originalTx = prisma.$transaction;
 
   try {
-    let orderCreated = false;
+    let listingUpdated = false;
 
     const tx = {
       listing: {
         findMany: async () => [{ id: 'LX', quantity: 1, finalPrice: 1000, costPrice: 400, storeId: 'S1' }],
-        update: async () => { orderCreated = true; }
+        updateMany: async () => { listingUpdated = true; return { count: 0 }; }
       },
-      order: { create: async () => { orderCreated = true; return {}; } },
+      order: { create: async () => ({}) },
       orderItem: { create: async () => ({}) },
       stockMovement: { create: async () => ({}) }
     } as any;
@@ -62,7 +64,7 @@ test('processPosSale fails on insufficient stock and does not create order', asy
       await PaymentService.processPosSale({ items: [{ listingId: 'LX', quantity: 2 }] } as any);
     }, /Insufficient stock/);
 
-    assert.equal(orderCreated, false);
+    assert.equal(listingUpdated, false);
   } finally {
     prisma.$transaction = originalTx;
   }
@@ -80,7 +82,7 @@ test('processPosSale creates journal entries when accounts exist', async () => {
           const ids = (where && where.id && where.id.in) || [];
           return ids.map((id: string) => ({ id, quantity: 5, finalPrice: 2000, costPrice: 1200, storeId: 'S1' }));
         },
-        update: async ({ where, data }: any) => ({ id: where.id, ...data })
+        updateMany: async ({ where, data }: any) => ({ count: where.storeId === 'S1' && data.quantity.decrement === 2 ? 1 : 0 })
       },
       order: { create: async ({ data }: any) => ({ id: 'o-je', ...data }) },
       orderItem: { create: async ({ data }: any) => ({ id: 'oi-je', ...data }) },

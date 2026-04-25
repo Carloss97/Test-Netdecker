@@ -1,5 +1,5 @@
 import prisma from '../utils/db.js';
-import { ValidationError, NotFoundError } from '../utils/errors.js';
+import { ValidationError, NotFoundError, ConflictError } from '../utils/errors.js';
 import OrderReceiptPdfService from './OrderReceiptPdfService.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -137,7 +137,18 @@ export class PaymentService {
           }
         });
 
-        await tx.listing.update({ where: { id: it.listingId }, data: { quantity: Number(listing.quantity || 0) - qty } });
+        const updatedListing = await tx.listing.updateMany({
+          where: {
+            id: it.listingId,
+            storeId: effectiveStoreId,
+            quantity: { gte: qty },
+          },
+          data: { quantity: { decrement: qty } },
+        });
+
+        if (!updatedListing || updatedListing.count === 0) {
+          throw new ConflictError(`Insufficient stock for listing ${it.listingId}`);
+        }
       }
 
       // Accounting (best-effort): revenue and COGS

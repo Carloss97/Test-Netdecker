@@ -17,27 +17,26 @@ export class CartService {
    */
   private static async getAvailableStock(
     listingId: string,
+    storeId: string,
     excludeSessionId?: string,
     excludeItemId?: string,
   ): Promise<number> {
     const listing = await prisma.listing.findUnique({
-      where: { id: listingId },
+      where: { id: listingId, storeId },
       select: { quantity: true },
     });
     if (!listing) return 0;
+
+    const cartFilter = excludeSessionId
+      ? { storeId, sessionId: { not: excludeSessionId } }
+      : { storeId };
 
     // Sum quantities in carts that belong to OTHER sessions (reserved by others)
     const reservedByOthers = await prisma.orderItem.aggregate({
       where: {
         listingId,
         orderId: null, // still in a cart (not checked out)
-        ...(excludeSessionId
-          ? {
-              cart: {
-                sessionId: { not: excludeSessionId },
-              },
-            }
-          : {}),
+        cart: cartFilter,
         ...(excludeItemId ? { id: { not: excludeItemId } } : {}),
       },
       _sum: { quantity: true },
@@ -117,6 +116,7 @@ export class CartService {
     // Available stock = total stock - quantity reserved by OTHER sessions
     const availableForSession = await this.getAvailableStock(
       input.listingId,
+      input.storeId,
       input.sessionId,
     );
 
@@ -188,6 +188,7 @@ export class CartService {
     // Check available stock for this session (excluding the current item's reservation)
     const availableForSession = await this.getAvailableStock(
       item.listingId,
+      storeId,
       sessionId,
       itemId,
     );
@@ -226,7 +227,7 @@ export class CartService {
     };
 
     for (const item of cart.items as CartItemShape[]) {
-      const currentListing = await prisma.listing.findUnique({ where: { id: item.listingId } });
+      const currentListing = await prisma.listing.findUnique({ where: { id: item.listingId, storeId } });
       if (!currentListing || currentListing.quantity < item.quantity) {
         throw new ConflictError(`Insufficient stock for listing ${item.listingId}`);
       }
@@ -253,10 +254,18 @@ export class CartService {
       });
 
       for (const item of cart.items as CartItemShape[]) {
-        await tx.listing.update({
-          where: { id: item.listingId },
-          data: { quantity: { decrement: item.quantity } }
+        const updatedListing = await tx.listing.updateMany({
+          where: {
+            id: item.listingId,
+            storeId,
+            quantity: { gte: item.quantity },
+          },
+          data: { quantity: { decrement: item.quantity } },
         });
+
+        if (!updatedListing || updatedListing.count === 0) {
+          throw new ConflictError(`Insufficient stock for listing ${item.listingId}`);
+        }
 
         await tx.orderItem.update({
           where: { id: item.id },

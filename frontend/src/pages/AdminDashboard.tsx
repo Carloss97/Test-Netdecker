@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { Link } from 'react-router-dom';
+import apiClient from '../services/api';
 import {
   bootstrapCatalog,
   getAdminPricingConfig,
@@ -11,6 +12,13 @@ import {
 import type { CatalogBootstrapResponse, CatalogSyncResponse } from '../types';
 import { DEFAULT_MARGIN_INPUT, parsePositiveNumberInput } from '../constants/pricing';
 import { logClientError } from '../utils/observability';
+
+type AdminMe = {
+  id: string;
+  email: string;
+  role: 'ADMIN' | 'MANAGER' | 'STAFF';
+  storeId?: string | null;
+};
 
 const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
 type SupportedTcg = (typeof SUPPORTED_TCGS)[number];
@@ -28,6 +36,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function AdminDashboardPage() {
   const pricingConfigQuery = useAsync(() => getAdminPricingConfig());
+  const adminMeQuery = useAsync(async () => {
+    const { data } = await apiClient.get('/admin/auth/me');
+    return (data?.data ?? null) as AdminMe | null;
+  });
+  const canManageAdminActions = adminMeQuery.data?.role === 'ADMIN';
   const [catalogTcg, setCatalogTcg] = useState<SupportedTcg | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
@@ -218,9 +231,11 @@ export function AdminDashboardPage() {
           <Link to="/admin/approvals" style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid #ff9800', background: '#fff4e5', color: '#ff9800', textDecoration: 'none', display: 'inline-block' }}>
             🛟 Aprobaciones
           </Link>
-          <button onClick={() => setShowResetConfirm(true)} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #d32f2f', background: '#ffebee', color: '#d32f2f', fontWeight: 500 }}>
-            🗑️ Resetear BD
-          </button>
+          {canManageAdminActions ? (
+            <button onClick={() => setShowResetConfirm(true)} style={{ padding: '6px 14px', cursor: 'pointer', borderRadius: 4, border: '1px solid #d32f2f', background: '#ffebee', color: '#d32f2f', fontWeight: 500 }}>
+              🗑️ Resetear BD
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -389,14 +404,20 @@ export function AdminDashboardPage() {
           <div style={{ fontSize: 11, color: '#777', marginBottom: 12 }}>
             Para evitar romper inventario: primero ejecuta en Simulación con 1 TCG y un set pequeño.
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
-              {catalogActionLoading === 'bootstrap' ? '⏳ Cargando catálogo...' : '▶️ Carga inicial'}
-            </button>
-            <button type="button" onClick={handleSyncCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#388e3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
-              {catalogActionLoading === 'sync' ? '⏳ Sincronizando...' : '🔄 Sincronizar sets nuevos'}
-            </button>
-          </div>
+          {canManageAdminActions ? (
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button type="button" onClick={handleBootstrapCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
+                {catalogActionLoading === 'bootstrap' ? '⏳ Cargando catálogo...' : '▶️ Carga inicial'}
+              </button>
+              <button type="button" onClick={handleSyncCatalog} disabled={catalogActionLoading !== null} style={{ padding: '10px 16px', background: '#388e3c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}>
+                {catalogActionLoading === 'sync' ? '⏳ Sincronizando...' : '🔄 Sincronizar sets nuevos'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ color: '#666', fontSize: 13 }}>
+              Estas acciones están reservadas para ADMIN.
+            </div>
+          )}
           <p style={{ marginTop: 6, fontSize: 12, color: '#666' }}>
             Carga inicial crea catálogo base. Sincronizar sets nuevos solo trae sets recientes o cambios.
           </p>
@@ -479,15 +500,19 @@ export function AdminDashboardPage() {
           </p>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={handleSavePricingConfig}
-              disabled={savingPricingConfig}
-              title="Guarda margen y configuración de dólar para precios"
-              style={{ padding: '10px 16px', background: '#5d4037', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
-            >
-              {savingPricingConfig ? '⏳ Guardando...' : '💾 Guardar parámetros'}
-            </button>
+            {canManageAdminActions ? (
+              <button
+                type="button"
+                onClick={handleSavePricingConfig}
+                disabled={savingPricingConfig}
+                title="Guarda margen y configuración de dólar para precios"
+                style={{ padding: '10px 16px', background: '#5d4037', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
+              >
+                {savingPricingConfig ? '⏳ Guardando...' : '💾 Guardar parámetros'}
+              </button>
+            ) : (
+              <span style={{ color: '#666', fontSize: 13 }}>Solo ADMIN puede guardar estos parámetros.</span>
+            )}
             {pricingConfigMsg && <span style={{ color: '#2e7d32', fontSize: 13 }}>{pricingConfigMsg}</span>}
             {pricingConfigErr && <span style={{ color: '#c62828', fontSize: 13 }}>{pricingConfigErr}</span>}
           </div>
