@@ -15,7 +15,7 @@ test('requirePermission allows ADMIN', async () => {
   assert.equal(nextCalled, true);
 });
 
-test('requirePermission allows ADMIN even when store context differs', async () => {
+test('requirePermission denies scoped ADMIN when store context differs', async () => {
   const originalCheck = PermissionService.checkPermission;
   try {
     PermissionService.checkPermission = (async () => false) as any;
@@ -25,6 +25,32 @@ test('requirePermission allows ADMIN even when store context differs', async () 
       path: '/api/admin/listings/1/delete',
       adminUser: { id: 'u1', role: 'ADMIN', storeId: 'store-a' },
       store: { id: 'store-b' },
+    };
+
+    let threw = false;
+    try {
+      await mw(req as any, {} as any, () => undefined);
+    } catch (err: any) {
+      threw = true;
+      assert.ok(String(err.message).toLowerCase().includes('insufficient permissions'));
+    }
+
+    assert.equal(threw, true);
+  } finally {
+    PermissionService.checkPermission = originalCheck;
+  }
+});
+
+test('requirePermission allows scoped ADMIN within same store', async () => {
+  const originalCheck = PermissionService.checkPermission;
+  try {
+    PermissionService.checkPermission = (async () => false) as any;
+
+    const mw = requirePermission('delete', 'listing');
+    const req: any = {
+      path: '/api/admin/listings/1/delete',
+      adminUser: { id: 'u1', role: 'ADMIN', storeId: 'store-a' },
+      store: { id: 'store-a' },
     };
 
     let nextCalled = false;

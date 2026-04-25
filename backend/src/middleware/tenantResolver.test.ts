@@ -209,6 +209,67 @@ test('tenantResolver resolves store by admin bearer token session', async () => 
   }
 });
 
+test('tenantResolver enforces session store over x-store-id header for scoped admin', async () => {
+  const suffix = Date.now();
+  const sessionStore = await prisma.store.create({
+    data: {
+      slug: `test-session-store-${suffix}`,
+      name: 'Session Store',
+      apiKeyHash: `ak-session-store-${suffix}`,
+    },
+  });
+  const otherStore = await prisma.store.create({
+    data: {
+      slug: `test-other-store-${suffix}`,
+      name: 'Other Store',
+      apiKeyHash: `ak-other-store-${suffix}`,
+    },
+  });
+
+  const user = await prisma.adminUser.create({
+    data: {
+      email: `tenant-enforce-${suffix}@example.com`,
+      passwordHash: 'hash',
+      passwordSalt: 'salt',
+      role: 'ADMIN',
+      isActive: true,
+    },
+  });
+
+  const token = `tenant-enforce-token-${suffix}`;
+  await prisma.adminSession.create({
+    data: {
+      token,
+      userId: user.id,
+      storeId: sessionStore.id,
+      expiresAt: new Date(Date.now() + 60_000),
+    },
+  });
+
+  const app = express();
+  app.get('/ping', tenantResolver, (req: Request, res: Response) => {
+    res.json({ store: (req as any).store ?? null });
+  });
+  app.use(buildErrorHandler());
+
+  try {
+    const { status, body } = await makeRequest(app, 'GET', '/ping', undefined, {
+      authorization: `Bearer ${token}`,
+      'x-store-id': otherStore.id,
+    });
+
+    assert.equal(status, 200);
+    const b = body as any;
+    assert.ok(b.store, 'store should be present');
+    assert.equal(b.store.id, sessionStore.id);
+  } finally {
+    await prisma.adminSession.deleteMany({ where: { userId: user.id } });
+    await prisma.adminUser.delete({ where: { id: user.id } });
+    await prisma.store.delete({ where: { id: otherStore.id } });
+    await prisma.store.delete({ where: { id: sessionStore.id } });
+  }
+});
+
 test('requireTenant blocks when no tenant resolved', async () => {
   const app = express();
   app.get('/secure', tenantResolver, requireTenant, (req: Request, res: Response) => {

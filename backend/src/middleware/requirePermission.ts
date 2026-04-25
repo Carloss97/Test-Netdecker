@@ -10,21 +10,29 @@ export function requirePermission(action: string, resource: string) {
       throw new UnauthorizedError('Not authenticated');
     }
 
-    if (admin.role === 'ADMIN') {
+    const adminStoreId = typeof admin.storeId === 'string' ? admin.storeId.trim() : '';
+    const isGlobalAdmin = admin.role === 'ADMIN' && adminStoreId.length === 0;
+
+    if (isGlobalAdmin) {
       return next();
     }
 
-    // If both contexts exist, enforce manager/staff store scope.
-    if (admin.storeId && (req as any).store?.id && admin.storeId !== (req as any).store.id) {
+    // If both contexts exist, enforce tenant scope for non-global admins.
+    if (adminStoreId && (req as any).store?.id && adminStoreId !== (req as any).store.id) {
       console.warn('[RBAC] denied', {
         reason: 'insufficient permissions',
         role: admin.role,
         action,
         resource,
-        adminStoreId: admin.storeId,
+        adminStoreId,
         requestStoreId: (req as any).store.id,
       });
       throw new ForbiddenError('insufficient permissions');
+    }
+
+    // Store-scoped ADMIN keeps full permissions, but only inside its own tenant scope.
+    if (admin.role === 'ADMIN' && adminStoreId) {
+      return next();
     }
 
     const allowed = await PermissionService.checkPermission(admin.role, action, resource);

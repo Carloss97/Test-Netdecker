@@ -31,6 +31,7 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string>('');
+  const [lockedStoreId, setLockedStoreId] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -43,6 +44,39 @@ export function Layout({ children }: LayoutProps) {
 
   useEffect(() => {
     let mounted = true;
+
+    apiClient
+      .get('/admin/auth/me')
+      .then((resp) => {
+        if (!mounted) return;
+        const sessionStoreId = resp?.data?.data?.storeId ? String(resp.data.data.storeId).trim() : '';
+        if (!sessionStoreId) return;
+
+        setLockedStoreId(sessionStoreId);
+        setActiveStoreId((prev) => (prev === sessionStoreId ? prev : sessionStoreId));
+
+        try {
+          const current = localStorage.getItem('auth_store') || '';
+          if (current !== sessionStoreId) {
+            localStorage.setItem('auth_store', sessionStoreId);
+            window.dispatchEvent(new Event('netdecker:store-changed'));
+          }
+        } catch {
+          // ignore storage failures
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setLockedStoreId('');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
     apiClient
       .get('/admin/stores')
       .then((resp) => {
@@ -51,7 +85,7 @@ export function Layout({ children }: LayoutProps) {
         const items = Array.isArray(payload?.stores) ? payload.stores : [];
         setStores(items as AdminStore[]);
 
-        if (!activeStoreId && items.length > 0) {
+        if (!lockedStoreId && !activeStoreId && items.length > 0) {
           const firstStore = String(items[0].id || '');
           if (firstStore) {
             try {
@@ -72,7 +106,7 @@ export function Layout({ children }: LayoutProps) {
     return () => {
       mounted = false;
     };
-  }, [activeStoreId]);
+  }, [activeStoreId, lockedStoreId]);
 
   const activeStoreName = useMemo(() => {
     if (!activeStoreId) return 'Sin tienda seleccionada';
@@ -82,6 +116,10 @@ export function Layout({ children }: LayoutProps) {
   }, [stores, activeStoreId]);
 
   const handleStoreChange = (nextStoreId: string) => {
+    if (lockedStoreId && nextStoreId !== lockedStoreId) {
+      return;
+    }
+
     setActiveStoreId(nextStoreId);
     try {
       if (nextStoreId) {
@@ -186,8 +224,10 @@ export function Layout({ children }: LayoutProps) {
               className="store-switcher"
               value={activeStoreId}
               onChange={(e) => handleStoreChange(e.target.value)}
+              disabled={Boolean(lockedStoreId)}
+              title={lockedStoreId ? 'Tu sesión está limitada a una sola tienda' : undefined}
             >
-              <option value="">Sin filtro de tienda</option>
+              {!lockedStoreId && <option value="">Sin filtro de tienda</option>}
               {stores.map((store) => (
                 <option key={store.id} value={store.id}>
                   {store.name || store.slug || store.id}

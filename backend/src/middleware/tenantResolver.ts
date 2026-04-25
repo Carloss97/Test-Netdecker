@@ -43,7 +43,54 @@ export default async function tenantResolver(req: Request, _res: Response, next:
     const slug = slugHeader || slugParam;
 
     let store: any = null;
-    if (slug) {
+
+    let adminSessionStoreId: string | undefined;
+    let adminSessionStore: { id: string; slug: string; name: string } | null = null;
+    const adminToken = extractAdminToken(req);
+    if (adminToken) {
+      try {
+        const session = await prisma.adminSession.findUnique({
+          where: { token: adminToken },
+          select: {
+            expiresAt: true,
+            storeId: true,
+            store: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+              },
+            },
+          },
+        });
+
+        const notExpired = !session?.expiresAt || session.expiresAt.getTime() > Date.now();
+        if (session && notExpired) {
+          adminSessionStoreId = typeof session.storeId === 'string' ? session.storeId.trim() || undefined : undefined;
+          adminSessionStore = session.store ?? null;
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    // A tenant-scoped admin session must always resolve to its own store.
+    if (adminSessionStoreId) {
+      if (adminSessionStore && adminSessionStore.id === adminSessionStoreId) {
+        store = adminSessionStore;
+      } else {
+        try {
+          store = await prisma.store.findUnique({
+            where: { id: adminSessionStoreId },
+            select: { id: true, slug: true, name: true },
+          });
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
+    if (!store && slug) {
       try {
         store = await prisma.store.findUnique({ where: { slug } });
       } catch (err) {
@@ -68,43 +115,8 @@ export default async function tenantResolver(req: Request, _res: Response, next:
       }
     }
 
-    if (!store) {
-      const adminToken = extractAdminToken(req);
-      if (adminToken) {
-        try {
-          const session = await prisma.adminSession.findUnique({
-            where: { token: adminToken },
-            select: {
-              expiresAt: true,
-              storeId: true,
-              store: {
-                select: {
-                  id: true,
-                  slug: true,
-                  name: true,
-                },
-              },
-            },
-          });
-
-          const notExpired = !session?.expiresAt || session.expiresAt.getTime() > Date.now();
-          if (session?.store && notExpired) {
-            store = session.store;
-          } else if (session?.storeId && notExpired) {
-            // Fallback: if store relation isn't populated, resolve by storeId directly
-            try {
-              store = await prisma.store.findUnique({ 
-                where: { id: session.storeId }, 
-                select: { id: true, slug: true, name: true } 
-              });
-            } catch (err) {
-              // ignore
-            }
-          }
-        } catch (err) {
-          // ignore
-        }
-      }
+    if (!store && adminSessionStore) {
+      store = adminSessionStore;
     }
 
     if (store) {
