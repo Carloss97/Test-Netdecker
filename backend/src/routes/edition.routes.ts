@@ -1,6 +1,6 @@
 // src/routes/edition.routes.ts
 import express, { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
+import { Prisma, TCGType } from '@prisma/client';
 import prisma from '../utils/db.js';
 import { NotFoundError } from '../utils/errors.js';
 import { DEFAULT_MARGIN_MULTIPLIER } from '../config/pricing.js';
@@ -33,6 +33,35 @@ type CardWithListings = {
   listings: ListingSummary[];
 };
 
+const TCG_NAME_ALIASES: Record<string, TCGType> = {
+  MAGIC: 'MAGIC',
+  MTG: 'MAGIC',
+  POKEMON: 'POKEMON',
+  YUGIOH: 'YUGIOH',
+  YU_GI_OH: 'YUGIOH',
+  ONEPIECE: 'ONE_PIECE',
+  ONE_PIECE: 'ONE_PIECE',
+  DIGIMON: 'DIGIMON',
+  WEISS: 'WEISS_SCHWARZ',
+  WEISS_SCHWARZ: 'WEISS_SCHWARZ',
+};
+
+function normalizeTcgNameToken(raw: string): TCGType | null {
+  const token = String(raw || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+
+  if (!token) {
+    return null;
+  }
+
+  return TCG_NAME_ALIASES[token] ?? null;
+}
+
 /**
  * GET /api/editions
  * List all editions with optional filters.
@@ -43,7 +72,22 @@ router.get('/', async (req: Request, res: Response) => {
   const filterActive = activeOnly !== 'false';
 
   const where: Prisma.EditionWhereInput = {};
-  if (tcgId) where.tcgId = tcgId as string;
+
+  if (tcgId) {
+    const rawTcgFilter = String(tcgId).trim();
+    const normalizedName = normalizeTcgNameToken(rawTcgFilter);
+
+    if (normalizedName) {
+      const resolvedTcg = await prisma.tCG.findUnique({
+        where: { name: normalizedName },
+        select: { id: true },
+      });
+      where.tcgId = resolvedTcg?.id ?? rawTcgFilter;
+    } else {
+      where.tcgId = rawTcgFilter;
+    }
+  }
+
   if (filterActive) where.isActive = true;
 
   const editions = await prisma.edition.findMany({

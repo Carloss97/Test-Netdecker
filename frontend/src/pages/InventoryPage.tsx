@@ -135,7 +135,7 @@ export function InventoryPage() {
     setLoadingTcgs(true);
     setTcgsLoadError(null);
     try {
-      const data = await getTCGs();
+      const data = await getTCGs({ allowFallback: false });
       setTcgs(data);
     } catch (err) {
       setTcgsLoadError('No se pudo cargar la lista de juegos.');
@@ -163,7 +163,7 @@ export function InventoryPage() {
     setCards([]);
     setDirtyRows(new Map());
     try {
-      const data = await getEditions({ tcgId });
+      const data = await getEditions({ tcgId, strict: true });
       setEditions(data);
     } catch (err) {
       setEditionsLoadError('No se pudieron cargar las ediciones para el juego seleccionado.');
@@ -192,7 +192,7 @@ export function InventoryPage() {
     setPreviewCardId(null);
     setPinnedPreviewCardId(null);
     try {
-      const inv = await getEditionCardsWithStock(editionId, editionCode, tcgId);
+      const inv = await getEditionCardsWithStock(editionId, editionCode, tcgId, { strict: true });
       setCards(inv.cards);
     } catch (err) {
       setCardsLoadError('No se pudieron cargar las cartas de la edición seleccionada.');

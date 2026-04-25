@@ -182,7 +182,8 @@ function normalizeCatalogListings(data: unknown): Listing[] {
   return [];
 }
 
-export async function getTCGs() {
+export async function getTCGs(options?: { allowFallback?: boolean }) {
+  const allowFallback = options?.allowFallback ?? true;
   try {
     const { data } = await apiClient.get('/tcgs');
     // Backend may return an object like { success, total, tcgs: [...] }
@@ -191,6 +192,9 @@ export async function getTCGs() {
     if (Array.isArray((data as any).tcgs)) return mergeWithDefaultTcgs((data as any).tcgs) as any;
     return [...DEFAULT_TCG_OPTIONS] as any;
   } catch (err) {
+    if (!allowFallback) {
+      throw err;
+    }
     // Offline fallback: return known supported TCG list
     return [...DEFAULT_TCG_OPTIONS] as any;
   }
@@ -913,11 +917,15 @@ export async function syncCatalog(params?: {
 }
 
 /** Fetches all editions with card/listing counts. Pass `tcgId` to filter by game; `activeOnly` defaults to true on the backend. */
-export async function getEditions(params?: { tcgId?: string; activeOnly?: boolean }): Promise<EditionWithCounts[]> {
+export async function getEditions(params?: { tcgId?: string; activeOnly?: boolean; strict?: boolean }): Promise<EditionWithCounts[]> {
+  const { strict, ...queryParams } = params || {};
   try {
-    const response = await apiClient.get('/editions', { params });
+    const response = await apiClient.get('/editions', { params: queryParams });
     return response.data;
-  } catch (_) {
+  } catch (error) {
+    if (strict) {
+      throw error;
+    }
     // Fallback: only surface external sets when the caller explicitly requests non-active sets
     // (e.g., Import page uses `activeOnly: false`). For normal inventory views we avoid
     // pre-populating external sets so the UI doesn't show sets before they're imported.
@@ -951,7 +959,12 @@ export async function getEditionById(id: string): Promise<EditionWithCounts> {
 }
 
 /** Retrieves all cards in an edition along with their listings — used for inventory management. */
-export async function getEditionCardsWithStock(editionId: string, editionCode?: string, tcgId?: string): Promise<EditionInventory> {
+export async function getEditionCardsWithStock(
+  editionId: string,
+  editionCode?: string,
+  tcgId?: string,
+  options?: { strict?: boolean },
+): Promise<EditionInventory> {
   const editionCandidates = Array.from(new Set([
     editionId,
     editionCode && editionCode !== editionId ? editionCode : undefined,
@@ -971,7 +984,10 @@ export async function getEditionCardsWithStock(editionId: string, editionCode?: 
       }
     }
     throw new Error('Edition not found');
-  } catch (_) {
+  } catch (error) {
+    if (options?.strict) {
+      throw error;
+    }
     if (!ALLOW_DIRECT_TCGCSV) {
       const all = localImports.listLocalListings();
       const matched = all.filter((l) => l.card.editionCode === editionId || l.card.editionCode === editionId.split(':').pop());

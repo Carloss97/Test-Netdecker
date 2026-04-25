@@ -176,3 +176,49 @@ test('GET /api/editions/:id/cards-with-stock returns inventory even when no stor
     (prisma.listing as any).create = originalListingCreate;
   }
 });
+
+test('GET /api/editions resolves tcgId query by TCG enum name', async () => {
+  const originalTcgFindUnique = (prisma.tCG as any).findUnique;
+  const originalEditionFindMany = (prisma.edition as any).findMany;
+
+  try {
+    (prisma.tCG as any).findUnique = async ({ where }: any) => {
+      if (where?.name === 'MAGIC') {
+        return { id: 'tcg-magic-id' };
+      }
+      return null;
+    };
+
+    (prisma.edition as any).findMany = async ({ where }: any) => {
+      assert.equal(where?.tcgId, 'tcg-magic-id');
+      assert.equal(where?.isActive, true);
+
+      return [
+        {
+          id: 'edition-1',
+          editionCode: 'SET1',
+          editionName: 'Set 1',
+          releaseDate: null,
+          isActive: true,
+          tcg: { id: 'tcg-magic-id', name: 'MAGIC', displayName: 'Magic: The Gathering' },
+          _count: { cards: 10, listings: 8 },
+        },
+      ];
+    };
+
+    const app = express();
+    app.use('/api/editions', editionRoutes);
+
+    const res = await makeRequest(app, 'GET', '/api/editions?tcgId=MAGIC');
+
+    assert.equal(res.status, 200);
+    const body = res.body as any[];
+    assert.equal(Array.isArray(body), true);
+    assert.equal(body.length, 1);
+    assert.equal(body[0].tcgId, 'tcg-magic-id');
+    assert.equal(body[0].editionCode, 'SET1');
+  } finally {
+    (prisma.tCG as any).findUnique = originalTcgFindUnique;
+    (prisma.edition as any).findMany = originalEditionFindMany;
+  }
+});

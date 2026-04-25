@@ -246,6 +246,29 @@ describe('catalog cart conflict handling', () => {
     ]));
   });
 
+  it('throws when getTCGs runs in strict mode and API fails', async () => {
+    (apiClient.get as any).mockRejectedValueOnce(new Error('offline'));
+
+    await expect(svc.getTCGs({ allowFallback: false })).rejects.toThrow('offline');
+  });
+
+  it('throws when getEditions runs in strict mode and API fails', async () => {
+    (apiClient.get as any).mockRejectedValueOnce(new Error('edition failure'));
+
+    await expect(svc.getEditions({ tcgId: 'MAGIC', strict: true })).rejects.toThrow('edition failure');
+  });
+
+  it('throws when getEditionCardsWithStock runs in strict mode and API fails', async () => {
+    (apiClient.get as any).mockImplementation(async (url: string) => {
+      if (url === '/editions/SET1/cards-with-stock') {
+        throw { response: { status: 500 } };
+      }
+      throw new Error(`Unexpected GET ${url}`);
+    });
+
+    await expect(svc.getEditionCardsWithStock('SET1', 'SET1', 'MAGIC', { strict: true })).rejects.toBeTruthy();
+  });
+
   it('falls back to a minimal TCG object when getTCGById fails', async () => {
     (apiClient.get as any).mockRejectedValueOnce(new Error('offline'));
 
