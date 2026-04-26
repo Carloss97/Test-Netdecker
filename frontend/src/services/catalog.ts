@@ -182,6 +182,11 @@ function normalizeCatalogListings(data: unknown): Listing[] {
   return [];
 }
 
+function isAuthOrScopeError(err: unknown): boolean {
+  const status = Number((err as { response?: { status?: number } })?.response?.status);
+  return status === 401 || status === 403;
+}
+
 export async function getTCGs(options?: { allowFallback?: boolean }) {
   const allowFallback = options?.allowFallback ?? true;
   try {
@@ -294,6 +299,9 @@ export async function getAvailableListings(tcgId?: string, editionId?: string): 
     });
     return normalizeCatalogListings(data);
   } catch (err) {
+    if (isAuthOrScopeError(err)) {
+      throw new Error('No autorizado o sin scope de tienda válido para cargar listings disponibles.');
+    }
     // Fallback to local imports saved in browser
     const all = localImports.listLocalListings();
     let mapped = all.map(mapLocalToListing);
@@ -1173,7 +1181,10 @@ export async function getLowStockListings(threshold?: number): Promise<Listing[]
   try {
     const response = await apiClient.get('/listings/low-stock', { params: { threshold } });
     return response.data;
-  } catch (_) {
+  } catch (err) {
+    if (isAuthOrScopeError(err)) {
+      throw new Error('No autorizado o sin scope de tienda válido para cargar alertas de stock bajo.');
+    }
     const th = typeof threshold === 'number' ? threshold : 2;
     const all = localImports.listLocalListings();
     const matched = all.filter((l) => (l.quantity ?? 0) <= th).map(mapLocalToListing);

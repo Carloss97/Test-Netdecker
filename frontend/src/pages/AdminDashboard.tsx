@@ -20,6 +20,8 @@ type AdminMe = {
   email: string;
   role: 'ADMIN' | 'MANAGER' | 'STAFF';
   storeId?: string | null;
+  resolvedStoreId?: string | null;
+  scopeMode?: 'session-store-scoped' | 'request-store-scoped' | 'global-admin' | 'unscoped' | string;
 };
 
 const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
@@ -37,13 +39,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function AdminDashboardPage() {
-  const pricingConfigQuery = useAsync(() => getAdminPricingConfig());
+  const pricingConfigQuery = useAsync(() => getAdminPricingConfig(), false);
   const tenantVisibilityQuery = useAsync(() => getTenantVisibilityDiagnostics(5));
   const adminMeQuery = useAsync(async () => {
     const { data } = await apiClient.get('/admin/auth/me');
     return (data?.data ?? null) as AdminMe | null;
   });
-  const canManageAdminActions = adminMeQuery.data?.role === 'ADMIN';
+  const canManageAdminActions = adminMeQuery.data?.role === 'ADMIN' && !adminMeQuery.data?.storeId;
   const [catalogTcg, setCatalogTcg] = useState<SupportedTcg | ''>('');
   const [setCode, setSetCode] = useState('');
   const [setLimit, setSetLimit] = useState('');
@@ -80,6 +82,13 @@ export function AdminDashboardPage() {
   } | null;
   const tenantVisibilityData = tenantVisibilityQuery.data as TenantVisibilityDiagnostics | null;
   const handleRefresh = () => window.location.reload();
+
+  useEffect(() => {
+    if (!canManageAdminActions) return;
+    if (pricingConfigQuery.status === 'idle') {
+      void pricingConfigQuery.execute();
+    }
+  }, [canManageAdminActions, pricingConfigQuery.status]);
 
   const handleSavePricingConfig = async () => {
     setSavingPricingConfig(true);
@@ -316,13 +325,13 @@ export function AdminDashboardPage() {
         </div>
       </Section>
 
-      {pricingConfigQuery.status === 'pending' && (
+      {canManageAdminActions && pricingConfigQuery.status === 'pending' && (
         <div className="surface-card" style={{ padding: 12, marginBottom: 16 }}>
           ⏳ Cargando configuración de pricing...
         </div>
       )}
 
-      {pricingConfigQuery.status === 'error' && (
+      {canManageAdminActions && pricingConfigQuery.status === 'error' && (
         <div className="error-message" style={{ marginBottom: 16 }}>
           ⚠️ No se pudo cargar la configuración de pricing.
           <button

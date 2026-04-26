@@ -1,7 +1,7 @@
 import prisma from '../utils/db.js';
 import crypto from 'crypto';
 import { promisify } from 'util';
-import { UnauthorizedError, ConflictError } from '../utils/errors.js';
+import { UnauthorizedError, ConflictError, ValidationError } from '../utils/errors.js';
 
 const scryptAsync = promisify(crypto.scrypt);
 
@@ -54,17 +54,39 @@ export class AdminAuthService {
     const days = Number(process.env.ADMIN_SESSION_DAYS || '7');
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
+    let normalizedStoreId: string | null = null;
+    const requestedStore = typeof storeId === 'string' ? storeId.trim() : '';
+    if (requestedStore) {
+      let store = await prisma.store.findUnique({
+        where: { id: requestedStore },
+        select: { id: true },
+      });
+
+      if (!store) {
+        store = await prisma.store.findUnique({
+          where: { slug: requestedStore.toLowerCase() },
+          select: { id: true },
+        });
+      }
+
+      if (!store) {
+        throw new ValidationError('storeId is invalid or unknown');
+      }
+
+      normalizedStoreId = store.id;
+    }
+
     // Try to store `storeId` when available in the DB schema; fall back if column missing.
     try {
       // Use `any` to avoid TypeScript errors on projects whose generated client lacks the field.
-      await (prisma as any).adminSession.create({ data: { token, userId: user.id, expiresAt, storeId: storeId || null } });
+      await (prisma as any).adminSession.create({ data: { token, userId: user.id, expiresAt, storeId: normalizedStoreId } });
     } catch (err) {
       // Fall back for databases without `storeId` column.
       await prisma.adminSession.create({ data: { token, userId: user.id, expiresAt } });
     }
     await prisma.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-    return { token, user: { id: user.id, email: user.email, role: user.role, storeId: storeId || undefined }, expiresAt };
+    return { token, user: { id: user.id, email: user.email, role: user.role, storeId: normalizedStoreId || undefined }, expiresAt };
   }
 
   static async validateToken(token: string) {

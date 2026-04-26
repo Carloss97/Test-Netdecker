@@ -86,8 +86,8 @@ export default function AdminLogin() {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
         <div style={{ marginBottom: 8 }}>
-          <label>Store ID (optional)</label>
-          <input type="text" value={storeId || ''} onChange={(e) => setStoreId(e.target.value || null)} placeholder="store id (optional)" />
+          <label>Store ID o slug (opcional)</label>
+          <input type="text" value={storeId || ''} onChange={(e) => setStoreId(e.target.value || null)} placeholder="store id o slug (opcional)" />
         </div>
         {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
         <div>

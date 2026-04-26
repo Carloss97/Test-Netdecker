@@ -7,11 +7,11 @@
 
 ### Findings from exhaustive retro review
 
-1. **P5-002 marked done, but UI still exposes global-only actions to scoped ADMIN sessions.**
-   - Evidence: `canManageAdminActions` currently checks only role (`ADMIN`) in frontend dashboard.
-   - Evidence: backend already enforces global-only for sensitive routes (`/api/admin/pricing-config`, `/api/admin/catalog/reset`).
-   - Impact: UX mismatch (frontend advertises actions that backend rejects).
-   - Status: **OPEN**.
+1. **P5-002 had mismatch: UI exposed global-only actions to scoped ADMIN sessions.**
+   - Evidence (fixed): frontend now gates `canManageAdminActions` with role + session scope (no `storeId`) and avoids loading `/api/admin/pricing-config` when scoped.
+   - Evidence: backend enforces global-only for sensitive routes (`/api/admin/pricing-config`, `/api/admin/catalog/reset`).
+   - Impact: removed UX mismatch (frontend no longer advertises global-only actions to scoped sessions).
+   - Status: **CLOSED IN PASS 6**.
 
 2. **Pass 5 docs are internally inconsistent for completion status.**
    - Evidence: executive summary states P5-003 completed.
@@ -44,7 +44,7 @@
 
 ### Acceptance criteria
 
-- [ ] Frontend hides global-only actions when session is scoped to a tenant/store.
+- [x] Frontend hides global-only actions when session is scoped to a tenant/store.
 - [ ] Pass 5 executive summary and checklist are reconciled to one truthful status model.
 - [ ] Coverage criterion is executable (script + threshold + repeatable command evidence).
 - [ ] P3-005 checklist structure is normalized so completion can be audited.
@@ -63,7 +63,7 @@
 
 ## #P6-002 UI capability gating parity for scoped admins
 
-- [ ] Replace role-only gating in AdminDashboard with capability derived from session scope + role.
+- [x] Replace role-only gating in AdminDashboard with capability derived from session scope + role.
 - [ ] Add regression test: scoped ADMIN cannot see global-only actions.
 
 ## #P6-003 Documentation truth reconciliation (Pass 5)

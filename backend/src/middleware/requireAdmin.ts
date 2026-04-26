@@ -51,10 +51,27 @@ export async function requireAdmin(req: Request, _res: Response, next: NextFunct
     } catch (_) {}
   }
 
-  const sess = await prisma.adminSession.findUnique({ where: { token }, include: { user: true } as any });
+  const sess = await prisma.adminSession.findUnique({
+    where: { token },
+    include: {
+      user: true,
+      store: {
+        select: {
+          id: true,
+        },
+      },
+    } as any,
+  });
   if (!sess) throw new UnauthorizedError('Invalid admin token');
   if (sess.expiresAt && sess.expiresAt.getTime() < Date.now()) throw new UnauthorizedError('Session expired');
   if (!sess.user || !sess.user.isActive) throw new ForbiddenError('User disabled');
+
+  const scopedStoreId = typeof (sess as any).storeId === 'string' ? (sess as any).storeId.trim() : '';
+  const hasStoreProperty = Object.prototype.hasOwnProperty.call(sess as object, 'store');
+  if (scopedStoreId && hasStoreProperty && !(sess as any).store) {
+    throw new UnauthorizedError('Invalid admin session scope. Please login again.');
+  }
+
   // Attach minimal user to request, including optional tenant scope
   (req as any).adminUser = { id: sess.user.id, email: sess.user.email, role: (sess.user as any).role, storeId: (sess as any).storeId || null };
   return next();

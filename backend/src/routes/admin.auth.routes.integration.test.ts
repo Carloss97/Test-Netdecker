@@ -201,3 +201,32 @@ test('admin auth me returns resolvedStoreId and scopeMode for request-scoped glo
     prisma.store.findUnique = originalStoreFindUnique;
   }
 });
+
+test('admin auth me rejects stale scoped session when store no longer exists', async () => {
+  const originalSessionFind = (prisma.adminSession as any).findUnique;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'tok_stale',
+      expiresAt: new Date(Date.now() + 60000),
+      user: { id: 'u101', email: 'admin@test.com', role: 'ADMIN', isActive: true },
+      storeId: 'missing-store-id',
+      store: null,
+    });
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin/auth', adminAuthRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/auth/me', undefined, {
+      Authorization: 'Bearer tok_stale',
+    });
+
+    assert.equal(res.status, 401);
+    assert.equal((res.body as any).success, false);
+    assert.equal((res.body as any).error.code, 'UNAUTHORIZED');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalSessionFind;
+  }
+});
