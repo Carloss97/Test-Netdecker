@@ -14,6 +14,11 @@ const router = express.Router();
 type TCGParam = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
 const VALID_TCGS: TCGParam[] = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
 
+function getImportStoreId(req: Request): string | undefined {
+  const raw = String(req.header('x-store-id') || '').trim();
+  return raw.length > 0 ? raw : undefined;
+}
+
 function parseTCG(raw: unknown): TCGParam | null {
   const upper = String(raw || '').toUpperCase().replace(/[- ]/g, '_') as TCGParam;
   return VALID_TCGS.includes(upper) ? upper : null;
@@ -119,6 +124,7 @@ router.post('/import/card', rateLimitByIp(100, 60000), async (req: Request, res:
     : undefined;
 
   const result = await ExternalImportService.importCard(externalCard, {
+    storeId: getImportStoreId(req),
     createListing: req.body.createListing === true || req.body.createListing === 'true',
     referencePrice: req.body.referencePrice ? parseFloat(req.body.referencePrice) : undefined,
     marginMultiplier: req.body.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
@@ -142,6 +148,7 @@ router.post('/import/search', rateLimitByIp(100, 60000), async (req: Request, re
   if (!query) throw new ValidationError('query (or name) parameter is required');
 
   const result = await ExternalImportService.searchAndImport(tcg, query, {
+    storeId: getImportStoreId(req),
     setCode: req.body.setCode,
     page: req.body.page ? parseInt(req.body.page, 10) : undefined,
     createListing: req.body.createListing === true || req.body.createListing === 'true',
@@ -174,6 +181,7 @@ router.post('/import/set', rateLimitByIp(100, 60000), async (req: Request, res: 
     : (req.body.syncPrices === true || req.body.syncPrices === 'true');
 
   const result = await ExternalImportService.importSet(tcg, setCode, {
+    storeId: getImportStoreId(req),
     createListing,
     marginMultiplier: req.body.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
     syncPrices,
@@ -293,6 +301,7 @@ router.post('/optcgapi/import/bulk', async (req: Request, res: Response) => {
   if (allCards.length === 0) throw new NotFoundError('No One Piece cards found in OPTCGAPI');
 
   const result = await ExternalImportService.bulkImportCards(allCards, {
+    storeId: getImportStoreId(req),
     createListing: req.body.createListing === true || req.body.createListing === 'true',
     marginMultiplier: req.body.marginMultiplier ? parseFloat(req.body.marginMultiplier) : undefined,
     quantity: req.body.quantity ? parseInt(req.body.quantity, 10) : undefined,

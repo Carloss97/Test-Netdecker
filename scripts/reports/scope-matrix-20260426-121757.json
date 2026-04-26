@@ -1,0 +1,215 @@
+﻿{
+    "generatedAt":  "2026-04-26T12:18:01.8494652-04:00",
+    "apiBaseUrl":  "https://api-erp.krumm.cl/api",
+    "scenarios":  [
+                      {
+                          "scenario":  "global-no-store",
+                          "storeHeader":  "",
+                          "me":  {
+                                     "ok":  true,
+                                     "data":  {
+                                                  "id":  "cmodasg9e0001cl2h5uphct2m",
+                                                  "email":  "test-netdecker@local",
+                                                  "role":  "ADMIN",
+                                                  "storeId":  null,
+                                                  "resolvedStoreId":  null,
+                                                  "scopeMode":  "global-admin"
+                                              },
+                                     "status":  200
+                                 },
+                          "diagnostics":  {
+                                              "ok":  true,
+                                              "data":  {
+                                                           "resolvedStoreId":  null,
+                                                           "scopeMode":  "global",
+                                                           "threshold":  5,
+                                                           "counts":  {
+                                                                          "inventoryListings":  23333,
+                                                                          "pricingListings":  24,
+                                                                          "lowStockListings":  23,
+                                                                          "storefrontListings":  24
+                                                                      },
+                                                           "filters":  {
+                                                                           "pricingStatuses":  [
+                                                                                                   "active",
+                                                                                                   "manual"
+                                                                                               ],
+                                                                           "storefrontStatuses":  [
+                                                                                                      "active",
+                                                                                                      "manual"
+                                                                                                  ]
+                                                                       }
+                                                       },
+                                              "status":  200
+                                          },
+                          "endpointCounts":  {
+                                                 "inventory":  -1,
+                                                 "lowStock":  -1,
+                                                 "available":  -1
+                                             },
+                          "checks":  [
+                                         {
+                                             "id":  "me-success",
+                                             "pass":  true,
+                                             "detail":  "GET /admin/auth/me status=200"
+                                         },
+                                         {
+                                             "id":  "pricing-parity",
+                                             "pass":  false,
+                                             "detail":  "diag.pricingListings=24, available=-1"
+                                         },
+                                         {
+                                             "id":  "lowstock-parity",
+                                             "pass":  false,
+                                             "detail":  "diag.lowStockListings=23, low-stock=-1"
+                                         },
+                                         {
+                                             "id":  "inventory-pricing-sanity",
+                                             "pass":  true,
+                                             "detail":  "diag.inventoryListings=23333, diag.pricingListings=24"
+                                         }
+                                     ]
+                      },
+                      {
+                          "scenario":  "global-with-header-store",
+                          "storeHeader":  "cmodasftw0000cl2h7zo0wg68",
+                          "me":  {
+                                     "ok":  true,
+                                     "data":  {
+                                                  "id":  "cmodasg9e0001cl2h5uphct2m",
+                                                  "email":  "test-netdecker@local",
+                                                  "role":  "ADMIN",
+                                                  "storeId":  null,
+                                                  "resolvedStoreId":  "cmodasftw0000cl2h7zo0wg68",
+                                                  "scopeMode":  "request-store-scoped"
+                                              },
+                                     "status":  200
+                                 },
+                          "diagnostics":  {
+                                              "ok":  true,
+                                              "data":  {
+                                                           "resolvedStoreId":  "cmodasftw0000cl2h7zo0wg68",
+                                                           "scopeMode":  "store-scoped",
+                                                           "threshold":  5,
+                                                           "counts":  {
+                                                                          "inventoryListings":  0,
+                                                                          "pricingListings":  0,
+                                                                          "lowStockListings":  0,
+                                                                          "storefrontListings":  0
+                                                                      },
+                                                           "filters":  {
+                                                                           "pricingStatuses":  [
+                                                                                                   "active",
+                                                                                                   "manual"
+                                                                                               ],
+                                                                           "storefrontStatuses":  [
+                                                                                                      "active",
+                                                                                                      "manual"
+                                                                                                  ]
+                                                                       }
+                                                       },
+                                              "status":  200
+                                          },
+                          "endpointCounts":  {
+                                                 "inventory":  0,
+                                                 "lowStock":  0,
+                                                 "available":  0
+                                             },
+                          "checks":  [
+                                         {
+                                             "id":  "me-success",
+                                             "pass":  true,
+                                             "detail":  "GET /admin/auth/me status=200"
+                                         },
+                                         {
+                                             "id":  "pricing-parity",
+                                             "pass":  true,
+                                             "detail":  "diag.pricingListings=0, available=0"
+                                         },
+                                         {
+                                             "id":  "lowstock-parity",
+                                             "pass":  true,
+                                             "detail":  "diag.lowStockListings=0, low-stock=0"
+                                         },
+                                         {
+                                             "id":  "inventory-pricing-sanity",
+                                             "pass":  true,
+                                             "detail":  "diag.inventoryListings=0, diag.pricingListings=0"
+                                         }
+                                     ]
+                      },
+                      {
+                          "scenario":  "scoped-session-store",
+                          "storeHeader":  "",
+                          "me":  {
+                                     "ok":  true,
+                                     "data":  {
+                                                  "id":  "cmodasg9e0001cl2h5uphct2m",
+                                                  "email":  "test-netdecker@local",
+                                                  "role":  "ADMIN",
+                                                  "storeId":  "cmodasftw0000cl2h7zo0wg68",
+                                                  "resolvedStoreId":  "cmodasftw0000cl2h7zo0wg68",
+                                                  "scopeMode":  "session-store-scoped"
+                                              },
+                                     "status":  200
+                                 },
+                          "diagnostics":  {
+                                              "ok":  true,
+                                              "data":  {
+                                                           "resolvedStoreId":  "cmodasftw0000cl2h7zo0wg68",
+                                                           "scopeMode":  "store-scoped",
+                                                           "threshold":  5,
+                                                           "counts":  {
+                                                                          "inventoryListings":  0,
+                                                                          "pricingListings":  0,
+                                                                          "lowStockListings":  0,
+                                                                          "storefrontListings":  0
+                                                                      },
+                                                           "filters":  {
+                                                                           "pricingStatuses":  [
+                                                                                                   "active",
+                                                                                                   "manual"
+                                                                                               ],
+                                                                           "storefrontStatuses":  [
+                                                                                                      "active",
+                                                                                                      "manual"
+                                                                                                  ]
+                                                                       }
+                                                       },
+                                              "status":  200
+                                          },
+                          "endpointCounts":  {
+                                                 "inventory":  0,
+                                                 "lowStock":  0,
+                                                 "available":  0
+                                             },
+                          "checks":  [
+                                         {
+                                             "id":  "me-success",
+                                             "pass":  true,
+                                             "detail":  "GET /admin/auth/me status=200"
+                                         },
+                                         {
+                                             "id":  "pricing-parity",
+                                             "pass":  true,
+                                             "detail":  "diag.pricingListings=0, available=0"
+                                         },
+                                         {
+                                             "id":  "lowstock-parity",
+                                             "pass":  true,
+                                             "detail":  "diag.lowStockListings=0, low-stock=0"
+                                         },
+                                         {
+                                             "id":  "inventory-pricing-sanity",
+                                             "pass":  true,
+                                             "detail":  "diag.inventoryListings=0, diag.pricingListings=0"
+                                         }
+                                     ]
+                      }
+                  ],
+    "summary":  {
+                    "status":  "fail",
+                    "checksTotal":  12,
+                    "checksPassed":  10
+                }
+}

@@ -12,7 +12,7 @@ import { CardDatabaseService } from '../services/CardDatabaseService.js';
 import { ExternalImportService } from '../services/ExternalImportService.js';
 import { RateLimitService } from '../services/RateLimitService.js';
 
-function makeRequest(app: Express, method: string, path: string, body?: unknown) {
+function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}) {
   return new Promise<{ status: number; body: unknown; headers: Record<string, string | string[] | undefined> }>((resolve, reject) => {
     const server = createServer(app);
     server.listen(0, '127.0.0.1', () => {
@@ -20,7 +20,7 @@ function makeRequest(app: Express, method: string, path: string, body?: unknown)
       const port = addr.port as number;
       const url = `http://127.0.0.1:${port}${path}`;
       const data = body !== undefined ? JSON.stringify(body) : undefined;
-      const options = { method, headers: { 'Content-Type': 'application/json', ...(data ? { 'Content-Length': String(Buffer.byteLength(data)) } : {}) } };
+      const options = { method, headers: { 'Content-Type': 'application/json', ...(data ? { 'Content-Length': String(Buffer.byteLength(data)) } : {}), ...extraHeaders } };
 
       const req = httpRequest(url, options, (res) => {
         const chunks: Buffer[] = [];
@@ -79,11 +79,12 @@ test('POST /api/external/import/set defaults createListing to true', async () =>
     app.use('/api/external', externalRoutes);
     app.use(buildErrorHandler());
 
-    const res = await makeRequest(app, 'POST', '/api/external/import/set', { tcg: 'MAGIC', setCode: 'SET1' });
+    const res = await makeRequest(app, 'POST', '/api/external/import/set', { tcg: 'MAGIC', setCode: 'SET1' }, { 'x-store-id': 'store-123' });
 
     assert.equal(res.status, 200);
     assert.equal((res.body as any).success, true);
     assert.equal(receivedOptions?.createListing, true);
+    assert.equal(receivedOptions?.storeId, 'store-123');
     assert.equal(res.headers['x-ratelimit-limit'], '100');
     assert.equal(res.headers['x-ratelimit-remaining'], '99');
   } finally {

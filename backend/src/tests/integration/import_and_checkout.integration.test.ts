@@ -10,7 +10,9 @@ test('integration: inventory import-csv and basic checkout flow', async (t) => {
   const origImport = InventoryService.importFromBuffer;
 
   try {
+    process.env.IMPORT_API_KEY = 'test-secret';
     InventoryService.importFromBuffer = async (_buffer: Buffer, _mimetype: string, _opts: any) => {
+      assert.equal(_opts.storeId, 'store-1');
       return { importId: 'imp-1', totalRecords: 2, successCount: 2, failureCount: 0 } as any;
     };
 
@@ -24,7 +26,14 @@ test('integration: inventory import-csv and basic checkout flow', async (t) => {
       const csv = 'listingId,quantity\nL1,2\nL2,3\n';
       fd.append('file', new Blob([csv]), 'test.csv');
 
-      const res = await fetch(`${base}/api/inventory/import-csv`, { method: 'POST', body: fd });
+      const res = await fetch(`${base}/api/inventory/import-csv`, {
+        method: 'POST',
+        body: fd,
+        headers: {
+          'x-api-key': 'test-secret',
+          'x-store-id': 'store-1',
+        },
+      });
       assert.equal(res.status, 200);
       const j: any = await res.json();
       assert.equal(j.success, true);

@@ -174,12 +174,9 @@ export class ExternalImportService {
     let listingId: string | undefined;
 
     if (options.createListing) {
-      const resolvedStoreId = options.storeId ?? (await prisma.store.findFirst({
-        select: { id: true },
-        orderBy: { createdAt: 'asc' },
-      }))?.id;
+      const resolvedStoreId = String(options.storeId || '').trim();
       if (!resolvedStoreId) {
-        throw new NotFoundError('Store not found to create listing');
+        throw new NotFoundError('Store context is required to create listing');
       }
 
       // Determine the reference price: prefer passed option, then external market price, then default

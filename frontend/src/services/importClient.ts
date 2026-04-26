@@ -38,6 +38,16 @@ async function readFileText(file: File): Promise<string> {
   return await file.text();
 }
 
+function readAuthStoreId(): string | null {
+  try {
+    const raw = localStorage.getItem('auth_store');
+    const trimmed = raw ? raw.trim() : '';
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function transformFileHeaders(file: File, mapping: ColumnMapping): Promise<File> {
   const text = await readFileText(file);
   const firstNewline = text.indexOf('\n');
@@ -74,6 +84,8 @@ async function postMultipart(url: string, file: File, apiKey?: string) {
   fd.append('file', file);
   const headers: Record<string, string> = {};
   if (apiKey) headers['x-api-key'] = apiKey;
+  const storeId = readAuthStoreId();
+  if (storeId) headers['x-store-id'] = storeId;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -107,6 +119,8 @@ export async function precheckImport(file: File, mapping: ColumnMapping | undefi
   fd.append('precheck', 'true');
   const headers: Record<string, string> = {};
   if (apiKey) headers['x-api-key'] = apiKey;
+  const storeId = readAuthStoreId();
+  if (storeId) headers['x-store-id'] = storeId;
   const res = await fetch(buildApiUrl('/inventory/import-csv'), { method: 'POST', headers, body: fd });
   if (!res.ok) {
     const text = await res.text();
@@ -129,6 +143,8 @@ async function postMultipartWithMapping(url: string, file: File, mapping: Column
   if (mapping) fd.append('mapping', JSON.stringify(mapping));
   const headers: Record<string, string> = {};
   if (apiKey) headers['x-api-key'] = apiKey;
+  const storeId = readAuthStoreId();
+  if (storeId) headers['x-store-id'] = storeId;
 
   const res = await fetch(url, {
     method: 'POST',

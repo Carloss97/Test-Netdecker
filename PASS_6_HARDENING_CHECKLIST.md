@@ -64,7 +64,7 @@
 ## #P6-002 UI capability gating parity for scoped admins
 
 - [x] Replace role-only gating in AdminDashboard with capability derived from session scope + role.
-- [ ] Add regression test: scoped ADMIN cannot see global-only actions.
+- [x] Add regression test: scoped ADMIN cannot see global-only actions.
 
 ## #P6-003 Documentation truth reconciliation (Pass 5)
 
@@ -81,3 +81,50 @@
 
 - [ ] Normalize P3-005 acceptance criteria format to explicit checkbox items.
 - [ ] Attach evidence references for each criterion.
+
+## Deliverables (Immediate)
+
+### Deliverable 1: Scope verification script
+
+- [x] Implement `scripts/verify-scope-matrix.ps1` to validate global/scoped scenarios against live API.
+- [x] Script output must be machine-readable JSON report with per-scenario checks.
+
+Binary acceptance criteria:
+- [x] Script exits `0` only when all checks pass.
+- [x] Script exits non-zero when any parity/scope check fails.
+
+Run command:
+- `powershell -File scripts/verify-scope-matrix.ps1 -ApiBaseUrl <API_BASE_URL> -Email <EMAIL> -Password <PASSWORD> -ScopedStore <STORE_ID_OR_SLUG> -HeaderStore <STORE_ID_OR_SLUG>`
+
+### Deliverable 2: Backend post-import contract test
+
+- [x] Add backend contract test `backend/src/routes/scope-post-import.contract.test.ts`.
+- [x] Validate tenant-scoped parity after import-like data distribution:
+   - Inventory includes all tenant listings.
+   - Pricing/Storefront include only `active|manual` and `quantity > 0`.
+   - Low Stock includes `active|manual`, `quantity > 0`, `quantity <= threshold`.
+
+Binary acceptance criteria:
+- [x] Test fails if diagnostics counts diverge from listings endpoints for same tenant+threshold.
+- [x] Test passes with deterministic fixture parity.
+
+Run command:
+- `npm --prefix backend exec -- tsx --test backend/src/routes/scope-post-import.contract.test.ts`
+
+### Deliverable 3: Playwright scope parity E2E
+
+- [x] Add Playwright suite `frontend/e2e/scope-visibility-parity.spec.ts`.
+- [x] Validate scoped admin does not trigger pricing-config and still sees listings in Precios/Stock Bajo/Storefront.
+- [x] Validate global admin with active store preserves same listings parity.
+
+Binary acceptance criteria:
+- [x] Scoped scenario fails if any `pricing-config` request is emitted.
+- [x] Both scenarios fail if seeded listing names are missing in any of the three user-facing listing pages.
+
+Run command:
+- Start frontend dev server first: `npm --prefix frontend run dev -- --port 3000`
+- Then run: `npm --prefix frontend exec -- playwright test --config frontend/playwright.config.ts --project=chromium --grep "scope visibility parity"`
+
+### Deliverable 4: Pass 6 objective criteria update
+
+- [x] Checklist now includes executable commands and binary pass/fail criteria for Deliverables 1-3.

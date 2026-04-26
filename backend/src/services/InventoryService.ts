@@ -53,6 +53,7 @@ interface ImportOptions {
   dryRun?: boolean;
   fileName?: string;
   importedBy?: string;
+  storeId?: string;
   columnMapping?: { [expectedField: string]: string };
   batchSize?: number;
 }
@@ -789,7 +790,8 @@ export class InventoryService {
           fileHash,
           totalRecords: rows.length,
           status: 'processing',
-          importedBy: options.importedBy || 'system'
+          importedBy: options.importedBy || 'system',
+          ...(options.storeId ? { storeId: options.storeId } : {}),
         }
       });
 
@@ -967,6 +969,24 @@ export class InventoryService {
           select: { id: true, quantity: true }
         });
 
+        const resolvedStoreId = String(options.storeId || '').trim();
+        if (!resolvedStoreId) {
+          throw new ValidationError('storeId is required to import listings');
+        }
+
+        const listingData = {
+          quantity,
+          referencePrice,
+          marginMultiplier,
+          rarity,
+          exchangeRate: pricing.exchangeRate,
+          finalPrice: pricing.finalPrice,
+          editionId: edition.id,
+          currency: 'CLP',
+          status: 'active',
+          ...(quantity > 0 ? { everHadStock: true } : {}),
+        };
+
         const upserted = await prisma.listing.upsert({
           where: {
             cardId_condition_rarity: {
@@ -976,30 +996,14 @@ export class InventoryService {
             }
           },
           update: {
-            quantity,
-            referencePrice,
-            marginMultiplier,
-            rarity,
-            exchangeRate: pricing.exchangeRate,
-            finalPrice: pricing.finalPrice,
-            editionId: edition.id,
-            currency: 'CLP',
-            status: 'active',
-            ...(quantity > 0 ? { everHadStock: true } : {}),
+            ...listingData,
           },
           create: {
+            storeId: resolvedStoreId,
             cardId: card.id,
-            editionId: edition.id,
             condition,
-            rarity,
-            quantity,
-            referencePrice,
-            marginMultiplier,
-            exchangeRate: pricing.exchangeRate,
-            finalPrice: pricing.finalPrice,
-            currency: 'CLP',
-            status: 'active',
-            everHadStock: quantity > 0,
+            editionId: edition.id,
+            ...listingData,
           }
         });
 

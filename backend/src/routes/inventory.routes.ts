@@ -13,6 +13,11 @@ import axios from 'axios';
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+function getImportStoreId(req: Request): string | undefined {
+  const raw = String(req.header('x-store-id') || '').trim();
+  return raw.length > 0 ? raw : undefined;
+}
+
 const updateQuantitySchema = z.object({
   listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
   quantity: z.coerce.number().int('quantity must be an integer').min(0, 'quantity must be >= 0'),
@@ -595,11 +600,17 @@ router.post('/import-csv', requireApiKey, upload.single('file'), async (req: Req
     throw new ValidationError('File is required in form-data key "file"');
   }
 
+  const storeId = getImportStoreId(req);
+  if (!storeId) {
+    throw new ValidationError('storeId is required to import inventory');
+  }
+
   const dryRun = String(req.body?.dryRun || '').toLowerCase() === 'true';
   const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
     dryRun,
     fileName: req.file.originalname,
-    importedBy: req.body?.importedBy || 'admin'
+    importedBy: req.body?.importedBy || 'admin',
+    storeId,
   });
 
   res.json({
@@ -618,6 +629,11 @@ router.post('/import-with-mapping', requireApiKey, upload.single('file'), async 
     throw new ValidationError('File is required in form-data key "file"');
   }
 
+  const storeId = getImportStoreId(req);
+  if (!storeId) {
+    throw new ValidationError('storeId is required to import inventory');
+  }
+
   let mapping: { [k: string]: string } | undefined;
   if (req.body?.mapping) {
     try {
@@ -634,6 +650,7 @@ router.post('/import-with-mapping', requireApiKey, upload.single('file'), async 
     fileName: req.file.originalname,
     importedBy: req.body?.importedBy || 'admin',
     columnMapping: mapping,
+    storeId,
   });
 
   res.json({ success: true, result });

@@ -302,3 +302,34 @@ test('POST /api/inventory/import-csv/validate proceeds when x-api-key provided a
   assert.equal(resp.error.code, 'VALIDATION_ERROR');
   assert.equal(resp.error.message, 'File is required in form-data key "file"');
 });
+
+test('POST /api/inventory/import-csv forwards resolved storeId to InventoryService.importFromBuffer', async () => {
+  process.env.IMPORT_API_KEY = 'test-secret';
+
+  (InventoryService as any).importFromBuffer = (async (_buffer: Buffer, _mimetype: string, options: any) => {
+    assert.equal(options.storeId, 'store-123');
+    return { importId: 'imp-store', totalRecords: 1, successCount: 1, failureCount: 0 } as any;
+  }) as any;
+
+  const app = buildApp();
+  const fd = new FormData();
+  fd.append('file', new Blob(['listingId,quantity\nL1,2\n']), 'test.csv');
+
+  const server = createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+  const addr = server.address() as AddressInfo;
+  const res = await fetch(`http://127.0.0.1:${addr.port}/api/inventory/import-csv`, {
+    method: 'POST',
+    body: fd,
+    headers: {
+      'x-api-key': 'test-secret',
+      'x-store-id': 'store-123',
+    },
+  });
+  const json = await res.json();
+  server.close();
+
+  assert.equal(res.status, 200);
+  assert.equal(json.success, true);
+  assert.equal(json.result.importId, 'imp-store');
+});
