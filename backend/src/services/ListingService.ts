@@ -181,6 +181,8 @@ export class ListingService {
         quantity: safeQty,
         // Once a listing has stock, mark it permanently
         ...(safeQty > 0 ? { everHadStock: true } : {}),
+        // If stock is restored, ensure it becomes visible in pricing/storefront filters.
+        ...(safeQty > 0 && existing.status !== 'manual' ? { status: 'active' } : {}),
       },
       include: { card: true }
     });

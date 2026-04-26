@@ -213,6 +213,7 @@ export class ExternalImportService {
             lastSyncedAt: new Date(),
             // Preserve everHadStock — only update to true if new quantity > 0
             ...(quantity > 0 ? { everHadStock: true } : {}),
+            ...(existingListing.status !== 'manual' ? { status: 'active' } : {}),
           },
         });
         listingId = updated.id;

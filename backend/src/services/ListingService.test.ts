@@ -294,6 +294,30 @@ test('updateQuantity clamps negative and sets everHadStock', async () => {
   }
 });
 
+test('updateQuantity reactivates non-manual listing when stock is restored', async () => {
+  const originalFindUnique = prisma.listing.findUnique;
+  const originalUpdate = prisma.listing.update;
+  const originalAudit = AuditService.auditEntityChange;
+  try {
+    let updateArgs: any = null;
+    prisma.listing.findUnique = (async () => ({ id: 'L9', quantity: 0, status: 'inactive' })) as any;
+    prisma.listing.update = (async (args: any) => {
+      updateArgs = args;
+      return { id: args.where.id, quantity: args.data.quantity, status: args.data.status ?? 'inactive' } as any;
+    }) as any;
+    AuditService.auditEntityChange = (async () => undefined) as any;
+
+    const updated = await ListingService.updateQuantity('L9', 3);
+    assert.equal(updated.quantity, 3);
+    assert.equal(updated.status, 'active');
+    assert.equal(updateArgs.data.status, 'active');
+  } finally {
+    prisma.listing.findUnique = originalFindUnique;
+    prisma.listing.update = originalUpdate;
+    AuditService.auditEntityChange = originalAudit;
+  }
+});
+
 test('bulkUpdateQuantities aggregates errors and successes', async () => {
   const originalUpdateQuantity = ListingService.updateQuantity;
   try {

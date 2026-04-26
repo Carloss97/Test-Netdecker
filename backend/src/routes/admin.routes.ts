@@ -229,12 +229,18 @@ router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboar
     quantity: { gt: 0, lte: threshold },
     ...(storeId ? { storeId } : {}),
   };
+  const hiddenByStatusFilter = {
+    status: { notIn: ['active', 'manual'] as const },
+    quantity: { gt: 0 },
+    ...(storeId ? { storeId } : {}),
+  };
 
-  const [inventoryListings, pricingListings, lowStockListings, storefrontListings] = await Promise.all([
+  const [inventoryListings, pricingListings, lowStockListings, storefrontListings, hiddenByStatusListings] = await Promise.all([
     prisma.listing.count({ where: inventoryFilter }),
     prisma.listing.count({ where: availableFilter }),
     prisma.listing.count({ where: lowStockFilter }),
     prisma.listing.count({ where: availableFilter }),
+    prisma.listing.count({ where: hiddenByStatusFilter }),
   ]);
 
   res.json({
@@ -248,10 +254,12 @@ router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboar
         pricingListings,
         lowStockListings,
         storefrontListings,
+        hiddenByStatusListings,
       },
       filters: {
         pricingStatuses: ['active', 'manual'],
         storefrontStatuses: ['active', 'manual'],
+        hiddenStatusesExcludedFromPricing: ['active', 'manual'],
       },
     },
   });

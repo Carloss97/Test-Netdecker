@@ -846,7 +846,7 @@ export class InventoryService {
 
           const existingListing = await prisma.listing.findUnique({
             where: { id: parsedRow.listingId },
-            select: { id: true }
+            select: { id: true, status: true }
           });
 
             if (!existingListing) {
@@ -875,6 +875,7 @@ export class InventoryService {
                 quantity: parsedRow.quantity,
                 // Mark as ever having had stock if quantity > 0
                 ...(parsedRow.quantity > 0 ? { everHadStock: true } : {}),
+                ...(parsedRow.quantity > 0 && existingListing.status !== 'manual' ? { status: 'active' } : {}),
               }
             });
           }

@@ -305,15 +305,25 @@ export function AdminDashboardPage() {
                   <div style={{ fontSize: 12, color: '#666' }}>Storefront</div>
                   <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.storefrontListings}</div>
                 </div>
+                <div className="surface-card" style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>Ocultos por status</div>
+                  <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.hiddenByStatusListings ?? 0}</div>
+                </div>
               </div>
 
               {tenantVisibilityData.diagnostics.counts.inventoryListings > tenantVisibilityData.diagnostics.counts.pricingListings ? (
                 <div className="error-message" style={{ marginBottom: 8 }}>
-                  ⚠️ Inventario tiene más listings que Precios. Revisa filtros de TCG/búsqueda en la vista de Precios.
+                  ⚠️ Inventario tiene más listings que Precios. Revisa filtros de TCG/búsqueda y estados fuera de active/manual en la vista de Precios.
                 </div>
               ) : (
                 <div style={{ fontSize: 13, color: '#2e7d32', marginBottom: 8 }}>
                   ✓ Inventario y Precios se ven alineados para el scope actual.
+                </div>
+              )}
+
+              {(tenantVisibilityData.diagnostics.counts.hiddenByStatusListings ?? 0) > 0 && (
+                <div style={{ fontSize: 12, color: '#8a6d3b', marginBottom: 8 }}>
+                  Hay listings con stock que no aparecen en Precios por su status actual. Ajusta su status a <strong>active</strong> o <strong>manual</strong>.
                 </div>
               )}
 

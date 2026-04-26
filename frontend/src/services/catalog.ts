@@ -871,10 +871,12 @@ export type TenantVisibilityDiagnostics = {
       pricingListings: number;
       lowStockListings: number;
       storefrontListings: number;
+      hiddenByStatusListings: number;
     };
     filters: {
       pricingStatuses: string[];
       storefrontStatuses: string[];
+      hiddenStatusesExcludedFromPricing?: string[];
     };
   };
 };
