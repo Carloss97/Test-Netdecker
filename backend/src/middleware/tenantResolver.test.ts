@@ -160,6 +160,28 @@ test('tenantResolver resolves store by x-store-id header', async () => {
   }
 });
 
+test('tenantResolver resolves store by x-store-id header when value is a slug', async () => {
+  const slug = `test-store-slug-header-${Date.now()}`;
+  const store = await prisma.store.create({ data: { slug, name: 'Test Store Slug Header', apiKeyHash: `ak-${Date.now()}` } });
+
+  const app = express();
+  app.get('/ping', tenantResolver, (req: Request, res: Response) => {
+    res.json({ store: (req as any).store ?? null });
+  });
+  app.use(buildErrorHandler());
+
+  try {
+    const { status, body } = await makeRequest(app, 'GET', '/ping', undefined, { 'x-store-id': slug });
+    assert.equal(status, 200);
+    const b = body as any;
+    assert.ok(b.store, 'store should be present');
+    assert.equal(b.store.id, store.id);
+    assert.equal(b.store.slug, slug);
+  } finally {
+    await prisma.store.delete({ where: { id: store.id } });
+  }
+});
+
 test('tenantResolver resolves store by admin bearer token session', async () => {
   const suffix = Date.now();
   const store = await prisma.store.create({

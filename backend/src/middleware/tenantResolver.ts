@@ -113,6 +113,16 @@ export default async function tenantResolver(req: Request, _res: Response, next:
       } catch (err) {
         // ignore
       }
+
+      // Backward compatibility: some clients persisted slug in auth_store and
+      // still send it through x-store-id. Try slug lookup before giving up.
+      if (!store) {
+        try {
+          store = await prisma.store.findUnique({ where: { slug: storeIdHeader } });
+        } catch (err) {
+          // ignore
+        }
+      }
     }
 
     if (!store && adminSessionStore) {

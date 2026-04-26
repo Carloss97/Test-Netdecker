@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import AdminAuthService from '../services/AdminAuthService.js';
 import requireApiKey from '../middleware/requireApiKey.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
 
 const router = express.Router();
@@ -61,9 +62,33 @@ router.post('/logout', requireAdmin, async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-router.get('/me', requireAdmin, async (req: Request, res: Response) => {
-  const user = (req as any).adminUser;
-  res.json({ success: true, data: user });
+router.get('/me', requireAdmin, tenantResolver, async (req: Request, res: Response) => {
+  const user = (req as any).adminUser as {
+    id: string;
+    email: string;
+    role: 'ADMIN' | 'MANAGER' | 'STAFF' | string;
+    storeId?: string | null;
+  } | undefined;
+
+  const sessionStoreId = typeof user?.storeId === 'string' ? user.storeId.trim() : '';
+  const resolvedStoreId = typeof (req as any).store?.id === 'string' ? String((req as any).store.id).trim() : '';
+  const isGlobalAdmin = user?.role === 'ADMIN' && !sessionStoreId;
+
+  res.json({
+    success: true,
+    data: {
+      ...(user || {}),
+      storeId: sessionStoreId || null,
+      resolvedStoreId: resolvedStoreId || null,
+      scopeMode: sessionStoreId
+        ? 'session-store-scoped'
+        : resolvedStoreId
+          ? 'request-store-scoped'
+          : isGlobalAdmin
+            ? 'global-admin'
+            : 'unscoped',
+    },
+  });
 });
 
 export default router;

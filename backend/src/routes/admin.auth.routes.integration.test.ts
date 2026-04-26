@@ -159,3 +159,45 @@ test('admin auth me returns user when token is valid', async () => {
     (prisma.adminSession as any).findUnique = originalSessionFind;
   }
 });
+
+test('admin auth me returns resolvedStoreId and scopeMode for request-scoped global admin', async () => {
+  const originalSessionFind = (prisma.adminSession as any).findUnique;
+  const originalStoreFindUnique = prisma.store.findUnique;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'tok_valid',
+      expiresAt: new Date(Date.now() + 60000),
+      user: { id: 'u100', email: 'admin@test.com', role: 'ADMIN', isActive: true },
+      storeId: null,
+      store: null,
+    });
+
+    prisma.store.findUnique = (async (args: any) => {
+      if (args?.where?.slug === 'store-uno' || args?.where?.id === 'store-1') {
+        return { id: 'store-1', slug: 'store-uno', name: 'Store Uno' } as any;
+      }
+      return null;
+    }) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin/auth', adminAuthRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/auth/me', undefined, {
+      Authorization: 'Bearer tok_valid',
+      'x-store-id': 'store-uno',
+    });
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).data.id, 'u100');
+    assert.equal((res.body as any).data.storeId, null);
+    assert.equal((res.body as any).data.resolvedStoreId, 'store-1');
+    assert.equal((res.body as any).data.scopeMode, 'request-store-scoped');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalSessionFind;
+    prisma.store.findUnique = originalStoreFindUnique;
+  }
+});

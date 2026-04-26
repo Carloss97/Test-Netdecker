@@ -35,6 +35,13 @@
    - Gap B (fixed): manual stock patch did not attach actor context for audit-friendly change attribution.
    - Status: **CLOSED IN PASS 6 BOOTSTRAP**.
 
+6. **Tenant scope could appear as global and break cross-page listing visibility when auth_store was persisted as slug.**
+   - Gap A (fixed): tenant resolver now accepts `x-store-id` values as either store id or store slug.
+   - Gap B (fixed): `/api/admin/auth/me` now resolves tenant context and returns `resolvedStoreId` + `scopeMode`.
+   - Gap C (fixed): layout identity now reflects request-scoped tenant context instead of showing false global-only state.
+   - Impact: removes misleading "admin global" display and restores consistent store scope propagation to pricing/low-stock/admin diagnostics.
+   - Status: **CLOSED IN PASS 6**.
+
 ### Acceptance criteria
 
 - [ ] Frontend hides global-only actions when session is scoped to a tenant/store.
@@ -43,11 +50,16 @@
 - [ ] P3-005 checklist structure is normalized so completion can be audited.
 - [x] Pricing-config validation errors use normalized backend error flow.
 - [x] Stock update route forwards actor context for audit attribution.
+- [x] `x-store-id` supports slug compatibility in tenant resolution.
+- [x] `/api/admin/auth/me` exposes resolved tenant scope metadata.
+- [x] Layout identity reflects resolved tenant scope (session or request).
 
 ### Verification log
 
 - [x] Backend tests (targeted): `npm --prefix backend exec -- tsx --test backend/src/routes/admin.routes.test.ts backend/src/routes/multi-tenant-parity.contract.test.ts`
 - [x] Backend type-check: `npm --prefix backend run type-check`
+- [x] Backend tests (tenant/auth scope): `npm --prefix backend exec -- tsx --test backend/src/middleware/tenantResolver.test.ts backend/src/routes/admin.auth.routes.integration.test.ts`
+- [x] Frontend type-check: `npm --prefix frontend run type-check`
 
 ## #P6-002 UI capability gating parity for scoped admins
 

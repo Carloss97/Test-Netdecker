@@ -27,6 +27,8 @@ type SessionIdentity = {
   email?: string;
   role?: 'ADMIN' | 'MANAGER' | 'STAFF' | string;
   storeId?: string | null;
+  resolvedStoreId?: string | null;
+  scopeMode?: 'session-store-scoped' | 'request-store-scoped' | 'global-admin' | 'unscoped' | string;
 };
 
 interface LayoutProps {
@@ -58,18 +60,25 @@ export function Layout({ children }: LayoutProps) {
         setIdentity(data);
 
         const sessionStoreId = data?.storeId ? String(data.storeId).trim() : '';
-        if (!sessionStoreId) {
+        const resolvedStoreId = data?.resolvedStoreId ? String(data.resolvedStoreId).trim() : '';
+        const effectiveStoreId = sessionStoreId || resolvedStoreId;
+
+        if (sessionStoreId) {
+          setLockedStoreId(sessionStoreId);
+        } else {
           setLockedStoreId('');
+        }
+
+        if (!effectiveStoreId) {
           return;
         }
 
-        setLockedStoreId(sessionStoreId);
-        setActiveStoreId((prev) => (prev === sessionStoreId ? prev : sessionStoreId));
+        setActiveStoreId((prev) => (prev === effectiveStoreId ? prev : effectiveStoreId));
 
         try {
           const current = localStorage.getItem('auth_store') || '';
-          if (current !== sessionStoreId) {
-            localStorage.setItem('auth_store', sessionStoreId);
+          if (current !== effectiveStoreId) {
+            localStorage.setItem('auth_store', effectiveStoreId);
             window.dispatchEvent(new Event('netdecker:store-changed'));
           }
         } catch {
@@ -138,7 +147,9 @@ export function Layout({ children }: LayoutProps) {
 
   const identityScopeLabel = useMemo(() => {
     if (!identity) return 'Sesion no identificada';
-    return identity.storeId ? 'Admin de tienda' : 'Admin global';
+    if (identity.storeId) return 'Admin de tienda';
+    if (identity.resolvedStoreId) return 'Admin global (scope por tienda activa)';
+    return 'Admin global';
   }, [identity]);
 
   const handleStoreChange = (nextStoreId: string) => {
