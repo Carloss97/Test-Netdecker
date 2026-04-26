@@ -365,7 +365,7 @@ router.patch('/:id/stock', async (req: Request, res: Response) => {
   if (op === 'inc') newQty += value;
   if (op === 'dec') newQty -= value;
   if (newQty < 0) newQty = 0;
-  const updated = await ListingService.updateQuantity(listing.id, newQty);
+  const updated = await ListingService.updateQuantity(listing.id, newQty, getActorFromRequest(req));
   res.json({ success: true, listingId: listing.id, quantity: updated.quantity });
 });
 

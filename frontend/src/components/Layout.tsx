@@ -22,6 +22,13 @@ type AdminStore = {
   name?: string;
 };
 
+type SessionIdentity = {
+  id?: string;
+  email?: string;
+  role?: 'ADMIN' | 'MANAGER' | 'STAFF' | string;
+  storeId?: string | null;
+};
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -32,6 +39,7 @@ export function Layout({ children }: LayoutProps) {
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string>('');
   const [lockedStoreId, setLockedStoreId] = useState<string>('');
+  const [identity, setIdentity] = useState<SessionIdentity | null>(null);
 
   useEffect(() => {
     try {
@@ -42,15 +50,18 @@ export function Layout({ children }: LayoutProps) {
     }
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-
-    apiClient
+  const refreshIdentity = () => {
+    return apiClient
       .get('/admin/auth/me')
       .then((resp) => {
-        if (!mounted) return;
-        const sessionStoreId = resp?.data?.data?.storeId ? String(resp.data.data.storeId).trim() : '';
-        if (!sessionStoreId) return;
+        const data = (resp?.data?.data || null) as SessionIdentity | null;
+        setIdentity(data);
+
+        const sessionStoreId = data?.storeId ? String(data.storeId).trim() : '';
+        if (!sessionStoreId) {
+          setLockedStoreId('');
+          return;
+        }
 
         setLockedStoreId(sessionStoreId);
         setActiveStoreId((prev) => (prev === sessionStoreId ? prev : sessionStoreId));
@@ -66,9 +77,19 @@ export function Layout({ children }: LayoutProps) {
         }
       })
       .catch(() => {
-        if (!mounted) return;
         setLockedStoreId('');
+        setIdentity(null);
       });
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    void refreshIdentity().catch(() => {
+      if (!mounted) return;
+      setLockedStoreId('');
+      setIdentity(null);
+    });
 
     return () => {
       mounted = false;
@@ -114,6 +135,11 @@ export function Layout({ children }: LayoutProps) {
     if (!match) return `Store ${activeStoreId.slice(0, 8)}...`;
     return match.name || match.slug || match.id;
   }, [stores, activeStoreId]);
+
+  const identityScopeLabel = useMemo(() => {
+    if (!identity) return 'Sesion no identificada';
+    return identity.storeId ? 'Admin de tienda' : 'Admin global';
+  }, [identity]);
 
   const handleStoreChange = (nextStoreId: string) => {
     if (lockedStoreId && nextStoreId !== lockedStoreId) {
@@ -214,6 +240,37 @@ export function Layout({ children }: LayoutProps) {
           <div className="page-header-left">
             <h1>{title}</h1>
             {sub && <p>{sub}</p>}
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                gap: 10,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              <span>
+                Cuenta: <strong>{identity?.email || 'desconocida'}</strong>
+              </span>
+              <span>
+                Rol: <strong>{identity?.role || 'N/A'}</strong>
+              </span>
+              <span>
+                Scope: <strong>{identityScopeLabel}</strong>
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '2px 8px', fontSize: '0.72rem' }}
+                onClick={() => {
+                  void refreshIdentity();
+                }}
+              >
+                Refrescar sesion
+              </button>
+            </div>
           </div>
           <div className="page-header-actions">
             <div className="store-chip" title={activeStoreId || 'No store selected'}>

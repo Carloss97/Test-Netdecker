@@ -14,7 +14,7 @@ import CashSessionService from '../services/CashSessionService.js';
 import AuditService from '../services/AuditService.js';
 import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
-import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.js';
 import storesRoutes from './admin.stores.routes.js';
 import accountsRoutes from './admin.accounts.routes.js';
 import thresholdsRoutes from './admin.thresholds.routes.js';
@@ -22,6 +22,7 @@ import approvalsRoutes from './admin.approvals.routes.js';
 import apiKeysRoutes from './admin.api-keys.routes.js';
 import webhooksRoutes from './admin.webhooks.routes.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 import adminAudit from '../middleware/adminAudit.js';
 import requirePermission from '../middleware/requirePermission.js';
 import { rateLimitByIp } from '../middleware/rateLimitByIp.js';
@@ -31,10 +32,32 @@ const router = express.Router();
 // Protect the remaining admin routes with admin authentication + audit
 router.use(requireAdmin, adminAudit);
 
-function getScopedStoreId(req: Request): string | undefined {
-  const storeId = (req as any).adminUser?.storeId;
-  const normalized = typeof storeId === 'string' ? storeId.trim() : '';
-  return normalized || undefined;
+// Resolve tenant context for global admins using x-store-id / slug headers.
+// Scoped sessions remain pinned by tenantResolver to their session store.
+router.use(tenantResolver);
+
+function getEffectiveStoreId(req: Request): string | undefined {
+  const scopedStoreId = (req as any).adminUser?.storeId;
+  const normalizedScoped = typeof scopedStoreId === 'string' ? scopedStoreId.trim() : '';
+  if (normalizedScoped) {
+    return normalizedScoped;
+  }
+
+  const resolvedStoreId = (req as any).store?.id;
+  const normalizedResolved = typeof resolvedStoreId === 'string' ? resolvedStoreId.trim() : '';
+  return normalizedResolved || undefined;
+}
+
+function isGlobalAdmin(req: Request): boolean {
+  const admin = (req as any).adminUser as { role?: string; storeId?: string | null } | undefined;
+  const storeId = typeof admin?.storeId === 'string' ? admin.storeId.trim() : '';
+  return admin?.role === 'ADMIN' && !storeId;
+}
+
+function assertGlobalAdmin(req: Request, message: string): void {
+  if (!isGlobalAdmin(req)) {
+    throw new ForbiddenError(message);
+  }
 }
 
 // All routes mounted after this point require admin auth (role checks applied where needed)
@@ -91,7 +114,7 @@ type VolatilityListingLookup = {
  * Returns key business metrics for the admin overview.
  */
 router.get('/dashboard', requirePermission('view', 'dashboard'), async (req: Request, res: Response) => {
-  const storeId = getScopedStoreId(req);
+  const storeId = getEffectiveStoreId(req);
 
   // Serve from short-lived cache when available to keep dashboard snappy
   try {
@@ -188,6 +211,53 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (req: Req
 });
 
 /**
+ * GET /api/admin/tenant/visibility-diagnostics?threshold=5
+ * Minimal parity diagnostics for Inventory/Pricing/LowStock/Storefront visibility.
+ */
+router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboard'), async (req: Request, res: Response) => {
+  const storeId = getEffectiveStoreId(req);
+  const threshold = parseInt(String(req.query.threshold || '5'), 10) || 5;
+
+  const inventoryFilter = storeId ? { storeId } : {};
+  const availableFilter = {
+    status: { in: ['active', 'manual'] as const },
+    quantity: { gt: 0 },
+    ...(storeId ? { storeId } : {}),
+  };
+  const lowStockFilter = {
+    status: { in: ['active', 'manual'] as const },
+    quantity: { gt: 0, lte: threshold },
+    ...(storeId ? { storeId } : {}),
+  };
+
+  const [inventoryListings, pricingListings, lowStockListings, storefrontListings] = await Promise.all([
+    prisma.listing.count({ where: inventoryFilter }),
+    prisma.listing.count({ where: availableFilter }),
+    prisma.listing.count({ where: lowStockFilter }),
+    prisma.listing.count({ where: availableFilter }),
+  ]);
+
+  res.json({
+    success: true,
+    diagnostics: {
+      resolvedStoreId: storeId || null,
+      scopeMode: storeId ? 'store-scoped' : 'global',
+      threshold,
+      counts: {
+        inventoryListings,
+        pricingListings,
+        lowStockListings,
+        storefrontListings,
+      },
+      filters: {
+        pricingStatuses: ['active', 'manual'],
+        storefrontStatuses: ['active', 'manual'],
+      },
+    },
+  });
+});
+
+/**
  * GET /api/admin/audit?entityType=listing&entityId=abc&take=50
  * Returns audit entries ordered by recency.
  */
@@ -269,7 +339,7 @@ router.get('/pos/discrepancies', requirePermission('view', 'cash-discrepancies')
  */
 router.get('/stock-alerts', requirePermission('view', 'stock-alerts'), async (req: Request, res: Response) => {
   const threshold = parseInt(String(req.query.threshold || '5'), 10) || 5;
-  const storeId = getScopedStoreId(req);
+  const storeId = getEffectiveStoreId(req);
 
   const alerts = await prisma.listing.findMany({
     where: {
@@ -311,7 +381,7 @@ router.get('/stock-alerts', requirePermission('view', 'stock-alerts'), async (re
 router.get('/price-volatility', requirePermission('view', 'price-volatility'), async (req: Request, res: Response) => {
   const limit = Math.min(parseInt(String(req.query.limit || '20'), 10) || 20, 100);
   const windowParam = String(req.query.window || '7d').toLowerCase();
-  const storeId = getScopedStoreId(req);
+  const storeId = getEffectiveStoreId(req);
 
   const now = Date.now();
   const windowMsByKey: Record<string, number> = {
@@ -662,6 +732,8 @@ router.post('/pricing/preview', async (req: Request, res: Response) => {
  * Returns pricing configuration and current exchange mode.
  */
 router.get('/pricing-config', async (_req: Request, res: Response) => {
+  assertGlobalAdmin(_req, 'Only global admin can view pricing configuration');
+
   const [exchangeRateMeta, listingStats] = await Promise.all([
     // Use the fast variant here to avoid calling external APIs while loading the admin page
     ExchangeRateService.getUSDtoCLPRateMetaFast().catch(() => null),
@@ -695,6 +767,8 @@ router.get('/pricing-config', async (_req: Request, res: Response) => {
  * Body: { defaultMarginMultiplier?: number, applyMarginToExisting?: boolean, exchangeRateMode?: 'api'|'manual', manualUsdToClp?: number }
  */
 router.post('/pricing-config', rateLimitByIp(50, 60000), async (req: Request, res: Response) => {
+  assertGlobalAdmin(req, 'Only global admin can update pricing configuration');
+
   const {
     defaultMarginMultiplier,
     applyMarginToExisting,
@@ -717,7 +791,7 @@ router.post('/pricing-config', rateLimitByIp(50, 60000), async (req: Request, re
 
   if (exchangeRateMode === 'manual') {
     if (typeof manualUsdToClp !== 'number' || !Number.isFinite(manualUsdToClp) || manualUsdToClp <= 0) {
-      return res.status(400).json({ success: false, error: 'manualUsdToClp must be a positive number when exchangeRateMode=manual' });
+      throw new ValidationError('manualUsdToClp must be a positive number when exchangeRateMode=manual');
     }
     await ExchangeRateService.setManualUSDtoCLPRate(manualUsdToClp);
   }
@@ -754,6 +828,8 @@ router.post('/pricing-config', rateLimitByIp(50, 60000), async (req: Request, re
  * Body: { confirm: true } (safety check)
  */
 router.post('/catalog/reset', rateLimitByIp(20, 60000), async (req: Request, res: Response) => {
+  assertGlobalAdmin(req, 'Only global admin can reset catalog data');
+
   if (req.body?.confirm !== true) {
     return res.status(400).json({
       success: false,

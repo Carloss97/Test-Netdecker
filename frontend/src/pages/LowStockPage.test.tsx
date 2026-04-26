@@ -56,7 +56,7 @@ describe('LowStockPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Sin alertas con el umbral actual')).toBeTruthy();
-      expect(screen.getByText('No hay listings activos con stock menor o igual a 5.')).toBeTruthy();
+      expect(screen.getByText(/No hay listings activos con stock menor o igual a 5/)).toBeTruthy();
     });
   });
 

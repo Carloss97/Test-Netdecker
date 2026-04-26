@@ -1,6 +1,6 @@
 # Pass 5: Mixed Production Hardening
 
-**Status**: In progress
+**Status**: In progress (P5-002 and P5-003 completed; P5-001 partially completed)
 
 **Goal**: close the highest-risk gaps that remain after Pass 4, prioritizing multi-tenancy safety, RBAC, stock consistency, and audit/validation hardening.
 
@@ -11,38 +11,38 @@
 ### #P5-001: Multi-tenancy and store scoping
 
 **Current status**
-- Planned: review storeId-sensitive reads and writes across backend services and routes.
-- Planned: identify any flows that still infer store context implicitly instead of validating it.
-- Planned: define a safe backfill/migration path if any persisted data still lacks store scoping.
+- Completed: enforced store scoping in key listing and admin flows (`/listings/available`, dashboard/reporting paths, tenant-aware cache keys).
+- Completed: hardened tenant resolution so store-scoped admin sessions cannot override store context via request headers.
+- In progress: define/confirm migration path only if legacy unscoped persisted records are detected.
 
 **Acceptance**
-- [ ] Critical store-scoped operations require explicit or safely inferred store context.
-- [ ] No admin or catalog flow leaks data across stores.
+- [x] Critical store-scoped operations require explicit or safely inferred store context.
+- [x] No admin or catalog flow leaks data across stores.
 - [ ] Any legacy unscoped records have a documented migration path.
 
 ### #P5-002: RBAC by action
 
 **Current status**
-- Planned: map ADMIN, MANAGER, and STAFF to concrete permissions.
-- Planned: protect sensitive admin routes with action-level guards.
-- Planned: keep UI actions aligned with backend authorization.
+- Completed: role model clarified as global `ADMIN` vs store-scoped admin sessions.
+- Completed: sensitive admin routes and store management endpoints enforced server-side by action and tenant scope.
+- Completed: UI aligned so store-scoped admins cannot switch tenant from layout store selector.
 
 **Acceptance**
-- [ ] Sensitive actions are blocked server-side for unauthorized roles.
-- [ ] UI does not expose actions that the backend rejects.
-- [ ] Permission checks are explicit and testable.
+- [x] Sensitive actions are blocked server-side for unauthorized roles.
+- [x] UI does not expose actions that the backend rejects.
+- [x] Permission checks are explicit and testable.
 
 ### #P5-003: Concurrency and stock safety
 
 **Current status**
-- Planned: review reservation, checkout, and inventory mutation paths for race conditions.
-- Planned: add optimistic locking or equivalent safeguards where read-modify-write collisions are possible.
-- Planned: verify concurrent stock changes behave deterministically under test.
+- Completed: checkout and POS sale decrements moved to atomic guarded updates (`quantity >= requested`) with tenant-aware filters.
+- Completed: contention-safe behavior enforced in reservation/checkout paths.
+- Completed: concurrency tests and focused regressions validated deterministic outcomes.
 
 **Acceptance**
-- [ ] Concurrent stock mutations do not oversell inventory.
-- [ ] Reservation and checkout flows handle contention safely.
-- [ ] Tests cover the main race-condition paths.
+- [x] Concurrent stock mutations do not oversell inventory.
+- [x] Reservation and checkout flows handle contention safely.
+- [x] Tests cover the main race-condition paths.
 
 ### #P5-004: Audit and validation hardening
 

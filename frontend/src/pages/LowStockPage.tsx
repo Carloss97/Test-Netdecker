@@ -11,6 +11,13 @@ export function LowStockPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
   const [pinnedPreviewListingId, setPinnedPreviewListingId] = useState<string | null>(null);
+  const [activeStore, setActiveStore] = useState(() => {
+    try {
+      return window.localStorage.getItem('auth_store') || 'sin tienda activa';
+    } catch {
+      return 'sin tienda activa';
+    }
+  });
 
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -33,6 +40,23 @@ export function LowStockPage() {
   useEffect(() => {
     void loadLowStock(threshold);
   }, [threshold]);
+
+  useEffect(() => {
+    const refreshStore = () => {
+      try {
+        setActiveStore(window.localStorage.getItem('auth_store') || 'sin tienda activa');
+      } catch {
+        setActiveStore('sin tienda activa');
+      }
+    };
+
+    window.addEventListener('storage', refreshStore);
+    window.addEventListener('netdecker:store-changed', refreshStore as EventListener);
+    return () => {
+      window.removeEventListener('storage', refreshStore);
+      window.removeEventListener('netdecker:store-changed', refreshStore as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     if (!listings.length) {
@@ -127,7 +151,10 @@ export function LowStockPage() {
         <div className="empty-state">
           <div className="empty-state-icon">✅</div>
           <h3>Sin alertas con el umbral actual</h3>
-          <p>No hay listings activos con stock menor o igual a {threshold}.</p>
+          <p>No hay listings activos con stock menor o igual a {threshold} en la tienda <strong>{activeStore}</strong>.</p>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 0 }}>
+            Regla aplicada: solo considera estado active/manual y cantidad mayor a 0.
+          </p>
         </div>
       )}
 

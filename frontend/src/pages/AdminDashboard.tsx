@@ -5,9 +5,11 @@ import apiClient from '../services/api';
 import {
   bootstrapCatalog,
   getAdminPricingConfig,
+  getTenantVisibilityDiagnostics,
   syncCatalog,
   resetCatalog,
   updateAdminPricingConfig,
+  type TenantVisibilityDiagnostics,
 } from '../services/catalog';
 import type { CatalogBootstrapResponse, CatalogSyncResponse } from '../types';
 import { DEFAULT_MARGIN_INPUT, parsePositiveNumberInput } from '../constants/pricing';
@@ -36,6 +38,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function AdminDashboardPage() {
   const pricingConfigQuery = useAsync(() => getAdminPricingConfig());
+  const tenantVisibilityQuery = useAsync(() => getTenantVisibilityDiagnostics(5));
   const adminMeQuery = useAsync(async () => {
     const { data } = await apiClient.get('/admin/auth/me');
     return (data?.data ?? null) as AdminMe | null;
@@ -75,6 +78,7 @@ export function AdminDashboardPage() {
       exchangeRate: { mode: 'api' | 'manual'; activeRate: number };
     };
   } | null;
+  const tenantVisibilityData = tenantVisibilityQuery.data as TenantVisibilityDiagnostics | null;
   const handleRefresh = () => window.location.reload();
 
   const handleSavePricingConfig = async () => {
@@ -242,6 +246,75 @@ export function AdminDashboardPage() {
       <p style={{ marginTop: 0, color: 'var(--text-muted)' }}>
         Los resúmenes, alertas y sincronizaciones recientes se muestran en Dashboard. Aquí quedan solo los controles administrativos y de catálogo.
       </p>
+
+      <Section title="🧭 Diagnóstico de Visibilidad por Tenant">
+        <div className="surface-card" style={{ padding: 16, marginBottom: 16 }}>
+          <p style={{ marginTop: 0, fontSize: 13, color: '#666' }}>
+            Compara el volumen de listings visibles entre Inventario, Precios, Stock Bajo y Storefront para la tienda resuelta de tu sesión actual.
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => {
+                tenantVisibilityQuery.execute();
+              }}
+              disabled={tenantVisibilityQuery.status === 'pending'}
+            >
+              {tenantVisibilityQuery.status === 'pending' ? '⏳ Consultando…' : '🔎 Recalcular diagnóstico'}
+            </button>
+            {tenantVisibilityData?.diagnostics ? (
+              <span style={{ fontSize: 12, color: '#666' }}>
+                Scope: <strong>{tenantVisibilityData.diagnostics.scopeMode}</strong> · Store: <strong>{tenantVisibilityData.diagnostics.resolvedStoreId || 'global'}</strong>
+              </span>
+            ) : null}
+          </div>
+
+          {tenantVisibilityQuery.status === 'error' && (
+            <div className="error-message" style={{ marginBottom: 0 }}>
+              ⚠️ No se pudo cargar el diagnóstico de visibilidad.
+            </div>
+          )}
+
+          {tenantVisibilityData?.diagnostics && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 12 }}>
+                <div className="surface-card" style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>Inventario</div>
+                  <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.inventoryListings}</div>
+                </div>
+                <div className="surface-card" style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>Precios</div>
+                  <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.pricingListings}</div>
+                </div>
+                <div className="surface-card" style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>Stock Bajo</div>
+                  <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.lowStockListings}</div>
+                </div>
+                <div className="surface-card" style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>Storefront</div>
+                  <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.storefrontListings}</div>
+                </div>
+              </div>
+
+              {tenantVisibilityData.diagnostics.counts.inventoryListings > tenantVisibilityData.diagnostics.counts.pricingListings ? (
+                <div className="error-message" style={{ marginBottom: 8 }}>
+                  ⚠️ Inventario tiene más listings que Precios. Revisa filtros de TCG/búsqueda en la vista de Precios.
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: '#2e7d32', marginBottom: 8 }}>
+                  ✓ Inventario y Precios se ven alineados para el scope actual.
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, color: '#666' }}>
+                Regla de Stock Bajo: cantidad {`<=`} {tenantVisibilityData.diagnostics.threshold} y {`>`} 0.
+              </div>
+            </>
+          )}
+        </div>
+      </Section>
 
       {pricingConfigQuery.status === 'pending' && (
         <div className="surface-card" style={{ padding: 12, marginBottom: 16 }}>

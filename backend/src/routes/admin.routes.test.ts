@@ -13,6 +13,7 @@ import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
 import CashSessionService from '../services/CashSessionService.js';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
+import AuditService from '../services/AuditService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { RateLimitService } from '../services/RateLimitService.js';
 
@@ -116,6 +117,125 @@ test('GET /api/admin/pricing-config returns importSetSyncPricesDefault and POST 
 
   // Reset runtime default
   setImportSetSyncPricesDefault(true);
+});
+
+test('POST /api/admin/pricing-config denies non-global admin sessions', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalCheckLimit = RateLimitService.checkLimit;
+
+  try {
+    (prisma.adminSession as any).findUnique = async (_args: any) => ({
+      token: 'faketoken',
+      expiresAt: null,
+      storeId: 'store-1',
+      user: { id: 'u-manager', email: 'manager@test', role: 'MANAGER', isActive: true },
+    });
+    RateLimitService.checkLimit = (async () => ({
+      allowed: true,
+      remaining: 49,
+      resetAt: new Date(Date.now() + 60000),
+      source: 'redis',
+    })) as typeof RateLimitService.checkLimit;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const r = await makeRequest(
+      app,
+      'POST',
+      '/api/admin/pricing-config',
+      { importSetSyncPricesDefault: false },
+      { Authorization: 'Bearer faketoken' },
+    );
+
+    assert.equal(r.status, 403);
+    assert.equal((r.body as any).success, false);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    RateLimitService.checkLimit = originalCheckLimit;
+  }
+});
+
+test('POST /api/admin/catalog/reset denies scoped ADMIN session', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalCheckLimit = RateLimitService.checkLimit;
+
+  try {
+    (prisma.adminSession as any).findUnique = async (_args: any) => ({
+      token: 'faketoken',
+      expiresAt: null,
+      storeId: 'store-1',
+      user: { id: 'u-scoped-admin', email: 'admin@store.com', role: 'ADMIN', isActive: true },
+    });
+    RateLimitService.checkLimit = (async () => ({
+      allowed: true,
+      remaining: 19,
+      resetAt: new Date(Date.now() + 60000),
+      source: 'redis',
+    })) as typeof RateLimitService.checkLimit;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const r = await makeRequest(
+      app,
+      'POST',
+      '/api/admin/catalog/reset',
+      { confirm: true },
+      { Authorization: 'Bearer faketoken' },
+    );
+
+    assert.equal(r.status, 403);
+    assert.equal((r.body as any).success, false);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    RateLimitService.checkLimit = originalCheckLimit;
+  }
+});
+
+test('POST /api/admin/pricing-config returns normalized validation error for invalid manual rate', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalCheckLimit = RateLimitService.checkLimit;
+
+  try {
+    (prisma.adminSession as any).findUnique = async (_args: any) => ({
+      token: 'faketoken',
+      expiresAt: null,
+      storeId: null,
+      user: { id: 'u-global-admin', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+    RateLimitService.checkLimit = (async () => ({
+      allowed: true,
+      remaining: 49,
+      resetAt: new Date(Date.now() + 60000),
+      source: 'redis',
+    })) as typeof RateLimitService.checkLimit;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const r = await makeRequest(
+      app,
+      'POST',
+      '/api/admin/pricing-config',
+      { exchangeRateMode: 'manual', manualUsdToClp: 0 },
+      { Authorization: 'Bearer faketoken' },
+    );
+
+    assert.equal(r.status, 400);
+    assert.equal((r.body as any).success, false);
+    assert.equal((r.body as any).error.code, 'VALIDATION_ERROR');
+    assert.equal((r.body as any).error.statusCode, 400);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    RateLimitService.checkLimit = originalCheckLimit;
+  }
 });
 
 test('GET /api/admin/reconciliation/reports returns recent reports', async () => {
@@ -468,5 +588,249 @@ test('POST /api/admin/catalog/sync allows MANAGER when permission is granted', a
     }
     RateLimitService.checkLimit = originalCheckLimit;
     CatalogSyncService.syncNewSets = originalSyncNewSets;
+  }
+});
+
+test('GET /api/admin/tenant/visibility-diagnostics uses x-store-id for global admin', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalStoreFindUnique = prisma.store.findUnique;
+  const originalListingCount = prisma.listing.count;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-global', email: 'admin@test.com', role: 'ADMIN', isActive: true },
+      storeId: null,
+      store: null,
+    });
+
+    prisma.store.findUnique = (async (args: any) => {
+      if (args?.where?.id === 'store-1') return { id: 'store-1', slug: 'store-one', name: 'Store One' } as any;
+      return null;
+    }) as any;
+
+    const whereCalls: any[] = [];
+    prisma.listing.count = (async (args: any) => {
+      whereCalls.push(args?.where || {});
+      return 3;
+    }) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/admin/tenant/visibility-diagnostics?threshold=4',
+      undefined,
+      { Authorization: 'Bearer faketoken', 'x-store-id': 'store-1' },
+    );
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).diagnostics.resolvedStoreId, 'store-1');
+    assert.equal((res.body as any).diagnostics.scopeMode, 'store-scoped');
+    assert.equal(whereCalls.length, 4);
+    assert.equal(whereCalls[0].storeId, 'store-1');
+    assert.equal(whereCalls[1].storeId, 'store-1');
+    assert.equal(whereCalls[2].storeId, 'store-1');
+    assert.equal(whereCalls[3].storeId, 'store-1');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    prisma.store.findUnique = originalStoreFindUnique;
+    prisma.listing.count = originalListingCount;
+  }
+});
+
+test('GET /api/admin/tenant/visibility-diagnostics keeps scoped admin pinned store', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalStoreFindUnique = prisma.store.findUnique;
+  const originalListingCount = prisma.listing.count;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-scoped', email: 'manager@test.com', role: 'MANAGER', isActive: true },
+      storeId: 'store-a',
+      store: { id: 'store-a', slug: 'store-a', name: 'Store A' },
+    });
+
+    prisma.store.findUnique = (async () => null) as any;
+
+    const whereCalls: any[] = [];
+    prisma.listing.count = (async (args: any) => {
+      whereCalls.push(args?.where || {});
+      return 2;
+    }) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/admin/tenant/visibility-diagnostics?threshold=6',
+      undefined,
+      { Authorization: 'Bearer faketoken', 'x-store-id': 'store-b' },
+    );
+
+    assert.equal(res.status, 200);
+    assert.equal((res.body as any).success, true);
+    assert.equal((res.body as any).diagnostics.resolvedStoreId, 'store-a');
+    assert.equal(whereCalls.length, 4);
+    assert.equal(whereCalls[0].storeId, 'store-a');
+    assert.equal(whereCalls[1].storeId, 'store-a');
+    assert.equal(whereCalls[2].storeId, 'store-a');
+    assert.equal(whereCalls[3].storeId, 'store-a');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    prisma.store.findUnique = originalStoreFindUnique;
+    prisma.listing.count = originalListingCount;
+  }
+});
+
+test('GET /api/admin/tenant/visibility-diagnostics keeps parity contract with stock alerts for same tenant', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalListingCount = prisma.listing.count;
+  const originalListingFindMany = (prisma.listing as any).findMany;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-scoped', email: 'manager@test.com', role: 'MANAGER', isActive: true },
+      storeId: 'store-a',
+      store: { id: 'store-a', slug: 'store-a', name: 'Store A' },
+    });
+
+    prisma.listing.count = (async (args: any) => {
+      const where = args?.where || {};
+      if (where.quantity?.lte === 5) return 2; // low stock
+      if (where.quantity?.gt === 0 && where.status?.in) return 4; // available/pricing/storefront
+      if (where.storeId === 'store-a' && !where.quantity && !where.status) return 5; // inventory total
+      return 0;
+    }) as any;
+
+    (prisma.listing as any).findMany = (async () => ([
+      {
+        id: 'listing-1',
+        condition: 'NM',
+        quantity: 2,
+        finalPrice: 100,
+        card: { cardName: 'Scoped Card 1', cardCode: '001', imageUrl: null },
+        edition: { editionCode: 'SET1', editionName: 'Set One' },
+      },
+      {
+        id: 'listing-2',
+        condition: 'NM',
+        quantity: 1,
+        finalPrice: 120,
+        card: { cardName: 'Scoped Card 2', cardCode: '002', imageUrl: null },
+        edition: { editionCode: 'SET1', editionName: 'Set One' },
+      },
+    ])) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const diagnosticsRes = await makeRequest(
+      app,
+      'GET',
+      '/api/admin/tenant/visibility-diagnostics?threshold=5',
+      undefined,
+      { Authorization: 'Bearer faketoken' },
+    );
+
+    const stockAlertsRes = await makeRequest(
+      app,
+      'GET',
+      '/api/admin/stock-alerts?threshold=5',
+      undefined,
+      { Authorization: 'Bearer faketoken' },
+    );
+
+    assert.equal(diagnosticsRes.status, 200);
+    assert.equal(stockAlertsRes.status, 200);
+    assert.equal((diagnosticsRes.body as any).diagnostics.resolvedStoreId, 'store-a');
+    assert.equal((diagnosticsRes.body as any).diagnostics.counts.pricingListings, 4);
+    assert.equal((diagnosticsRes.body as any).diagnostics.counts.storefrontListings, 4);
+    assert.equal((diagnosticsRes.body as any).diagnostics.counts.lowStockListings, (stockAlertsRes.body as any).total);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    prisma.listing.count = originalListingCount;
+    (prisma.listing as any).findMany = originalListingFindMany;
+  }
+});
+
+test('adminAudit includes role and tenant context in audit payload', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalStoreFindUnique = prisma.store.findUnique;
+  const originalListingCount = prisma.listing.count;
+  const originalAuditLogAction = AuditService.logAction;
+
+  try {
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      user: { id: 'u-global', email: 'admin@test.com', role: 'ADMIN', isActive: true },
+      storeId: null,
+      store: null,
+    });
+
+    prisma.store.findUnique = (async (args: any) => {
+      if (args?.where?.id === 'store-1') {
+        return { id: 'store-1', slug: 'store-one', name: 'Store One' } as any;
+      }
+      return null;
+    }) as any;
+
+    prisma.listing.count = (async () => 1) as any;
+
+    const auditCalls: any[] = [];
+    AuditService.logAction = (async (params: any) => {
+      auditCalls.push(params);
+    }) as typeof AuditService.logAction;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(
+      app,
+      'GET',
+      '/api/admin/tenant/visibility-diagnostics?threshold=5',
+      undefined,
+      { Authorization: 'Bearer faketoken', 'x-store-id': 'store-1' },
+    );
+
+    assert.equal(res.status, 200);
+
+    // Wait one event loop turn for response finish handler to flush audit log.
+    await new Promise<void>((resolve) => {
+      setImmediate(() => resolve());
+    });
+
+    assert.ok(auditCalls.length >= 1);
+    const call = auditCalls[auditCalls.length - 1];
+    assert.equal(call.userId, 'u-global');
+    assert.equal(call.action, 'GET /tenant/visibility-diagnostics');
+    assert.equal(call.data.role, 'ADMIN');
+    assert.equal(call.data.sessionStoreId, null);
+    assert.equal(call.data.resolvedStoreId, 'store-1');
+    assert.equal(call.data.requestPath, '/tenant/visibility-diagnostics');
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    prisma.store.findUnique = originalStoreFindUnique;
+    prisma.listing.count = originalListingCount;
+    AuditService.logAction = originalAuditLogAction;
   }
 });

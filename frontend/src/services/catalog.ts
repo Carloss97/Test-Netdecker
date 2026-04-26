@@ -852,6 +852,32 @@ export async function getPriceVolatility(limit?: number, window?: '24h' | '7d' |
   }
 }
 
+export type TenantVisibilityDiagnostics = {
+  success: boolean;
+  diagnostics: {
+    resolvedStoreId: string | null;
+    scopeMode: 'store-scoped' | 'global';
+    threshold: number;
+    counts: {
+      inventoryListings: number;
+      pricingListings: number;
+      lowStockListings: number;
+      storefrontListings: number;
+    };
+    filters: {
+      pricingStatuses: string[];
+      storefrontStatuses: string[];
+    };
+  };
+};
+
+export async function getTenantVisibilityDiagnostics(threshold?: number): Promise<TenantVisibilityDiagnostics> {
+  const { data } = await apiClient.get('/admin/tenant/visibility-diagnostics', {
+    params: threshold ? { threshold } : undefined,
+  });
+  return data as TenantVisibilityDiagnostics;
+}
+
 export async function getAdminEditions() {
   try {
     const { data } = await apiClient.get('/admin/editions');

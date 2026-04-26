@@ -90,6 +90,16 @@ export default function StorefrontPage() {
     setSelected(null);
   }, []);
 
+  const resetFilters = useCallback(() => {
+    setFilters({
+      query: '',
+      tcgId: 'ALL',
+      rarity: 'ALL',
+      minPrice: '',
+      maxPrice: '',
+    });
+  }, [setFilters]);
+
   return (
     <div className="storefront-page">
       <div className="sf-container">
@@ -141,6 +151,19 @@ export default function StorefrontPage() {
                   }}
                 >
                   Reintentar
+                </button>
+              </div>
+            )}
+            {status === 'ready' && !error && filteredProducts.length === 0 && (
+              <div className="sf-status warn" style={{ marginBottom: 12 }}>
+                Sin productos para la tienda {activeStore} con los filtros actuales.
+                <button
+                  type="button"
+                  className="sf-ghost-btn"
+                  style={{ marginLeft: 8 }}
+                  onClick={resetFilters}
+                >
+                  Limpiar filtros
                 </button>
               </div>
             )}

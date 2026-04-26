@@ -95,10 +95,11 @@ function ModeToggle({
 
 export function PricingPage() {
   const roundRobinOrder: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
+  type PricingTcgFilter = 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [selectedTcg, setSelectedTcg] = useState<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'>('MAGIC');
+  const [selectedTcg, setSelectedTcg] = useState<PricingTcgFilter>('ALL');
   const [syncScope, setSyncScope] = useState<'all' | 'tcg' | 'edition'>('all');
   const [selectedEditionId, setSelectedEditionId] = useState('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
@@ -115,6 +116,13 @@ export function PricingPage() {
   const [pinnedPreviewListingId, setPinnedPreviewListingId] = useState<string | null>(null);
   const [volatileData, setVolatileData] = useState<VolatileResponse | null>(null);
   const [volatileStatus, setVolatileStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [activeStore, setActiveStore] = useState(() => {
+    try {
+      return window.localStorage.getItem('auth_store') || 'sin tienda activa';
+    } catch {
+      return 'sin tienda activa';
+    }
+  });
   const syncingRef = useRef(false);
   const roundRobinIndexRef = useRef(0);
 
@@ -137,6 +145,7 @@ export function PricingPage() {
 
   const activeListings = (listings ?? []).filter((l) => l.quantity > 0);
   const tcgListings = activeListings.filter((l) => {
+    if (selectedTcg === 'ALL') return true;
     const tcgName = (l.card as Listing['card'] & { tcg?: { name?: string } })?.tcg?.name;
     return tcgName === selectedTcg;
   });
@@ -253,6 +262,23 @@ export function PricingPage() {
   };
 
   useEffect(() => {
+    const refreshStore = () => {
+      try {
+        setActiveStore(window.localStorage.getItem('auth_store') || 'sin tienda activa');
+      } catch {
+        setActiveStore('sin tienda activa');
+      }
+    };
+
+    window.addEventListener('storage', refreshStore);
+    window.addEventListener('netdecker:store-changed', refreshStore as EventListener);
+    return () => {
+      window.removeEventListener('storage', refreshStore);
+      window.removeEventListener('netdecker:store-changed', refreshStore as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     setSelectedEditionId('');
   }, [selectedTcg]);
 
@@ -282,6 +308,12 @@ export function PricingPage() {
       }
 
       if (syncScope === 'tcg') {
+        if (selectedTcg === 'ALL') {
+          if (!silent) setSyncError('Selecciona un TCG específico para sincronizar por TCG.');
+          setSyncing(false);
+          syncingRef.current = false;
+          return;
+        }
         filters.tcgName = selectedTcg;
       }
       if (syncScope === 'edition') {
@@ -536,6 +568,15 @@ export function PricingPage() {
               placeholder="Buscar por nombre o código"
               title="Filtrar listings por nombre o código de carta"
             />
+            <button
+              key="ALL"
+              type="button"
+              className={`btn btn-sm ${selectedTcg === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSelectedTcg('ALL')}
+              title="Mostrar todos los TCG"
+            >
+              ALL
+            </button>
             {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map((tcg) => (
               <button
                 key={tcg}
@@ -558,7 +599,12 @@ export function PricingPage() {
           <div className="empty-state">
             <div className="empty-state-icon">💰</div>
             <h3>Sin listings activos</h3>
-            <p>No hay cartas con stock disponible para este TCG</p>
+            <p>
+              No hay cartas con stock disponible para el filtro actual (TCG: <strong>{selectedTcg}</strong>, tienda: <strong>{activeStore}</strong>).
+            </p>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 0 }}>
+              Prueba con ALL o revisa el diagnóstico de tenant en la vista Admin Dashboard.
+            </p>
           </div>
         ) : (
           <div className="listings-preview-pane">
