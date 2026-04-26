@@ -6,6 +6,7 @@ import {
   bootstrapCatalog,
   getAdminPricingConfig,
   getTenantVisibilityDiagnostics,
+  normalizeInStockStatuses,
   syncCatalog,
   resetCatalog,
   updateAdminPricingConfig,
@@ -72,6 +73,9 @@ export function AdminDashboardPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [normalizeLoading, setNormalizeLoading] = useState(false);
+  const [normalizeMessage, setNormalizeMessage] = useState<string | null>(null);
+  const [normalizeError, setNormalizeError] = useState<string | null>(null);
 
   const pricingConfigData = pricingConfigQuery.data as {
     success: boolean;
@@ -82,6 +86,29 @@ export function AdminDashboardPage() {
   } | null;
   const tenantVisibilityData = tenantVisibilityQuery.data as TenantVisibilityDiagnostics | null;
   const handleRefresh = () => window.location.reload();
+
+  const handleNormalizeLegacyListings = async () => {
+    const scopeStoreId = tenantVisibilityData?.diagnostics.resolvedStoreId || adminMeQuery.data?.resolvedStoreId || adminMeQuery.data?.storeId || undefined;
+    if (!scopeStoreId) {
+      setNormalizeError('Necesitas una tienda resuelta para normalizar listings legacy.');
+      setNormalizeMessage(null);
+      return;
+    }
+
+    setNormalizeLoading(true);
+    setNormalizeError(null);
+    setNormalizeMessage(null);
+
+    try {
+      const result = await normalizeInStockStatuses(scopeStoreId);
+      setNormalizeMessage(`Se normalizaron ${result.updated} listing(s) con stock en ${result.scopeStoreId}.`);
+      await tenantVisibilityQuery.execute();
+    } catch (err) {
+      setNormalizeError(logClientError('admin.normalizeInStockStatuses', err));
+    } finally {
+      setNormalizeLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!canManageAdminActions) return;
@@ -273,12 +300,34 @@ export function AdminDashboardPage() {
             >
               {tenantVisibilityQuery.status === 'pending' ? '⏳ Consultando…' : '🔎 Recalcular diagnóstico'}
             </button>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => {
+                void handleNormalizeLegacyListings();
+              }}
+              disabled={normalizeLoading}
+            >
+              {normalizeLoading ? '🛠️ Normalizando…' : '🛠️ Normalizar listings legacy'}
+            </button>
             {tenantVisibilityData?.diagnostics ? (
               <span style={{ fontSize: 12, color: '#666' }}>
                 Scope: <strong>{tenantVisibilityData.diagnostics.scopeMode}</strong> · Store: <strong>{tenantVisibilityData.diagnostics.resolvedStoreId || 'global'}</strong>
               </span>
             ) : null}
           </div>
+
+          {normalizeMessage && (
+            <div className="success-message" style={{ marginBottom: 12 }}>
+              {normalizeMessage}
+            </div>
+          )}
+
+          {normalizeError && (
+            <div className="error-message" style={{ marginBottom: 12 }}>
+              ⚠️ {normalizeError}
+            </div>
+          )}
 
           {tenantVisibilityQuery.status === 'error' && (
             <div className="error-message" style={{ marginBottom: 0 }}>

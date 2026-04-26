@@ -318,6 +318,36 @@ test('updateQuantity reactivates non-manual listing when stock is restored', asy
   }
 });
 
+test('normalizeInStockStatuses reactivates legacy listings with stock', async () => {
+  const originalFindMany = prisma.listing.findMany;
+  const originalUpdateMany = prisma.listing.updateMany;
+  const originalAudit = AuditService.auditEntityChange;
+
+  try {
+    let updateManyArgs: any = null;
+    prisma.listing.findMany = (async () => ([
+      { id: 'legacy-1' },
+      { id: 'legacy-2' },
+    ])) as any;
+    prisma.listing.updateMany = (async (args: any) => {
+      updateManyArgs = args;
+      return { count: 2 } as any;
+    }) as any;
+    AuditService.auditEntityChange = (async () => undefined) as any;
+
+    const result = await ListingService.normalizeInStockStatuses('store-1', 'admin-1');
+
+    assert.equal(result.updated, 2);
+    assert.deepEqual(updateManyArgs.where, { id: { in: ['legacy-1', 'legacy-2'] } });
+    assert.equal(updateManyArgs.data.status, 'active');
+    assert.equal(updateManyArgs.data.everHadStock, true);
+  } finally {
+    prisma.listing.findMany = originalFindMany;
+    prisma.listing.updateMany = originalUpdateMany;
+    AuditService.auditEntityChange = originalAudit;
+  }
+});
+
 test('bulkUpdateQuantities aggregates errors and successes', async () => {
   const originalUpdateQuantity = ListingService.updateQuantity;
   try {

@@ -13,6 +13,7 @@ import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
 import CashSessionService from '../services/CashSessionService.js';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
+import { ListingService } from '../services/ListingService.js';
 import AuditService from '../services/AuditService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { RateLimitService } from '../services/RateLimitService.js';
@@ -235,6 +236,50 @@ test('POST /api/admin/pricing-config returns normalized validation error for inv
   } finally {
     (prisma.adminSession as any).findUnique = originalAdminSessionFind;
     RateLimitService.checkLimit = originalCheckLimit;
+  }
+});
+
+test('POST /api/admin/tenant/normalize-in-stock-statuses returns updated count for resolved store', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalCheckLimit = RateLimitService.checkLimit;
+  const originalNormalize = ListingService.normalizeInStockStatuses;
+
+  try {
+    (prisma.adminSession as any).findUnique = async (_args: any) => ({
+      token: 'faketoken',
+      expiresAt: null,
+      storeId: 'store-1',
+      user: { id: 'u-global-admin', email: 'admin@test', role: 'ADMIN', isActive: true },
+    });
+    RateLimitService.checkLimit = (async () => ({
+      allowed: true,
+      remaining: 49,
+      resetAt: new Date(Date.now() + 60000),
+      source: 'redis',
+    })) as typeof RateLimitService.checkLimit;
+    ListingService.normalizeInStockStatuses = (async () => ({ updated: 3 })) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const r = await makeRequest(
+      app,
+      'POST',
+      '/api/admin/tenant/normalize-in-stock-statuses',
+      {},
+      { Authorization: 'Bearer faketoken' },
+    );
+
+    assert.equal(r.status, 200);
+    assert.equal((r.body as any).success, true);
+    assert.equal((r.body as any).scopeStoreId, 'store-1');
+    assert.equal((r.body as any).updated, 3);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    RateLimitService.checkLimit = originalCheckLimit;
+    ListingService.normalizeInStockStatuses = originalNormalize;
   }
 });
 

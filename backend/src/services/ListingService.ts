@@ -201,6 +201,51 @@ export class ListingService {
   }
 
   /**
+   * Re-enable legacy listings that still have stock but were left hidden by an old status.
+   */
+  static async normalizeInStockStatuses(storeId?: string, changedBy?: string) {
+    const scopeStoreId = typeof storeId === 'string' ? storeId.trim() : '';
+    const where: Prisma.ListingWhereInput = {
+      status: { notIn: ['active', 'manual'] },
+      quantity: { gt: 0 },
+      ...(scopeStoreId ? { storeId: scopeStoreId } : {}),
+    };
+
+    const affectedListings = await prisma.listing.findMany({
+      where,
+      select: { id: true },
+    });
+
+    if (affectedListings.length === 0) {
+      return { updated: 0 };
+    }
+
+    await prisma.listing.updateMany({
+      where: { id: { in: affectedListings.map((listing) => listing.id) } },
+      data: {
+        status: 'active',
+        everHadStock: true,
+      },
+    });
+
+    await AuditService.auditEntityChange({
+      entityType: 'listing',
+      entityId: scopeStoreId || 'all-stores',
+      operation: 'UPDATE',
+      oldValue: { hiddenByStatus: affectedListings.length },
+      newValue: { hiddenByStatus: 0 },
+      changedBy: await this.resolveChangedByUserId(changedBy),
+      action: 'LISTING.STATUS.NORMALIZE_IN_STOCK',
+      data: {
+        scopeStoreId: scopeStoreId || null,
+        affectedListingIds: affectedListings.map((listing) => listing.id),
+      },
+    });
+
+    return { updated: affectedListings.length };
+  }
+
+  /**
    * Decrease quantity (for purchases)
    */
   static async decreaseQuantity(id: string, amount: number, changedBy?: string) {

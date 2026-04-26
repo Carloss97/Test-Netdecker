@@ -9,6 +9,7 @@ import { ExchangeRateService } from '../services/ExchangeRateService.js';
 import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js';
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { PriceService } from '../services/PriceService.js';
+import { ListingService } from '../services/ListingService.js';
 import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
 import CashSessionService from '../services/CashSessionService.js';
 import AuditService from '../services/AuditService.js';
@@ -262,6 +263,33 @@ router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboar
         hiddenStatusesExcludedFromPricing: ['active', 'manual'],
       },
     },
+  });
+});
+
+const normalizeInStockStatusesSchema = z.object({
+  storeId: z.string().trim().min(1).optional(),
+});
+
+/**
+ * POST /api/admin/tenant/normalize-in-stock-statuses
+ * Re-enables legacy listings with stock that were left hidden by a stale status.
+ */
+router.post('/tenant/normalize-in-stock-statuses', requirePermission('run', 'catalog-sync'), rateLimitByIp(20, 60000), async (req: Request, res: Response) => {
+  const parsed = normalizeInStockStatusesSchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues[0]?.message || 'Invalid request payload');
+  }
+
+  const scopeStoreId = parsed.data.storeId || getEffectiveStoreId(req);
+  if (!scopeStoreId) {
+    throw new ValidationError('storeId is required to normalize legacy listings');
+  }
+
+  const result = await ListingService.normalizeInStockStatuses(scopeStoreId, (req as any).adminUser?.id);
+  res.json({
+    success: true,
+    scopeStoreId,
+    updated: result.updated,
   });
 });
 

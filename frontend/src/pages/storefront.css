@@ -161,12 +161,15 @@
   background: #111827;
   border: 0;
   cursor: pointer;
+  padding: 0;
+  display: block;
 }
 
 .sf-image-button img {
   width: 100%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
+  display: block;
 }
 
 .sf-product-meta {
@@ -370,8 +373,9 @@
 .sf-modal-card img,
 .sf-detail-image {
   width: 100%;
+  max-height: min(72vh, 720px);
   border-radius: 14px;
-  object-fit: cover;
+  object-fit: contain;
   background: #111827;
 }
 

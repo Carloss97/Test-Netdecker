@@ -888,6 +888,13 @@ export async function getTenantVisibilityDiagnostics(threshold?: number): Promis
   return data as TenantVisibilityDiagnostics;
 }
 
+export async function normalizeInStockStatuses(storeId?: string): Promise<{ success: boolean; scopeStoreId: string; updated: number }> {
+  const { data } = await apiClient.post('/admin/tenant/normalize-in-stock-statuses', {
+    ...(storeId ? { storeId } : {}),
+  });
+  return data;
+}
+
 export async function getAdminEditions() {
   try {
     const { data } = await apiClient.get('/admin/editions');
