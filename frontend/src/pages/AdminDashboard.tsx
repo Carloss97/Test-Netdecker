@@ -39,6 +39,26 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function getUiErrorMessage(err: unknown, fallback: string): string {
+  const response = (err as any)?.response;
+  const status = typeof response?.status === 'number' ? response.status : null;
+  const backendMessage = response?.data?.error?.message || response?.data?.message;
+
+  if (status === 403) {
+    return 'No tienes permisos para ejecutar esta acción en el scope actual.';
+  }
+
+  if (typeof backendMessage === 'string' && backendMessage.trim().length > 0) {
+    return backendMessage.trim();
+  }
+
+  if (err instanceof Error && err.message.trim().length > 0) {
+    return err.message;
+  }
+
+  return fallback;
+}
+
 export function AdminDashboardPage() {
   const pricingConfigQuery = useAsync(() => getAdminPricingConfig(), false);
   const tenantVisibilityQuery = useAsync(() => getTenantVisibilityDiagnostics(5));
@@ -76,6 +96,8 @@ export function AdminDashboardPage() {
   const [normalizeLoading, setNormalizeLoading] = useState(false);
   const [normalizeMessage, setNormalizeMessage] = useState<string | null>(null);
   const [normalizeError, setNormalizeError] = useState<string | null>(null);
+  const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(null);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
 
   const pricingConfigData = pricingConfigQuery.data as {
     success: boolean;
@@ -86,6 +108,21 @@ export function AdminDashboardPage() {
   } | null;
   const tenantVisibilityData = tenantVisibilityQuery.data as TenantVisibilityDiagnostics | null;
   const handleRefresh = () => window.location.reload();
+
+  const handleRecalculateDiagnostics = async () => {
+    setDiagnosticsMessage(null);
+    setDiagnosticsError(null);
+    setNormalizeMessage(null);
+    setNormalizeError(null);
+
+    const result = await tenantVisibilityQuery.execute();
+    if (result) {
+      setDiagnosticsMessage(`Diagnóstico recalculado: ${new Date().toLocaleTimeString('es-CL')}`);
+      return;
+    }
+
+    setDiagnosticsError('No se pudo recalcular el diagnóstico. Revisa tu sesión y permisos.');
+  };
 
   const handleNormalizeLegacyListings = async () => {
     const scopeStoreId = tenantVisibilityData?.diagnostics.resolvedStoreId || adminMeQuery.data?.resolvedStoreId || adminMeQuery.data?.storeId || undefined;
@@ -98,13 +135,22 @@ export function AdminDashboardPage() {
     setNormalizeLoading(true);
     setNormalizeError(null);
     setNormalizeMessage(null);
+    setDiagnosticsMessage(null);
+    setDiagnosticsError(null);
 
     try {
       const result = await normalizeInStockStatuses(scopeStoreId);
       setNormalizeMessage(`Se normalizaron ${result.updated} listing(s) con stock en ${result.scopeStoreId}.`);
       await tenantVisibilityQuery.execute();
     } catch (err) {
-      setNormalizeError(logClientError('admin.normalizeInStockStatuses', err));
+      setNormalizeError(getUiErrorMessage(err, 'No se pudo normalizar listings legacy.'));
+      logClientError({
+        area: 'admin-dashboard-page',
+        action: 'normalize-in-stock-statuses',
+        message: 'Failed normalizing legacy listings',
+        context: { scopeStoreId },
+        error: err,
+      });
     } finally {
       setNormalizeLoading(false);
     }
@@ -294,7 +340,7 @@ export function AdminDashboardPage() {
               type="button"
               className="btn btn-sm"
               onClick={() => {
-                tenantVisibilityQuery.execute();
+                void handleRecalculateDiagnostics();
               }}
               disabled={tenantVisibilityQuery.status === 'pending'}
             >
@@ -323,9 +369,21 @@ export function AdminDashboardPage() {
             </div>
           )}
 
+          {diagnosticsMessage && (
+            <div className="success-message" style={{ marginBottom: 12 }}>
+              {diagnosticsMessage}
+            </div>
+          )}
+
           {normalizeError && (
             <div className="error-message" style={{ marginBottom: 12 }}>
               ⚠️ {normalizeError}
+            </div>
+          )}
+
+          {diagnosticsError && (
+            <div className="error-message" style={{ marginBottom: 12 }}>
+              ⚠️ {diagnosticsError}
             </div>
           )}
 
@@ -341,6 +399,10 @@ export function AdminDashboardPage() {
                 <div className="surface-card" style={{ padding: 10 }}>
                   <div style={{ fontSize: 12, color: '#666' }}>Inventario</div>
                   <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.inventoryListings}</div>
+                </div>
+                <div className="surface-card" style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, color: '#666' }}>Inventario con stock</div>
+                  <div style={{ fontSize: 24, fontWeight: 700 }}>{tenantVisibilityData.diagnostics.counts.inventoryInStockListings}</div>
                 </div>
                 <div className="surface-card" style={{ padding: 10 }}>
                   <div style={{ fontSize: 12, color: '#666' }}>Precios</div>
@@ -360,13 +422,19 @@ export function AdminDashboardPage() {
                 </div>
               </div>
 
-              {tenantVisibilityData.diagnostics.counts.inventoryListings > tenantVisibilityData.diagnostics.counts.pricingListings ? (
+              {tenantVisibilityData.diagnostics.counts.inventoryInStockListings > tenantVisibilityData.diagnostics.counts.pricingListings ? (
                 <div className="error-message" style={{ marginBottom: 8 }}>
-                  ⚠️ Inventario tiene más listings que Precios. Revisa filtros de TCG/búsqueda y estados fuera de active/manual en la vista de Precios.
+                  ⚠️ Inventario con stock tiene más listings que Precios. Revisa filtros de TCG/búsqueda y estados fuera de active/manual en la vista de Precios.
                 </div>
               ) : (
                 <div style={{ fontSize: 13, color: '#2e7d32', marginBottom: 8 }}>
-                  ✓ Inventario y Precios se ven alineados para el scope actual.
+                  ✓ Inventario con stock y Precios se ven alineados para el scope actual.
+                </div>
+              )}
+
+              {tenantVisibilityData.diagnostics.counts.inventoryListings > tenantVisibilityData.diagnostics.counts.inventoryInStockListings && (
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+                  Nota: el total de Inventario incluye listings con stock 0, por eso puede ser mayor que Precios aunque no haya ocultos por status.
                 </div>
               )}
 

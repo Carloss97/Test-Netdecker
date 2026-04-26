@@ -220,6 +220,10 @@ router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboar
   const threshold = parseInt(String(req.query.threshold || '5'), 10) || 5;
 
   const inventoryFilter = storeId ? { storeId } : {};
+  const inventoryInStockFilter = {
+    quantity: { gt: 0 },
+    ...(storeId ? { storeId } : {}),
+  };
   const availableFilter = {
     status: { in: ['active', 'manual'] as const },
     quantity: { gt: 0 },
@@ -236,8 +240,9 @@ router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboar
     ...(storeId ? { storeId } : {}),
   };
 
-  const [inventoryListings, pricingListings, lowStockListings, storefrontListings, hiddenByStatusListings] = await Promise.all([
+  const [inventoryListings, inventoryInStockListings, pricingListings, lowStockListings, storefrontListings, hiddenByStatusListings] = await Promise.all([
     prisma.listing.count({ where: inventoryFilter }),
+    prisma.listing.count({ where: inventoryInStockFilter }),
     prisma.listing.count({ where: availableFilter }),
     prisma.listing.count({ where: lowStockFilter }),
     prisma.listing.count({ where: availableFilter }),
@@ -252,6 +257,7 @@ router.get('/tenant/visibility-diagnostics', requirePermission('view', 'dashboar
       threshold,
       counts: {
         inventoryListings,
+        inventoryInStockListings,
         pricingListings,
         lowStockListings,
         storefrontListings,

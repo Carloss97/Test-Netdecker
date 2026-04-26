@@ -168,8 +168,37 @@
 .sf-image-button img {
   width: 100%;
   aspect-ratio: 4 / 5;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+}
+
+.sf-group-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.sf-group-toolbar > span {
+  font-size: 13px;
+  color: var(--sf-text-muted);
+  margin-right: 2px;
+}
+
+.sf-group-block + .sf-group-block {
+  margin-top: 18px;
+}
+
+.sf-group-title {
+  margin: 0 0 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+}
+
+.sf-group-title span {
+  color: var(--sf-text-muted);
+  font-size: 0.9rem;
 }
 
 .sf-product-meta {

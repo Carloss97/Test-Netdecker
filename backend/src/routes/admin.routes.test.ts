@@ -678,12 +678,13 @@ test('GET /api/admin/tenant/visibility-diagnostics uses x-store-id for global ad
     assert.equal((res.body as any).success, true);
     assert.equal((res.body as any).diagnostics.resolvedStoreId, 'store-1');
     assert.equal((res.body as any).diagnostics.scopeMode, 'store-scoped');
-    assert.equal(whereCalls.length, 5);
+    assert.equal(whereCalls.length, 6);
     assert.equal(whereCalls[0].storeId, 'store-1');
     assert.equal(whereCalls[1].storeId, 'store-1');
     assert.equal(whereCalls[2].storeId, 'store-1');
     assert.equal(whereCalls[3].storeId, 'store-1');
     assert.equal(whereCalls[4].storeId, 'store-1');
+    assert.equal(whereCalls[5].storeId, 'store-1');
   } finally {
     (prisma.adminSession as any).findUnique = originalAdminSessionFind;
     prisma.store.findUnique = originalStoreFindUnique;
@@ -729,12 +730,13 @@ test('GET /api/admin/tenant/visibility-diagnostics keeps scoped admin pinned sto
     assert.equal(res.status, 200);
     assert.equal((res.body as any).success, true);
     assert.equal((res.body as any).diagnostics.resolvedStoreId, 'store-a');
-    assert.equal(whereCalls.length, 5);
+    assert.equal(whereCalls.length, 6);
     assert.equal(whereCalls[0].storeId, 'store-a');
     assert.equal(whereCalls[1].storeId, 'store-a');
     assert.equal(whereCalls[2].storeId, 'store-a');
     assert.equal(whereCalls[3].storeId, 'store-a');
     assert.equal(whereCalls[4].storeId, 'store-a');
+    assert.equal(whereCalls[5].storeId, 'store-a');
   } finally {
     (prisma.adminSession as any).findUnique = originalAdminSessionFind;
     prisma.store.findUnique = originalStoreFindUnique;
@@ -759,6 +761,7 @@ test('GET /api/admin/tenant/visibility-diagnostics keeps parity contract with st
     prisma.listing.count = (async (args: any) => {
       const where = args?.where || {};
       if (where.quantity?.lte === 5) return 2; // low stock
+      if (where.quantity?.gt === 0 && !where.status) return 5; // inventory in stock
       if (where.quantity?.gt === 0 && where.status?.in) return 4; // available/pricing/storefront
       if (where.quantity?.gt === 0 && where.status?.notIn) return 1; // hidden by status
       if (where.storeId === 'store-a' && !where.quantity && !where.status) return 5; // inventory total
@@ -808,6 +811,7 @@ test('GET /api/admin/tenant/visibility-diagnostics keeps parity contract with st
     assert.equal(diagnosticsRes.status, 200);
     assert.equal(stockAlertsRes.status, 200);
     assert.equal((diagnosticsRes.body as any).diagnostics.resolvedStoreId, 'store-a');
+    assert.equal((diagnosticsRes.body as any).diagnostics.counts.inventoryInStockListings, 5);
     assert.equal((diagnosticsRes.body as any).diagnostics.counts.pricingListings, 4);
     assert.equal((diagnosticsRes.body as any).diagnostics.counts.storefrontListings, 4);
     assert.equal((diagnosticsRes.body as any).diagnostics.counts.hiddenByStatusListings, 1);

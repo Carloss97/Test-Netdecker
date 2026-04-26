@@ -5,6 +5,7 @@ interface FilterSidebarProps {
   filters: StorefrontFilters;
   setFilters: (next: StorefrontFilters) => void;
   tcgOptions: string[];
+  editionOptions: string[];
   rarityOptions: string[];
   suggestions: string[];
 }
@@ -13,6 +14,7 @@ function FilterSidebar({
   filters,
   setFilters,
   tcgOptions,
+  editionOptions,
   rarityOptions,
   suggestions,
 }: FilterSidebarProps) {
@@ -41,6 +43,15 @@ function FilterSidebar({
         ))}
       </select>
 
+      <label>Edición</label>
+      <select value={filters.editionName} onChange={(e) => setFilters({ ...filters, editionName: e.target.value })}>
+        {editionOptions.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+
       <label>Rareza</label>
       <select value={filters.rarity} onChange={(e) => setFilters({ ...filters, rarity: e.target.value })}>
         {rarityOptions.map((option) => (
@@ -59,6 +70,7 @@ function FilterSidebar({
       />
 
       <label>Precio máximo (CLP)</label>
+            editionName: 'ALL',
       <input
         inputMode="numeric"
         value={filters.maxPrice}

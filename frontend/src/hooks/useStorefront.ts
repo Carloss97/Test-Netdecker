@@ -18,6 +18,7 @@ export type StorefrontProduct = {
 export type StorefrontFilters = {
   query: string;
   tcgId: string;
+  editionName: string;
   rarity: string;
   minPrice: string;
   maxPrice: string;
@@ -90,6 +91,7 @@ export default function useStorefront() {
   const [filters, setFilters] = useState<StorefrontFilters>({
     query: '',
     tcgId: 'ALL',
+    editionName: 'ALL',
     rarity: 'ALL',
     minPrice: '',
     maxPrice: '',
@@ -175,6 +177,7 @@ export default function useStorefront() {
     return indexedProducts.filter((item) => {
       if (query && !item.cardNameLc.includes(query)) return false;
       if (filters.tcgId !== 'ALL' && item.tcgId !== filters.tcgId) return false;
+      if (filters.editionName !== 'ALL' && item.editionName !== filters.editionName) return false;
       if (filters.rarity !== 'ALL' && item.rarityLc !== filters.rarity.toLowerCase()) return false;
       if (typeof minPrice === 'number' && Number.isFinite(minPrice) && item.finalPrice < minPrice) return false;
       if (typeof maxPrice === 'number' && Number.isFinite(maxPrice) && item.finalPrice > maxPrice) return false;
@@ -183,6 +186,7 @@ export default function useStorefront() {
   }, [indexedProducts, filters, deferredQuery]);
 
   const tcgOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.tcgId)))], [products]);
+  const editionOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.editionName)))], [products]);
   const rarityOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.rarity)))], [products]);
 
   return {
@@ -194,6 +198,7 @@ export default function useStorefront() {
     filters,
     setFilters,
     tcgOptions,
+    editionOptions,
     rarityOptions,
     reload: () => loadProducts('manual-retry'),
   };

@@ -868,6 +868,7 @@ export type TenantVisibilityDiagnostics = {
     threshold: number;
     counts: {
       inventoryListings: number;
+      inventoryInStockListings: number;
       pricingListings: number;
       lowStockListings: number;
       storefrontListings: number;

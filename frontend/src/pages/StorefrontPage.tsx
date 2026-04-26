@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useStorefront, { type StorefrontProduct } from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
 import FilterSidebar from '../components/storefront/FilterSidebar';
@@ -33,11 +33,12 @@ function useThemeMode() {
 }
 
 export default function StorefrontPage() {
-  const { status, error, filteredProducts, filters, setFilters, suggestions, tcgOptions, rarityOptions, reload } = useStorefront();
+  const { status, error, filteredProducts, filters, setFilters, suggestions, tcgOptions, editionOptions, rarityOptions, reload } = useStorefront();
   const cart = useCartPersist();
   const [selected, setSelected] = useState<StorefrontProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const { theme, updateTheme } = useThemeMode();
+  const [groupMode, setGroupMode] = useState<'none' | 'tcg' | 'tcg-edition'>('tcg-edition');
 
   const [activeStore, setActiveStore] = useState(() => {
     try {
@@ -94,11 +95,37 @@ export default function StorefrontPage() {
     setFilters({
       query: '',
       tcgId: 'ALL',
+      editionName: 'ALL',
       rarity: 'ALL',
       minPrice: '',
       maxPrice: '',
     });
   }, [setFilters]);
+
+  const groupedProducts = useMemo(() => {
+    if (groupMode === 'none') {
+      return [{ key: 'all', label: 'Todos los productos', products: filteredProducts }];
+    }
+
+    const groups = new Map<string, { label: string; products: StorefrontProduct[] }>();
+    for (const product of filteredProducts) {
+      const key = groupMode === 'tcg'
+        ? product.tcgId
+        : `${product.tcgId}:::${product.editionName}`;
+      const label = groupMode === 'tcg'
+        ? product.tcgId
+        : `${product.tcgId} · ${product.editionName}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, { label, products: [] });
+      }
+      groups.get(key)!.products.push(product);
+    }
+
+    return Array.from(groups.entries())
+      .map(([key, value]) => ({ key, label: value.label, products: value.products }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+  }, [filteredProducts, groupMode]);
 
   return (
     <div className="storefront-page">
@@ -133,6 +160,7 @@ export default function StorefrontPage() {
             filters={filters}
             setFilters={setFilters}
             tcgOptions={tcgOptions}
+            editionOptions={editionOptions}
             rarityOptions={rarityOptions}
             suggestions={suggestions}
           />
@@ -167,11 +195,45 @@ export default function StorefrontPage() {
                 </button>
               </div>
             )}
-            <ProductGrid
-              products={filteredProducts}
-              onView={handleViewProduct}
-              onAdd={handleAddProduct}
-            />
+            <div className="sf-group-toolbar">
+              <span>Agrupar por</span>
+              <button
+                type="button"
+                className={groupMode === 'none' ? 'sf-primary-btn' : 'sf-ghost-btn'}
+                onClick={() => setGroupMode('none')}
+              >
+                Ninguno
+              </button>
+              <button
+                type="button"
+                className={groupMode === 'tcg' ? 'sf-primary-btn' : 'sf-ghost-btn'}
+                onClick={() => setGroupMode('tcg')}
+              >
+                TCG
+              </button>
+              <button
+                type="button"
+                className={groupMode === 'tcg-edition' ? 'sf-primary-btn' : 'sf-ghost-btn'}
+                onClick={() => setGroupMode('tcg-edition')}
+              >
+                TCG + edición
+              </button>
+            </div>
+
+            {groupedProducts.map((group) => (
+              <section key={group.key} className="sf-group-block">
+                {groupMode !== 'none' && (
+                  <h3 className="sf-group-title">
+                    {group.label} <span>({group.products.length})</span>
+                  </h3>
+                )}
+                <ProductGrid
+                  products={group.products}
+                  onView={handleViewProduct}
+                  onAdd={handleAddProduct}
+                />
+              </section>
+            ))}
           </section>
         </div>
       </div>
