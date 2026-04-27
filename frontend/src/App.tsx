@@ -27,6 +27,7 @@ import { CatalogPage } from './pages/CatalogPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
 import { MultiTenantConsole } from './pages/admin/MultiTenantConsole';
+import { AnalyticsPage } from './pages/admin/AnalyticsPage';
 import apiClient from './services/api';
 
 function readAdminToken(): string | null {
@@ -130,6 +131,7 @@ function App() {
             <Route path="/stock-bajo" element={<LowStockPage />} />
             <Route path="/pos" element={<PosPage />} />
             <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+            <Route path="/admin/analytics" element={<AnalyticsPage />} />
             <Route path="/admin/multi-tenant" element={<MultiTenantConsole />} />
             <Route path="/admin/stores" element={<StoresList />} />
             <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />

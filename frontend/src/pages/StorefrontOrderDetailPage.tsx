@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { getOrder } from '../services/erp';
+import apiClient from '../services/api';
 import StorefrontLayout from '../components/storefront/StorefrontLayout';
 import './storefront_v2.css';
 
@@ -95,17 +96,15 @@ export default function StorefrontOrderDetailPage() {
               <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--store-text-muted)' }}>
                 {order.notes?.includes('Nombre:') ? order.notes.split('. ')[0] : 'Información de despacho procesada.'}
               </p>
-              {order.receiptUrl && (
-                <a 
-                  href={order.receiptUrl} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="btn btn-secondary" 
-                  style={{ width: '100%', marginTop: 15, borderRadius: 10, textAlign: 'center', textDecoration: 'none', display: 'block' }}
-                >
-                  📄 Descargar Comprobante
-                </a>
-              )}
+              <a 
+                href={`${apiClient.defaults.baseURL}/orders/${order.id}/receipt`} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="btn btn-secondary" 
+                style={{ width: '100%', marginTop: 15, borderRadius: 10, textAlign: 'center', textDecoration: 'none', display: 'block' }}
+              >
+                📄 Descargar Recibo
+              </a>
             </div>
           </aside>
         </div>

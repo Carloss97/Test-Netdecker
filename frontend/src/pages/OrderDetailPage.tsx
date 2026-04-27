@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-
 import { useAsync } from '../hooks/useAsync';
 import { getOrder, updateFulfillmentStatus, cancelOrder } from '../services/erp';
+import apiClient from '../services/api';
 
 const FULFILLMENT_STATUSES = [
+
   { value: 'PENDING_PAYMENT', label: 'Por Pagar', color: '#ef4444' },
   { value: 'PAID', label: 'Pagado', color: '#10b981' },
   { value: 'READY_FOR_PICKUP', label: 'Listo para Retiro', color: '#f59e0b' },
@@ -65,7 +66,7 @@ export function OrderDetailPage() {
             </button>
           )}
           <a 
-            href={`/api/orders/${order.id}/receipt`} 
+            href={`${apiClient.defaults.baseURL}/orders/${order.id}/receipt`} 
             target="_blank" 
             rel="noreferrer"
             className="btn btn-primary btn-sm"
@@ -100,14 +101,14 @@ export function OrderDetailPage() {
                       />
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{item.listing?.card?.cardName || 'Producto'}</div>
+                      <div style={{ fontWeight: 600 }}>{item.listing?.cardName || item.listing?.card?.cardName || 'Producto'}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {item.listing?.card?.cardCode} · {item.listing?.card?.rarity}
+                        {item.listing?.cardCode || item.listing?.card?.cardCode} · {item.listing?.rarity || item.listing?.card?.rarity}
                       </div>
                     </td>
                     <td><span className="badge badge-gray">{item.quantity} uds</span></td>
-                    <td>{formatClp(item.price)}</td>
-                    <td style={{ fontWeight: 700 }}>{formatClp(item.price * item.quantity)}</td>
+                    <td>{formatClp(item.pricePerUnit)}</td>
+                    <td style={{ fontWeight: 700 }}>{formatClp(item.pricePerUnit * item.quantity)}</td>
                   </tr>
                 ))}
               </tbody>

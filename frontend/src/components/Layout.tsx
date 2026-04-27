@@ -5,6 +5,7 @@ import { logout } from '../services/adminAuth';
 
 const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Dashboard' },
+  { to: '/admin/analytics', icon: '📈', label: 'Insights' },
   { to: '/catalog', icon: '💎', label: 'Catálogo' },
   { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
   { to: '/admin/multi-tenant', icon: '🏢', label: 'Multi-tienda', globalOnly: true },
@@ -210,6 +211,7 @@ export function Layout({ children }: LayoutProps) {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return { title: 'Dashboard', sub: 'Vista general del sistema' };
+    if (path === '/admin/analytics') return { title: 'Insights', sub: 'Análisis financiero y estadísticas de venta' };
     if (path === '/catalog') return { title: 'Catálogo', sub: 'Listings activos con stock disponible' };
     if (path === '/pedidos') return { title: 'Pedidos', sub: 'Seguimiento logístico de ventas y estados' };
     if (path === '/inventario') return { title: 'Inventario', sub: 'Gestión de stock por set' };
