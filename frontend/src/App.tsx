@@ -23,6 +23,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import { CatalogPage } from './pages/CatalogPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { MultiTenantConsole } from './pages/admin/MultiTenantConsole';
+import apiClient from './services/api';
 
 function readAdminToken(): string | null {
   try {
