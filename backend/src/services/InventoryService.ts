@@ -836,168 +836,197 @@ export class InventoryService {
     const duplicateListingIds = mode === 'listing-update' ? findDuplicateListingIds(rows) : [];
     const duplicateListingIdsSet = new Set(duplicateListingIds);
 
-    for (let i = 0; i < rows.length; i += 1) {
-      const rowNumber = i + 2;
-      const row = rows[i];
+    // Cache TCGs to avoid repeat lookups
+    const tcgs = await prisma.tCG.findMany();
+    const tcgMap = new Map(tcgs.map(t => [t.name.toUpperCase(), t]));
 
-      try {
-        if (mode === 'listing-update') {
-          const parsedRow = validateListingUpdateRow(row, duplicateListingIdsSet);
+    // Batch processing loop
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const chunk = rows.slice(i, i + BATCH_SIZE);
+      
+      // We process each chunk in a single transaction to minimize roundtrips
+      await prisma.$transaction(async (tx: any) => {
+        for (let j = 0; j < chunk.length; j++) {
+          const rowIndex = i + j;
+          const row = chunk[j];
+          const rowNumber = rowIndex + 2;
 
-          const existingListing = await prisma.listing.findUnique({
-            where: { id: parsedRow.listingId },
-            select: { id: true, status: true }
-          });
+          try {
+            if (mode === 'listing-update') {
+              const parsedRow = validateListingUpdateRow(row, duplicateListingIdsSet);
 
-            if (!existingListing) {
-            throw new NotFoundError(`Listing not found: ${parsedRow.listingId}`);
-          }
+              const existingListing = await tx.listing.findUnique({
+                where: { id: parsedRow.listingId },
+                select: { id: true, status: true, quantity: true }
+              });
 
-          if (!dryRun) {
-            // Record previous quantity for potential rollback
+              if (!existingListing) {
+                throw new NotFoundError(`Listing not found: ${parsedRow.listingId}`);
+              }
+
+              if (!dryRun) {
+                if (importId) {
+                  const batchId = await getBatchIdForRow(rowIndex);
+                  await tx.inventoryImportChange.create({
+                    data: {
+                      importId,
+                      listingId: parsedRow.listingId,
+                      oldQuantity: existingListing.quantity ?? null,
+                      newQuantity: parsedRow.quantity,
+                      batchId: batchId || undefined,
+                    }
+                  });
+                }
+
+                await tx.listing.update({
+                  where: { id: parsedRow.listingId },
+                  data: {
+                    quantity: parsedRow.quantity,
+                    ...(parsedRow.quantity > 0 ? { everHadStock: true } : {}),
+                    ...(parsedRow.quantity > 0 && existingListing.status !== 'manual' ? { status: 'active' } : {}),
+                  }
+                });
+              }
+
+              result.success += 1;
+              continue;
+            }
+
+            const parsedRow = validateFullUpsertRow(row);
+            const tcgType = parsedRow.tcgType.toUpperCase();
+            const tcg = tcgMap.get(tcgType);
+            if (!tcg) {
+              throw new NotFoundError(`TCG not initialized: ${tcgType}`);
+            }
+
+            if (dryRun) {
+              result.success += 1;
+              continue;
+            }
+
+            // Upsert edition
+            const edition = await tx.edition.upsert({
+              where: {
+                tcgId_editionCode: {
+                  tcgId: tcg.id,
+                  editionCode: parsedRow.editionCode
+                }
+              },
+              update: { editionName: parsedRow.editionName },
+              create: {
+                tcgId: tcg.id,
+                editionCode: parsedRow.editionCode,
+                editionName: parsedRow.editionName
+              }
+            });
+
+            // Upsert card
+            const card = await tx.card.upsert({
+              where: {
+                tcgId_editionId_cardCode_rarity: {
+                  tcgId: tcg.id,
+                  editionId: edition.id,
+                  cardCode: parsedRow.cardCode,
+                  rarity: parsedRow.rarity,
+                }
+              },
+              update: {
+                cardName: parsedRow.cardName,
+                cardNumber: parsedRow.cardNumber,
+                tags: parsedRow.tags,
+                imageUrl: parsedRow.imageUrl
+              },
+              create: {
+                tcgId: tcg.id,
+                editionId: edition.id,
+                cardCode: parsedRow.cardCode,
+                cardName: parsedRow.cardName,
+                cardNumber: parsedRow.cardNumber,
+                rarity: parsedRow.rarity,
+                tags: parsedRow.tags,
+                imageUrl: parsedRow.imageUrl
+              }
+            });
+
+            const pricing = await PriceService.calculateFinalPrice({
+              referencePrice: parsedRow.referencePrice,
+              marginMultiplier: parsedRow.marginMultiplier
+            });
+
+            const resolvedStoreId = String(options.storeId || '').trim();
+            if (!resolvedStoreId) {
+              throw new ValidationError('storeId is required to import listings');
+            }
+
+            // Capture existing listing for history
+            const existingListing = await tx.listing.findUnique({
+              where: {
+                cardId_condition_rarity: {
+                  cardId: card.id,
+                  condition: parsedRow.condition,
+                  rarity: parsedRow.rarity,
+                }
+              },
+              select: { id: true, quantity: true }
+            });
+
+            const listingData = {
+              quantity: parsedRow.quantity,
+              referencePrice: parsedRow.referencePrice,
+              marginMultiplier: parsedRow.marginMultiplier,
+              rarity: parsedRow.rarity,
+              exchangeRate: pricing.exchangeRate,
+              finalPrice: pricing.finalPrice,
+              editionId: edition.id,
+              currency: 'CLP',
+              status: 'active',
+              ...(parsedRow.quantity > 0 ? { everHadStock: true } : {}),
+            };
+
+            const upserted = await tx.listing.upsert({
+              where: {
+                cardId_condition_rarity: {
+                  cardId: card.id,
+                  condition: parsedRow.condition,
+                  rarity: parsedRow.rarity,
+                }
+              },
+              update: listingData,
+              create: {
+                ...listingData,
+                cardId: card.id,
+                condition: parsedRow.condition,
+                storeId: resolvedStoreId,
+              }
+            });
+
             if (importId) {
-              const prev = await prisma.listing.findUnique({ where: { id: parsedRow.listingId }, select: { quantity: true } });
-              const batchId = await getBatchIdForRow(i);
-              await prisma.inventoryImportChange.create({
+              const batchId = await getBatchIdForRow(rowIndex);
+              await tx.inventoryImportChange.create({
                 data: {
                   importId,
-                  listingId: parsedRow.listingId,
-                  oldQuantity: prev?.quantity ?? null,
+                  listingId: upserted.id,
+                  oldQuantity: existingListing?.quantity ?? null,
                   newQuantity: parsedRow.quantity,
                   batchId: batchId || undefined,
                 }
               });
             }
 
-            await prisma.listing.update({
-              where: { id: parsedRow.listingId },
-              data: {
-                quantity: parsedRow.quantity,
-                // Mark as ever having had stock if quantity > 0
-                ...(parsedRow.quantity > 0 ? { everHadStock: true } : {}),
-                ...(parsedRow.quantity > 0 && existingListing.status !== 'manual' ? { status: 'active' } : {}),
-              }
+            result.success += 1;
+          } catch (err: any) {
+            result.failed += 1;
+            result.errors.push({
+              row: rowNumber,
+              message: err?.message || 'Unknown error'
             });
           }
-
-          result.success += 1;
-          continue;
         }
-
-        const parsedRow = validateFullUpsertRow(row);
-        const tcgType = parsedRow.tcgType;
-        const editionCode = parsedRow.editionCode;
-        const editionName = parsedRow.editionName;
-        const cardCode = parsedRow.cardCode;
-        const cardName = parsedRow.cardName;
-        const quantity = parsedRow.quantity;
-        const referencePrice = parsedRow.referencePrice;
-        const marginMultiplier = parsedRow.marginMultiplier;
-        const condition = parsedRow.condition;
-        const rarity = parsedRow.rarity;
-
-        // In dry-run mode we only validate parsing and mapping without
-        // requiring DB lookups to be present — treat as success.
-        if (dryRun) {
-          result.success += 1;
-          continue;
-        }
-
-        const tcg = await prisma.tCG.findUnique({ where: { name: tcgType } });
-        if (!tcg) {
-          throw new NotFoundError(`TCG not initialized: ${tcgType}`);
-        }
-
-        const edition = await prisma.edition.upsert({
-          where: {
-            tcgId_editionCode: {
-              tcgId: tcg.id,
-              editionCode
-            }
-          },
-          update: {
-            editionName
-          },
-          create: {
-            tcgId: tcg.id,
-            editionCode,
-            editionName
-          }
-        });
-
-        const card = await prisma.card.upsert({
-          where: {
-            tcgId_editionId_cardCode_rarity: {
-              tcgId: tcg.id,
-              editionId: edition.id,
-              cardCode,
-              rarity,
-            }
-          },
-          update: {
-            cardName,
-            cardNumber: parsedRow.cardNumber,
-            rarity,
-            tags: parsedRow.tags,
-            imageUrl: parsedRow.imageUrl
-          },
-          create: {
-            tcgId: tcg.id,
-            editionId: edition.id,
-            cardCode,
-            cardName,
-            cardNumber: parsedRow.cardNumber,
-            rarity,
-            tags: parsedRow.tags,
-            imageUrl: parsedRow.imageUrl
-          }
-        });
-
-        const pricing = await PriceService.calculateFinalPrice({
-          referencePrice,
-          marginMultiplier
-        });
-
-        // Capture existing listing (if any) so we can record the prior quantity
-        const existingListing = await prisma.listing.findUnique({
-          where: {
-            cardId_condition_rarity: {
-              cardId: card.id,
-              condition,
-              rarity,
-            }
-          },
-          select: { id: true, quantity: true }
-        });
-
-        const resolvedStoreId = String(options.storeId || '').trim();
-        if (!resolvedStoreId) {
-          throw new ValidationError('storeId is required to import listings');
-        }
-
-        const listingData = {
-          quantity,
-          referencePrice,
-          marginMultiplier,
-          rarity,
-          exchangeRate: pricing.exchangeRate,
-          finalPrice: pricing.finalPrice,
-          editionId: edition.id,
-          currency: 'CLP',
-          status: 'active',
-          ...(quantity > 0 ? { everHadStock: true } : {}),
-        };
-
-        const upserted = await prisma.listing.upsert({
-          where: {
-            cardId_condition_rarity: {
-              cardId: card.id,
-              condition,
-              rarity,
-            }
-          },
-          update: {
-            ...listingData,
+      }, {
+        timeout: 30000 // 30s per batch is safer for Neon
+      });
+    }
           },
           create: {
             storeId: resolvedStoreId,

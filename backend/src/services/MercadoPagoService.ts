@@ -58,32 +58,56 @@ export class MercadoPagoService {
 
     if (!mercadopago) throw new Error('Unsupported mercadopago SDK shape');
 
+    const items = (params.items || []).map((it) => {
+      const title = String(it.title || 'Producto POS').trim().slice(0, 250) || 'Producto POS';
+      const unit_price = Number(it.unit_price) || 0;
+      const quantity = Math.max(1, Number(it.quantity) || 1);
+
+      return {
+        id: it.id,
+        title,
+        quantity,
+        unit_price: unit_price > 0 ? unit_price : 1, // MP fails on 0 or negative price
+        currency_id: 'CLP',
+      };
+    });
+
     const pref = {
-      items: params.items.map((it) => ({ id: it.id, title: it.title, quantity: it.quantity, unit_price: it.unit_price })),
+      items,
       back_urls: params.back_urls || {},
       external_reference: params.external_reference || undefined,
       metadata: {
-        items: JSON.stringify(params.items.map((it) => ({ listingId: it.id, quantity: it.quantity }))),
+        items: JSON.stringify(items.map((it) => ({ listingId: it.id, quantity: it.quantity }))),
         storeId: params.external_reference || undefined,
       },
       auto_return: 'approved',
     } as any;
 
-    // Support multiple SDK shapes
-    if (mercadopago.preferences && typeof mercadopago.preferences.create === 'function') {
-      const res = await mercadopago.preferences.create(pref);
-      return res?.response ?? res;
-    }
+    try {
+      // Support multiple SDK shapes
+      if (mercadopago.preferences && typeof mercadopago.preferences.create === 'function') {
+        const res = await mercadopago.preferences.create(pref);
+        return res?.response ?? res;
+      }
 
-    if (typeof mercadopago.create === 'function') {
-      const res = await mercadopago.create(pref);
-      return res;
-    }
+      if (typeof mercadopago.create === 'function') {
+        const res = await mercadopago.create(pref);
+        return res;
+      }
 
-    if (typeof mercadopago.request === 'function') {
-      // Some SDKs expose a request helper
-      const res = await mercadopago.request('post', '/checkout/preferences', pref);
-      return res;
+      if (typeof mercadopago.request === 'function') {
+        // Some SDKs expose a request helper
+        const res = await mercadopago.request('post', '/checkout/preferences', pref);
+        return res;
+      }
+    } catch (err: any) {
+      console.error('[MercadoPago] createPreference error:', {
+        message: err?.message,
+        cause: err?.cause,
+        stack: err?.stack,
+        payload: JSON.stringify(pref),
+      });
+      throw err;
     }
 
     throw new Error('Unsupported mercadopago SDK API shape');

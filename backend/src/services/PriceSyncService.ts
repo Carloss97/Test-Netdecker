@@ -492,37 +492,42 @@ export class PriceSyncService {
       }
 
       const effectiveUpdates = updates ?? [];
-
       result.total = effectiveUpdates.length;
 
-      // Concurrency + retry configuration
-      const CONCURRENCY = Math.max(1, Number(process.env.PRICE_SYNC_CONCURRENCY_LIMIT || process.env.PRICE_SYNC_CONCURRENCY || 6));
-      const RETRY_COUNT = Number(process.env.PRICE_SYNC_RETRY_COUNT || 2);
-      const RETRY_BASE_MS = Number(process.env.PRICE_SYNC_RETRY_BASE_MS || 500);
+      // --- NEW BULK UPDATE LOGIC ---
+      // We group updates that don't need approval (not volatile) to run them in fewer transactions.
+      const CONCURRENCY = Math.max(1, Number(process.env.PRICE_SYNC_CONCURRENCY_LIMIT || process.env.PRICE_SYNC_CONCURRENCY || 10));
+      
+      // Separate updates into those requiring approval (volatile) and those that can be bulk-updated
+      const volatileUpdates: PriceSyncUpdateInput[] = [];
+      const directUpdates: PriceSyncUpdateInput[] = [];
 
-      const isRetriable = (err: unknown) => {
-        if (err instanceof NotFoundError) return false;
-        if (err instanceof ValidationError) return false;
-        return true;
-      };
+      // We need to fetch current prices to check volatility in advance
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < effectiveUpdates.length; i += BATCH_SIZE) {
+        const chunk = effectiveUpdates.slice(i, i + BATCH_SIZE);
+        const listingIds = chunk.map(u => u.listingId).filter(Boolean) as string[];
+        
+        const currentListings = await prisma.listing.findMany({
+          where: { id: { in: listingIds } },
+          select: { id: true, finalPrice: true, marginMultiplier: true, editionId: true, card: { select: { tcg: { select: { name: true } } } } }
+        });
 
-      async function processOne(update: PriceSyncUpdateInput) {
-        if (update.listingId) {
-          const listing = await prisma.listing.findUnique({
-            where: { id: update.listingId },
-            select: {
-              id: true,
-              finalPrice: true,
-              marginMultiplier: true,
-              editionId: true,
-              card: { select: { tcg: { select: { name: true } } } },
-            }
-          });
+        const currentMap = new Map(currentListings.map(l => [l.id, l]));
 
-          if (!listing) throw new NotFoundError('Listing not found');
+        for (const update of chunk) {
+          if (!update.listingId) {
+            directUpdates.push(update); // For cardId based updates (new listings)
+            continue;
+          }
+
+          const listing = currentMap.get(update.listingId);
+          if (!listing) {
+            result.failed += 1;
+            continue;
+          }
 
           const resolvedMargin = update.marginMultiplier || listing.marginMultiplier;
-
           const calculated = await PriceService.calculateFinalPrice({
             referencePrice: update.referencePrice,
             marginMultiplier: resolvedMargin,
@@ -541,119 +546,63 @@ export class PriceSyncService {
 
           const approvalRequired = process.env.PRICE_APPROVAL_REQUIRED === 'true';
           if (isVolatile && approvalRequired) {
-            const percentChange = listing.finalPrice === 0
-              ? (calculated.finalPrice > 0 ? 100 : 0)
-              : ((calculated.finalPrice - listing.finalPrice) / listing.finalPrice) * 100;
-
-            await PriceApprovalService.createApproval({
-              listingId: listing.id,
-              oldFinalPrice: listing.finalPrice,
-              newFinalPrice: calculated.finalPrice,
-              newReferencePrice: update.referencePrice,
-              marginMultiplier: resolvedMargin,
-              percentChange,
-              requestedBy: input.changedBy || input.source,
-              notes: input.notes ?? (input.source === 'cron' ? 'Scheduled price sync (pending approval)' : 'Manual price sync (pending approval)'),
-            });
-
-            result.volatile += 1;
-            return;
-          }
-
-          if (isVolatile) result.volatile += 1;
-
-          const reason = isVolatile
-            ? PriceUpdateReason.VOLATILE_ALERT
-            : isApiSourced
-              ? PriceUpdateReason.EXTERNAL_API_SYNC
-              : PriceUpdateReason.TCGPLAYER_SYNC;
-
-          await PriceService.updateListingPrice(
-            update.listingId,
-            update.referencePrice,
-            resolvedMargin,
-            reason,
-            input.changedBy || input.source,
-            input.notes || (input.source === 'cron' ? 'Scheduled price sync' : 'Manual price sync'),
-            resolvedRounding,
-          );
-
-          result.updated += 1;
-          return;
-        }
-
-        if (update.cardId) {
-          const defaultStore = await prisma.store.findFirst({
-            select: { id: true },
-            orderBy: { createdAt: 'asc' },
-          });
-          if (!defaultStore) {
-            throw new NotFoundError('No store available to create listing during sync');
-          }
-
-          const resolvedMargin = update.marginMultiplier || DEFAULT_MARGIN_MULTIPLIER;
-          const createdListing = await ListingService.createListing({
-            storeId: defaultStore.id,
-            cardId: update.cardId,
-            condition: CardCondition.NM,
-            quantity: 0,
-            referencePrice: update.referencePrice,
-            marginMultiplier: resolvedMargin,
-          });
-
-          await prisma.listing.update({ where: { id: createdListing.id }, data: { lastSyncedAt: new Date() } });
-
-          result.updated += 1;
-          return;
-        }
-
-        throw new ValidationError('Sync target missing listingId or cardId');
-      }
-
-      async function withRetries(update: PriceSyncUpdateInput) {
-        let attempt = 0;
-        while (true) {
-          try {
-            await processOne(update);
-            return;
-          } catch (err) {
-            attempt += 1;
-            if (attempt > RETRY_COUNT || !isRetriable(err)) throw err;
-            const backoff = RETRY_BASE_MS * Math.pow(2, attempt - 1);
-            try { console.warn(`[PriceSyncService] retrying update ${update.listingId || update.cardId} after ${backoff}ms due to error: ${err instanceof Error ? err.message : String(err)}`); } catch (_) {}
-            await sleep(backoff);
+            volatileUpdates.push({ ...update, marginMultiplier: resolvedMargin });
+          } else {
+            directUpdates.push({ ...update, marginMultiplier: resolvedMargin });
+            if (isVolatile) result.volatile += 1;
           }
         }
       }
 
-      // Batch processing: break the big update list into sized chunks to
-      // avoid holding extremely large worker queues in memory and to allow
-      // intermediate backpressure.
-      const BATCH_SIZE = Math.max(50, Number(process.env.PRICE_SYNC_BATCH_SIZE || 500));
+      // 1. Process volatile updates (one by one as they create approval records)
+      for (const update of volatileUpdates) {
+        try {
+          // Re-running processOne for volatile ensures proper approval creation logic
+          await this.processOne(update, resolvedRounding, input, result);
+        } catch (err: any) {
+          result.failed += 1;
+          result.errors.push({ listingId: update.listingId!, message: err.message });
+        }
+      }
 
-      async function processChunk(updatesChunk: PriceSyncUpdateInput[]) {
-        let idxLocal = 0;
-        const workers = new Array(Math.min(CONCURRENCY, updatesChunk.length)).fill(null).map(async () => {
-          while (true) {
-            const i = idxLocal;
-            idxLocal += 1;
-            if (i >= updatesChunk.length) break;
-            const update = updatesChunk[i];
+      // 2. Process direct updates in bulk batches
+      const UPDATE_BATCH_SIZE = 200;
+      for (let i = 0; i < directUpdates.length; i += UPDATE_BATCH_SIZE) {
+        const chunk = directUpdates.slice(i, i + UPDATE_BATCH_SIZE);
+        
+        await prisma.$transaction(async (tx) => {
+          for (const update of chunk) {
             try {
-              await withRetries(update);
-            } catch (err) {
+              if (update.listingId) {
+                // Optimized direct update without re-fetching
+                const calculated = await PriceService.calculateFinalPrice({
+                  referencePrice: update.referencePrice,
+                  marginMultiplier: update.marginMultiplier!,
+                  roundingMultiple: resolvedRounding,
+                });
+
+                await tx.listing.update({
+                  where: { id: update.listingId },
+                  data: {
+                    referencePrice: update.referencePrice,
+                    marginMultiplier: update.marginMultiplier,
+                    finalPrice: calculated.finalPrice,
+                    exchangeRate: calculated.exchangeRate,
+                    lastSyncedAt: new Date(),
+                    priceUpdatedAt: new Date(),
+                  }
+                });
+                result.updated += 1;
+              } else if (update.cardId) {
+                // CardId updates still need careful handling
+                await this.processOne(update, resolvedRounding, input, result, tx);
+              }
+            } catch (err: any) {
               result.failed += 1;
-              result.errors.push({ listingId: update.listingId || update.cardId || 'N/A', message: err instanceof Error ? err.message : String(err) });
+              result.errors.push({ listingId: update.listingId || 'N/A', message: err.message });
             }
           }
-        });
-
-        await Promise.all(workers);
-      }
-
-      for (let start = 0; start < effectiveUpdates.length; start += BATCH_SIZE) {
-        const chunk = effectiveUpdates.slice(start, start + BATCH_SIZE);
-        await processChunk(chunk);
+        }, { timeout: 20000 });
       }
 
       const completedAt = new Date();

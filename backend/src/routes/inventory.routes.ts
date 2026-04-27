@@ -6,81 +6,47 @@ import { InventoryService } from '../services/InventoryService.js';
 import multer from 'multer';
 import { z } from 'zod';
 import requireApiKey from '../middleware/requireApiKey.js';
-import { NotFoundError, ValidationError } from '../utils/errors.js';
+import requireAdmin from '../middleware/requireAdmin.js';
+import requirePermission from '../middleware/requirePermission.js';
+import { NotFoundError, ValidationError, ForbiddenError } from '../utils/errors.js';
 import ExcelJS from 'exceljs';
 import axios from 'axios';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-function getImportStoreId(req: Request): string | undefined {
-  const raw = String(req.header('x-store-id') || '').trim();
-  return raw.length > 0 ? raw : undefined;
+/**
+ * Helper to get storeId from the authenticated session.
+ * This ensures that a store-scoped admin cannot operate on other stores
+ * by simply changing a header.
+ */
+function getAuthenticatedStoreId(req: Request): string {
+  const admin = (req as any).adminUser;
+  if (!admin) throw new ForbiddenError('Not authenticated');
+  
+  // If the admin is global (no storeId in session), they can provide a storeId via header or query
+  if (!admin.storeId) {
+    const headerStoreId = String(req.header('x-store-id') || req.query.storeId || '').trim();
+    return headerStoreId;
+  }
+  
+  // If the admin is scoped to a store, they MUST use that storeId
+  return admin.storeId;
 }
 
 const updateQuantitySchema = z.object({
-  listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
-  quantity: z.coerce.number().int('quantity must be an integer').min(0, 'quantity must be >= 0'),
+  listingId: z.string({ required_error: 'listingId is required' }).trim().min(1),
+  quantity: z.coerce.number().int().min(0),
 });
 
-const bulkUpdateSchema = z.object({
-  updates: z.array(
-    z.object({
-      listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
-      quantity: z.coerce.number().int('quantity must be an integer').min(0, 'quantity must be >= 0'),
-    })
-  ).min(1, 'updates must be a non-empty array of { listingId, quantity }'),
-});
-
-const decreaseQuantitySchema = z.object({
-  listingId: z.string({ required_error: 'listingId is required', invalid_type_error: 'listingId is required' }).trim().min(1, 'listingId is required'),
-  amount: z.coerce.number().int('amount must be an integer').positive('amount must be > 0'),
-});
-
-const rollbackSchema = z.object({
-  force: z.boolean().optional(),
-  dryRun: z.boolean().optional(),
-  onlyListingIds: z.array(z.string()).optional(),
-  skipListingIds: z.array(z.string()).optional(),
-  batchId: z.string().optional(),
-  batchIndex: z.number().int().optional(),
-});
-
-function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    throw new ValidationError(parsed.error.issues[0]?.message || 'Invalid request payload');
-  }
-  return parsed.data;
-}
-
-function parseImportQuery(req: Request) {
-  const page = Number(req.query.page || 1);
-  const pageSize = Number(req.query.pageSize || req.query.limit || 20);
-  const status = req.query.status ? String(req.query.status) : undefined;
-  const dateFrom = req.query.dateFrom ? new Date(String(req.query.dateFrom)) : undefined;
-  const dateTo = req.query.dateTo ? new Date(String(req.query.dateTo)) : undefined;
-  const sortBy = req.query.sortBy ? String(req.query.sortBy) : 'createdAt';
-  const sortDir = req.query.sortDir ? String(req.query.sortDir) : 'desc';
-
-  return {
-    page,
-    pageSize,
-    status,
-    dateFrom: dateFrom && !Number.isNaN(dateFrom.getTime()) ? dateFrom : undefined,
-    dateTo: dateTo && !Number.isNaN(dateTo.getTime()) ? dateTo : undefined,
-    sortBy: ['createdAt', 'status', 'fileName', 'totalRecords'].includes(sortBy)
-      ? (sortBy as 'createdAt' | 'status' | 'fileName' | 'totalRecords')
-      : 'createdAt',
-    sortDir: sortDir === 'asc' ? 'asc' : 'desc' as 'asc' | 'desc',
-  };
-}
+// Apply global admin requirement for all inventory routes
+router.use(requireAdmin);
 
 /**
  * GET /api/inventory/imports?limit=50
  * Returns import history.
  */
-router.get('/imports', async (req: Request, res: Response) => {
+router.get('/imports', requirePermission('view', 'inventory-import'), async (req: Request, res: Response) => {
   const query = parseImportQuery(req);
   const result = await InventoryService.getImports(query);
   res.json({ success: true, ...result });
@@ -90,7 +56,7 @@ router.get('/imports', async (req: Request, res: Response) => {
  * GET /api/inventory/imports/export
  * Exports all filtered imports as CSV (complete history, no page cap).
  */
-router.get('/imports/export', async (req: Request, res: Response) => {
+router.get('/imports/export', requirePermission('view', 'inventory-import'), async (req: Request, res: Response) => {
   const query = parseImportQuery(req);
 
   res.setHeader('Content-Type', 'text/csv');

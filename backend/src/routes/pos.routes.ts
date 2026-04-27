@@ -1,13 +1,13 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import PosService from '../services/PosService.js';
-import { ValidationError, NotFoundError } from '../utils/errors.js';
+import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors.js';
+import requireAdmin from '../middleware/requireAdmin.js';
+import requirePermission from '../middleware/requirePermission.js';
 
 const router = express.Router();
 
 const createSessionSchema = z.object({
-  storeId: z.string().optional(),
-  userId: z.string().optional(),
   items: z.any().optional(),
   subtotal: z.coerce.number().optional(),
   tax: z.coerce.number().optional(),
@@ -29,25 +29,43 @@ function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
   return parsed.data;
 }
 
-router.post('/sessions', async (req: Request, res: Response) => {
+// Global requirement for POS
+router.use(requireAdmin);
+
+router.post('/sessions', requirePermission('create', 'pos-session'), async (req: Request, res: Response) => {
+  const admin = (req as any).adminUser;
+  if (!admin) throw new ForbiddenError('Not authenticated');
+
   const body = parseBodyOrThrow(createSessionSchema, req.body);
-  const session = await PosService.createSession(body as any);
+  
+  // Enforce storeId and userId from authenticated session
+  const session = await PosService.createSession({
+    ...body,
+    storeId: admin.storeId || String(req.header('x-store-id') || '').trim() || null,
+    userId: admin.id,
+  });
+  
   res.json({ success: true, session });
 });
 
-router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
+router.get('/sessions/:sessionId', requirePermission('view', 'pos-session'), async (req: Request, res: Response) => {
   const session = await PosService.getSessionByPublicId(String(req.params.sessionId));
   if (!session) throw new NotFoundError('POS session not found');
   res.json({ success: true, session });
 });
 
-router.post('/sessions/:sessionId/transactions', async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/transactions', requirePermission('create', 'pos-transaction'), async (req: Request, res: Response) => {
   const body = parseBodyOrThrow(transactionSchema, req.body);
   const tx = await PosService.createTransaction(String(req.params.sessionId), body as any);
   res.json({ success: true, transaction: tx });
 });
 
-router.get('/sessions/:sessionId/transactions', async (req: Request, res: Response) => {
+router.post('/sessions/:sessionId/complete', requirePermission('update', 'pos-session'), async (req: Request, res: Response) => {
+  const result = await PosService.completeSession(String(req.params.sessionId));
+  res.json({ success: true, ...result });
+});
+
+router.get('/sessions/:sessionId/transactions', requirePermission('view', 'pos-transaction'), async (req: Request, res: Response) => {
   const txs = await PosService.listTransactions(String(req.params.sessionId));
   res.json({ success: true, transactions: txs });
 });
