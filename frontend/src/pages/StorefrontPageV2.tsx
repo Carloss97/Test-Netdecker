@@ -13,14 +13,14 @@ export default function StorefrontPageV2() {
   
   const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions } = useStorefront();
   const cart = useCartPersist();
-  
-  const [selectedTCG, setSelectedTCG] = useState<string>('ALL');
+  const [addingId, setAddingId] = useState<string | null>(null);
 
   useEffect(() => {
     setFilters({ ...filters, query: searchQuery });
   }, [searchQuery]);
 
   const handleAddToCart = (product: StorefrontProduct) => {
+    setAddingId(product.id);
     cart.addItem({
       id: product.id,
       name: product.cardName,
@@ -28,6 +28,7 @@ export default function StorefrontPageV2() {
       imageUrl: product.imageUrl,
       quantity: 1,
     });
+    setTimeout(() => setAddingId(null), 1000);
   };
 
   return (
@@ -136,19 +137,37 @@ export default function StorefrontPageV2() {
                     <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {product.cardName}
                     </h4>
-                    <div style={{ display: 'flex', gap: 5, marginBottom: 15 }}>
+                    <div style={{ display: 'flex', gap: 5, marginBottom: 15, alignItems: 'center', justifyContent: 'space-between' }}>
                       <RarityBadge rarity={product.rarity} />
+                      <span style={{ fontSize: '0.7rem', color: product.quantity > 0 ? 'var(--store-text-muted)' : '#ef4444', fontWeight: 600 }}>
+                        {product.quantity > 0 ? `Stock: ${product.quantity}` : 'Agotado'}
+                      </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="store-card-price" style={{ color: 'var(--store-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
                         {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(product.finalPrice)}
                       </div>
                       <button 
-                        className="btn btn-sm" 
-                        style={{ background: 'var(--store-text)', color: 'var(--store-surface)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, cursor: 'pointer' }}
-                        onClick={() => handleAddToCart(product)}
+                        className={`btn btn-sm ${addingId === product.id ? 'adding' : ''}`}
+                        style={{ 
+                          background: addingId === product.id ? '#10b981' : 'var(--store-text)', 
+                          color: 'var(--store-surface)', 
+                          border: 'none', 
+                          borderRadius: 8, 
+                          width: 32, 
+                          height: 32, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontWeight: 900, 
+                          cursor: product.quantity > 0 ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.2s ease',
+                          transform: addingId === product.id ? 'scale(1.2)' : 'scale(1)'
+                        }}
+                        onClick={() => product.quantity > 0 && handleAddToCart(product)}
+                        disabled={product.quantity <= 0}
                       >
-                        +
+                        {addingId === product.id ? '✓' : '+'}
                       </button>
                     </div>
                   </div>

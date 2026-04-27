@@ -95,6 +95,7 @@ function extractProducts(payload: any): StorefrontProduct[] {
 export default function useStorefront() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [allProducts, setAllProducts] = useState<StorefrontProduct[]>([]);
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [filters, setFilters] = useState<StorefrontFilters>({
     query: '',
@@ -114,29 +115,26 @@ export default function useStorefront() {
       const params: any = {};
       if (search) params.search = search;
       if (filters.tcgId !== 'ALL') params.tcgId = filters.tcgId;
-      if (filters.editionName !== 'ALL') params.editionId = filters.editionName; // Backend uses ID for filtering if provided
+      if (filters.editionName !== 'ALL') params.editionId = filters.editionName;
 
       const resp = await apiClient.get('/listings/available', { params });
-      const normalized = extractProducts(resp?.data);
+      const normalized = extractProducts(resp?.data || resp);
       setProducts(normalized);
+
+      if (reason === 'initial-load' || reason === 'store-change') {
+        if (filters.tcgId === 'ALL' && !search) {
+          setAllProducts(normalized);
+        } else {
+          const full = await apiClient.get('/listings/available');
+          setAllProducts(extractProducts(full?.data || full));
+        }
+      }
+
       setStatus('ready');
-      logClientInfo({
-        area: 'storefront-hook',
-        action: 'load-products',
-        message: 'Storefront products loaded',
-        context: { reason, count: normalized.length, search },
-      });
     } catch (err) {
       setProducts([]);
       setStatus('error');
-      setError('No se pudo cargar catálogo remoto.');
-      logClientError({
-        area: 'storefront-hook',
-        action: 'load-products',
-        message: 'Failed loading storefront products from API',
-        context: { reason },
-        error: err,
-      });
+      setError('No se pudo cargar catálogo.');
     }
   }, [filters.tcgId, filters.editionName]);
 
@@ -198,9 +196,20 @@ export default function useStorefront() {
     });
   }, [indexedProducts, filters, deferredQuery]);
 
-  const tcgOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.tcgId)))], [products]);
-  const editionOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.editionName)))], [products]);
-  const rarityOptions = useMemo(() => ['ALL', ...Array.from(new Set(products.map((entry) => entry.rarity)))], [products]);
+  const tcgOptions = useMemo(() => {
+    const base = allProducts.length > 0 ? allProducts : products;
+    return ['ALL', ...Array.from(new Set(base.map((entry) => entry.tcgId))).filter(Boolean)];
+  }, [allProducts, products]);
+
+  const editionOptions = useMemo(() => {
+    const base = allProducts.length > 0 ? allProducts : products;
+    return ['ALL', ...Array.from(new Set(base.map((entry) => entry.editionName))).filter(Boolean)];
+  }, [allProducts, products]);
+
+  const rarityOptions = useMemo(() => {
+    const base = allProducts.length > 0 ? allProducts : products;
+    return ['ALL', ...Array.from(new Set(base.map((entry) => entry.rarity))).filter(Boolean)];
+  }, [allProducts, products]);
 
   return {
     status,
