@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { listOrders, updateFulfillmentStatus, cancelOrder } from '../services/erp';
 
@@ -92,7 +93,11 @@ export function OrdersPage() {
             <tbody>
               {orders.map((order: any) => (
                 <tr key={order.id} style={{ opacity: updatingId === order.id ? 0.6 : 1 }}>
-                  <td style={{ fontWeight: 700 }}>{order.orderNumber}</td>
+                  <td style={{ fontWeight: 700 }}>
+                    <Link to={`/pedidos/${order.id}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                      {order.orderNumber}
+                    </Link>
+                  </td>
                   <td style={{ fontSize: '0.85rem' }}>{new Date(order.createdAt).toLocaleDateString('es-CL')}</td>
                   <td>
                     <div style={{ fontWeight: 500 }}>{order.customerEmail}</div>
@@ -120,6 +125,7 @@ export function OrdersPage() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 8 }}>
+                      <Link to={`/pedidos/${order.id}`} className="btn btn-secondary btn-sm">Ver</Link>
                       {order.fulfillmentStatus !== 'CANCELLED' && (
                         <button 
                           className="btn btn-danger btn-sm" 

@@ -74,6 +74,11 @@ export async function listOrders(params: { status?: string; fulfillmentStatus?: 
   return data;
 }
 
+export async function getOrder(orderId: string) {
+  const { data } = await apiClient.get(`/orders/${orderId}`);
+  return data.order ?? data;
+}
+
 export async function updateFulfillmentStatus(orderId: string, status: string) {
   const { data } = await apiClient.patch(`/orders/${orderId}/fulfillment`, { status });
   return data.order ?? data;

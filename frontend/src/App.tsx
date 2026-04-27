@@ -6,7 +6,6 @@ import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PricingPage } from './pages/PricingPage';
 import { ImportPage } from './pages/ImportPage';
-import { ImportMapper } from './pages/ImportMapper';
 import { CardSearchPage } from './pages/CardSearchPage';
 import { AdminDashboardPage } from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
@@ -22,6 +21,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import { CatalogPage } from './pages/CatalogPage';
 import { OrdersPage } from './pages/OrdersPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
 import { MultiTenantConsole } from './pages/admin/MultiTenantConsole';
 import apiClient from './services/api';
 
@@ -114,10 +114,10 @@ function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/catalog" element={<CatalogPage />} />
             <Route path="/pedidos" element={<OrdersPage />} />
+            <Route path="/pedidos/:id" element={<OrderDetailPage />} />
             <Route path="/inventario" element={<InventoryPage />} />
             <Route path="/precios" element={<PricingPage />} />
             <Route path="/importar" element={<ImportPage />} />
-            <Route path="/import-mapper" element={<ImportMapper />} />
             <Route path="/buscar" element={<CardSearchPage />} />
             <Route path="/stock-bajo" element={<LowStockPage />} />
             <Route path="/pos" element={<PosPage />} />

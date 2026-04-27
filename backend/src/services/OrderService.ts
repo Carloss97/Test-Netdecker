@@ -1,6 +1,7 @@
 import prisma from '../utils/db.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
 import AuditService from './AuditService.js';
+import EmailNotificationService from './EmailNotificationService.js';
 
 export class OrderService {
   static async listOrders(params: { take?: number; skip?: number; status?: string; fulfillmentStatus?: string; storeId?: string } = {}) {
@@ -98,7 +99,7 @@ export class OrderService {
         await tx.listing.update({ where: { id: it.listingId }, data: { quantity: Number(listing.quantity || 0) + Number((it as any).quantity || 0) } });
       }
 
-      const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' }, include: { items: true } });
+      const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' }, include: { items: true, store: true } });
 
       await AuditService.auditEntityChange({
         entityType: 'order',
@@ -109,6 +110,9 @@ export class OrderService {
         changedBy: performedBy || null,
         action: 'ORDER.CANCEL',
       });
+
+      // Notify customer
+      void EmailNotificationService.sendOrderStatusEmail(updated as any, 'CANCELLED');
 
       return updated;
     });
@@ -190,6 +194,7 @@ export class OrderService {
     const updated = await prisma.order.update({
       where: { id: order.id },
       data: { fulfillmentStatus: status },
+      include: { store: true },
     });
 
     await AuditService.auditEntityChange({
@@ -201,6 +206,9 @@ export class OrderService {
       changedBy: performedBy || null,
       action: 'ORDER.FULFILLMENT_UPDATE',
     });
+
+    // Notify customer of fulfillment status change
+    void EmailNotificationService.sendOrderStatusEmail(updated as any, status);
 
     return updated;
   }
