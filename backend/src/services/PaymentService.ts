@@ -1,6 +1,7 @@
 import prisma from '../utils/db.js';
 import { ValidationError, NotFoundError, ConflictError } from '../utils/errors.js';
 import OrderReceiptPdfService from './OrderReceiptPdfService.js';
+import CouponService from './CouponService.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,9 +15,6 @@ export class PaymentService {
 
   /**
    * Procesa una venta de PoS de forma atómica.
-   * - items: [{ listingId, quantity }]
-   * - crea `Order` + `OrderItem[]`, crea `StockMovement` OUT y decrementa `Listing.quantity`.
-   * - genera asientos contables (venta y COGS) si existen cuentas configuradas para la tienda.
    */
   static async processPosSale(input: {
     items: { listingId: string; quantity: number }[];
@@ -25,10 +23,12 @@ export class PaymentService {
     paymentMethod?: string | null;
     performedBy?: string | null;
     externalReference?: string | null;
+    couponCode?: string | null;
   }) {
     if (!input.items || !Array.isArray(input.items) || input.items.length === 0) {
       throw new ValidationError('Cart items are required');
     }
+
 
     // Idempotency: if externalReference provided, return existing order if present
     if (input.externalReference) {
@@ -92,8 +92,19 @@ export class PaymentService {
         totalCOGS += costPrice * qty;
       }
 
+      // --- NEW COUPON LOGIC ---
+      let discountAmount = 0;
+      let couponId: string | undefined;
+
+      if (input.couponCode) {
+        const validation = await CouponService.validateCoupon(effectiveStoreId, input.couponCode, subtotal);
+        discountAmount = validation.discountAmount;
+        couponId = validation.couponId;
+        await CouponService.incrementUsage(couponId, tx);
+      }
+
       const tax = 0;
-      const total = subtotal + tax;
+      const total = Math.max(0, subtotal + tax - discountAmount);
       const orderNumber = this.generateOrderNumber();
 
       // Determine initial fulfillment status based on payment method
@@ -111,6 +122,8 @@ export class PaymentService {
           subtotal,
           tax,
           total,
+          discountAmount,
+          couponId: couponId || null,
           ...(input.externalReference ? { notes: String(input.externalReference) } : {}),
         }
       });

@@ -169,6 +169,32 @@ model Customer {
   @@index([email])
 }
 
+model Coupon {
+  id            String    @id @default(cuid())
+  storeId       String
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  code          String    // e.g. "BIENVENIDA10"
+  type          String    // "PERCENTAGE" or "FIXED"
+  value         Float     // 10 for 10% or 5000 for $5000
+  
+  minPurchase   Float     @default(0)
+  maxDiscount   Float?    // Max discount amount for percentage coupons
+  
+  expiresAt     DateTime?
+  usageLimit    Int?      // Null for unlimited
+  usageCount    Int       @default(0)
+  
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+}
+
 
 model TCG {
   id             String    @id @default(cuid())
@@ -829,6 +855,10 @@ model Order {
   
   customerId     String?
   customer       Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  couponId       String?
+  coupon         Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  discountAmount Float     @default(0.0)
 
   orderNumber    String    @unique
   customerEmail  String

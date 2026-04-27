@@ -11,9 +11,12 @@ export default function StorefrontPageV2() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   
-  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions } = useStorefront();
+  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, visibleLimit, setVisibleLimit } = useStorefront();
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
+
+  const displayedProducts = useMemo(() => filteredProducts.slice(0, visibleLimit), [filteredProducts, visibleLimit]);
+  const hasMore = filteredProducts.length > visibleLimit;
 
   useEffect(() => {
     setFilters({ ...filters, query: searchQuery });
@@ -126,53 +129,69 @@ export default function StorefrontPageV2() {
               ))}
             </div>
           ) : (
-            <div className="store-grid">
-              {filteredProducts.map(product => (
-                <article key={product.id} className="store-card">
-                  <div className="store-card-image">
-                    <img src={product.imageUrl} alt={product.cardName} loading="lazy" />
-                  </div>
-                  <div className="store-card-info">
-                    <p style={{ fontSize: '0.7rem', color: 'var(--store-text-muted)', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>{product.editionName}</p>
-                    <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {product.cardName}
-                    </h4>
-                    <div style={{ display: 'flex', gap: 5, marginBottom: 15, alignItems: 'center', justifyContent: 'space-between' }}>
-                      <RarityBadge rarity={product.rarity} />
-                      <span style={{ fontSize: '0.7rem', color: product.quantity > 0 ? 'var(--store-text-muted)' : '#ef4444', fontWeight: 600 }}>
-                        {product.quantity > 0 ? `Stock: ${product.quantity}` : 'Agotado'}
-                      </span>
+            <div style={{ display: 'grid', gap: 30 }}>
+              <div className="store-grid">
+                {displayedProducts.map(product => (
+                  <article key={product.id} className="store-card">
+                    <div className="store-card-image">
+                      <Link to={`/storefront/product/${product.id}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+                        <img src={product.imageUrl} alt={product.cardName} loading="lazy" />
+                      </Link>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div className="store-card-price" style={{ color: 'var(--store-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
-                        {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(product.finalPrice)}
+                    <div className="store-card-info">
+                      <p style={{ fontSize: '0.7rem', color: 'var(--store-text-muted)', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>{product.editionName}</p>
+                      <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Link to={`/storefront/product/${product.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{product.cardName}</Link>
+                      </h4>
+                      <div style={{ display: 'flex', gap: 5, marginBottom: 15, alignItems: 'center', justifyContent: 'space-between' }}>
+                        <RarityBadge rarity={product.rarity} />
+                        <span style={{ fontSize: '0.7rem', color: product.quantity > 0 ? 'var(--store-text-muted)' : '#ef4444', fontWeight: 600 }}>
+                          {product.quantity > 0 ? `Stock: ${product.quantity}` : 'Agotado'}
+                        </span>
                       </div>
-                      <button 
-                        className={`btn btn-sm ${addingId === product.id ? 'adding' : ''}`}
-                        style={{ 
-                          background: addingId === product.id ? '#10b981' : 'var(--store-text)', 
-                          color: 'var(--store-surface)', 
-                          border: 'none', 
-                          borderRadius: 8, 
-                          width: 32, 
-                          height: 32, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontWeight: 900, 
-                          cursor: product.quantity > 0 ? 'pointer' : 'not-allowed',
-                          transition: 'all 0.2s ease',
-                          transform: addingId === product.id ? 'scale(1.2)' : 'scale(1)'
-                        }}
-                        onClick={() => product.quantity > 0 && handleAddToCart(product)}
-                        disabled={product.quantity <= 0}
-                      >
-                        {addingId === product.id ? '✓' : '+'}
-                      </button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="store-card-price" style={{ color: 'var(--store-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
+                          {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(product.finalPrice)}
+                        </div>
+                        <button 
+                          className={`btn btn-sm ${addingId === product.id ? 'adding' : ''}`}
+                          style={{ 
+                            background: addingId === product.id ? '#10b981' : 'var(--store-text)', 
+                            color: 'var(--store-surface)', 
+                            border: 'none', 
+                            borderRadius: 8, 
+                            width: 32, 
+                            height: 32, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            fontWeight: 900, 
+                            cursor: product.quantity > 0 ? 'pointer' : 'not-allowed',
+                            transition: 'all 0.2s ease',
+                            transform: addingId === product.id ? 'scale(1.2)' : 'scale(1)'
+                          }}
+                          onClick={() => product.quantity > 0 && handleAddToCart(product)}
+                          disabled={product.quantity <= 0}
+                        >
+                          {addingId === product.id ? '✓' : '+'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))}
+              </div>
+
+              {hasMore && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40 }}>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '12px 60px', borderRadius: 50, fontWeight: 700, background: 'var(--store-surface)', border: '1px solid var(--store-border)' }}
+                    onClick={() => setVisibleLimit(prev => prev + 20)}
+                  >
+                    Ver más productos
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

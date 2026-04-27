@@ -97,6 +97,8 @@ export default function useStorefront() {
   const [error, setError] = useState<string | null>(null);
   const [allProducts, setAllProducts] = useState<StorefrontProduct[]>([]);
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
+  const [visibleLimit, setVisibleLimit] = useState(20);
+  
   const [filters, setFilters] = useState<StorefrontFilters>({
     query: '',
     tcgId: 'ALL',
@@ -218,6 +220,8 @@ export default function useStorefront() {
     tcgOptions,
     editionOptions,
     rarityOptions,
+    visibleLimit,
+    setVisibleLimit,
     reload: () => loadProducts('manual-retry'),
   };
 }

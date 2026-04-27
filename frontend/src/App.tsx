@@ -19,6 +19,7 @@ import StoresList from './pages/admin/StoresList';
 import StorefrontPageV2 from './pages/StorefrontPageV2';
 import StorefrontLoginPage from './pages/StorefrontLoginPage';
 import StorefrontRegisterPage from './pages/StorefrontRegisterPage';
+import StorefrontOrderDetailPage from './pages/StorefrontOrderDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -112,6 +113,7 @@ function App() {
         <Route path="/storefront/login" element={<StorefrontLoginPage />} />
         <Route path="/storefront/register" element={<StorefrontRegisterPage />} />
         <Route path="/storefront/profile" element={<ProfilePage />} />
+        <Route path="/storefront/orders/:id" element={<StorefrontOrderDetailPage />} />
         <Route path="/storefront/product/:productId" element={<ProductDetailPage />} />
         <Route path="/storefront/checkout" element={<CheckoutPage />} />
 
