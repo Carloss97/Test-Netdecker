@@ -1,5 +1,6 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import useStorefront from '../../hooks/useStorefront';
 import useCartPersist from '../../hooks/useCartPersist';
 import '../../pages/storefront_v2.css';
 
