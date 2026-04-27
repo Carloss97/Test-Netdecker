@@ -12,11 +12,13 @@ router.get('/', async (req: Request, res: Response) => {
   const take = Math.min(Number(req.query.take ? Number(req.query.take) : 20), 100);
   const skip = Number(req.query.skip ? Number(req.query.skip) : 0);
   const status = req.query.status ? String(req.query.status).toUpperCase() : undefined;
+  const fulfillmentStatus = req.query.fulfillmentStatus ? String(req.query.fulfillmentStatus).toUpperCase() : undefined;
 
   const { orders, total } = await OrderService.listOrders({
     take,
     skip,
     status,
+    fulfillmentStatus,
     storeId: req.store?.id,
   });
   res.json({ success: true, total, orders });
@@ -48,6 +50,14 @@ router.post('/:id/ship', async (req: Request, res: Response) => {
 router.post('/:id/deliver', async (req: Request, res: Response) => {
   const id = String(req.params.id);
   const updated = await OrderService.deliverOrder(id, null, req.store?.id);
+  res.json({ success: true, order: updated });
+});
+
+router.patch('/:id/fulfillment', async (req: Request, res: Response) => {
+  const { status, performedBy } = req.body;
+  if (!status) throw new ValidationError('Fulfillment status is required');
+  const id = String(req.params.id);
+  const updated = await OrderService.updateFulfillmentStatus(id, status, performedBy || null, req.store?.id);
   res.json({ success: true, order: updated });
 });
 

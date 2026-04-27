@@ -96,12 +96,18 @@ export class PaymentService {
       const total = subtotal + tax;
       const orderNumber = this.generateOrderNumber();
 
+      // Determine initial fulfillment status based on payment method
+      const payMethod = (input.paymentMethod as any) || 'CASH';
+      const initialFulfillmentStatus = (payMethod === 'CASH' || payMethod === 'CARD') ? 'PAID' : 'PENDING_PAYMENT';
+
       const order = await tx.order.create({
         data: {
           storeId: effectiveStoreId,
           orderNumber,
           customerEmail: input.customerEmail || 'POS',
           status: 'CONFIRMED',
+          paymentMethod: payMethod,
+          fulfillmentStatus: initialFulfillmentStatus,
           subtotal,
           tax,
           total,

@@ -17,11 +17,12 @@ import { LowStockPage } from './pages/LowStockPage';
 import { PosPage } from './pages/PosPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import StoresList from './pages/admin/StoresList';
-import LocalImportsManager from './pages/LocalImportsManager';
-import apiClient from './services/api';
 import StorefrontPage from './pages/StorefrontPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
+import { CatalogPage } from './pages/CatalogPage';
+import { OrdersPage } from './pages/OrdersPage';
+import { MultiTenantConsole } from './pages/admin/MultiTenantConsole';
 
 function readAdminToken(): string | null {
   try {
@@ -119,6 +120,8 @@ function App() {
         <Route element={<RequireAdmin />}>
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/catalog" element={<CatalogPage />} />
+            <Route path="/pedidos" element={<OrdersPage />} />
             <Route path="/inventario" element={<InventoryPage />} />
             <Route path="/precios" element={<PricingPage />} />
             <Route path="/importar" element={<ImportPage />} />
@@ -127,6 +130,7 @@ function App() {
             <Route path="/stock-bajo" element={<LowStockPage />} />
             <Route path="/pos" element={<PosPage />} />
             <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+            <Route path="/admin/multi-tenant" element={<MultiTenantConsole />} />
             <Route path="/admin/stores" element={<StoresList />} />
             <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />
             <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />

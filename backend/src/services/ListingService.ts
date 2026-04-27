@@ -109,7 +109,7 @@ export class ListingService {
   /**
    * Get available listings (with stock > 0)
    */
-  static async getAvailableListings(tcgId?: string, editionId?: string, storeId?: string) {
+  static async getAvailableListings(tcgId?: string, editionId?: string, storeId?: string, search?: string) {
     const where: Prisma.ListingWhereInput = {
       AND: [
         { quantity: { gt: 0 } },
@@ -117,10 +117,23 @@ export class ListingService {
       ]
     };
 
+    if (search && search.trim().length > 0) {
+      const s = search.trim();
+      (where.AND as any).push({
+        card: {
+          OR: [
+            { cardName: { contains: s, mode: 'insensitive' } },
+            { cardCode: { contains: s, mode: 'insensitive' } }
+          ]
+        }
+      });
+    }
+
     if (tcgId || editionId) {
-      where.card = {};
-      if (tcgId) where.card.tcgId = tcgId;
-      if (editionId) where.card.editionId = editionId;
+      const cardFilter: any = where.card || {};
+      if (tcgId) cardFilter.tcgId = tcgId;
+      if (editionId) cardFilter.editionId = editionId;
+      where.card = cardFilter;
     }
 
     if (storeId) {
@@ -148,7 +161,9 @@ export class ListingService {
         // Return original price as requested (no custom rounding here, should match admin)
         finalPrice: listing.finalPrice,
         cardName: listing.card?.cardName || 'Unknown Card',
-        imageUrl: listing.card?.imageUrl || '',
+        imageUrl: listing.card?.imageUrl?.startsWith('http') 
+          ? `/api/media/image-proxy?url=${encodeURIComponent(listing.card.imageUrl)}` 
+          : (listing.card?.imageUrl || ''),
       };
     });
   }

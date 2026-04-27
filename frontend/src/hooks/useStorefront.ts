@@ -57,12 +57,16 @@ function normalizeProduct(raw: any, index: number): StorefrontProduct {
   const quantity = toNumber(raw?.quantity ?? raw?.stock, 0);
   const finalPrice = toNumber(raw?.finalPrice ?? raw?.price, 0);
   const referencePrice = toNumber(raw?.referencePrice ?? raw?.priceUsd, 0);
-  const imageUrl = String(
+  const rawImageUrl = String(
     raw?.imageUrl ||
       raw?.card?.imageUrl ||
       raw?.image ||
       PLACEHOLDER_IMAGE
   );
+
+  const imageUrl = rawImageUrl.startsWith('http') 
+    ? `/api/media/image-proxy?url=${encodeURIComponent(rawImageUrl)}` 
+    : rawImageUrl;
 
   return {
     id: String(raw?.id || raw?.listingId || `${tcgId}-${index}`),
@@ -106,12 +110,17 @@ export default function useStorefront() {
   });
   const deferredQuery = useDeferredValue(filters.query);
 
-  const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' = 'initial-load') => {
+  const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' | 'search-update' = 'initial-load', search?: string) => {
     setStatus('loading');
     setError(null);
 
     try {
-      const resp = await apiClient.get('/listings/available');
+      const params: any = {};
+      if (search) params.search = search;
+      if (filters.tcgId !== 'ALL') params.tcgId = filters.tcgId;
+      if (filters.editionName !== 'ALL') params.editionId = filters.editionName; // Backend uses ID for filtering if provided
+
+      const resp = await apiClient.get('/listings/available', { params });
       const normalized = extractProducts(resp?.data);
       setProducts(normalized);
       setStatus('ready');
@@ -119,7 +128,7 @@ export default function useStorefront() {
         area: 'storefront-hook',
         action: 'load-products',
         message: 'Storefront products loaded',
-        context: { reason, count: normalized.length },
+        context: { reason, count: normalized.length, search },
       });
     } catch (err) {
       setProducts([]);
@@ -133,20 +142,20 @@ export default function useStorefront() {
         error: err,
       });
     }
-  }, []);
+  }, [filters.tcgId, filters.editionName]);
 
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
       if (!mounted) return;
-      await loadProducts('initial-load');
+      await loadProducts('search-update', deferredQuery);
     };
 
     void load();
 
     const onStoreChanged = () => {
-      void loadProducts('store-change');
+      void loadProducts('store-change', deferredQuery);
     };
 
     window.addEventListener('netdecker:store-changed', onStoreChanged as EventListener);
@@ -154,7 +163,7 @@ export default function useStorefront() {
       mounted = false;
       window.removeEventListener('netdecker:store-changed', onStoreChanged as EventListener);
     };
-  }, [loadProducts]);
+  }, [loadProducts, deferredQuery]);
 
   const indexedProducts = useMemo<IndexedStorefrontProduct[]>(() => (
     products.map((item) => ({

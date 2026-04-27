@@ -59,15 +59,16 @@ export class MercadoPagoService {
     if (!mercadopago) throw new Error('Unsupported mercadopago SDK shape');
 
     const items = (params.items || []).map((it) => {
-      const title = String(it.title || 'Producto POS').trim().slice(0, 250) || 'Producto POS';
-      const unit_price = Number(it.unit_price) || 0;
+      // Clean title and ensure it's not empty. MP CLP requires integer prices.
+      const title = String(it.title || 'Producto POS').replace(/[^\w\s-]/g, '').trim().slice(0, 250) || 'Producto POS';
+      const unit_price = Math.round(Number(it.unit_price) || 0);
       const quantity = Math.max(1, Number(it.quantity) || 1);
 
       return {
         id: it.id,
         title,
         quantity,
-        unit_price: unit_price > 0 ? unit_price : 1, // MP fails on 0 or negative price
+        unit_price: unit_price > 0 ? unit_price : 100, // Min 100 CLP for MP safety
         currency_id: 'CLP',
       };
     });

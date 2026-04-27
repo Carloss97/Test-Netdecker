@@ -48,6 +48,7 @@ import publicRoutes from './routes/public.routes.js';
 import pricingRoutes from './routes/pricing.routes.js';
 import posRoutes from './routes/pos.routes.js';
 import cashSessionsRoutes from './routes/cashSessions.routes.js';
+import mediaRoutes from './routes/media.routes.js';
 // posCashRoutes was removed from mounting to avoid duplicate routes; import removed
 import invoicesRoutes from './routes/invoices.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
@@ -121,6 +122,7 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/pos', posRoutes);
 app.use('/api/pos/cash-sessions', cashSessionsRoutes);
 app.use('/api/invoices', invoicesRoutes);
+app.use('/api/media', mediaRoutes);
 
 // ============================================
 // ERROR HANDLING

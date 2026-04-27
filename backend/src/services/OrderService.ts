@@ -3,11 +3,12 @@ import { NotFoundError, ConflictError } from '../utils/errors.js';
 import AuditService from './AuditService.js';
 
 export class OrderService {
-  static async listOrders(params: { take?: number; skip?: number; status?: string; storeId?: string } = {}) {
+  static async listOrders(params: { take?: number; skip?: number; status?: string; fulfillmentStatus?: string; storeId?: string } = {}) {
     const take = params.take ?? 20;
     const skip = params.skip ?? 0;
     const where = {
       ...(params.status ? { status: params.status } : {}),
+      ...(params.fulfillmentStatus ? { fulfillmentStatus: params.fulfillmentStatus } : {}),
       ...(params.storeId ? { storeId: params.storeId } : {}),
     };
 
@@ -175,6 +176,33 @@ export class OrderService {
 
       return updated;
     });
+  }
+
+  static async updateFulfillmentStatus(orderId: string, status: any, performedBy?: string | null, storeId?: string) {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        ...(storeId ? { storeId } : {}),
+      },
+    });
+    if (!order) throw new NotFoundError('Order not found');
+
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: { fulfillmentStatus: status },
+    });
+
+    await AuditService.auditEntityChange({
+      entityType: 'order',
+      entityId: order.id,
+      operation: 'UPDATE',
+      oldValue: { fulfillmentStatus: order.fulfillmentStatus },
+      newValue: { fulfillmentStatus: status },
+      changedBy: performedBy || null,
+      action: 'ORDER.FULFILLMENT_UPDATE',
+    });
+
+    return updated;
   }
 }
 

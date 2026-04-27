@@ -55,6 +55,15 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum FulfillmentStatus {
+  PENDING_PAYMENT
+  PAID
+  READY_FOR_PICKUP
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
 // Accounting / ERP enums
 enum AccountType {
   ASSET
@@ -791,6 +800,8 @@ model Order {
   orderNumber    String    @unique
   customerEmail  String
   status         OrderStatus  @default(PENDING)
+  paymentMethod  PaymentMethod @default(CASH)
+  fulfillmentStatus FulfillmentStatus @default(PENDING_PAYMENT)
   
   items          OrderItem[]
   invoices       Invoice[]
@@ -808,6 +819,7 @@ model Order {
   
   @@index([customerEmail])
   @@index([status])
+  @@index([fulfillmentStatus])
   @@index([storeId])
 }
 

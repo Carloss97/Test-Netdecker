@@ -69,6 +69,21 @@ export async function createMercadoPagoPreference(params: {
   return data;
 }
 
+export async function listOrders(params: { status?: string; fulfillmentStatus?: string; take?: number; skip?: number } = {}) {
+  const { data } = await apiClient.get('/orders', { params });
+  return data;
+}
+
+export async function updateFulfillmentStatus(orderId: string, status: string) {
+  const { data } = await apiClient.patch(`/orders/${orderId}/fulfillment`, { status });
+  return data.order ?? data;
+}
+
+export async function cancelOrder(orderId: string) {
+  const { data } = await apiClient.post(`/orders/${orderId}/cancel`);
+  return data.order ?? data;
+}
+
 export default {
   createReservation,
   commitReservation,
@@ -78,4 +93,7 @@ export default {
   posCheckout,
   createStripePaymentIntent,
   createMercadoPagoPreference,
+  listOrders,
+  updateFulfillmentStatus,
+  cancelOrder,
 };

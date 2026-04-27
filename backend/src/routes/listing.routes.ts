@@ -29,12 +29,13 @@ function requireStore(req: Request): string {
  * Get available listings with stock
  */
 router.get('/available', async (req: Request, res: Response) => {
-  const { tcgId, editionId } = req.query;
+  const { tcgId, editionId, search } = req.query;
   const storeId = requireStore(req);
   const listings = await ListingService.getAvailableListings(
     tcgId as string | undefined,
     editionId as string | undefined,
     storeId,
+    search as string | undefined,
   );
   res.json(listings);
 });

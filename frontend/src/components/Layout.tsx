@@ -5,15 +5,17 @@ import { logout } from '../services/adminAuth';
 
 const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Dashboard' },
+  { to: '/catalog', icon: '💎', label: 'Catálogo' },
+  { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
+  { to: '/admin/multi-tenant', icon: '🏢', label: 'Multi-tienda', globalOnly: true },
   { to: '/pos', icon: '💳', label: 'POS' },
   { to: '/inventario', icon: '📦', label: 'Inventario' },
   { to: '/precios', icon: '💰', label: 'Precios' },
   { to: '/stock-bajo', icon: '🚨', label: 'Stock Bajo' },
   { to: '/importar', icon: '📥', label: 'Importar' },
   { to: '/buscar', icon: '🔍', label: 'Buscar Carta' },
-  { to: '/storefront', icon: '🛍️', label: 'Demo Tienda' },
   { to: '/admin', icon: '⚙️', label: 'Admin' },
-  { to: '/local-imports', icon: '🗂️', label: 'Importaciones locales' },
+  { to: '/storefront', icon: '🛍️', label: 'Demo Tienda' },
 ];
 
 type AdminStore = {
@@ -208,6 +210,8 @@ export function Layout({ children }: LayoutProps) {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return { title: 'Dashboard', sub: 'Vista general del sistema' };
+    if (path === '/catalog') return { title: 'Catálogo', sub: 'Listings activos con stock disponible' };
+    if (path === '/pedidos') return { title: 'Pedidos', sub: 'Seguimiento logístico de ventas y estados' };
     if (path === '/inventario') return { title: 'Inventario', sub: 'Gestión de stock por set' };
     if (path === '/precios') return { title: 'Precios', sub: 'Monitoreo y sincronización de precios' };
     if (path === '/stock-bajo') return { title: 'Stock Bajo', sub: 'Alertas de listings activos con stock crítico' };
@@ -215,7 +219,7 @@ export function Layout({ children }: LayoutProps) {
     if (path === '/buscar') return { title: 'Buscar Carta', sub: 'Busca por nombre o código · Ve todas las rarezas' };
     if (path.startsWith('/storefront')) return { title: 'Demo Tienda', sub: 'Showcase público tipo e-commerce para TCG' };
     if (path === '/admin') return { title: 'Admin', sub: 'Parámetros avanzados de catálogo y precios' };
-    if (path === '/local-imports') return { title: 'Importaciones locales', sub: 'Respaldo y edición de listings guardados en el navegador' };
+    if (path === '/pos') return { title: 'POS', sub: 'Caja registradora para ventas presenciales' };
     return { title: 'TCG Platform', sub: '' };
   };
 
@@ -229,7 +233,10 @@ export function Layout({ children }: LayoutProps) {
           <div className="sidebar-logo-sub">TCG Store Platform</div>
         </div>
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ to, icon, label }) => (
+          {NAV_ITEMS.filter(item => {
+            if (item.globalOnly && (identity?.storeId || identity?.role !== 'ADMIN')) return false;
+            return true;
+          }).map(({ to, icon, label }) => (
             <NavLink
               key={to}
               to={to}
