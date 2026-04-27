@@ -276,6 +276,7 @@ const fullUpsertRowSchema = z.object({
   cardNumber: z.string().optional(),
   tags: z.string().optional(),
   imageUrl: z.string().optional(),
+  metadata: z.record(z.string()).optional(),
 });
 
 function formatZodError(error: z.ZodError): string {
@@ -935,7 +936,8 @@ export class InventoryService {
                 cardName: parsedRow.cardName,
                 cardNumber: parsedRow.cardNumber,
                 tags: parsedRow.tags,
-                imageUrl: parsedRow.imageUrl
+                imageUrl: parsedRow.imageUrl,
+                metadata: (parsedRow as any).metadata || undefined
               },
               create: {
                 tcgId: (tcg as any).id,
@@ -945,7 +947,8 @@ export class InventoryService {
                 cardNumber: parsedRow.cardNumber,
                 rarity: parsedRow.rarity,
                 tags: parsedRow.tags,
-                imageUrl: parsedRow.imageUrl
+                imageUrl: parsedRow.imageUrl,
+                metadata: (parsedRow as any).metadata || undefined
               }
             });
 

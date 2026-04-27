@@ -9,6 +9,7 @@ export class ExpenseService {
     amount: number;
     category: string;
     description?: string;
+    documentUrl?: string;
     date?: string;
   }) {
     return prisma.expense.create({
@@ -17,6 +18,7 @@ export class ExpenseService {
         amount: data.amount,
         category: data.category,
         description: data.description,
+        documentUrl: data.documentUrl,
         date: data.date ? new Date(data.date) : new Date(),
       }
     });

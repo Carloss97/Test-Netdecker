@@ -248,6 +248,7 @@ model Expense {
   amount      Float
   category    String   // e.g. "SEALED_PRODUCT", "RENT", "SHIPPING", "MARKETING"
   description String?
+  documentUrl String?  // Link to PDF or image of the invoice
   date        DateTime @default(now())
   
   createdAt   DateTime @default(now())

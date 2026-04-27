@@ -50,9 +50,10 @@ export default function useCartPersist() {
     let nextItems: CartItem[];
 
     if (!existing) {
-      nextItems = [...current, { ...item, quantity: Math.max(1, quantity) }];
+      const initialQty = Math.min(Math.max(1, quantity), item.stock);
+      nextItems = [...current, { ...item, quantity: initialQty }];
     } else {
-      const nextQty = existing.quantity + quantity;
+      const nextQty = Math.min(existing.quantity + quantity, item.stock);
       nextItems = current.map((entry) => 
         entry.id === item.id ? { ...entry, quantity: nextQty } : entry
       );
@@ -65,7 +66,8 @@ export default function useCartPersist() {
     const nextItems = current
       .map((entry) => {
         if (entry.id !== id) return entry;
-        return { ...entry, quantity: Math.max(0, quantity) };
+        const finalQty = Math.min(Math.max(0, quantity), entry.stock);
+        return { ...entry, quantity: finalQty };
       })
       .filter((entry) => entry.quantity > 0);
     persist(nextItems);

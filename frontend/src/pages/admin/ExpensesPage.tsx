@@ -10,12 +10,34 @@ export function ExpensesPage() {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('SEALED_PRODUCT');
   const [description, setDescription] = useState('');
+  const [documentUrl, setDocumentUrl] = useState('');
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: expenses, status, execute: reloadExpenses } = useAsync(async () => {
     const { data } = await apiClient.get('/expenses');
     return data.expenses;
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const { data } = await apiClient.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setDocumentUrl(data.url);
+    } catch (err) {
+      alert('Error al subir archivo. Verifica que sea JPG, PNG o PDF y < 5MB.');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +49,12 @@ export function ExpensesPage() {
         amount: Number(amount),
         category,
         description,
+        documentUrl,
         date: new Date().toISOString()
       });
       setAmount('');
       setDescription('');
+      setDocumentUrl('');
       reloadExpenses();
     } catch (err) {
       alert('Error al guardar egreso');
@@ -87,7 +111,21 @@ export function ExpensesPage() {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ width: '100%', padding: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 5, fontWeight: 600 }}>Adjuntar Comprobante (Imagen o PDF)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input 
+                    type="file" 
+                    className="input" 
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                    disabled={uploadingFile}
+                  />
+                  {uploadingFile && <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>Subiendo archivo...</span>}
+                  {documentUrl && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✅ Archivo listo: {documentUrl.split('/').pop()}</span>}
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting || uploadingFile} style={{ width: '100%', padding: 12 }}>
                 {isSubmitting ? 'Guardando...' : 'Guardar Egreso'}
               </button>
             </form>
@@ -105,6 +143,7 @@ export function ExpensesPage() {
                     <th>Categoría</th>
                     <th>Descripción</th>
                     <th style={{ textAlign: 'right' }}>Monto</th>
+                    <th>Doc</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -118,6 +157,13 @@ export function ExpensesPage() {
                       <td style={{ fontSize: '0.85rem' }}>{exp.description || '—'}</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: '#ef4444' }}>
                         -{formatClp(exp.amount)}
+                      </td>
+                      <td>
+                        {exp.documentUrl ? (
+                          <a href={exp.documentUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }} title="Ver comprobante">
+                            📄
+                          </a>
+                        ) : '—'}
                       </td>
                       <td>
                         <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(exp.id)} style={{ color: '#ef4444' }}>
