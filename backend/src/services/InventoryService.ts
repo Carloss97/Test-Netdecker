@@ -1027,39 +1027,6 @@ export class InventoryService {
         timeout: 30000 // 30s per batch is safer for Neon
       });
     }
-          },
-          create: {
-            storeId: resolvedStoreId,
-            cardId: card.id,
-            condition,
-            editionId: edition.id,
-            ...listingData,
-          }
-        });
-
-        // Record change for rollback
-        if (importId) {
-          const batchId = await getBatchIdForRow(i);
-          await prisma.inventoryImportChange.create({
-            data: {
-              importId,
-              listingId: upserted.id,
-              oldQuantity: existingListing?.quantity ?? null,
-              newQuantity: quantity,
-              batchId: batchId || undefined,
-            }
-          });
-        }
-
-        result.success += 1;
-      } catch (error: unknown) {
-        result.failed += 1;
-        result.errors.push({
-          row: rowNumber,
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
 
     if (!dryRun && importId) {
       await prisma.inventoryImport.update({
