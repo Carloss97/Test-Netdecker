@@ -176,6 +176,8 @@ export class ListingService {
         id: listing.id,
         storeId: listing.storeId,
         cardName: listing.card?.cardName || 'Unknown Card',
+        cardCode: listing.card?.cardCode || 'N/A',
+        cardNumber: listing.card?.cardNumber || '',
         tcgName,
         editionName,
         tcgId: tcgName, // Force tcgId to be the name for frontend filters
