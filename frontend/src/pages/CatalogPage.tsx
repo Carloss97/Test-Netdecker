@@ -64,6 +64,7 @@ export function CatalogPage() {
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
   const toggleSort = (column: typeof sortColumn) => {
+
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       return;

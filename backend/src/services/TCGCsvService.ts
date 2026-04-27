@@ -207,7 +207,10 @@ function tcgCsvToExternal(
   const rarity = getExtendedValue(ext, 'Rarity') ?? getExtendedValue(ext, 'rarity') ?? product.subTypeName;
   const cardNumber = getExtendedValue(ext, 'Number') ?? getExtendedValue(ext, 'CardNumber') ?? getExtendedValue(ext, 'CollectorNumber');
   const description = getExtendedValue(ext, 'OracleText') ?? getExtendedValue(ext, 'CardText') ?? getExtendedValue(ext, 'Description');
-  const colorIdentity = getExtendedValue(ext, 'Color') ?? getExtendedValue(ext, 'Attribute');
+  
+  // Advanced Metadata Extraction
+  const cardType = (getExtendedValue(ext, 'Card Type') ?? getExtendedValue(ext, 'CardType') ?? getExtendedValue(ext, 'SubType')) || '';
+  const attribute = (getExtendedValue(ext, 'Color') ?? getExtendedValue(ext, 'Attribute') ?? getExtendedValue(ext, 'Energy Type')) || '';
 
   const editionCode = (group.abbreviation || String(group.groupId)).toUpperCase();
 
@@ -220,7 +223,8 @@ function tcgCsvToExternal(
     editionCode,
     editionName: group.name,
     rarity,
-    colorIdentity,
+    cardType,
+    attribute,
     imageUrl: product.imageUrl,
     description,
     priceLow: price?.lowPrice ?? undefined,

@@ -45,12 +45,19 @@ export class PriceService {
       return Math.max(1, Math.round(overrideRounding));
     }
 
-    const envValue = Number(process.env.PRICE_ROUNDING_MULTIPLE || '1');
-    if (!Number.isFinite(envValue) || envValue < 1) {
-      return 1;
-    }
+    // Official Netdecker Rule: 100 CLP rounding
+    return 100;
+  }
 
-    return Math.max(1, Math.round(envValue));
+  /**
+   * Centralized helper to format any price for display consistently.
+   */
+  static formatDisplayPrice(price: number): number {
+    if (price <= 0) return 0;
+    if (price <= 100) return 100;
+    const remainder = price % 100;
+    if (remainder === 0) return price;
+    return remainder < 50 ? price - remainder : price + (100 - remainder);
   }
 
   private static roundCommercialPrice(value: number, roundingMultiple: number): number {

@@ -187,7 +187,7 @@ export class ListingService {
         attribute: listing.card?.attribute || '',
         condition: listing.condition || 'NM',
         quantity: listing.quantity,
-        finalPrice: roundTo100(listing.finalPrice),
+        finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
         referencePrice: listing.referencePrice,
         imageUrl: listing.card?.imageUrl || '',
       };
