@@ -49,19 +49,19 @@ export default function StorefrontPageV2() {
         </div>
       </section>
 
-      {/* Category Pills */}
-      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10, marginBottom: 30 }}>
+      {/* Category Pills - Always visible */}
+      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 15, marginBottom: 30, borderBottom: '1px solid var(--store-border)' }}>
         <button 
-          className={`category-pill ${selectedTCG === 'ALL' ? 'active' : ''}`}
-          onClick={() => { setSelectedTCG('ALL'); setFilters({ ...filters, tcgId: 'ALL' }); }}
+          className={`category-pill ${filters.tcgId === 'ALL' ? 'active' : ''}`}
+          onClick={() => setFilters({ ...filters, tcgId: 'ALL' })}
         >
           Todos los Juegos
         </button>
         {tcgOptions.map(tcg => (
           <button 
             key={tcg}
-            className={`category-pill ${selectedTCG === tcg ? 'active' : ''}`}
-            onClick={() => { setSelectedTCG(tcg); setFilters({ ...filters, tcgId: tcg }); }}
+            className={`category-pill ${filters.tcgId === tcg ? 'active' : ''}`}
+            onClick={() => setFilters({ ...filters, tcgId: tcg })}
           >
             {tcg}
           </button>
@@ -75,16 +75,15 @@ export default function StorefrontPageV2() {
             <div className="store-filter-title">Rareza</div>
             {rarityOptions.map(rarity => (
               <label key={rarity} className="store-checkbox-label">
-                <input type="checkbox" /> {rarity}
-              </label>
-            ))}
-          </div>
-
-          <div className="store-filter-group">
-            <div className="store-filter-title">Condición</div>
-            {['NM', 'LP', 'MP', 'HP', 'DMG'].map(cond => (
-              <label key={cond} className="store-checkbox-label">
-                <input type="checkbox" /> {cond}
+                <input 
+                  type="checkbox" 
+                  checked={filters.rarity?.includes(rarity)}
+                  onChange={() => {
+                    const current = filters.rarity || [];
+                    const next = current.includes(rarity) ? current.filter(r => r !== rarity) : [...current, rarity];
+                    setFilters({ ...filters, rarity: next });
+                  }}
+                /> {rarity}
               </label>
             ))}
           </div>
@@ -101,8 +100,8 @@ export default function StorefrontPageV2() {
         {/* Main Content */}
         <div className="store-main-content">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h3 style={{ margin: 0 }}>Catálogo de Cartas ({filteredProducts.length})</h3>
-            <select className="input input-sm" style={{ width: 200 }}>
+            <h3 style={{ margin: 0, fontWeight: 800 }}>Catálogo de Cartas ({filteredProducts.length})</h3>
+            <select className="input input-sm" style={{ width: 200, borderRadius: 8 }}>
               <option>Más recientes</option>
               <option>Precio: Menor a Mayor</option>
               <option>Precio: Mayor a Menor</option>
@@ -110,7 +109,21 @@ export default function StorefrontPageV2() {
           </div>
 
           {status === 'loading' ? (
-            <div className="loading-spinner">Cargando increíbles cartas...</div>
+            <div className="store-grid">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="store-card skeleton-pulse">
+                  <div className="store-card-image" style={{ background: 'var(--store-border)' }}></div>
+                  <div className="store-card-info">
+                    <div style={{ width: '60%', height: 10, background: 'var(--store-border)', marginBottom: 10, borderRadius: 4 }}></div>
+                    <div style={{ width: '90%', height: 14, background: 'var(--store-border)', marginBottom: 15, borderRadius: 4 }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ width: '40%', height: 20, background: 'var(--store-border)', borderRadius: 4 }}></div>
+                      <div style={{ width: 30, height: 30, background: 'var(--store-border)', borderRadius: 8 }}></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="store-grid">
               {filteredProducts.map(product => (
@@ -119,21 +132,20 @@ export default function StorefrontPageV2() {
                     <img src={product.imageUrl} alt={product.cardName} loading="lazy" />
                   </div>
                   <div className="store-card-info">
-                    <p style={{ fontSize: '0.75rem', color: 'var(--store-text-muted)', marginBottom: 4, fontWeight: 600 }}>{product.editionName}</p>
-                    <h4 style={{ margin: '0 0 10px 0', fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--store-text-muted)', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>{product.editionName}</p>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {product.cardName}
                     </h4>
-                    <div style={{ display: 'flex', gap: 5, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', gap: 5, marginBottom: 15 }}>
                       <RarityBadge rarity={product.rarity} />
-                      <span className="badge badge-gray" style={{ fontSize: '0.65rem' }}>{product.condition}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div className="store-card-price">
-                        <PriceDisplay amount={product.finalPrice} />
+                      <div className="store-card-price" style={{ color: 'var(--store-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
+                        {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(product.finalPrice)}
                       </div>
                       <button 
                         className="btn btn-sm" 
-                        style={{ background: 'var(--store-primary)', color: 'white', border: 'none', borderRadius: 8 }}
+                        style={{ background: 'var(--store-text)', color: 'var(--store-surface)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, cursor: 'pointer' }}
                         onClick={() => handleAddToCart(product)}
                       >
                         +

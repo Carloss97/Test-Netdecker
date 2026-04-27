@@ -169,3 +169,14 @@
   color: white;
   border-color: var(--store-primary);
 }
+
+/* Skeleton Animation */
+@keyframes store-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.skeleton-pulse {
+  animation: store-pulse 1.5s infinite ease-in-out;
+}
