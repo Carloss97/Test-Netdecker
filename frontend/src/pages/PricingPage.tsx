@@ -262,6 +262,15 @@ export function PricingPage() {
     return setPricingMode(listing, 'manual');
   };
 
+  const updateCostPrice = async (listingId: string, cost: number) => {
+    try {
+      await apiClient.patch(`/listings/${listingId}`, { costPrice: cost });
+      void reloadListings();
+    } catch (err) {
+      console.error('Failed to update cost price', err);
+    }
+  };
+
   useEffect(() => {
     const refreshStore = () => {
       try {

@@ -67,12 +67,37 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="card" style={{ padding: 25, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-          <div style={{ fontSize: '4rem', marginBottom: 20 }}>📊</div>
-          <h3>Próximamente: Gráficos Avanzados</h3>
-          <p style={{ color: 'var(--text-muted)', maxWidth: 300 }}>
-            Estamos preparando integraciones con Chart.js para mostrar tendencias semanales y comparativas anuales.
-          </p>
+        <div className="card" style={{ padding: 25 }}>
+          <h3 style={{ marginBottom: 20 }}>Distribución de Ingresos</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+            {(tcgData ?? []).map((item: any, idx: number) => {
+              const maxRevenue = Math.max(...(tcgData ?? []).map((i: any) => i.revenue), 1);
+              const percentage = (item.revenue / maxRevenue) * 100;
+              const colors = ['#f77f00', '#3b82f6', '#10b981', '#6366f1', '#f59e0b'];
+              
+              return (
+                <div key={item.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 5 }}>
+                    <span>{item.name}</span>
+                    <span style={{ fontWeight: 700 }}>{((item.revenue / (summary?.totalRevenue || 1)) * 100).toFixed(1)}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 12, background: 'var(--store-border)', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${percentage}%`, 
+                      height: '100%', 
+                      background: colors[idx % colors.length],
+                      transition: 'width 1s ease-in-out'
+                    }}></div>
+                  </div>
+                </div>
+              );
+            })}
+            {(!tcgData || tcgData.length === 0) && (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                No hay datos suficientes para generar gráficos.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

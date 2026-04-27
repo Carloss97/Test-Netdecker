@@ -11,10 +11,11 @@ export default function StorefrontPageV2() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   
-  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit } = useStorefront();
+  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit, reload } = useStorefront();
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [showToast, setShowToast] = useState(false);
 
   // Load wishlist on mount
   useEffect(() => {
