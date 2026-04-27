@@ -196,6 +196,43 @@ model Coupon {
   @@index([storeId])
 }
 
+model Wishlist {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([customerId, listingId])
+  @@index([customerId])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  
+  rating      Int      @default(5) // 1-5 stars
+  comment     String?  @db.Text
+  images      String?  // JSON array of image URLs
+  
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([listingId])
+  @@index([customerId])
+}
+
 
 model TCG {
   id             String    @id @default(cuid())

@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import CustomerAuthService from '../services/CustomerAuthService.js';
 import OrderService from '../services/OrderService.js';
+import WishlistService from '../services/WishlistService.js';
+import ReviewService from '../services/ReviewService.js';
 import { ValidationError, UnauthorizedError } from '../utils/errors.js';
 
 const router = express.Router();
@@ -88,6 +90,52 @@ router.get('/orders', async (req: Request, res: Response) => {
   });
 
   res.json({ success: true, total, orders });
+});
+
+router.get('/wishlist', async (req: Request, res: Response) => {
+  const authHeader = req.header('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedError('No token provided');
+  const token = authHeader.split(' ')[1];
+  const customer = await CustomerAuthService.validateToken(token);
+  if (!customer) throw new UnauthorizedError('Invalid or expired token');
+
+  const wishlist = await WishlistService.getCustomerWishlist(customer.id);
+  res.json({ success: true, wishlist });
+});
+
+router.post('/wishlist', async (req: Request, res: Response) => {
+  const authHeader = req.header('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedError('No token provided');
+  const token = authHeader.split(' ')[1];
+  const customer = await CustomerAuthService.validateToken(token);
+  if (!customer) throw new UnauthorizedError('Invalid or expired token');
+
+  const { listingId } = req.body;
+  if (!listingId) throw new ValidationError('listingId is required');
+
+  const result = await WishlistService.toggleWishlist(customer.id, String(listingId));
+  res.json({ success: true, ...result });
+});
+
+router.post('/reviews', async (req: Request, res: Response) => {
+  const authHeader = req.header('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedError('No token provided');
+  const token = authHeader.split(' ')[1];
+  const customer = await CustomerAuthService.validateToken(token);
+  if (!customer) throw new UnauthorizedError('Invalid or expired token');
+
+  const { listingId, rating, comment, images } = req.body;
+  if (!listingId || !rating) throw new ValidationError('listingId and rating are required');
+
+  const review = await ReviewService.createReview({
+    customerId: customer.id,
+    listingId: String(listingId),
+    rating: Number(rating),
+    comment: comment ? String(comment) : undefined,
+    images: images ? (Array.isArray(images) ? images : [String(images)]) : undefined,
+  });
+
+  res.json({ success: true, review });
 });
 
 export default router;

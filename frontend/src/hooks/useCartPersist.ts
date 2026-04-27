@@ -10,6 +10,7 @@ export type CartItem = {
 };
 
 const CART_KEY = 'storefront_cart_v1';
+const CART_SYNC_EVENT = 'netdecker:cart-sync';
 
 function readCart(): CartItem[] {
   try {
@@ -25,43 +26,57 @@ function readCart(): CartItem[] {
 export default function useCartPersist() {
   const [items, setItems] = useState<CartItem[]>(() => readCart());
 
+  // Listen for changes from other components
   useEffect(() => {
-    try {
-      localStorage.setItem(CART_KEY, JSON.stringify(items));
-    } catch {
-      // ignore storage failures
-    }
-  }, [items]);
+    const onSync = () => {
+      setItems(readCart());
+    };
+    window.addEventListener(CART_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(CART_SYNC_EVENT, onSync);
+  }, []);
+
+  const persist = (newItems: CartItem[]) => {
+    setItems(newItems);
+    localStorage.setItem(CART_KEY, JSON.stringify(newItems));
+    window.dispatchEvent(new Event(CART_SYNC_EVENT));
+  };
 
   const addItem = (item: Omit<CartItem, 'quantity'>, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((entry) => entry.id === item.id);
-      if (!existing) {
-        return [...prev, { ...item, quantity: Math.max(1, Math.min(quantity, item.stock || quantity)) }];
-      }
+    // SECURITY: Ensure price is never lost or set to 0 if it exists
+    if (!item.price && item.price !== 0) return;
 
-      const nextQty = Math.max(1, Math.min(existing.quantity + quantity, item.stock || existing.stock));
-      return prev.map((entry) => (entry.id === item.id ? { ...entry, quantity: nextQty, stock: item.stock } : entry));
-    });
+    const current = readCart();
+    const existing = current.find((entry) => entry.id === item.id);
+    let nextItems: CartItem[];
+
+    if (!existing) {
+      nextItems = [...current, { ...item, quantity: Math.max(1, quantity) }];
+    } else {
+      const nextQty = existing.quantity + quantity;
+      nextItems = current.map((entry) => 
+        entry.id === item.id ? { ...entry, quantity: nextQty } : entry
+      );
+    }
+    persist(nextItems);
   };
 
   const updateQty = (id: string, quantity: number) => {
-    setItems((prev) =>
-      prev
-        .map((entry) => {
-          if (entry.id !== id) return entry;
-          const next = Math.max(0, Math.min(quantity, entry.stock || quantity));
-          return { ...entry, quantity: next };
-        })
-        .filter((entry) => entry.quantity > 0)
-    );
+    const current = readCart();
+    const nextItems = current
+      .map((entry) => {
+        if (entry.id !== id) return entry;
+        return { ...entry, quantity: Math.max(0, quantity) };
+      })
+      .filter((entry) => entry.quantity > 0);
+    persist(nextItems);
   };
 
   const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((entry) => entry.id !== id));
+    const current = readCart();
+    persist(current.filter((entry) => entry.id !== id));
   };
 
-  const clearCart = () => setItems([]);
+  const clearCart = () => persist([]);
 
   const itemCount = useMemo(() => items.reduce((acc, item) => acc + item.quantity, 0), [items]);
   const total = useMemo(() => items.reduce((acc, item) => acc + item.quantity * item.price, 0), [items]);

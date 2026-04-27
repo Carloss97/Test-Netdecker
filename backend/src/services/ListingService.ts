@@ -120,12 +120,13 @@ export class ListingService {
     if (search && search.trim().length > 0) {
       const s = search.trim();
       (where.AND as any).push({
-        card: {
-          OR: [
-            { cardName: { contains: s, mode: 'insensitive' } },
-            { cardCode: { contains: s, mode: 'insensitive' } }
-          ]
-        }
+        OR: [
+          { card: { cardName: { contains: s, mode: 'insensitive' } } },
+          { card: { cardCode: { contains: s, mode: 'insensitive' } } },
+          { card: { tcg: { name: { contains: s as any, mode: 'insensitive' } } } },
+          { card: { edition: { editionName: { contains: s, mode: 'insensitive' } } } },
+          { card: { edition: { editionCode: { contains: s, mode: 'insensitive' } } } }
+        ]
       });
     }
 

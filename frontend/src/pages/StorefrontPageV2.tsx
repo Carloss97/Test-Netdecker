@@ -14,6 +14,31 @@ export default function StorefrontPageV2() {
   const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, visibleLimit, setVisibleLimit } = useStorefront();
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [wishlist, setWishlist] = useState<string[]>([]);
+
+  // Load wishlist on mount
+  useEffect(() => {
+    const token = localStorage.getItem('customer_token');
+    if (token) {
+      apiClient.get('/storefront/auth/wishlist')
+        .then(res => setWishlist(res.data.wishlist.map((w: any) => w.listingId)))
+        .catch(() => {});
+    }
+  }, []);
+
+  const handleWishlistToggle = async (listingId: string) => {
+    const token = localStorage.getItem('customer_token');
+    if (!token) return alert('Debes iniciar sesión para guardar favoritos');
+    
+    try {
+      const resp = await apiClient.post('/storefront/auth/wishlist', { listingId });
+      if (resp.data.active) {
+        setWishlist(prev => [...prev, listingId]);
+      } else {
+        setWishlist(prev => prev.filter(id => id !== listingId));
+      }
+    } catch (err) {}
+  };
 
   const displayedProducts = useMemo(() => filteredProducts.slice(0, visibleLimit), [filteredProducts, visibleLimit]);
   const hasMore = filteredProducts.length > visibleLimit;
@@ -132,7 +157,31 @@ export default function StorefrontPageV2() {
             <div style={{ display: 'grid', gap: 30 }}>
               <div className="store-grid">
                 {displayedProducts.map(product => (
-                  <article key={product.id} className="store-card">
+                  <article key={product.id} className="store-card" style={{ position: 'relative' }}>
+                    <button 
+                      onClick={(e) => { e.preventDefault(); handleWishlistToggle(product.id); }}
+                      style={{ 
+                        position: 'absolute', 
+                        top: 10, 
+                        right: 10, 
+                        zIndex: 10, 
+                        background: 'rgba(255,255,255,0.85)', 
+                        border: 'none', 
+                        borderRadius: '50%', 
+                        width: 32, 
+                        height: 32, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.2s ease'
+                      }}
+                      title={wishlist.includes(product.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                    >
+                      {wishlist.includes(product.id) ? '❤️' : '🤍'}
+                    </button>
                     <div className="store-card-image">
                       <Link to={`/storefront/product/${product.id}`} style={{ display: 'block', width: '100%', height: '100%' }}>
                         <img src={product.imageUrl} alt={product.cardName} loading="lazy" />

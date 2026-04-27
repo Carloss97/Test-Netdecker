@@ -143,7 +143,28 @@ export default function CheckoutPage() {
                     <img src={item.imageUrl} alt={item.name} style={{ width: 60, height: 80, objectFit: 'contain', background: '#000', borderRadius: 8 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700 }}>{item.name}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--store-text-muted)' }}>x{item.quantity} unidades</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--store-border)', borderRadius: 6, overflow: 'hidden' }}>
+                          <button 
+                            className="btn btn-ghost" 
+                            style={{ padding: '2px 10px', border: 'none', background: 'none' }}
+                            onClick={() => cart.updateQty(item.id, item.quantity - 1)}
+                          >-</button>
+                          <span style={{ padding: '0 10px', fontSize: '0.85rem', fontWeight: 600 }}>{item.quantity}</span>
+                          <button 
+                            className="btn btn-ghost" 
+                            style={{ padding: '2px 10px', border: 'none', background: 'none' }}
+                            onClick={() => cart.updateQty(item.id, item.quantity + 1)}
+                          >+</button>
+                        </div>
+                        <button 
+                          className="btn btn-link" 
+                          style={{ color: '#ef4444', fontSize: '0.75rem', padding: 0, border: 'none', background: 'none', textDecoration: 'underline', cursor: 'pointer' }}
+                          onClick={() => cart.removeItem(item.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </div>
                     <div style={{ fontWeight: 700 }}>{formatClp(item.price * item.quantity)}</div>
                   </div>

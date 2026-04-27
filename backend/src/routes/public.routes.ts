@@ -1,5 +1,17 @@
 import express from 'express';
+import ReviewService from '../services/ReviewService.js';
+import { ValidationError } from '../utils/errors.js';
+
 const router = express.Router();
+
+/**
+ * GET /api/public/reviews/:listingId
+ */
+router.get('/reviews/:listingId', async (req, res) => {
+  const reviews = await ReviewService.getListingReviews(String(req.params.listingId));
+  const stats = await ReviewService.getAverageRating(String(req.params.listingId));
+  res.json({ success: true, reviews, stats });
+});
 
 // Public embeddable catalog view for a store slug
 // Example: GET /tienda/mi-tienda/catalogo
