@@ -8,8 +8,8 @@ function roundToNearestHundred(price: number): number {
   return price + (100 - remainder);
 }
 import { useAsync } from '../hooks/useAsync';
-import { getAvailableListings, syncListingPrices, getPriceVolatility, updateListingPricingMode } from '../services/catalog';
-import type { Listing } from '../types';
+import { listListings, syncListingPrices, getPriceVolatility, updateListingPricingMode, getEditions } from '../services/catalog';
+import type { Listing, EditionWithCounts } from '../types';
 import { parsePositiveNumberInput } from '../constants/pricing';
 import { formatInventoryIdentifier } from '../utils/cardIdentifier';
 
@@ -123,12 +123,19 @@ export function PricingPage() {
       return 'sin tienda activa';
     }
   });
+  const [editions, setEditions] = useState<EditionWithCounts[]>([]);
   const syncingRef = useRef(false);
   const roundRobinIndexRef = useRef(0);
 
   const { data: listings, status: listingsStatus, error: listingsError, execute: reloadListings } = useAsync<Listing[]>(
-    () => getAvailableListings()
+    () => listListings({ take: 200 }) // Load more for management
   );
+
+  useEffect(() => {
+    getEditions({ tcgId: selectedTcg === 'ALL' ? undefined : selectedTcg, activeOnly: true })
+      .then(setEditions)
+      .catch(() => setEditions([]));
+  }, [selectedTcg]);
 
   useEffect(() => {
     setVolatileStatus('pending');
@@ -439,8 +446,8 @@ export function PricingPage() {
               </select>
               <select className="input input-sm" value={selectedEditionId} onChange={(e) => setSelectedEditionId(e.target.value)} title="Edición específica a sincronizar">
                 <option value="">Selecciona edición</option>
-                {availableEditions.map((ed) => (
-                    <option key={ed.id} value={ed.id}>{ed.code} · {ed.name}</option>
+                {editions.map((ed) => (
+                    <option key={ed.id} value={ed.id}>{ed.editionCode} · {ed.editionName}</option>
                   ))}
               </select>
             </>
@@ -562,6 +569,94 @@ export function PricingPage() {
         {volatileStatus === 'success' && (!volatileData || !volatileData.events || volatileData.events.length === 0) && (
           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sin cambios volátiles en la ventana seleccionada.</div>
         )}
+      </div>
+
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div className="section-title">Gestión de Precios y Costos</div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <input 
+              type="text" 
+              className="input input-sm" 
+              placeholder="Buscar por nombre o código..." 
+              style={{ width: 250 }}
+              value={listingSearch}
+              onChange={(e) => setListingSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th onClick={() => toggleSort('name')} style={{ cursor: 'pointer' }}>Carta</th>
+                <th>Modo</th>
+                <th style={{ textAlign: 'right' }}>Costo CLP</th>
+                <th style={{ textAlign: 'right' }}>Final CLP</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedListings.map((listing) => {
+                const isManual = listing.status === 'manual';
+                const draft = manualPriceDrafts[listing.id];
+                const displayPrice = draft !== undefined ? draft : String(Math.round(listing.finalPrice || 0));
+
+                return (
+                  <tr key={listing.id} onMouseEnter={() => setHoveredPreviewListing(listing.id)}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{listing.card?.cardName}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{listing.card?.cardCode}</div>
+                    </td>
+                    <td>
+                      <ModeToggle 
+                        checked={isManual} 
+                        onToggle={() => setPricingMode(listing, isManual ? 'api' : 'manual')}
+                        onLabel="Manual"
+                        offLabel="API"
+                        disabled={updatingPricingId === listing.id}
+                      />
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <input 
+                        type="number" 
+                        className="input input-sm" 
+                        style={{ width: 100, textAlign: 'right' }} 
+                        defaultValue={listing.costPrice || 0}
+                        onBlur={(e) => updateCostPrice(listing.id, Number(e.target.value))}
+                      />
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {isManual ? (
+                        <input 
+                          type="number" 
+                          className="input input-sm" 
+                          style={{ width: 100, textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }} 
+                          value={displayPrice}
+                          onChange={(e) => setManualPriceDrafts({ ...manualPriceDrafts, [listing.id]: e.target.value })}
+                        />
+                      ) : (
+                        <span style={{ fontWeight: 700 }}>{fmtCLP(listing.finalPrice)}</span>
+                      )}
+                    </td>
+                    <td>
+                      {isManual && (
+                        <button 
+                          className="btn btn-primary btn-sm"
+                          onClick={() => saveManualPrice(listing)}
+                          disabled={updatingPricingId === listing.id}
+                        >
+                          Guardar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -22,10 +22,14 @@ export function AnalyticsPage() {
 
   return (
     <div className="analytics-page">
-      <div className="grid-cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 30 }}>
+      <div className="grid-cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20, marginBottom: 30 }}>
         <div className="card" style={{ padding: 20, textAlign: 'center' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Totales</div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>{formatClp(summary?.totalRevenue || 0)}</div>
+        </div>
+        <div className="card" style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', fontWeight: 600 }}>Egresos Totales</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ef4444' }}>-{formatClp(summary?.totalExpenses || 0)}</div>
         </div>
         <div className="card" style={{ padding: 20, textAlign: 'center' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', fontWeight: 600 }}>Ganancia Bruta</div>

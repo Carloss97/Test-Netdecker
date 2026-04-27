@@ -148,19 +148,26 @@ export class ListingService {
 
     return listings.map(l => {
       const listing = l as any;
+      const tcgName = listing.card?.tcg?.name || 'Unknown';
+      const editionName = listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown';
+      
       return {
         id: listing.id,
         storeId: listing.storeId,
-        cardName: listing.card?.cardName || 'Unknown Card',
-        cardCode: listing.card?.cardCode || 'N/A',
-        tcgName: listing.card?.tcg?.name || 'Unknown',
-        editionName: listing.card?.edition?.editionName || 'Unknown',
         quantity: listing.quantity,
         finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
-        cardType: listing.card?.cardType || '',
-        attribute: listing.card?.attribute || '',
-        metadata: listing.card?.metadata || {},
-        status: listing.status
+        status: listing.status,
+        card: {
+          cardName: listing.card?.cardName || 'Unknown Card',
+          cardCode: listing.card?.cardCode || 'N/A',
+          imageUrl: listing.card?.imageUrl || '',
+          rarity: listing.card?.rarity || 'C',
+          cardType: listing.card?.cardType || '',
+          attribute: listing.card?.attribute || '',
+          metadata: listing.card?.metadata || {},
+          tcg: { name: tcgName },
+          edition: { editionName, editionCode: listing.card?.edition?.editionCode }
+        }
       };
     });
   }
@@ -255,17 +262,54 @@ export class ListingService {
       ...(options?.storeId ? { storeId: options.storeId } : {})
     };
     if (options?.tcgId || options?.editionId) {
-      where.card = {
-        ...(options.tcgId ? { tcgId: options.tcgId } : {}),
-        ...(options.editionId ? { editionId: options.editionId } : {})
-      };
+      const cardFilter: any = {};
+      if (options.tcgId) cardFilter.tcgId = options.tcgId;
+      if (options.editionId) cardFilter.editionId = options.editionId;
+      where.card = cardFilter;
     }
-    return prisma.listing.findMany({
+    
+    const listings = await prisma.listing.findMany({
       where,
       include: { card: { include: { tcg: true, edition: true } } },
       take,
       skip,
       orderBy: { finalPrice: 'asc' }
+    });
+
+    return listings.map(l => {
+      const listing = l as any;
+      const tcgName = listing.card?.tcg?.name || 'Unknown';
+      const editionName = listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown';
+      return {
+        id: listing.id,
+        storeId: listing.storeId,
+        cardName: listing.card?.cardName || 'Unknown Card',
+        cardCode: listing.card?.cardCode || 'N/A',
+        tcgName,
+        editionName,
+        tcgId: tcgName,
+        rarity: listing.card?.rarity || 'C',
+        cardType: listing.card?.cardType || '',
+        attribute: listing.card?.attribute || '',
+        metadata: listing.card?.metadata || {},
+        condition: listing.condition || 'NM',
+        quantity: listing.quantity,
+        costPrice: listing.costPrice,
+        finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
+        imageUrl: listing.card?.imageUrl || '',
+        status: listing.status,
+        lastSyncedAt: listing.lastSyncedAt,
+        referencePrice: listing.referencePrice,
+        // Include nested card for frontend components that expect it (like Stock Bajo)
+        card: {
+          cardName: listing.card?.cardName,
+          cardCode: listing.card?.cardCode,
+          imageUrl: listing.card?.imageUrl,
+          rarity: listing.card?.rarity,
+          tcg: { name: tcgName },
+          edition: { editionName, editionCode: listing.card?.edition?.editionCode }
+        }
+      };
     });
   }
 

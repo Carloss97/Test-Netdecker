@@ -960,6 +960,11 @@ export async function syncCatalog(params?: {
   return data;
 }
 
+export async function listListings(params?: { take?: number; skip?: number; tcgId?: string; editionId?: string }): Promise<Listing[]> {
+  const { data } = await apiClient.get('/listings', { params });
+  return normalizeCatalogListings(data);
+}
+
 /** Fetches all editions with card/listing counts. Pass `tcgId` to filter by game; `activeOnly` defaults to true on the backend. */
 export async function getEditions(params?: { tcgId?: string; activeOnly?: boolean; strict?: boolean }): Promise<EditionWithCounts[]> {
   const { strict, ...queryParams } = params || {};
