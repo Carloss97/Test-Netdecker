@@ -158,16 +158,20 @@
 }
 
 .sf-image-button {
-  background: #111827;
+  background: #000;
   border: 0;
   cursor: pointer;
   padding: 0;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 2.5 / 3.5;
+  overflow: hidden;
 }
 
 .sf-image-button img {
   width: 100%;
-  aspect-ratio: 2.5 / 3.5;
+  height: 100%;
   object-fit: contain;
   display: block;
 }

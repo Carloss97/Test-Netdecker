@@ -42,7 +42,17 @@ function toNumber(value: unknown, fallback = 0): number {
 
 function normalizeProduct(raw: any, index: number): StorefrontProduct {
   const cardName = String(raw?.cardName || raw?.card?.cardName || `Producto ${index + 1}`);
-  const editionName = String(raw?.editionName || raw?.edition?.editionName || raw?.editionCode || 'Unknown Edition');
+  
+  // Navigate through card.edition to find the readable name
+  const editionName = String(
+    raw?.editionName || 
+    raw?.edition?.editionName || 
+    raw?.card?.edition?.editionName || 
+    raw?.editionCode || 
+    raw?.card?.edition?.editionCode || 
+    'Unknown Edition'
+  );
+
   const tcgId = String(raw?.tcgId || raw?.card?.tcgId || raw?.tcg || 'MAGIC').toUpperCase();
   const rarity = String(raw?.rarity || raw?.card?.rarity || 'C').toUpperCase();
   const condition = String(raw?.condition || raw?.state || 'NM').toUpperCase();

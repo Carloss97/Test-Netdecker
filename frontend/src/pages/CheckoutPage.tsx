@@ -1,9 +1,12 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import useCartPersist from '../hooks/useCartPersist';
 import { posCheckout } from '../services/erp';
 import { logClientError } from '../utils/observability';
 import './storefront.css';
+import StripeCheckout from '../components/StripeCheckout';
+
+const MercadoPagoCheckout = lazy(() => import('../components/MercadoPagoCheckout'));
 
 function formatClp(value: number): string {
   return new Intl.NumberFormat('es-CL', {
@@ -24,116 +27,127 @@ export default function CheckoutPage() {
     email: '',
     phone: '',
     address: '',
-    paymentMethod: 'cash',
+    paymentMethod: 'mercadopago', // default to digital
     notes: '',
   });
 
-  const canSubmit = useMemo(() => cart.items.length > 0 && form.name && form.email && form.address, [cart.items.length, form]);
+  const canSubmitFields = useMemo(() => form.name && form.email && form.address, [form]);
+  const cartItems = useMemo(() => cart.items.map(it => ({ listingId: it.id, quantity: it.quantity })), [cart.items]);
 
-  const submit = async (e: FormEvent) => {
+  const onPaymentSuccess = () => {
+    setSubmitted(true);
+    cart.clearCart();
+  };
+
+  const submitManualOrder = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) {
-      setFormError('Completa nombre, email y direccion para continuar.');
-      return;
-    }
-
-    const invalidDemoItems = cart.items.filter((item) => String(item.id).startsWith('demo-'));
-    if (invalidDemoItems.length > 0) {
-      setFormError('Algunos items del carrito son de demo y no se pueden procesar en inventario real.');
+    if (!canSubmitFields || cart.items.length === 0) {
+      setFormError('Completa tus datos y añade productos al carrito.');
       return;
     }
 
     setSubmitting(true);
     setFormError(null);
     try {
-      const paymentMethod =
-        form.paymentMethod === 'card'
-          ? 'CARD'
-          : form.paymentMethod === 'transfer'
-            ? 'TRANSFER'
-            : 'CASH';
+      const paymentMethod = form.paymentMethod === 'transfer' ? 'TRANSFER' : 'CASH';
 
       const order = await posCheckout({
-        items: cart.items.map((item) => ({ listingId: item.id, quantity: item.quantity })),
+        items: cartItems,
         customerEmail: form.email,
         paymentMethod,
+        notes: `Nombre: ${form.name}, Tel: ${form.phone}, Dir: ${form.address}. ${form.notes}`,
       });
 
       setSubmitted(true);
-      setCreatedOrderId(String((order as { id?: string }).id || ''));
+      setCreatedOrderId(String((order as any).id || ''));
       cart.clearCart();
     } catch (err) {
-      setFormError('No se pudo crear el pedido. Revisa stock y vuelve a intentar.');
-      logClientError({
-        area: 'storefront-checkout-page',
-        action: 'submit-checkout',
-        message: 'Storefront checkout failed',
-        context: {
-          cartSize: cart.items.length,
-          total: cart.total,
-          paymentMethod: form.paymentMethod,
-        },
-        error: err,
-      });
+      setFormError('No se pudo crear el pedido. Intenta nuevamente.');
+      logClientError({ area: 'checkout', action: 'manual-submit', error: err });
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (submitted) {
+    return (
+      <div className="storefront-page sf-container">
+        <div className="sf-status ok" style={{ padding: '40px', textAlign: 'center' }}>
+          <h2>¡Pedido Confirmado!</h2>
+          <p>Hemos recibido tu pedido correctamente. {createdOrderId ? `ID: ${createdOrderId}` : ''}</p>
+          <Link className="sf-primary-btn" style={{ marginTop: '20px' }} to="/storefront">Volver a la tienda</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="storefront-page">
-      <form className="sf-checkout-shell" onSubmit={submit}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <h1>Checkout demo</h1>
-          <Link className="sf-ghost-btn" to="/storefront">Volver al catalogo</Link>
+      <div className="sf-checkout-shell">
+        <div className="sf-topbar">
+          <h1>Finalizar Compra</h1>
+          <Link className="sf-ghost-btn" to="/storefront">Seguir comprando</Link>
         </div>
-
-        {submitted && (
-          <div className="sf-status ok">
-            Pedido creado correctamente en el backend.
-            {createdOrderId ? ` ID: ${createdOrderId}` : ''}.
-          </div>
-        )}
 
         {formError && <div className="sf-status warn">{formError}</div>}
 
         <div className="sf-checkout-grid">
           <section className="sf-summary-card">
-            <h3>Resumen de pedido</h3>
-            <ul>
-              {cart.items.length === 0 && <li className="sf-muted">Tu carrito esta vacio.</li>}
+            <h3>Tus Productos</h3>
+            <div className="sf-cart-list" style={{ border: 'none', padding: 0 }}>
               {cart.items.map((item) => (
-                <li key={item.id}>
-                  <span>{item.name} x{item.quantity}</span>
+                <div key={item.id} className="sf-cart-row" style={{ gridTemplateColumns: '48px 1fr auto' }}>
+                  <img src={item.imageUrl} alt={item.name} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '14px' }}>{item.name}</div>
+                    <div className="sf-muted" style={{ fontSize: '12px' }}>x{item.quantity}</div>
+                  </div>
                   <strong>{formatClp(item.price * item.quantity)}</strong>
-                </li>
+                </div>
               ))}
-            </ul>
-            <hr style={{ margin: '12px 0', borderColor: 'var(--sf-border)' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            </div>
+            <hr style={{ margin: '16px 0', borderColor: 'var(--sf-border)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 'bold' }}>
               <span>Total</span>
-              <strong>{formatClp(cart.total)}</strong>
+              <span>{formatClp(cart.total)}</span>
             </div>
           </section>
 
-          <section className="sf-summary-card" style={{ display: 'grid', gap: 8 }}>
-            <h3>Datos del cliente</h3>
+          <section className="sf-summary-card" style={{ display: 'grid', gap: 12 }}>
+            <h3>Datos de Envío</h3>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nombre completo" />
-            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="correo@ejemplo.com" />
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefono" />
-            <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Direccion de entrega" />
+            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Correo electrónico" />
+            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Teléfono" />
+            <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Dirección de entrega" />
+            
+            <h3 style={{ marginTop: '12px' }}>Método de Pago</h3>
             <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
-              <option value="cash">Efectivo</option>
-              <option value="transfer">Transferencia</option>
-              <option value="card">Tarjeta en tienda</option>
+              <option value="mercadopago">Mercado Pago (Crédito/Débito)</option>
+              <option value="stripe">Stripe (Internacional)</option>
+              <option value="transfer">Transferencia Bancaria</option>
+              <option value="cash">Pagar en Tienda</option>
             </select>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={4} placeholder="Notas adicionales" />
-            <button className="sf-primary-btn" type="submit" disabled={!canSubmit || submitting}>
-              {submitting ? 'Procesando pedido...' : 'Confirmar pedido'}
-            </button>
+
+            <div style={{ marginTop: '16px' }}>
+              {form.paymentMethod === 'mercadopago' && (
+                <Suspense fallback={<p>Cargando Mercado Pago...</p>}>
+                  <MercadoPagoCheckout items={cartItems} onSuccess={onPaymentSuccess} storeId={null} />
+                </Suspense>
+              )}
+
+              {form.paymentMethod === 'stripe' && (
+                <StripeCheckout items={cartItems} onSuccess={onPaymentSuccess} storeId={null} />
+              )}
+
+              {(form.paymentMethod === 'cash' || form.paymentMethod === 'transfer') && (
+                <button className="sf-primary-btn" style={{ width: '100%' }} onClick={submitManualOrder} disabled={!canSubmitFields || submitting}>
+                  {submitting ? 'Procesando...' : 'Confirmar Pedido'}
+                </button>
+              )}
+            </div>
           </section>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
