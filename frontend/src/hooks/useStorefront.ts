@@ -108,26 +108,22 @@ export default function useStorefront() {
   const deferredQuery = useDeferredValue(filters.query);
 
   const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' | 'search-update' = 'initial-load', search?: string) => {
-    setStatus('loading');
+    if (reason === 'initial-load') setStatus('loading');
     setError(null);
 
     try {
       const params: any = {};
       if (search) params.search = search;
       if (filters.tcgId !== 'ALL') params.tcgId = filters.tcgId;
-      if (filters.editionName !== 'ALL') params.editionId = filters.editionName;
 
       const resp = await apiClient.get('/listings/available', { params });
       const normalized = extractProducts(resp?.data || resp);
       setProducts(normalized);
 
-      if (reason === 'initial-load' || reason === 'store-change') {
-        if (filters.tcgId === 'ALL' && !search) {
-          setAllProducts(normalized);
-        } else {
-          const full = await apiClient.get('/listings/available');
-          setAllProducts(extractProducts(full?.data || full));
-        }
+      // CRITICAL: Always keep a full copy of the catalog (unfiltered) to populate sidebar/pills options
+      if (allProducts.length === 0 || reason === 'store-change') {
+        const fullResp = await apiClient.get('/listings/available');
+        setAllProducts(extractProducts(fullResp?.data || fullResp));
       }
 
       setStatus('ready');
@@ -136,7 +132,7 @@ export default function useStorefront() {
       setStatus('error');
       setError('No se pudo cargar catálogo.');
     }
-  }, [filters.tcgId, filters.editionName]);
+  }, [filters.tcgId, allProducts.length]);
 
   useEffect(() => {
     let mounted = true;
