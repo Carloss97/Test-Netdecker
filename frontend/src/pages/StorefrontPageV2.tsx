@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import useStorefront, { type StorefrontProduct } from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
 import StorefrontLayout from '../components/storefront/StorefrontLayout';
