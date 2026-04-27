@@ -42,6 +42,66 @@ const updateQuantitySchema = z.object({
 // Apply global admin requirement for all inventory routes
 router.use(requireAdmin);
 
+const rollbackSchema = z.object({
+  force: z.boolean().optional(),
+  dryRun: z.boolean().optional(),
+  onlyListingIds: z.array(z.string()).optional(),
+  skipListingIds: z.array(z.string()).optional(),
+  batchId: z.string().optional(),
+  batchIndex: z.number().int().optional(),
+});
+
+const bulkUpdateSchema = z.object({
+  updates: z.array(
+    z.object({
+      listingId: z.string().trim().min(1),
+      quantity: z.coerce.number().int().min(0),
+    })
+  ).min(1),
+});
+
+const decreaseQuantitySchema = z.object({
+  listingId: z.string().trim().min(1),
+  amount: z.coerce.number().int().positive(),
+});
+
+function parseBodyOrThrow<T>(schema: z.ZodSchema<T>, body: unknown): T {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    throw new ValidationError(parsed.error.issues[0]?.message || 'Invalid request payload');
+  }
+  return parsed.data;
+}
+
+function parseImportQuery(req: Request) {
+  const page = Number(req.query.page || 1);
+  const pageSize = Number(req.query.pageSize || req.query.limit || 20);
+  const status = req.query.status ? String(req.query.status) : undefined;
+  const dateFrom = req.query.dateFrom ? new Date(String(req.query.dateFrom)) : undefined;
+  const dateTo = req.query.dateTo ? new Date(String(req.query.dateTo)) : undefined;
+  const sortBy = req.query.sortBy ? String(req.query.sortBy) : 'createdAt';
+  const sortDir = req.query.sortDir ? String(req.query.sortDir) : 'desc';
+
+  return {
+    page,
+    pageSize,
+    status,
+    dateFrom: dateFrom && !Number.isNaN(dateFrom.getTime()) ? dateFrom : undefined,
+    dateTo: dateTo && !Number.isNaN(dateTo.getTime()) ? dateTo : undefined,
+    sortBy: ['createdAt', 'status', 'fileName', 'totalRecords'].includes(sortBy)
+      ? (sortBy as 'createdAt' | 'status' | 'fileName' | 'totalRecords')
+      : 'createdAt',
+    sortDir: sortDir === 'asc' ? 'asc' : 'desc' as 'asc' | 'desc',
+  };
+}
+
+function getImportStoreId(req: Request): string | undefined {
+  const admin = (req as any).adminUser;
+  if (admin?.storeId) return admin.storeId;
+  const raw = String(req.header('x-store-id') || req.query.storeId || '').trim();
+  return raw.length > 0 ? raw : undefined;
+}
+
 /**
  * GET /api/inventory/imports?limit=50
  * Returns import history.

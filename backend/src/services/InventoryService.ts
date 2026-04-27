@@ -793,7 +793,7 @@ export class InventoryService {
           importedBy: options.importedBy || 'system',
           ...(options.storeId ? { storeId: options.storeId } : {}),
         }
-      });
+      }) as any;
 
       importId = createdImport.id;
     }
@@ -812,13 +812,13 @@ export class InventoryService {
         if (batchesMap.has(bi)) return batchesMap.get(bi);
         const startRow = bi * batchSize + 1;
         const endRow = Math.min(rows.length, (bi + 1) * batchSize);
-        const created = await prisma.importBatch.create({ data: { importId, batchIndex: bi, startRow, endRow, status: 'completed' } });
+        const created = await prisma.importBatch.create({ data: { importId, batchIndex: bi, startRow, endRow, status: 'completed' } }) as any;
         batchesMap.set(bi, created.id);
         return created.id;
       }
 
       if (defaultBatchId) return defaultBatchId;
-      const created = await prisma.importBatch.create({ data: { importId, batchIndex: 0, startRow: 1, endRow: rows.length, status: 'completed' } });
+      const created = await prisma.importBatch.create({ data: { importId, batchIndex: 0, startRow: 1, endRow: rows.length, status: 'completed' } }) as any;
       defaultBatchId = created.id;
       return created.id;
     }

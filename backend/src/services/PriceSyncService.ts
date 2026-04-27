@@ -156,7 +156,117 @@ function estimateFallbackReferencePrice(tcgName: string, rarity?: string): numbe
   return Number((base * multiplier).toFixed(2));
 }
 
-export class PriceSyncService {
+  /**
+   * Processes a single price update, handling volatility checks and approval records.
+   */
+  private static async processOne(
+    update: PriceSyncUpdateInput, 
+    resolvedRounding: number, 
+    input: RunPriceSyncInput, 
+    result: any,
+    db: any = prisma
+  ) {
+    if (update.listingId) {
+      const listing = await db.listing.findUnique({
+        where: { id: update.listingId },
+        select: {
+          id: true,
+          finalPrice: true,
+          marginMultiplier: true,
+          editionId: true,
+          card: { select: { tcg: { select: { name: true } } } },
+        }
+      });
+
+      if (!listing) throw new NotFoundError('Listing not found');
+
+      const resolvedMargin = update.marginMultiplier || (listing as any).marginMultiplier;
+
+      const calculated = await PriceService.calculateFinalPrice({
+        referencePrice: update.referencePrice,
+        marginMultiplier: resolvedMargin,
+        roundingMultiple: resolvedRounding,
+      });
+
+      const isApiSourced = update.source === 'api';
+      const threshold = await PriceThresholdService.getThreshold(
+        (listing as any).card?.tcg?.name ?? null,
+        (listing as any).editionId ?? null,
+      );
+
+      const isVolatile = isApiSourced && (listing as any).finalPrice > 0
+        ? await PriceService.isVolatileChange((listing as any).finalPrice, calculated.finalPrice, threshold)
+        : false;
+
+      const approvalRequired = process.env.PRICE_APPROVAL_REQUIRED === 'true';
+      if (isVolatile && approvalRequired) {
+        const percentChange = (listing as any).finalPrice === 0
+          ? (calculated.finalPrice > 0 ? 100 : 0)
+          : ((calculated.finalPrice - (listing as any).finalPrice) / (listing as any).finalPrice) * 100;
+
+        await PriceApprovalService.createApproval({
+          listingId: (listing as any).id,
+          oldFinalPrice: (listing as any).finalPrice,
+          newFinalPrice: calculated.finalPrice,
+          newReferencePrice: update.referencePrice,
+          marginMultiplier: resolvedMargin,
+          percentChange,
+          requestedBy: input.changedBy || input.source,
+          notes: input.notes ?? (input.source === 'cron' ? 'Scheduled price sync (pending approval)' : 'Manual price sync (pending approval)'),
+        });
+
+        result.volatile += 1;
+        return;
+      }
+
+      const reason = isVolatile
+        ? PriceUpdateReason.VOLATILE_ALERT
+        : isApiSourced
+          ? PriceUpdateReason.EXTERNAL_API_SYNC
+          : PriceUpdateReason.TCGPLAYER_SYNC;
+
+      await PriceService.updateListingPrice(
+        update.listingId,
+        update.referencePrice,
+        resolvedMargin,
+        reason,
+        input.changedBy || input.source,
+        input.notes || (input.source === 'cron' ? 'Scheduled price sync' : 'Manual price sync'),
+        resolvedRounding,
+      );
+
+      result.updated += 1;
+      return;
+    }
+
+    if (update.cardId) {
+      const defaultStore = await db.store.findFirst({
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (!defaultStore) {
+        throw new NotFoundError('No store available to create listing during sync');
+      }
+
+      const resolvedMargin = update.marginMultiplier || DEFAULT_MARGIN_MULTIPLIER;
+      const createdListing = await ListingService.createListing({
+        storeId: defaultStore.id,
+        cardId: update.cardId,
+        condition: CardCondition.NM,
+        quantity: 0,
+        referencePrice: update.referencePrice,
+        marginMultiplier: resolvedMargin,
+      });
+
+      await db.listing.update({ where: { id: createdListing.id }, data: { lastSyncedAt: new Date() } });
+
+      result.updated += 1;
+      return;
+    }
+
+    throw new ValidationError('Sync target missing listingId or cardId');
+  }
+
   static async runPriceSync(input: RunPriceSyncInput): Promise<PriceSyncResult> {
     // If configured to use D1 backend, delegate to the D1 implementation
     if (process.env.USE_D1 === 'true') {
