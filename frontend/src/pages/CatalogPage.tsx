@@ -151,7 +151,7 @@ export function CatalogPage() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{previewListing.card?.cardCode}</p>
                   <div style={{ marginTop: 10 }}>
                     <span className="badge badge-gray">{previewListing.card?.rarity}</span>
-                    <span className="badge badge-blue" style={{ marginLeft: 5 }}>{(listing as any).tcgName || 'TCG'}</span>
+                    <span className="badge badge-blue" style={{ marginLeft: 5 }}>{(previewListing as any).tcgName || 'TCG'}</span>
                   </div>
                 </div>
               </>

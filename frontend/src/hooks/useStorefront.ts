@@ -57,16 +57,12 @@ function normalizeProduct(raw: any, index: number): StorefrontProduct {
   const quantity = toNumber(raw?.quantity ?? raw?.stock, 0);
   const finalPrice = toNumber(raw?.finalPrice ?? raw?.price, 0);
   const referencePrice = toNumber(raw?.referencePrice ?? raw?.priceUsd, 0);
-  const rawImageUrl = String(
+  const imageUrl = String(
     raw?.imageUrl ||
       raw?.card?.imageUrl ||
       raw?.image ||
       PLACEHOLDER_IMAGE
   );
-
-  const imageUrl = rawImageUrl.startsWith('http') 
-    ? `/api/media/image-proxy?url=${encodeURIComponent(rawImageUrl)}` 
-    : rawImageUrl;
 
   return {
     id: String(raw?.id || raw?.listingId || `${tcgId}-${index}`),

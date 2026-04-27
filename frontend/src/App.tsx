@@ -100,15 +100,6 @@ function RequireAdmin() {
 }
 
 function App() {
-  useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
-      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-    };
-    updateTheme(darkModeMediaQuery);
-    darkModeMediaQuery.addEventListener('change', updateTheme);
-    return () => darkModeMediaQuery.removeEventListener('change', updateTheme);
-  }, []);
   return (
     <BrowserRouter>
       <Routes>

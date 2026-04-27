@@ -161,9 +161,7 @@ export class ListingService {
         // Return original price as requested (no custom rounding here, should match admin)
         finalPrice: listing.finalPrice,
         cardName: listing.card?.cardName || 'Unknown Card',
-        imageUrl: listing.card?.imageUrl?.startsWith('http') 
-          ? `/api/media/image-proxy?url=${encodeURIComponent(listing.card.imageUrl)}` 
-          : (listing.card?.imageUrl || ''),
+        imageUrl: listing.card?.imageUrl || '',
       };
     });
   }
