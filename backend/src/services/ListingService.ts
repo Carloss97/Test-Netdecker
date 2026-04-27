@@ -127,7 +127,7 @@ export class ListingService {
       where.storeId = storeId;
     }
 
-    return prisma.listing.findMany({
+    const listings = await prisma.listing.findMany({
       where,
       include: {
         card: {
@@ -135,6 +135,21 @@ export class ListingService {
         }
       },
       orderBy: { finalPrice: 'asc' }
+    });
+
+    // Clean and Round results for Storefront
+    return listings.map(l => {
+      const listing = l as any;
+      return {
+        ...listing,
+        // Force readable names
+        editionName: listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown',
+        tcgName: listing.card?.tcg?.name || 'Unknown',
+        // Ensure price is rounded correctly for the UI
+        finalPrice: Math.ceil(listing.finalPrice / 50) * 50, // Round to nearest 50 for CLP
+        cardName: listing.card?.cardName || 'Unknown Card',
+        imageUrl: listing.card?.imageUrl || '',
+      };
     });
   }
 
