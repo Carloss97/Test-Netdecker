@@ -909,13 +909,13 @@ export class InventoryService {
             const edition = await tx.edition.upsert({
               where: {
                 tcgId_editionCode: {
-                  tcgId: tcg.id,
+                  tcgId: (tcg as any).id,
                   editionCode: parsedRow.editionCode
                 }
               },
               update: { editionName: parsedRow.editionName },
               create: {
-                tcgId: tcg.id,
+                tcgId: (tcg as any).id,
                 editionCode: parsedRow.editionCode,
                 editionName: parsedRow.editionName
               }
@@ -925,8 +925,8 @@ export class InventoryService {
             const card = await tx.card.upsert({
               where: {
                 tcgId_editionId_cardCode_rarity: {
-                  tcgId: tcg.id,
-                  editionId: edition.id,
+                  tcgId: (tcg as any).id,
+                  editionId: (edition as any).id,
                   cardCode: parsedRow.cardCode,
                   rarity: parsedRow.rarity,
                 }
@@ -938,8 +938,8 @@ export class InventoryService {
                 imageUrl: parsedRow.imageUrl
               },
               create: {
-                tcgId: tcg.id,
-                editionId: edition.id,
+                tcgId: (tcg as any).id,
+                editionId: (edition as any).id,
                 cardCode: parsedRow.cardCode,
                 cardName: parsedRow.cardName,
                 cardNumber: parsedRow.cardNumber,

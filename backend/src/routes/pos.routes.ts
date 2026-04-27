@@ -62,7 +62,7 @@ router.post('/sessions/:sessionId/transactions', requirePermission('create', 'po
 
 router.post('/sessions/:sessionId/complete', requirePermission('update', 'pos-session'), async (req: Request, res: Response) => {
   const result = await PosService.completeSession(String(req.params.sessionId));
-  res.json({ success: true, ...result });
+  res.json({ success: true, ...(result as any) });
 });
 
 router.get('/sessions/:sessionId/transactions', requirePermission('view', 'pos-transaction'), async (req: Request, res: Response) => {
