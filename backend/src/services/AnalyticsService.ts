@@ -20,21 +20,25 @@ export class AnalyticsService {
     });
 
     let totalRevenue = 0;
-    let totalCOGS = 0; // Cost of Goods Sold
     let orderCount = orders.length;
 
     for (const order of orders) {
       totalRevenue += order.total;
-      for (const item of order.items) {
-        totalCOGS += (item.listing?.costPrice || 0) * item.quantity;
-      }
     }
 
-    const grossProfit = totalRevenue - totalCOGS;
+    // Get total expenses for the period/store
+    const expenses = await prisma.expense.findMany({
+      where: {
+        ...(storeId ? { storeId } : {}),
+      }
+    });
+
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const grossProfit = totalRevenue - totalExpenses;
 
     return {
       totalRevenue,
-      totalCOGS,
+      totalExpenses,
       grossProfit,
       orderCount,
       profitMargin: totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,

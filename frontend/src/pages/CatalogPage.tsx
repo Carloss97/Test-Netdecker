@@ -111,6 +111,7 @@ export function CatalogPage() {
                   <th style={{ cursor: 'pointer', paddingLeft: 16 }} onClick={() => toggleSort('name')}>Carta</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('code')}>Código</th>
                   <th>Edición</th>
+                  <th>Metadatos TCG</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('stock')}>Stock</th>
                   <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('price')}>Precio</th>
                 </tr>
@@ -128,6 +129,17 @@ export function CatalogPage() {
                     <td><code style={{ fontWeight: 600, color: 'var(--primary)' }}>{listing.cardCode || listing.card?.cardCode}</code></td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       {listing.editionName || listing.card?.edition?.editionName || '—'}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>{listing.cardType || '—'}</span>
+                        <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{listing.attribute || '—'}</span>
+                        {Object.entries(listing.metadata || {}).map(([key, val]) => (
+                          <span key={key} className="badge badge-gray" style={{ fontSize: '0.65rem' }} title={key}>
+                            {String(val)}
+                          </span>
+                        ))}
+                      </div>
                     </td>
                     <td>
                       <span className={`badge ${listing.quantity > 5 ? 'badge-green' : 'badge-yellow'}`}>

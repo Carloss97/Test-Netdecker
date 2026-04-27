@@ -54,6 +54,7 @@ import storefrontCouponRoutes from './routes/storefrontCoupon.routes.js';
 // posCashRoutes was removed from mounting to avoid duplicate routes; import removed
 import invoicesRoutes from './routes/invoices.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import expenseRoutes from './routes/expense.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
 import { startCatalogSyncCron } from './jobs/catalogSync.job.js';
 import { startCartCleanupCron } from './jobs/cartCleanup.job.js';
@@ -128,6 +129,7 @@ app.use('/api/pos', posRoutes);
 app.use('/api/pos/cash-sessions', cashSessionsRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/expenses', expenseRoutes);
 app.use('/api/media', mediaRoutes);
 
 // ============================================

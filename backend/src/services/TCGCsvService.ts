@@ -212,6 +212,14 @@ function tcgCsvToExternal(
   const cardType = (getExtendedValue(ext, 'Card Type') ?? getExtendedValue(ext, 'CardType') ?? getExtendedValue(ext, 'SubType')) || '';
   const attribute = (getExtendedValue(ext, 'Color') ?? getExtendedValue(ext, 'Attribute') ?? getExtendedValue(ext, 'Energy Type')) || '';
 
+  // Capture ALL metadata in a JSON object
+  const metadata: Record<string, string> = {};
+  ext.forEach(item => {
+    if (item.name && item.value) {
+      metadata[item.name] = item.value;
+    }
+  });
+
   const editionCode = (group.abbreviation || String(group.groupId)).toUpperCase();
 
   return {
@@ -225,6 +233,7 @@ function tcgCsvToExternal(
     rarity,
     cardType,
     attribute,
+    metadata,
     imageUrl: product.imageUrl,
     description,
     priceLow: price?.lowPrice ?? undefined,

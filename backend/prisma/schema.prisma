@@ -143,6 +143,7 @@ model Store {
   cashSessions CashSession[]
   cashDiscrepancyLogs CashDiscrepancyLog[]
   fiscalPeriods FiscalPeriod[]
+  expenses    Expense[]
 }
 
 // Customers of the storefront
@@ -239,6 +240,23 @@ model Review {
   @@index([customerId])
 }
 
+model Expense {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  amount      Float
+  category    String   // e.g. "SEALED_PRODUCT", "RENT", "SHIPPING", "MARKETING"
+  description String?
+  date        DateTime @default(now())
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([category])
+}
+
 
 model TCG {
   id             String    @id @default(cuid())
@@ -292,6 +310,7 @@ model Card {
   
   cardType       String?   // e.g. "Creature", "Spell", "Trainer", "Leader"
   attribute      String?   // e.g. "Fire", "Dark", "Slash", "Red"
+  metadata       Json?     // Flexible TCG metadata (Power, Level, HP, etc.)
 
   // For search and filtering
   tags           String    @default("")  // JSON or comma-separated tags
