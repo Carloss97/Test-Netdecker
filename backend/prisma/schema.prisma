@@ -132,6 +132,7 @@ model Store {
   imports     InventoryImport[]
   carts       Cart[]
   orders      Order[]
+  customers   Customer[]
   posSessions POSSession[]
   adminSessions AdminSession[]
   priceSyncs  PriceSyncRun[]
@@ -141,6 +142,31 @@ model Store {
   cashSessions CashSession[]
   cashDiscrepancyLogs CashDiscrepancyLog[]
   fiscalPeriods FiscalPeriod[]
+}
+
+// Customers of the storefront
+model Customer {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  email        String
+  passwordHash String
+  name         String
+  phone        String?
+  address      String?
+  
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders       Order[]
+  carts        Cart[]
+
+  @@unique([storeId, email])
+  @@index([storeId])
+  @@index([email])
 }
 
 
@@ -759,8 +785,11 @@ model Cart {
   storeId        String
   store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   
-  sessionId      String    // Session or user ID
+  sessionId      String    // Session or guest ID
   
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
   items          OrderItem[]
   
   createdAt      DateTime  @default(now())
@@ -768,6 +797,7 @@ model Cart {
   
   @@index([sessionId])
   @@index([storeId])
+  @@index([customerId])
 }
 
 model OrderItem {
@@ -797,6 +827,9 @@ model Order {
   storeId        String
   store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
   orderNumber    String    @unique
   customerEmail  String
   status         OrderStatus  @default(PENDING)
@@ -821,6 +854,7 @@ model Order {
   @@index([status])
   @@index([fulfillmentStatus])
   @@index([storeId])
+  @@index([customerId])
 }
 
 // Invoices and receipts

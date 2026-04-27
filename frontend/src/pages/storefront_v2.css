@@ -1,0 +1,171 @@
+:root {
+  --store-primary: #ff4d00;
+  --store-primary-hover: #e64500;
+  --store-bg: #f5f5f5;
+  --store-surface: #ffffff;
+  --store-text: #212121;
+  --store-text-muted: #757575;
+  --store-border: #eeeeee;
+  --store-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+[data-theme='dark'] {
+  --store-bg: #0a0a0a;
+  --store-surface: #1a1a1a;
+  --store-text: #f5f5f5;
+  --store-text-muted: #a0a0a0;
+  --store-border: #2a2a2a;
+}
+
+.store-body {
+  background-color: var(--store-bg);
+  color: var(--store-text);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Navbar Style */
+.store-nav {
+  background: var(--store-surface);
+  border-bottom: 1px solid var(--store-border);
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.store-nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.store-search-bar {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 40px;
+  position: relative;
+}
+
+.store-search-bar input {
+  width: 100%;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--store-border);
+  background: var(--store-bg);
+  color: var(--store-text);
+}
+
+/* Hero Section */
+.store-hero {
+  background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+  border-radius: 20px;
+  padding: 60px 40px;
+  color: white;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.store-hero-content h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  font-weight: 800;
+}
+
+/* Product Grid */
+.store-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.store-card {
+  background: var(--store-surface);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--store-border);
+}
+
+.store-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.store-card-image {
+  aspect-ratio: 2.5/3.5;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.store-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.store-card-info {
+  padding: 12px;
+}
+
+.store-card-price {
+  color: var(--store-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Filter Sidebar */
+.store-sidebar {
+  width: 260px;
+  background: var(--store-surface);
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.store-filter-group {
+  margin-bottom: 24px;
+}
+
+.store-filter-title {
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+.store-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Category Pills */
+.category-pill {
+  padding: 8px 20px;
+  border-radius: 50px;
+  background: var(--store-surface);
+  border: 1px solid var(--store-border);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.category-pill.active {
+  background: var(--store-primary);
+  color: white;
+  border-color: var(--store-primary);
+}

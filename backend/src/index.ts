@@ -49,6 +49,7 @@ import pricingRoutes from './routes/pricing.routes.js';
 import posRoutes from './routes/pos.routes.js';
 import cashSessionsRoutes from './routes/cashSessions.routes.js';
 import mediaRoutes from './routes/media.routes.js';
+import storefrontAuthRoutes from './routes/storefrontAuth.routes.js';
 // posCashRoutes was removed from mounting to avoid duplicate routes; import removed
 import invoicesRoutes from './routes/invoices.routes.js';
 import { startPriceSyncCron } from './jobs/priceSync.job.js';
@@ -116,6 +117,7 @@ app.use('/api/external', externalRoutes);
 // declared inside `adminRoutes`.
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/storefront/auth', storefrontAuthRoutes);
 app.use('/api/editions', editionRoutes);
 app.use('/tienda', publicRoutes);
 app.use('/api/pricing', pricingRoutes);

@@ -4,13 +4,14 @@ import AuditService from './AuditService.js';
 import EmailNotificationService from './EmailNotificationService.js';
 
 export class OrderService {
-  static async listOrders(params: { take?: number; skip?: number; status?: string; fulfillmentStatus?: string; storeId?: string } = {}) {
+  static async listOrders(params: { take?: number; skip?: number; status?: string; fulfillmentStatus?: string; storeId?: string; customerId?: string } = {}) {
     const take = params.take ?? 20;
     const skip = params.skip ?? 0;
     const where = {
       ...(params.status ? { status: params.status } : {}),
       ...(params.fulfillmentStatus ? { fulfillmentStatus: params.fulfillmentStatus } : {}),
       ...(params.storeId ? { storeId: params.storeId } : {}),
+      ...(params.customerId ? { customerId: params.customerId } : {}),
     };
 
     const [orders, total] = await Promise.all([

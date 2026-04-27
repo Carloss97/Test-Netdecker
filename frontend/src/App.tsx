@@ -16,7 +16,10 @@ import { LowStockPage } from './pages/LowStockPage';
 import { PosPage } from './pages/PosPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import StoresList from './pages/admin/StoresList';
-import StorefrontPage from './pages/StorefrontPage';
+import StorefrontPageV2 from './pages/StorefrontPageV2';
+import StorefrontLoginPage from './pages/StorefrontLoginPage';
+import StorefrontRegisterPage from './pages/StorefrontRegisterPage';
+import ProfilePage from './pages/ProfilePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import { CatalogPage } from './pages/CatalogPage';
@@ -105,7 +108,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-        <Route path="/storefront" element={<StorefrontPage />} />
+        <Route path="/storefront" element={<StorefrontPageV2 />} />
+        <Route path="/storefront/login" element={<StorefrontLoginPage />} />
+        <Route path="/storefront/register" element={<StorefrontRegisterPage />} />
+        <Route path="/storefront/profile" element={<ProfilePage />} />
         <Route path="/storefront/product/:productId" element={<ProductDetailPage />} />
         <Route path="/storefront/checkout" element={<CheckoutPage />} />
 
