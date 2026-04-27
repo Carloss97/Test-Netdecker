@@ -136,7 +136,6 @@ function App() {
             <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
             <Route path="/admin/approvals" element={<ApprovalsPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
-            <Route path="/local-imports" element={<LocalImportsManager />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
