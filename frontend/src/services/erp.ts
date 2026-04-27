@@ -45,6 +45,10 @@ export async function posCheckout(params: {
   customerEmail?: string | null;
   paymentMethod?: string | null;
   externalReference?: string | null;
+  couponCode?: string | null;
+  pointsToRedeem?: number | null;
+  notes?: string | null;
+  storeId?: string | null;
 }) {
   const { data } = await apiClient.post('/payments/pos-sale', params);
   return data.order ?? data;

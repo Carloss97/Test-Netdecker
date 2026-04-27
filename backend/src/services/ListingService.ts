@@ -183,6 +183,8 @@ export class ListingService {
         editionName,
         tcgId: tcgName, // Force tcgId to be the name for frontend filters
         rarity: listing.card?.rarity || 'C',
+        cardType: listing.card?.cardType || '',
+        attribute: listing.card?.attribute || '',
         condition: listing.condition || 'NM',
         quantity: listing.quantity,
         finalPrice: roundTo100(listing.finalPrice),

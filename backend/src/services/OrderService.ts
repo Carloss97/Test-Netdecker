@@ -211,6 +211,20 @@ export class OrderService {
     // Notify customer of fulfillment status change
     void EmailNotificationService.sendOrderStatusEmail(updated as any, status);
 
+    // AWARD POINTS ON DELIVERY
+    if (status === 'DELIVERED' && updated.customerId) {
+      const pointsToEarn = Math.floor(updated.total * 0.05); // 5% of total
+      await prisma.customer.update({
+        where: { id: updated.customerId },
+        data: { pointsBalance: { increment: pointsToEarn } }
+      });
+      
+      await prisma.order.update({
+        where: { id: updated.id },
+        data: { pointsEarned: pointsToEarn }
+      });
+    }
+
     return updated;
   }
 }

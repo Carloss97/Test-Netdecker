@@ -124,6 +124,11 @@ export default function StorefrontLayout({ children, onSearch }: StorefrontLayou
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            {customer && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15, background: 'var(--store-bg)', padding: '5px 15px', borderRadius: 50, border: '1px solid var(--store-border)' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--store-primary)' }}>✨ {customer.pointsBalance?.toLocaleString('es-CL')} NP</span>
+              </div>
+            )}
             {customer ? (
               <div className="user-menu" style={{ position: 'relative' }}>
                 <Link to="/storefront/profile" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}>

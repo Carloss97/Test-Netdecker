@@ -9,6 +9,8 @@ export type StorefrontProduct = {
   tcgId: string;
   rarity: string;
   condition: string;
+  cardType: string;
+  attribute: string;
   quantity: number;
   finalPrice: number;
   referencePrice?: number;
@@ -20,6 +22,8 @@ export type StorefrontFilters = {
   tcgId: string;
   editionName: string;
   rarity: string;
+  cardType: string;
+  attribute: string;
   minPrice: string;
   maxPrice: string;
 };
@@ -71,6 +75,8 @@ function normalizeProduct(raw: any, index: number): StorefrontProduct {
     tcgId,
     rarity,
     condition,
+    cardType: String(raw?.cardType || ''),
+    attribute: String(raw?.attribute || ''),
     quantity,
     finalPrice,
     referencePrice: referencePrice > 0 ? referencePrice : undefined,
@@ -104,6 +110,8 @@ export default function useStorefront() {
     tcgId: 'ALL',
     editionName: 'ALL',
     rarity: 'ALL',
+    cardType: 'ALL',
+    attribute: 'ALL',
     minPrice: '',
     maxPrice: '',
   });
@@ -188,6 +196,8 @@ export default function useStorefront() {
       if (filters.tcgId !== 'ALL' && item.tcgId !== filters.tcgId) return false;
       if (filters.editionName !== 'ALL' && item.editionName !== filters.editionName) return false;
       if (filters.rarity !== 'ALL' && item.rarityLc !== filters.rarity.toLowerCase()) return false;
+      if (filters.cardType !== 'ALL' && item.cardType !== filters.cardType) return false;
+      if (filters.attribute !== 'ALL' && item.attribute !== filters.attribute) return false;
       if (typeof minPrice === 'number' && Number.isFinite(minPrice) && item.finalPrice < minPrice) return false;
       if (typeof maxPrice === 'number' && Number.isFinite(maxPrice) && item.finalPrice > maxPrice) return false;
       return true;
@@ -220,6 +230,14 @@ export default function useStorefront() {
     tcgOptions,
     editionOptions,
     rarityOptions,
+    colorOptions: useMemo(() => {
+      const base = allProducts.length > 0 ? allProducts : products;
+      return ['ALL', ...Array.from(new Set(base.map((entry) => entry.attribute))).filter(Boolean)];
+    }, [allProducts, products]),
+    typeOptions: useMemo(() => {
+      const base = allProducts.length > 0 ? allProducts : products;
+      return ['ALL', ...Array.from(new Set(base.map((entry) => entry.cardType))).filter(Boolean)];
+    }, [allProducts, products]),
     visibleLimit,
     setVisibleLimit,
     reload: () => loadProducts('manual-retry'),

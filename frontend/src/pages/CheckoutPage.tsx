@@ -6,6 +6,7 @@ import apiClient from '../services/api';
 import { logClientError } from '../utils/observability';
 import StorefrontLayout from '../components/storefront/StorefrontLayout';
 import StripeCheckout from '../components/StripeCheckout';
+import ModeToggle from '../components/ModeToggle';
 import './storefront_v2.css';
 
 const MercadoPagoCheckout = lazy(() => import('../components/MercadoPagoCheckout'));
@@ -28,6 +29,8 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [usePoints, setUsePoints] = useState(false);
+  const [customer, setCustomer] = useState<any>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -42,19 +45,21 @@ export default function CheckoutPage() {
   useEffect(() => {
     const saved = localStorage.getItem('customer_data');
     if (saved) {
-      const customer = JSON.parse(saved);
+      const data = JSON.parse(saved);
+      setCustomer(data);
       setForm(prev => ({
         ...prev,
-        name: customer.name || '',
-        email: customer.email || '',
-        phone: customer.phone || '',
-        address: customer.address || '',
+        name: data.name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        address: data.address || '',
       }));
     }
   }, []);
 
   const discountAmount = appliedCoupon?.discountAmount || 0;
-  const finalTotal = Math.max(0, cart.total - discountAmount);
+  const pointsDiscount = usePoints ? Math.min(customer?.pointsBalance || 0, cart.total - discountAmount) : 0;
+  const finalTotal = Math.max(0, cart.total - discountAmount - pointsDiscount);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -99,6 +104,7 @@ export default function CheckoutPage() {
         customerEmail: form.email,
         paymentMethod,
         couponCode: appliedCoupon?.code,
+        pointsToRedeem: usePoints ? pointsDiscount : 0,
         notes: `Nombre: ${form.name}, Tel: ${form.phone}, Dir: ${form.address}. ${form.notes}`,
       });
 
@@ -171,6 +177,29 @@ export default function CheckoutPage() {
                 ))}
               </div>
             </section>
+
+            {customer && customer.pointsBalance > 0 && (
+              <section className="card" style={{ padding: 30, borderRadius: 20, boxShadow: 'var(--store-shadow)', border: '1px solid var(--store-border)' }}>
+                <h3 style={{ marginBottom: 10, fontWeight: 800 }}>✨ Canjear NetPoints</h3>
+                <p style={{ color: 'var(--store-text-muted)', fontSize: '0.85rem', marginBottom: 15 }}>
+                  Tienes <strong>{customer.pointsBalance.toLocaleString('es-CL')} NP</strong> disponibles.
+                  Cada punto equivale a $1 CLP de descuento.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <ModeToggle 
+                    checked={usePoints}
+                    onToggle={() => setUsePoints(!usePoints)}
+                    onLabel="Usar puntos"
+                    offLabel="No usar"
+                  />
+                  {usePoints && (
+                    <div style={{ color: 'var(--store-primary)', fontWeight: 700 }}>
+                      -{formatClp(pointsDiscount)} aplicados
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
             <section className="card" style={{ padding: 30, borderRadius: 20, boxShadow: 'var(--store-shadow)', border: '1px solid var(--store-border)' }}>
               <h3 style={{ marginBottom: 20, fontWeight: 800 }}>Cupón de Descuento</h3>

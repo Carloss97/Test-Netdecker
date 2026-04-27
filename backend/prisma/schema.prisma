@@ -157,6 +157,8 @@ model Customer {
   phone        String?
   address      String?
   
+  pointsBalance Int     @default(0) // NetPoints for loyalty
+
   isActive     Boolean  @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
@@ -164,6 +166,8 @@ model Customer {
 
   orders       Order[]
   carts        Cart[]
+  wishlists    Wishlist[]
+  reviews      Review[]
 
   @@unique([storeId, email])
   @@index([storeId])
@@ -182,6 +186,8 @@ model Coupon {
   minPurchase   Float     @default(0)
   maxDiscount   Float?    // Max discount amount for percentage coupons
   
+  costInPoints  Int?      // How many NetPoints to redeem this coupon
+
   expiresAt     DateTime?
   usageLimit    Int?      // Null for unlimited
   usageCount    Int       @default(0)
@@ -284,6 +290,9 @@ model Card {
   rarity         String    // "Rare", "Common", etc.
   colorIdentity String?   // For Magic: "WUB", for others: relevant color system
   
+  cardType       String?   // e.g. "Creature", "Spell", "Trainer", "Leader"
+  attribute      String?   // e.g. "Fire", "Dark", "Slash", "Red"
+
   // For search and filtering
   tags           String    @default("")  // JSON or comma-separated tags
   imageUrl       String?
@@ -359,6 +368,8 @@ model Listing {
   reservations    Reservation[]
   inventoryImportChanges InventoryImportChange[]
   priceChangeApprovals PriceChangeApproval[]
+  wishlists      Wishlist[]
+  reviews        Review[]
 }
 
 model PriceHistory {
@@ -898,15 +909,19 @@ model Order {
   coupon         Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
   discountAmount Float     @default(0.0)
 
+  pointsEarned   Int       @default(0)
+  pointsRedeemed Int       @default(0)
+
   orderNumber    String    @unique
   customerEmail  String
   status         OrderStatus  @default(PENDING)
   paymentMethod  PaymentMethod @default(CASH)
   fulfillmentStatus FulfillmentStatus @default(PENDING_PAYMENT)
-  
+
   items          OrderItem[]
   invoices       Invoice[]
-  
+  reviews        Review[]
+
   subtotal       Float
   tax            Float     @default(0.0)
   total          Float

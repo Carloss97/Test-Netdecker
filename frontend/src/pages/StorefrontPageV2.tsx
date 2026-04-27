@@ -3,15 +3,15 @@ import { useSearchParams, Link } from 'react-router-dom';
 import useStorefront, { type StorefrontProduct } from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
 import StorefrontLayout from '../components/storefront/StorefrontLayout';
-import PriceDisplay from '../components/storefront/PriceDisplay';
 import RarityBadge from '../components/storefront/RarityBadge';
+import apiClient from '../services/api';
 import './storefront_v2.css';
 
 export default function StorefrontPageV2() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   
-  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, visibleLimit, setVisibleLimit } = useStorefront();
+  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit } = useStorefront();
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -106,16 +106,60 @@ export default function StorefrontPageV2() {
               <label key={rarity} className="store-checkbox-label">
                 <input 
                   type="checkbox" 
-                  checked={filters.rarity?.includes(rarity)}
-                  onChange={() => {
-                    const current = filters.rarity || [];
-                    const next = current.includes(rarity) ? current.filter(r => r !== rarity) : [...current, rarity];
-                    setFilters({ ...filters, rarity: next });
-                  }}
+                  checked={filters.rarity === rarity}
+                  onChange={() => setFilters({ ...filters, rarity: filters.rarity === rarity ? 'ALL' : rarity })}
                 /> {rarity}
               </label>
             ))}
           </div>
+
+          {/* Dynamic TCG Filters */}
+          {colorOptions.length > 1 && (
+            <div className="store-filter-group">
+              <div className="store-filter-title">
+                {filters.tcgId === 'MAGIC' ? 'Color' : 
+                 filters.tcgId === 'POKEMON' ? 'Tipo Energía' :
+                 filters.tcgId === 'ONE_PIECE' ? 'Color' : 'Atributo'}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {colorOptions.filter(c => c !== 'ALL').map(color => (
+                  <button
+                    key={color}
+                    onClick={() => setFilters({ ...filters, attribute: filters.attribute === color ? 'ALL' : color })}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--store-border)',
+                      background: filters.attribute === color ? 'var(--store-primary)' : 'var(--store-surface)',
+                      color: filters.attribute === color ? 'white' : 'inherit',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {color}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {typeOptions.length > 1 && (
+            <div className="store-filter-group">
+              <div className="store-filter-title">Tipo de Carta</div>
+              <select 
+                className="input input-sm"
+                value={filters.cardType}
+                onChange={(e) => setFilters({ ...filters, cardType: e.target.value })}
+                style={{ borderRadius: 8 }}
+              >
+                {typeOptions.map(t => (
+                  <option key={t} value={t}>{t === 'ALL' ? 'Todos los tipos' : t}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="store-filter-group">
             <div className="store-filter-title">Rango de Precio</div>

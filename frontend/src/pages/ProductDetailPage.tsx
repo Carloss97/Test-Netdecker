@@ -16,18 +16,45 @@ export default function ProductDetailPage() {
 
   const [reviews, setReviews] = useState<any[]>([]);
   const [stats, setStats] = useState({ average: 0, count: 0 });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // Load reviews on mount
   useEffect(() => {
     if (productId) {
       apiClient.get(`/public/reviews/${productId}`)
         .then(res => {
-          setReviews(res.data.reviews);
-          setStats(res.data.stats);
+          setReviews(res.data.reviews || []);
+          setStats(res.data.stats || { average: 0, count: 0 });
         })
         .catch(() => {});
     }
   }, [productId]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('customer_token');
+    if (!token) return alert('Debes iniciar sesión para opinar');
+
+    setIsSubmittingReview(true);
+    try {
+      await apiClient.post('/storefront/auth/reviews', {
+        listingId: productId,
+        ...newReview
+      });
+      alert('¡Gracias por tu reseña!');
+      setShowReviewForm(false);
+      // Reload reviews...
+      const res = await apiClient.get(`/public/reviews/${productId}`);
+      setReviews(res.data.reviews);
+      setStats(res.data.stats);
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || 'Error al enviar reseña');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Related products logic
   const related = products
@@ -137,7 +164,51 @@ export default function ProductDetailPage() {
         {/* Reviews Section */}
         <div style={{ marginTop: 80, display: 'grid', gridTemplateColumns: '1fr 400px', gap: 60 }}>
           <div>
-            <h2 style={{ fontWeight: 900, marginBottom: 30 }}>Opiniones de coleccionistas ({stats.count})</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+              <h2 style={{ fontWeight: 900, margin: 0 }}>Opiniones de coleccionistas ({stats.count})</h2>
+              <button 
+                className="btn btn-ghost" 
+                style={{ fontWeight: 600, color: 'var(--store-primary)' }}
+                onClick={() => setShowReviewForm(!showReviewForm)}
+              >
+                {showReviewForm ? 'Cancelar' : 'Escribir una opinión'}
+              </button>
+            </div>
+
+            {showReviewForm && (
+              <form onSubmit={handleSubmitReview} className="card" style={{ padding: 25, borderRadius: 20, marginBottom: 40, border: '2px solid var(--store-primary)' }}>
+                <h4 style={{ margin: '0 0 15px 0' }}>Tu evaluación</h4>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                  {[1,2,3,4,5].map(star => (
+                    <button 
+                      key={star} 
+                      type="button"
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                      style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: star <= newReview.rating ? '#f59e0b' : '#ccc' }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <textarea 
+                  className="input" 
+                  placeholder="¿Qué te pareció la carta? ¿El empaque fue bueno?..." 
+                  style={{ minHeight: 100, marginBottom: 15 }}
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  style={{ background: 'var(--store-primary)', border: 'none', width: '100%', padding: 12, fontWeight: 700 }}
+                  disabled={isSubmittingReview}
+                >
+                  {isSubmittingReview ? 'Enviando...' : 'Publicar Reseña'}
+                </button>
+              </form>
+            )}
+
             {reviews.length === 0 ? (
               <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--store-text-muted)' }}>
                 Aún no hay reseñas para esta carta. ¡Sé el primero en comprarla y opinar!

@@ -24,6 +24,7 @@ export class PaymentService {
     performedBy?: string | null;
     externalReference?: string | null;
     couponCode?: string | null;
+    pointsToRedeem?: number | null;
   }) {
     if (!input.items || !Array.isArray(input.items) || input.items.length === 0) {
       throw new ValidationError('Cart items are required');
@@ -105,8 +106,23 @@ export class PaymentService {
         }
       }
 
+      // --- NEW POINTS LOGIC ---
+      let pointsRedeemed = 0;
+      if (input.pointsToRedeem && input.pointsToRedeem > 0) {
+        const customer = await tx.customer.findFirst({
+          where: { email: input.customerEmail || '', storeId: effectiveStoreId }
+        });
+        if (customer && customer.pointsBalance >= input.pointsToRedeem) {
+          pointsRedeemed = Math.min(input.pointsToRedeem, subtotal - discountAmount);
+          await tx.customer.update({
+            where: { id: customer.id },
+            data: { pointsBalance: { decrement: pointsRedeemed } }
+          });
+        }
+      }
+
       const tax = 0;
-      const total = Math.max(0, subtotal + tax - discountAmount);
+      const total = Math.max(0, subtotal + tax - discountAmount - pointsRedeemed);
       const orderNumber = this.generateOrderNumber();
 
       // Determine initial fulfillment status based on payment method
@@ -126,6 +142,7 @@ export class PaymentService {
           total,
           discountAmount,
           couponId: couponId || null,
+          pointsRedeemed,
           ...(input.externalReference ? { notes: String(input.externalReference) } : {}),
         }
       });

@@ -99,7 +99,10 @@ export class CustomerAuthService {
 
   private static sanitizeCustomer(customer: any) {
     const { passwordHash, ...safe } = customer;
-    return safe;
+    return {
+      ...safe,
+      pointsBalance: Number(customer.pointsBalance || 0)
+    };
   }
 }
 
