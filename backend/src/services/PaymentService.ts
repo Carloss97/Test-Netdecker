@@ -97,10 +97,12 @@ export class PaymentService {
       let couponId: string | undefined;
 
       if (input.couponCode) {
-        const validation = await CouponService.validateCoupon(effectiveStoreId, input.couponCode, subtotal);
+        const validation = await CouponService.validateCoupon(effectiveStoreId as string, input.couponCode as string, subtotal);
         discountAmount = validation.discountAmount;
         couponId = validation.couponId;
-        await CouponService.incrementUsage(couponId, tx);
+        if (couponId) {
+          await CouponService.incrementUsage(couponId, tx);
+        }
       }
 
       const tax = 0;
