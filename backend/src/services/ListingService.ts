@@ -169,14 +169,21 @@ export class ListingService {
     // Clean and Return results for Storefront
     return listings.map(l => {
       const listing = l as any;
+      const tcgName = listing.card?.tcg?.name || 'Unknown';
+      const editionName = listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown';
+      
       return {
-        ...listing,
-        // Use readable names instead of UUIDs
-        editionName: listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown',
-        tcgName: listing.card?.tcg?.name || 'Unknown',
-        // Apply official rounding logic so it matches Catalog and Admin
-        finalPrice: roundTo100(listing.finalPrice),
+        id: listing.id,
+        storeId: listing.storeId,
         cardName: listing.card?.cardName || 'Unknown Card',
+        tcgName,
+        editionName,
+        tcgId: tcgName, // Force tcgId to be the name for frontend filters
+        rarity: listing.card?.rarity || 'C',
+        condition: listing.condition || 'NM',
+        quantity: listing.quantity,
+        finalPrice: roundTo100(listing.finalPrice),
+        referencePrice: listing.referencePrice,
         imageUrl: listing.card?.imageUrl || '',
       };
     });
