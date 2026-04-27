@@ -27,6 +27,9 @@ export interface ExternalCard {
   imageUrl?: string;
   description?: string;
   tags?: string;
+  cardType?: string;
+  attribute?: string;
+  metadata?: Record<string, any>;
   // Price fields (USD market price when available)
   priceLow?: number;
   priceMid?: number;
@@ -89,6 +92,16 @@ function scryfallCardToExternal(card: Record<string, unknown>): ExternalCard {
     editionName: setName,
     rarity: card.rarity as string | undefined,
     colorIdentity,
+    cardType: (card.type_line as string | undefined) || '',
+    attribute: colorIdentity || '',
+    metadata: {
+      manaCost: String(card.mana_cost || ''),
+      cmc: String(card.cmc || '0'),
+      power: String(card.power || ''),
+      toughness: String(card.toughness || ''),
+      oracleText: String(card.oracle_text || ''),
+      layout: String(card.layout || ''),
+    },
     imageUrl,
     description: card.oracle_text as string | undefined,
     tags: tags.join('|'),
@@ -296,6 +309,15 @@ function pokemonCardToExternal(card: Record<string, unknown>): ExternalCard {
     editionName: String(set.name || ''),
     rarity: card.rarity as string | undefined,
     colorIdentity: types.join('/'),
+    cardType: subtypes.join(', '),
+    attribute: types[0] || '',
+    metadata: {
+      hp: String(card.hp || ''),
+      retreatCost: String(card.retreatCost || ''),
+      weaknesses: Array.isArray(card.weaknesses) ? JSON.stringify(card.weaknesses) : '',
+      resistances: Array.isArray(card.resistances) ? JSON.stringify(card.resistances) : '',
+      energyTypes: types.join(', '),
+    },
     imageUrl: images.large || images.small,
     description: Array.isArray(card.abilities)
       ? (card.abilities as Array<{ text?: string }>).map((a: { text?: string }) => a.text).join(' ')
@@ -577,6 +599,16 @@ function ygoCardToExternal(card: Record<string, unknown>, setFilter?: string): E
     editionName,
     rarity,
     colorIdentity: (card.attribute as string | undefined) || undefined,
+    cardType: (card.type as string | undefined) || '',
+    attribute: (card.attribute as string | undefined) || (card.race as string | undefined) || '',
+    metadata: {
+      type: String(card.type || ''),
+      race: String(card.race || ''),
+      attribute: String(card.attribute || ''),
+      level: String(card.level || card.rank || ''),
+      atk: String(card.atk || ''),
+      def: String(card.def || ''),
+    },
     imageUrl,
     description: card.desc as string | undefined,
     tags: types.join('|'),
@@ -744,6 +776,14 @@ function optcgCardToExternal(card: OptcgResponse): ExternalCard {
     editionCode: card.set_id?.toUpperCase() || 'UNKNOWN',
     editionName: card.set_name || 'Unknown Set',
     rarity: card.rarity,
+    cardType: card.rarity || '',
+    attribute: card.set_name?.includes('Red') ? 'Red' : '', // Fallback or logic needed
+    metadata: {
+      power: String((card as any).power || ''),
+      color: String((card as any).color || ''),
+      type: String((card as any).type || ''),
+      cost: String((card as any).cost || ''),
+    },
     imageUrl: card.card_image,
     description: card.card_text,
     tags: `rarity:${card.rarity}`,

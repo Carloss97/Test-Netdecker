@@ -201,78 +201,87 @@ export default function StorefrontPageV2() {
           ) : (
             <div style={{ display: 'grid', gap: 30 }}>
               <div className="store-grid">
-                {displayedProducts.map(product => (
-                  <article key={product.id} className="store-card" style={{ position: 'relative' }}>
-                    <button 
-                      onClick={(e) => { e.preventDefault(); handleWishlistToggle(product.id); }}
-                      style={{ 
-                        position: 'absolute', 
-                        top: 10, 
-                        right: 10, 
-                        zIndex: 10, 
-                        background: 'rgba(255,255,255,0.85)', 
-                        border: 'none', 
-                        borderRadius: '50%', 
-                        width: 32, 
-                        height: 32, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        transition: 'transform 0.2s ease'
-                      }}
-                      title={wishlist.includes(product.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
-                    >
-                      {wishlist.includes(product.id) ? '❤️' : '🤍'}
-                    </button>
-                    <div className="store-card-image">
-                      <Link to={`/storefront/product/${product.id}`} style={{ display: 'block', width: '100%', height: '100%' }}>
-                        <img src={product.imageUrl} alt={product.cardName} loading="lazy" />
-                      </Link>
-                    </div>
-                    <div className="store-card-info">
-                      <p style={{ fontSize: '0.7rem', color: 'var(--store-text-muted)', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>{product.editionName}</p>
-                      <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        <Link to={`/storefront/product/${product.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{product.cardName}</Link>
-                      </h4>
-                      <div style={{ display: 'flex', gap: 5, marginBottom: 15, alignItems: 'center', justifyContent: 'space-between' }}>
-                        <RarityBadge rarity={product.rarity} />
-                        <span style={{ fontSize: '0.7rem', color: product.quantity > 0 ? 'var(--store-text-muted)' : '#ef4444', fontWeight: 600 }}>
-                          {product.quantity > 0 ? `Stock: ${product.quantity}` : 'Agotado'}
-                        </span>
+                {displayedProducts.map(product => {
+                  const cartItem = cart.items.find(i => i.id === product.id);
+                  const isAtMaxStock = cartItem && cartItem.quantity >= product.quantity;
+
+                  return (
+                    <article key={product.id} className="store-card" style={{ position: 'relative' }}>
+                      <button 
+                        onClick={(e) => { e.preventDefault(); handleWishlistToggle(product.id); }}
+                        style={{ 
+                          position: 'absolute', 
+                          top: 10, 
+                          right: 10, 
+                          zIndex: 10, 
+                          background: 'rgba(255,255,255,0.85)', 
+                          border: 'none', 
+                          borderRadius: '50%', 
+                          width: 32, 
+                          height: 32, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                          transition: 'transform 0.2s ease'
+                        }}
+                        title={wishlist.includes(product.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                      >
+                        {wishlist.includes(product.id) ? '❤️' : '🤍'}
+                      </button>
+                      <div className="store-card-image">
+                        <Link to={`/storefront/product/${product.id}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+                          <img src={product.imageUrl} alt={product.cardName} loading="lazy" />
+                        </Link>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="store-card-price" style={{ color: 'var(--store-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
-                          {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(product.finalPrice)}
+                      <div className="store-card-info">
+                        <p style={{ fontSize: '0.7rem', color: 'var(--store-text-muted)', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>{product.editionName}</p>
+                        <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <Link to={`/storefront/product/${product.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{product.cardName}</Link>
+                        </h4>
+                        <div style={{ display: 'flex', gap: 5, marginBottom: 15, alignItems: 'center', justifyContent: 'space-between' }}>
+                          <RarityBadge rarity={product.rarity} />
+                          <span style={{ fontSize: '0.7rem', color: product.quantity > 0 ? 'var(--store-text-muted)' : '#ef4444', fontWeight: 600 }}>
+                            {product.quantity > 0 ? `Stock: ${product.quantity}` : 'Agotado'}
+                          </span>
                         </div>
-                        <button 
-                          className={`btn btn-sm ${addingId === product.id ? 'adding' : ''}`}
-                          style={{ 
-                            background: addingId === product.id ? '#10b981' : 'var(--store-text)', 
-                            color: 'var(--store-surface)', 
-                            border: 'none', 
-                            borderRadius: 8, 
-                            width: 32, 
-                            height: 32, 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            fontWeight: 900, 
-                            cursor: product.quantity > 0 ? 'pointer' : 'not-allowed',
-                            transition: 'all 0.2s ease',
-                            transform: addingId === product.id ? 'scale(1.2)' : 'scale(1)'
-                          }}
-                          onClick={() => product.quantity > 0 && handleAddToCart(product)}
-                          disabled={product.quantity <= 0}
-                        >
-                          {addingId === product.id ? '✓' : '+'}
-                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="store-card-price" style={{ color: 'var(--store-primary)', fontSize: '1.2rem', fontWeight: 800 }}>
+                            {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(product.finalPrice)}
+                          </div>
+                          <button 
+                            className={`btn btn-sm ${addingId === product.id ? 'adding' : ''}`}
+                            style={{ 
+                              background: addingId === product.id ? '#10b981' : (isAtMaxStock ? '#9ca3af' : 'var(--store-text)'), 
+                              color: 'var(--store-surface)', 
+                              border: 'none', 
+                              borderRadius: 8, 
+                              width: addingId === product.id ? 32 : (isAtMaxStock ? 'auto' : 32), 
+                              minWidth: isAtMaxStock ? 60 : 32,
+                              height: 32, 
+                              padding: isAtMaxStock ? '0 8px' : 0,
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              fontWeight: 900, 
+                              fontSize: isAtMaxStock ? '0.7rem' : '1rem',
+                              cursor: (product.quantity > 0 && !isAtMaxStock) ? 'pointer' : 'not-allowed',
+                              transition: 'all 0.2s ease',
+                              transform: addingId === product.id ? 'scale(1.2)' : 'scale(1)'
+                            }}
+                            onClick={() => product.quantity > 0 && !isAtMaxStock && handleAddToCart(product)}
+                            disabled={product.quantity <= 0 || isAtMaxStock}
+                            title={isAtMaxStock ? 'Máximo stock alcanzado' : 'Añadir al carrito'}
+                          >
+                            {addingId === product.id ? '✓' : (isAtMaxStock ? 'MAX' : '+')}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
 
               {hasMore && (

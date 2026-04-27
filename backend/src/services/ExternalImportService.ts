@@ -150,6 +150,9 @@ export class ExternalImportService {
           imageUrl: externalCard.imageUrl,
           description: externalCard.description,
           tags: externalCard.tags || '',
+          cardType: externalCard.cardType,
+          attribute: externalCard.attribute,
+          metadata: (externalCard.metadata as any) || undefined,
         },
       });
       action = 'updated';
@@ -166,6 +169,9 @@ export class ExternalImportService {
           imageUrl: externalCard.imageUrl,
           description: externalCard.description,
           tags: externalCard.tags || '',
+          cardType: externalCard.cardType,
+          attribute: externalCard.attribute,
+          metadata: (externalCard.metadata as any) || undefined,
         },
       });
       action = 'created';

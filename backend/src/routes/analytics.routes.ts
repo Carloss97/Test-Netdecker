@@ -1,11 +1,13 @@
 import express, { Request, Response } from 'express';
 import AnalyticsService from '../services/AnalyticsService.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 import requirePermission from '../middleware/requirePermission.js';
 
 const router = express.Router();
 
 router.use(requireAdmin);
+router.use(tenantResolver);
 
 /**
  * GET /api/analytics/sales-summary

@@ -86,6 +86,8 @@ export class ListingService {
         OR: [
           { card: { cardName: { contains: s, mode: 'insensitive' } } },
           { card: { cardCode: { contains: s, mode: 'insensitive' } } },
+          { card: { tags: { contains: s, mode: 'insensitive' } } },
+          { card: { rarity: { contains: s, mode: 'insensitive' } } },
           { card: { tcg: { name: { contains: s as any, mode: 'insensitive' } } } },
           { card: { edition: { editionName: { contains: s, mode: 'insensitive' } } } }
         ]
@@ -157,6 +159,7 @@ export class ListingService {
         finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
         cardType: listing.card?.cardType || '',
         attribute: listing.card?.attribute || '',
+        metadata: listing.card?.metadata || {},
         status: listing.status
       };
     });

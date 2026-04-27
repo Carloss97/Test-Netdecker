@@ -1,13 +1,13 @@
 import express, { Request, Response } from 'express';
 import ExpenseService from '../services/ExpenseService.js';
 import requireAdmin from '../middleware/requireAdmin.js';
-import { resolveStoreContext } from '../middleware/tenantResolver.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 import { UnauthorizedError } from '../utils/errors.js';
 
 const router = express.Router();
 
 router.use(requireAdmin);
-router.use(resolveStoreContext);
+router.use(tenantResolver);
 
 function requireStore(req: Request): string {
   const id = req.store?.id;
