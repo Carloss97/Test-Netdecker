@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createMercadoPagoPreference } from '../services/erp';
 
-export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { items: { listingId: string; quantity: number }[]; onSuccess?: () => void; storeId?: string | null }) {
+export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { items: any[]; onSuccess?: () => void; storeId?: string | null }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -9,9 +9,16 @@ export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { ite
     setError(null);
     setLoading(true);
     try {
-      const reqItems = items.map((it) => ({ listingId: it.listingId, quantity: it.quantity }));
-      const returnUrl = window.location.href; // return to the same checkout page to handle success state
+      // Map storefront items to the shape MercadoPago expects
+      const reqItems = items.map((it: any) => ({
+        id: it.listingId || it.id,
+        title: it.name || 'Carta TCG',
+        unit_price: Number(it.price || it.finalPrice || 0),
+        quantity: Number(it.quantity || it.qty || 1),
+      }));
 
+      const returnUrl = window.location.origin + '/storefront'; 
+      
       const resp = await createMercadoPagoPreference({ 
         items: reqItems, 
         storeId, 
@@ -21,19 +28,18 @@ export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { ite
           pending: returnUrl 
         } 
       });
-
+      
       const pref = resp?.preference || resp;
-      const initPoint = pref?.init_point || pref?.sandbox_init_point || pref?.response?.init_point;
+      const initPoint = pref?.init_point || pref?.sandbox_init_point || (resp as any)?.init_point;
+      
+      if (!initPoint) throw new Error('No se pudo obtener el link de pago');
 
-      if (!initPoint) throw new Error('No se pudo obtener el punto de inicio de Mercado Pago');
-
-      // Redirect in the same tab for better reliability
+      // Immediate redirect
       window.location.href = initPoint;
-
+      
       onSuccess?.();
     } catch (err: any) {
-
-      setError(err?.message || String(err));
+      setError(err?.message || 'Error al conectar con Mercado Pago');
     } finally {
       setLoading(false);
     }

@@ -137,16 +137,16 @@ export class ListingService {
       orderBy: { finalPrice: 'asc' }
     });
 
-    // Clean and Round results for Storefront
+    // Clean and Return results for Storefront
     return listings.map(l => {
       const listing = l as any;
       return {
         ...listing,
-        // Force readable names
+        // Use readable names instead of UUIDs
         editionName: listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown',
         tcgName: listing.card?.tcg?.name || 'Unknown',
-        // Ensure price is rounded correctly for the UI
-        finalPrice: Math.ceil(listing.finalPrice / 50) * 50, // Round to nearest 50 for CLP
+        // Return original price as requested (no custom rounding here, should match admin)
+        finalPrice: listing.finalPrice,
         cardName: listing.card?.cardName || 'Unknown Card',
         imageUrl: listing.card?.imageUrl || '',
       };
