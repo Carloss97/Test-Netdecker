@@ -130,9 +130,17 @@ export class ListingService {
     }
 
     if (tcgId || editionId) {
-      const cardFilter: any = where.card || {};
-      if (tcgId) cardFilter.tcgId = tcgId;
-      if (editionId) cardFilter.editionId = editionId;
+      const cardFilter: any = {};
+      if (tcgId) {
+        cardFilter.tcg = {
+          OR: [{ id: tcgId }, { name: tcgId }]
+        };
+      }
+      if (editionId) {
+        cardFilter.edition = {
+          OR: [{ id: editionId }, { editionName: editionId }, { editionCode: editionId }]
+        };
+      }
       where.card = cardFilter;
     }
 
@@ -150,6 +158,14 @@ export class ListingService {
       orderBy: { finalPrice: 'asc' }
     });
 
+    const roundTo100 = (p: number) => {
+      if (p <= 0) return 0;
+      if (p <= 100) return 100;
+      const rem = p % 100;
+      if (rem === 0) return p;
+      return rem < 50 ? p - rem : p + (100 - rem);
+    };
+
     // Clean and Return results for Storefront
     return listings.map(l => {
       const listing = l as any;
@@ -158,8 +174,8 @@ export class ListingService {
         // Use readable names instead of UUIDs
         editionName: listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown',
         tcgName: listing.card?.tcg?.name || 'Unknown',
-        // Return original price as requested (no custom rounding here, should match admin)
-        finalPrice: listing.finalPrice,
+        // Apply official rounding logic so it matches Catalog and Admin
+        finalPrice: roundTo100(listing.finalPrice),
         cardName: listing.card?.cardName || 'Unknown Card',
         imageUrl: listing.card?.imageUrl || '',
       };
