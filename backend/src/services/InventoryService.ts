@@ -846,7 +846,11 @@ export class InventoryService {
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const chunk = rows.slice(i, i + BATCH_SIZE);
       
-      // We process each chunk in a single transaction to minimize roundtrips
+      // Small delay to let Neon/Postgres breathe and avoid P2002/409 conflicts
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       await prisma.$transaction(async (tx: any) => {
         for (let j = 0; j < chunk.length; j++) {
           const rowIndex = i + j;
@@ -965,10 +969,11 @@ export class InventoryService {
             // Capture existing listing for history
             const existingListing = await tx.listing.findUnique({
               where: {
-                cardId_condition_rarity: {
+                cardId_condition_rarity_storeId: {
                   cardId: card.id,
                   condition: parsedRow.condition,
                   rarity: parsedRow.rarity,
+                  storeId: resolvedStoreId,
                 }
               },
               select: { id: true, quantity: true }
@@ -989,10 +994,11 @@ export class InventoryService {
 
             const upserted = await tx.listing.upsert({
               where: {
-                cardId_condition_rarity: {
+                cardId_condition_rarity_storeId: {
                   cardId: card.id,
                   condition: parsedRow.condition,
                   rarity: parsedRow.rarity,
+                  storeId: resolvedStoreId,
                 }
               },
               update: listingData,

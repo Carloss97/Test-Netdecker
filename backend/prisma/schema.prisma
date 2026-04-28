@@ -375,7 +375,7 @@ model Listing {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  @@unique([cardId, condition, rarity])
+  @@unique([cardId, condition, rarity, storeId])
   @@index([cardId])
   @@index([quantity])
   @@index([storeId])

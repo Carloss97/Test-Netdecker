@@ -5,7 +5,6 @@ import { ListingService } from '../services/ListingService.js';
 import { InventoryService } from '../services/InventoryService.js';
 import multer from 'multer';
 import { z } from 'zod';
-import requireApiKey from '../middleware/requireApiKey.js';
 import requireAdmin from '../middleware/requireAdmin.js';
 import tenantResolver from '../middleware/tenantResolver.js';
 import requirePermission from '../middleware/requirePermission.js';
@@ -14,7 +13,10 @@ import ExcelJS from 'exceljs';
 import axios from 'axios';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 /**
  * Helper to get storeId from the authenticated session.
@@ -174,7 +176,7 @@ router.get('/imports/export', requirePermission('view', 'inventory-import'), asy
  * Request body: { force?: boolean }
  * Attempts a best-effort rollback of changes recorded for the given import.
  */
-router.post('/imports/:id/rollback', requireApiKey, async (req: Request, res: Response) => {
+router.post('/imports/:id/rollback', requireAdmin, async (req: Request, res: Response) => {
   const importId = String(req.params.id);
   const body = parseBodyOrThrow(rollbackSchema, req.body);
 
