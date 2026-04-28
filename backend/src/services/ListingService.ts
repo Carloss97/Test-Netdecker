@@ -158,8 +158,10 @@ export class ListingService {
         finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
         status: listing.status,
         card: {
+          id: listing.card?.id,
           cardName: listing.card?.cardName || 'Unknown Card',
           cardCode: listing.card?.cardCode || 'N/A',
+          cardNumber: listing.card?.cardNumber || '',
           imageUrl: listing.card?.imageUrl || '',
           rarity: listing.card?.rarity || 'C',
           cardType: listing.card?.cardType || '',
@@ -300,10 +302,11 @@ export class ListingService {
         status: listing.status,
         lastSyncedAt: listing.lastSyncedAt,
         referencePrice: listing.referencePrice,
-        // Include nested card for frontend components that expect it (like Stock Bajo)
         card: {
+          id: listing.card?.id,
           cardName: listing.card?.cardName,
           cardCode: listing.card?.cardCode,
+          cardNumber: listing.card?.cardNumber,
           imageUrl: listing.card?.imageUrl,
           rarity: listing.card?.rarity,
           tcg: { name: tcgName },
