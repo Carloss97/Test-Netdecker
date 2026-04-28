@@ -100,7 +100,14 @@ export class OrderService {
         await tx.listing.update({ where: { id: it.listingId }, data: { quantity: Number(listing.quantity || 0) + Number((it as any).quantity || 0) } });
       }
 
-      const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' }, include: { items: true, store: true } });
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: { 
+          status: 'CANCELLED',
+          fulfillmentStatus: 'CANCELLED'
+        },
+        include: { items: true, store: true }
+      });
 
       await AuditService.auditEntityChange({
         entityType: 'order',
@@ -184,6 +191,10 @@ export class OrderService {
   }
 
   static async updateFulfillmentStatus(orderId: string, status: any, performedBy?: string | null, storeId?: string) {
+    if (status === 'CANCELLED') {
+      return this.cancelOrder(orderId, performedBy, storeId);
+    }
+
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,

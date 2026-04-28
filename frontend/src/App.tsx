@@ -29,6 +29,7 @@ import { OrderDetailPage } from './pages/OrderDetailPage';
 import { MultiTenantConsole } from './pages/admin/MultiTenantConsole';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
 import { ExpensesPage } from './pages/admin/ExpensesPage';
+import { TcgSettingsPage } from './pages/admin/TcgSettingsPage';
 import apiClient from './services/api';
 
 function readAdminToken(): string | null {
@@ -134,6 +135,7 @@ function App() {
             <Route path="/admin/accounts" element={<AdminAccountsPage />} />
             <Route path="/admin/analytics" element={<AnalyticsPage />} />
             <Route path="/admin/expenses" element={<ExpensesPage />} />
+            <Route path="/admin/tcgs" element={<TcgSettingsPage />} />
             <Route path="/admin/multi-tenant" element={<MultiTenantConsole />} />
             <Route path="/admin/stores" element={<StoresList />} />
             <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />

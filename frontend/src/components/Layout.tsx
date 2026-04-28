@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Dashboard' },
   { to: '/admin/analytics', icon: '📈', label: 'Insights' },
   { to: '/admin/expenses', icon: '💸', label: 'Egresos' },
+  { to: '/admin/tcgs', icon: '⚙️', label: 'Ajustes TCG' },
   { to: '/catalog', icon: '💎', label: 'Catálogo' },
   { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
   { to: '/admin/multi-tenant', icon: '🏢', label: 'Multi-tienda', globalOnly: true },

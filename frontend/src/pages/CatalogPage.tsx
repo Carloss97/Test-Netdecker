@@ -15,8 +15,8 @@ function roundToNearestHundred(price: number): number {
 }
 
 export function CatalogPage() {
-  type TcgFilter = 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
-  const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('ALL');
+  type TcgFilter = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
+  const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('MAGIC');
   const [listingSearch, setListingSearch] = useState('');
   const [sortColumn, setSortColumn] = useState<'name' | 'code' | 'stock' | 'price'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -31,7 +31,7 @@ export function CatalogPage() {
   
   const filteredListings = activeListings.filter((l: any) => {
     const tcgName = l.tcgName || l.card?.tcg?.name;
-    if (selectedTcg !== 'ALL' && tcgName !== selectedTcg) return false;
+    if (tcgName !== selectedTcg) return false;
     
     const q = listingSearch.trim().toLowerCase();
     if (!q) return true;
@@ -85,7 +85,7 @@ export function CatalogPage() {
             placeholder="Buscar por nombre o código de carta..."
           />
           <div className="btn-group">
-            {(['ALL', 'MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map((tcg) => (
+            {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map((tcg) => (
               <button
                 key={tcg}
                 className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`}

@@ -124,13 +124,18 @@
 
 /* Filter Sidebar */
 .store-sidebar {
-  width: 260px;
   background: var(--store-surface);
   border-radius: 12px;
   padding: 20px;
   height: fit-content;
   position: sticky;
   top: 100px;
+}
+
+.inventory-preview-panel {
+  position: sticky;
+  top: 20px;
+  height: fit-content;
 }
 
 .store-filter-group {

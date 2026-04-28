@@ -76,7 +76,9 @@ export class ListingService {
     const where: Prisma.ListingWhereInput = {
       AND: [
         { quantity: { gt: 0 } },
-        { status: { in: ['active', 'manual'] } }
+        { status: { in: ['active', 'manual'] } },
+        { card: { tcg: { isActive: true } } },
+        { card: { edition: { isActive: true } } }
       ]
     };
 

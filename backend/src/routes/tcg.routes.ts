@@ -26,4 +26,14 @@ router.get('/:id', async (req: Request, res: Response) => {
   res.json(tcg);
 });
 
+/**
+ * PATCH /api/tcgs/:id/status
+ * Enable/Disable TCG
+ */
+router.patch('/:id/status', async (req: Request, res: Response) => {
+  const { isActive } = req.body;
+  const updated = await TCGService.setTCGStatus(req.params.id, Boolean(isActive));
+  res.json({ success: true, tcg: updated });
+});
+
 export default router;

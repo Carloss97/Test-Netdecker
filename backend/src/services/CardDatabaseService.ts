@@ -99,7 +99,6 @@ function scryfallCardToExternal(card: Record<string, unknown>): ExternalCard {
       cmc: String(card.cmc || '0'),
       power: String(card.power || ''),
       toughness: String(card.toughness || ''),
-      oracleText: String(card.oracle_text || ''),
       layout: String(card.layout || ''),
     },
     imageUrl,

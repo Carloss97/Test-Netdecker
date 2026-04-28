@@ -157,6 +157,19 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * PATCH /api/editions/:id/status
+ * Enable/Disable Edition
+ */
+router.patch('/:id/status', async (req: Request, res: Response) => {
+  const { isActive } = req.body;
+  const updated = await prisma.edition.update({
+    where: { id: req.params.id },
+    data: { isActive: Boolean(isActive) }
+  });
+  res.json({ success: true, edition: updated });
+});
+
+/**
  * GET /api/editions/:id/cards-with-stock
  * Returns all cards in this edition with their associated listings (if any).
  * Key endpoint for the inventory management workflow.

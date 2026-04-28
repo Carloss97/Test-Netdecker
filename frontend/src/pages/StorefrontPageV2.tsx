@@ -15,7 +15,6 @@ export default function StorefrontPageV2() {
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [showToast, setShowToast] = useState(false);
 
   // Load wishlist on mount
   useEffect(() => {
@@ -55,7 +54,7 @@ export default function StorefrontPageV2() {
       name: product.cardName,
       price: product.finalPrice,
       imageUrl: product.imageUrl,
-      quantity: 1,
+      stock: product.quantity,
     });
     setTimeout(() => setAddingId(null), 1000);
   };
@@ -79,19 +78,13 @@ export default function StorefrontPageV2() {
         </div>
       </section>
 
-      {/* Category Pills - Always visible */}
+      {/* Category Pills - Active TCGs only */}
       <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 15, marginBottom: 30, borderBottom: '1px solid var(--store-border)' }}>
-        <button 
-          className={`category-pill ${filters.tcgId === 'ALL' ? 'active' : ''}`}
-          onClick={() => setFilters({ ...filters, tcgId: 'ALL' })}
-        >
-          Todos los Juegos
-        </button>
         {tcgOptions.map(tcg => (
           <button 
             key={tcg}
             className={`category-pill ${filters.tcgId === tcg ? 'active' : ''}`}
-            onClick={() => setFilters({ ...filters, tcgId: tcg })}
+            onClick={() => setFilters({ ...filters, tcgId: tcg, editionName: 'ALL' })}
           >
             {tcg}
           </button>
@@ -101,6 +94,21 @@ export default function StorefrontPageV2() {
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 30 }}>
         {/* Sidebar Filters */}
         <aside className="store-sidebar">
+          <div className="store-filter-group">
+            <div className="store-filter-title">Edición / Set</div>
+            <select 
+              className="input input-sm"
+              value={filters.editionName}
+              onChange={(e) => setFilters({ ...filters, editionName: e.target.value })}
+              style={{ borderRadius: 8, width: '100%' }}
+            >
+              <option value="ALL">Todas las ediciones</option>
+              {editionOptions.filter(e => e !== 'ALL').map(ed => (
+                <option key={ed} value={ed}>{ed}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="store-filter-group">
             <div className="store-filter-title">Rareza</div>
             {rarityOptions.map(rarity => (

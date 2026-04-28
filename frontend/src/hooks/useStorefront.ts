@@ -107,7 +107,7 @@ export default function useStorefront() {
   
   const [filters, setFilters] = useState<StorefrontFilters>({
     query: '',
-    tcgId: 'ALL',
+    tcgId: '',
     editionName: 'ALL',
     rarity: 'ALL',
     cardType: 'ALL',
@@ -117,6 +117,18 @@ export default function useStorefront() {
   });
   const deferredQuery = useDeferredValue(filters.query);
 
+  const tcgOptions = useMemo(() => {
+    const base = allProducts.length > 0 ? allProducts : products;
+    return Array.from(new Set(base.map((entry) => entry.tcgId))).filter(Boolean);
+  }, [allProducts, products]);
+
+  // Set default TCG if not set
+  useEffect(() => {
+    if (!filters.tcgId && tcgOptions.length > 0) {
+      setFilters(prev => ({ ...prev, tcgId: tcgOptions[0] }));
+    }
+  }, [tcgOptions, filters.tcgId]);
+
   const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' | 'search-update' = 'initial-load', search?: string) => {
     if (reason === 'initial-load') setStatus('loading');
     setError(null);
@@ -124,7 +136,7 @@ export default function useStorefront() {
     try {
       const params: any = {};
       if (search) params.search = search;
-      if (filters.tcgId !== 'ALL') params.tcgId = filters.tcgId;
+      if (filters.tcgId && filters.tcgId !== 'ALL') params.tcgId = filters.tcgId;
 
       const resp = await apiClient.get('/listings/available', { params });
       const normalized = extractProducts(resp?.data || resp);
@@ -193,7 +205,7 @@ export default function useStorefront() {
 
     return indexedProducts.filter((item) => {
       if (query && !item.cardNameLc.includes(query)) return false;
-      if (filters.tcgId !== 'ALL' && item.tcgId !== filters.tcgId) return false;
+      if (filters.tcgId && filters.tcgId !== 'ALL' && item.tcgId !== filters.tcgId) return false;
       if (filters.editionName !== 'ALL' && item.editionName !== filters.editionName) return false;
       if (filters.rarity !== 'ALL' && item.rarityLc !== filters.rarity.toLowerCase()) return false;
       if (filters.cardType !== 'ALL' && item.cardType !== filters.cardType) return false;
@@ -204,20 +216,17 @@ export default function useStorefront() {
     });
   }, [indexedProducts, filters, deferredQuery]);
 
-  const tcgOptions = useMemo(() => {
-    const base = allProducts.length > 0 ? allProducts : products;
-    return ['ALL', ...Array.from(new Set(base.map((entry) => entry.tcgId))).filter(Boolean)];
-  }, [allProducts, products]);
-
   const editionOptions = useMemo(() => {
     const base = allProducts.length > 0 ? allProducts : products;
-    return ['ALL', ...Array.from(new Set(base.map((entry) => entry.editionName))).filter(Boolean)];
-  }, [allProducts, products]);
+    const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
+    return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.editionName))).filter(Boolean)];
+  }, [allProducts, products, filters.tcgId]);
 
   const rarityOptions = useMemo(() => {
     const base = allProducts.length > 0 ? allProducts : products;
-    return ['ALL', ...Array.from(new Set(base.map((entry) => entry.rarity))).filter(Boolean)];
-  }, [allProducts, products]);
+    const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
+    return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.rarity))).filter(Boolean)];
+  }, [allProducts, products, filters.tcgId]);
 
   return {
     status,
@@ -232,12 +241,14 @@ export default function useStorefront() {
     rarityOptions,
     colorOptions: useMemo(() => {
       const base = allProducts.length > 0 ? allProducts : products;
-      return ['ALL', ...Array.from(new Set(base.map((entry) => entry.attribute))).filter(Boolean)];
-    }, [allProducts, products]),
+      const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
+      return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.attribute))).filter(Boolean)];
+    }, [allProducts, products, filters.tcgId]),
     typeOptions: useMemo(() => {
       const base = allProducts.length > 0 ? allProducts : products;
-      return ['ALL', ...Array.from(new Set(base.map((entry) => entry.cardType))).filter(Boolean)];
-    }, [allProducts, products]),
+      const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
+      return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.cardType))).filter(Boolean)];
+    }, [allProducts, products, filters.tcgId]),
     visibleLimit,
     setVisibleLimit,
     reload: () => loadProducts('manual-retry'),

@@ -4,6 +4,8 @@ import type { Listing } from '../types';
 import { formatInventoryIdentifier } from '../utils/cardIdentifier';
 
 export function LowStockPage() {
+  type TcgFilter = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
+  const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('MAGIC');
   const [thresholdInput, setThresholdInput] = useState('5');
   const [threshold, setThreshold] = useState(5);
   const [loading, setLoading] = useState(false);
@@ -11,6 +13,11 @@ export function LowStockPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
   const [pinnedPreviewListingId, setPinnedPreviewListingId] = useState<string | null>(null);
+
+  const filteredListings = listings.filter((l: any) => {
+    const tcgName = l.tcgName || l.card?.tcg?.name;
+    return tcgName === selectedTcg;
+  });
   const [activeStore, setActiveStore] = useState(() => {
     try {
       return window.localStorage.getItem('auth_store') || 'sin tienda activa';
@@ -113,25 +120,35 @@ export function LowStockPage() {
           Lista de listings activos con cantidad menor o igual al umbral definido.
         </p>
 
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <label htmlFor="low-stock-threshold" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Umbral
-          </label>
-          <input
-            id="low-stock-threshold"
-            type="number"
-            min="1"
-            className="input"
-            style={{ width: 110 }}
-            value={thresholdInput}
-            onChange={(e) => setThresholdInput(e.target.value)}
-          />
-          <button type="button" className="btn btn-primary" onClick={onApplyThreshold} disabled={loading}>
-            Aplicar
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => void loadLowStock(threshold)} disabled={loading}>
-            Reintentar
-          </button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="btn-group">
+            {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map((tcg) => (
+              <button
+                key={tcg}
+                className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setSelectedTcg(tcg)}
+              >
+                {tcg}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <label htmlFor="low-stock-threshold" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Umbral
+            </label>
+            <input
+              id="low-stock-threshold"
+              type="number"
+              min="1"
+              className="input"
+              style={{ width: 110 }}
+              value={thresholdInput}
+              onChange={(e) => setThresholdInput(e.target.value)}
+            />
+            <button type="button" className="btn btn-primary" onClick={onApplyThreshold} disabled={loading}>
+              Aplicar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -147,81 +164,53 @@ export function LowStockPage() {
         </div>
       )}
 
-      {!loading && !error && listings.length === 0 && (
+      {!loading && !error && filteredListings.length === 0 && (
         <div className="empty-state">
           <div className="empty-state-icon">✅</div>
-          <h3>Sin alertas con el umbral actual</h3>
-          <p>No hay listings activos con stock menor o igual a {threshold} en la tienda <strong>{activeStore}</strong>.</p>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 0 }}>
-            Regla aplicada: solo considera estado active/manual y cantidad mayor a 0.
-          </p>
+          <h3>Sin alertas para {selectedTcg}</h3>
+          <p>No hay listings activos con stock menor o igual a {threshold} en {selectedTcg}.</p>
         </div>
       )}
 
-      {!loading && !error && listings.length > 0 && (
+      {!loading && !error && filteredListings.length > 0 && (
         <div className="card">
           <div className="section-title" style={{ marginBottom: 12 }}>
-            {listings.length} listing(s) en alerta (umbral: {threshold})
+            {filteredListings.length} listing(s) en alerta (umbral: {threshold})
           </div>
-          <div className="listings-preview-pane">
+          <div className="listings-preview-pane" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 24, alignItems: 'start' }}>
             <div className="table-wrapper listings-preview-table">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>#</th>
                     <th>Carta</th>
-                    <th>Código</th>
-                    <th>Rareza</th>
                     <th>Stock</th>
                     <th>Precio CLP</th>
                     <th>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {listings.map((listing) => {
+                  {filteredListings.map((listing) => {
                     const isActivePreview = previewListing?.id === listing.id;
                     return (
                       <tr
                         key={listing.id}
                         className={isActivePreview ? 'row-preview-active' : ''}
                         onMouseEnter={() => setHoveredPreviewListing(listing.id)}
+                        onClick={() => togglePinnedPreviewListing(listing.id)}
+                        style={{ cursor: 'pointer' }}
                       >
                         <td>
-                          <span className="badge badge-gray">
-                            {formatInventoryIdentifier({
-                              editionCode: (listing.card as Listing['card'] & { edition?: { editionCode?: string } })?.edition?.editionCode,
-                              cardCode: listing.card?.cardCode,
-                              cardNumber: listing.card?.cardNumber,
-                              cardName: listing.card?.cardName,
-                            })}
-                          </span>
-                        </td>
-                        <td>
-                          <div
-                            style={{ fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                            onClick={() => togglePinnedPreviewListing(listing.id)}
-                            title={pinnedPreviewListingId === listing.id ? 'Desfijar vista previa' : 'Fijar vista previa'}
-                          >
-                            {listing.card?.cardName || 'Sin nombre'}
-                            {listing.card?.imageUrl && <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>🖼</span>}
+                          <div style={{ fontWeight: 600 }}>{listing.card?.cardName}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {listing.card?.cardCode} · {listing.card?.rarity}
                           </div>
                         </td>
                         <td>
-                          <span className="badge badge-gray">
-                            {listing.card?.cardCode || '—'}
-                          </span>
-                        </td>
-                        <td>
-                          {listing.card?.rarity ? (
-                            <span className="badge badge-gray">{listing.card.rarity}</span>
-                          ) : '—'}
-                        </td>
-                        <td>
                           <span className={`badge ${listing.quantity <= 2 ? 'badge-red' : 'badge-yellow'}`}>
-                            {listing.quantity}
+                            {listing.quantity} uds
                           </span>
                         </td>
-                        <td>{fmtCLP(listing.finalPrice || 0)}</td>
+                        <td style={{ fontWeight: 700 }}>{fmtCLP(listing.finalPrice || 0)}</td>
                         <td>
                           <span className={`badge ${listing.status === 'manual' ? 'badge-purple' : 'badge-blue'}`}>
                             {listing.status}
@@ -234,7 +223,7 @@ export function LowStockPage() {
               </table>
             </div>
 
-            <aside className="inventory-preview-panel">
+            <aside className="inventory-preview-panel card" style={{ position: 'sticky', top: 20, padding: 20 }}>
               <div className="flex items-center justify-between gap-2" style={{ marginBottom: 10 }}>
                 <div className="section-title">Vista previa</div>
                 {previewListing && isPreviewPinned && (

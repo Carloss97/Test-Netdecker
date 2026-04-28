@@ -212,10 +212,11 @@ function tcgCsvToExternal(
   const cardType = (getExtendedValue(ext, 'Card Type') ?? getExtendedValue(ext, 'CardType') ?? getExtendedValue(ext, 'SubType')) || '';
   const attribute = (getExtendedValue(ext, 'Color') ?? getExtendedValue(ext, 'Attribute') ?? getExtendedValue(ext, 'Energy Type')) || '';
 
-  // Capture ALL metadata in a JSON object
+  // Capture ALL metadata in a JSON object, excluding large text blocks
+  const EXCLUDED_KEYS = ['Flavor Text', 'Card Text', 'OracleText', 'Effect', 'Description', 'Ability', 'Attacks'];
   const metadata: Record<string, string> = {};
   ext.forEach(item => {
-    if (item.name && item.value) {
+    if (item.name && item.value && !EXCLUDED_KEYS.includes(item.name)) {
       metadata[item.name] = item.value;
     }
   });

@@ -10,25 +10,31 @@ export class TCGService {
   /**
    * Get all TCGs
    */
-  static async getAllTCGs() {
-    // Try cache
-    const cached = await cacheGet(TCGS_CACHE_KEY);
-    if (cached) {
-      return cached;
-    }
-
+  static async getAllTCGs(includeInactive = false) {
     const tcgs = await prisma.tCG.findMany({
+      where: includeInactive ? {} : { isActive: true },
       include: {
         editions: {
-          where: { isActive: true },
+          where: includeInactive ? {} : { isActive: true },
           orderBy: { releaseDate: 'desc' }
         }
       },
       orderBy: { displayName: 'asc' }
     });
 
-    await cacheSet(TCGS_CACHE_KEY, tcgs, CACHE_TTL);
     return tcgs;
+  }
+
+  /**
+   * Update TCG status
+   */
+  static async setTCGStatus(id: string, isActive: boolean) {
+    const tcg = await prisma.tCG.update({
+      where: { id },
+      data: { isActive }
+    });
+    await cacheDel(TCGS_CACHE_KEY);
+    return tcg;
   }
 
   /**

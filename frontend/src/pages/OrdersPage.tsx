@@ -136,7 +136,7 @@ export function OrdersPage() {
                         </button>
                       )}
                       <a 
-                        href={`/api/orders/${order.id}/receipt`} 
+                        href={`${apiClient.defaults.baseURL}/orders/${order.id}/receipt`} 
                         target="_blank" 
                         rel="noreferrer"
                         className="btn btn-secondary btn-sm"

@@ -264,6 +264,7 @@ model TCG {
   name           TCGType   @unique
   displayName    String    // "Magic: The Gathering", "Pokémon", etc.
   description    String?
+  isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
