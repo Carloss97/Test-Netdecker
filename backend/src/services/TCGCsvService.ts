@@ -98,6 +98,14 @@ interface TcgCsvListResponse<T> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * Upgrades TCGplayer image URLs from low-res (_200w.jpg) to high-res (_in_1000x1000.jpg).
+ */
+function upgradeImageUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  return url.replace('_200w.jpg', '_in_1000x1000.jpg');
+}
+
 function getTcgCsvBase(): string {
   return process.env.TCGCSV_BASE || 'https://tcgcsv.com/tcgplayer';
 }
@@ -235,7 +243,7 @@ function tcgCsvToExternal(
     cardType,
     attribute,
     metadata,
-    imageUrl: product.imageUrl,
+    imageUrl: upgradeImageUrl(product.imageUrl),
     description,
     priceLow: price?.lowPrice ?? undefined,
     priceMid: price?.midPrice ?? undefined,

@@ -130,7 +130,7 @@ export class ListingService {
         condition: listing.condition || 'NM',
         quantity: listing.quantity,
         finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
-        imageUrl: listing.card?.imageUrl || '',
+        imageUrl: (listing.card?.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
       };
     });
   }
@@ -164,7 +164,7 @@ export class ListingService {
           cardName: listing.card?.cardName || 'Unknown Card',
           cardCode: listing.card?.cardCode || 'N/A',
           cardNumber: listing.card?.cardNumber || '',
-          imageUrl: listing.card?.imageUrl || '',
+          imageUrl: (listing.card?.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
           rarity: listing.card?.rarity || 'C',
           cardType: listing.card?.cardType || '',
           attribute: listing.card?.attribute || '',
@@ -300,7 +300,7 @@ export class ListingService {
         quantity: listing.quantity,
         costPrice: listing.costPrice,
         finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
-        imageUrl: listing.card?.imageUrl || '',
+        imageUrl: (listing.card?.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
         status: listing.status,
         lastSyncedAt: listing.lastSyncedAt,
         referencePrice: listing.referencePrice,
@@ -309,7 +309,7 @@ export class ListingService {
           cardName: listing.card?.cardName,
           cardCode: listing.card?.cardCode,
           cardNumber: listing.card?.cardNumber,
-          imageUrl: listing.card?.imageUrl,
+          imageUrl: (listing.card?.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
           rarity: listing.card?.rarity,
           tcg: { name: tcgName },
           edition: { editionName, editionCode: listing.card?.edition?.editionCode }

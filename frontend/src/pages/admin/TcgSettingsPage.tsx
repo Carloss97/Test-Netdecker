@@ -9,12 +9,19 @@ export function TcgSettingsPage() {
   const { data: tcgs, execute: reloadTcgs } = useAsync(async () => {
     const { data } = await apiClient.get('/tcgs?includeInactive=true');
     return data;
-  }, []);
+  }, true);
 
   const { data: editions, execute: reloadEditions } = useAsync(async () => {
     if (!activeTab) return [];
     const { data } = await apiClient.get(`/editions?tcgId=${activeTab}&activeOnly=false`);
     return data;
+  }, false);
+
+  // Load editions when activeTab changes
+  useEffect(() => {
+    if (activeTab) {
+      void reloadEditions();
+    }
   }, [activeTab]);
 
   useEffect(() => {

@@ -9,8 +9,9 @@ const router = express.Router();
  * GET /api/tcgs
  * Get all TCGs
  */
-router.get('/', async (_req: Request, res: Response) => {
-  const tcgs = await TCGService.getAllTCGs();
+router.get('/', async (req: Request, res: Response) => {
+  const includeInactive = req.query.includeInactive === 'true';
+  const tcgs = await TCGService.getAllTCGs(includeInactive);
   res.json(tcgs);
 });
 

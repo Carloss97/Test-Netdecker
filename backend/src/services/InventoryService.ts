@@ -936,7 +936,7 @@ export class InventoryService {
                 cardName: parsedRow.cardName,
                 cardNumber: parsedRow.cardNumber,
                 tags: parsedRow.tags,
-                imageUrl: parsedRow.imageUrl,
+                imageUrl: (parsedRow.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
                 metadata: (parsedRow as any).metadata || undefined
               },
               create: {
@@ -947,7 +947,7 @@ export class InventoryService {
                 cardNumber: parsedRow.cardNumber,
                 rarity: parsedRow.rarity,
                 tags: parsedRow.tags,
-                imageUrl: parsedRow.imageUrl,
+                imageUrl: (parsedRow.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
                 metadata: (parsedRow as any).metadata || undefined
               }
             });
