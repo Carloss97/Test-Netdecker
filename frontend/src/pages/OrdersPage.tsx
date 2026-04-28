@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { listOrders, updateFulfillmentStatus, cancelOrder } from '../services/erp';
+import apiClient from '../services/api';
 
 const FULFILLMENT_STATUSES = [
   { value: 'PENDING_PAYMENT', label: 'Por Pagar', color: '#ef4444' },

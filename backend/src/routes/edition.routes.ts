@@ -75,16 +75,21 @@ router.get('/', async (req: Request, res: Response) => {
 
   if (tcgId) {
     const rawTcgFilter = String(tcgId).trim();
-    const normalizedName = normalizeTcgNameToken(rawTcgFilter);
-
-    if (normalizedName) {
-      const resolvedTcg = await prisma.tCG.findUnique({
-        where: { name: normalizedName },
-        select: { id: true },
-      });
-      where.tcgId = resolvedTcg?.id ?? rawTcgFilter;
+    
+    // Check if it's a valid CUID-like ID first
+    if (rawTcgFilter.length > 20) {
+       where.tcgId = rawTcgFilter;
     } else {
-      where.tcgId = rawTcgFilter;
+      const normalizedName = normalizeTcgNameToken(rawTcgFilter);
+      if (normalizedName) {
+        const resolvedTcg = await prisma.tCG.findUnique({
+          where: { name: normalizedName },
+          select: { id: true },
+        });
+        where.tcgId = resolvedTcg?.id ?? rawTcgFilter;
+      } else {
+        where.tcgId = rawTcgFilter;
+      }
     }
   }
 

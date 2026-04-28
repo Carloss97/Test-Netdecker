@@ -11,7 +11,7 @@ export default function StorefrontPageV2() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   
-  const { products, filteredProducts, status, filters, setFilters, tcgOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit, reload } = useStorefront();
+  const { products, filteredProducts, status, filters, setFilters, tcgOptions, editionOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit, reload } = useStorefront();
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [wishlist, setWishlist] = useState<string[]>([]);
