@@ -8,7 +8,7 @@ const NAV_GROUPS = [
     title: 'Centro de Control',
     items: [
       { to: '/', icon: '🏠', label: 'Dashboard' },
-      { to: '/admin/analytics', icon: '📈', label: 'Insights' },
+      { to: '/?tab=analytics', icon: '📈', label: 'Insights Financieros' },
       { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
       { to: '/pos', icon: '💳', label: 'Punto de Venta' },
     ]

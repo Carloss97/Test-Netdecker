@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { getAdminDashboard } from '../services/catalog';
 import apiClient from '../services/api';
 import type { AdminDashboard } from '../types';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 function formatClp(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 }
 
 export function DashboardPage() {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'kpis' | 'analytics'>('kpis');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'analytics') setActiveTab('analytics');
+    else setActiveTab('kpis');
+  }, [searchParams]);
 
   const { data, status, error } = useAsync<AdminDashboard>(() => getAdminDashboard());
 

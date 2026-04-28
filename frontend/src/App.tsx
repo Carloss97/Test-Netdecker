@@ -126,21 +126,10 @@ function App() {
             <Route path="/catalog" element={<CatalogPage />} />
             <Route path="/pedidos" element={<OrdersPage />} />
             <Route path="/pedidos/:id" element={<OrderDetailPage />} />
-            <Route path="/inventario" element={<InventoryPage />} />
-            <Route path="/precios" element={<PricingPage />} />
-            <Route path="/importar" element={<ImportPage />} />
-            <Route path="/buscar" element={<CardSearchPage />} />
-            <Route path="/stock-bajo" element={<LowStockPage />} />
-            <Route path="/pos" element={<PosPage />} />
-            <Route path="/admin/accounts" element={<AdminAccountsPage />} />
-            <Route path="/admin/analytics" element={<AnalyticsPage />} />
             <Route path="/admin/expenses" element={<ExpensesPage />} />
             <Route path="/admin/tcgs" element={<TcgSettingsPage />} />
             <Route path="/admin/multi-tenant" element={<MultiTenantConsole />} />
-            <Route path="/admin/stores" element={<StoresList />} />
-            <Route path="/admin/stores/:id/inventory" element={<StoreInventory />} />
-            <Route path="/admin/pricing/thresholds" element={<ThresholdsPage />} />
-            <Route path="/admin/approvals" element={<ApprovalsPage />} />
+            <Route path="/pos" element={<PosPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

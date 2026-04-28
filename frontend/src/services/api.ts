@@ -165,7 +165,7 @@ hydrateAuthHeader();
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add token if available (use safe storage access; some browsers block storage)
+    // 1. Handle Admin/Internal Auth
     try {
       const token = localStorage.getItem('auth_token');
       if (token) {
@@ -174,41 +174,26 @@ apiClient.interceptors.request.use(
           config.headers['x-admin-token'] = token;
         }
       }
-    } catch (err) {
-      // Storage may be blocked by Tracking Prevention or similar; continue without token
-      logClientWarn({
-        area: 'api-client',
-        action: 'read-auth-token-localstorage',
-        message: 'localStorage access blocked in request interceptor',
-        error: err,
-      });
-    }
+    } catch (err) {}
 
-    // Fallback: try to extract a JS-readable token from cookies when localStorage is unavailable
-    try {
-      if (!config.headers.Authorization && typeof document !== 'undefined' && document.cookie) {
-        const cookieVal = readCookie('auth_token_js');
-        if (cookieVal) {
-          config.headers.Authorization = `Bearer ${cookieVal}`;
-          if (!config.headers['x-admin-token']) {
-            config.headers['x-admin-token'] = cookieVal;
-          }
+    // 2. Handle Storefront/Customer Auth (if not admin)
+    if (!config.headers.Authorization) {
+      try {
+        const customerToken = localStorage.getItem('customer_token');
+        if (customerToken) {
+          config.headers.Authorization = `Bearer ${customerToken}`;
         }
-      }
-    } catch (e) {
-      // ignore cookie parsing errors
+      } catch (err) {}
     }
 
-    // Send tenant context when available so listing/inventory endpoints can
-    // resolve store scope without forcing extra per-page header plumbing.
+    // 3. Handle Tenant Context
     try {
       const storeId = readAuthStoreId();
       if (storeId && !config.headers['x-store-id']) {
         config.headers['x-store-id'] = storeId;
       }
-    } catch (_) {
-      // ignore storage access failures
-    }
+    } catch (_) {}
+    
     return config;
   },
   (error) => Promise.reject(error)

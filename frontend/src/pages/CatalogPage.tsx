@@ -19,8 +19,6 @@ export function CatalogPage() {
   type TcgFilter = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('MAGIC');
   const [listingSearch, setListingSearch] = useState('');
-  const [sortColumn, setSortColumn] = useState<'name' | 'code' | 'stock' | 'price'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
   
   // Alerts Tab State
@@ -28,9 +26,9 @@ export function CatalogPage() {
   
   // Import Tab State
   const [catalogTcg, setCatalogTcg] = useState('');
-  const [externalSets, setExternalSets] = useState<any[]>([]);
-  const [importingSet, setImportingSet] = useState<string | null>(null);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
 
   const { data: listings, status: listingsStatus, execute: reloadListings } = useAsync<Listing[]>(() => getAvailableListings());
   const { data: tcgs } = useAsync(() => getTCGs());
@@ -47,6 +45,28 @@ export function CatalogPage() {
   });
 
   const previewListing: any = filteredListings.find(l => l.id === previewListingId) || filteredListings[0];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setCsvFile(file);
+  };
+
+  const handleImport = async () => {
+    if (!csvFile) return alert('Selecciona un archivo CSV');
+    setIsImporting(true);
+    try {
+      const res = await importInventoryCsv(csvFile);
+      setImportResult(res);
+      alert('Importación completada con éxito');
+      setCsvFile(null);
+      void reloadImports();
+      void reloadListings();
+    } catch (err: any) {
+      alert('Error al importar: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <div className="stock-hub">
@@ -163,19 +183,26 @@ export function CatalogPage() {
         <div className="tab-content fade-in">
           <div className="grid-cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             <div className="card">
+              <div className="section-title">Carga de Stock (CSV)</div>
+              <div className="upload-area" style={{ marginTop: 10, padding: 20, border: '2px dashed var(--border)', textAlign: 'center', borderRadius: 8 }}>
+                <p>Sube tu archivo .csv con las columnas: <br/><code>listingId, quantity</code> o plantilla full-upsert.</p>
+                <input type="file" accept=".csv" style={{ marginTop: 10 }} onChange={handleFileChange} />
+                {csvFile && (
+                  <div style={{ marginTop: 15 }}>
+                    <button className="btn btn-primary" onClick={handleImport} disabled={isImporting}>
+                      {isImporting ? '⌛ Cargando...' : '🚀 Iniciar Importación'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="card">
               <div className="section-title">Importar Catálogo Externo</div>
               <select className="input" style={{ marginTop: 10 }} value={catalogTcg} onChange={e => setCatalogTcg(e.target.value)}>
                 <option value="">Selecciona TCG</option>
                 {(tcgs as any[])?.map(t => <option key={t.id} value={t.name}>{t.displayName}</option>)}
               </select>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 10 }}>Usa esta opción para traer cartas nuevas desde TCGPlayer o Scryfall.</p>
-            </div>
-            <div className="card">
-              <div className="section-title">Carga de Stock (CSV)</div>
-              <div className="upload-area" style={{ marginTop: 10, padding: 20, border: '2px dashed var(--border)', textAlign: 'center', borderRadius: 8 }}>
-                <p>Sube tu archivo .csv con las columnas: <br/><code>listingId, quantity</code></p>
-                <input type="file" accept=".csv" style={{ marginTop: 10 }} />
-              </div>
             </div>
           </div>
 

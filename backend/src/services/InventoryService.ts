@@ -1025,6 +1025,7 @@ export class InventoryService {
 
             result.success += 1;
           } catch (err: any) {
+            console.error(`[InventoryService] Error at row ${rowNumber}:`, err?.message || err);
             result.failed += 1;
             result.errors.push({
               row: rowNumber,
