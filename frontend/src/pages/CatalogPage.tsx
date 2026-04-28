@@ -1,191 +1,209 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { getAvailableListings } from '../services/catalog';
-import type { Listing } from '../types';
-import { formatInventoryIdentifier } from '../utils/cardIdentifier';
-
-// Redondea al múltiplo de 100 más cercano, mínimo 100 (consistente con PricingPage)
-function roundToNearestHundred(price: number): number {
-  if (price <= 0) return 0;
-  if (price <= 100) return 100;
-  const remainder = price % 100;
-  if (remainder === 0) return price;
-  if (remainder < 50) return price - remainder;
-  return price + (100 - remainder);
-}
+import { 
+  getAvailableListings, 
+  getLowStockListings,
+  getTCGs,
+  listExternalSets,
+  importExternalSet,
+  validateInventoryCsv,
+  importInventoryCsv,
+  getInventoryImports
+} from '../services/catalog';
+import type { Listing, AdminDashboard } from '../types';
 
 export function CatalogPage() {
+  const [activeTab, setActiveTab] = useState<'inventory' | 'alerts' | 'import'>('inventory');
+  
+  // Inventory Tab State
   type TcgFilter = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('MAGIC');
   const [listingSearch, setListingSearch] = useState('');
   const [sortColumn, setSortColumn] = useState<'name' | 'code' | 'stock' | 'price'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
-  const [pinnedPreviewListingId, setPinnedPreviewListingId] = useState<string | null>(null);
-
-  const { data: listings, status: listingsStatus, error: listingsError } = useAsync<Listing[]>(
-    () => getAvailableListings()
-  );
-
-  const activeListings = (listings ?? []).filter((l) => l.quantity > 0);
   
-  const filteredListings = activeListings.filter((l: any) => {
+  // Alerts Tab State
+  const [threshold, setThreshold] = useState(5);
+  
+  // Import Tab State
+  const [catalogTcg, setCatalogTcg] = useState('');
+  const [externalSets, setExternalSets] = useState<any[]>([]);
+  const [importingSet, setImportingSet] = useState<string | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+
+  const { data: listings, status: listingsStatus, execute: reloadListings } = useAsync<Listing[]>(() => getAvailableListings());
+  const { data: tcgs } = useAsync(() => getTCGs());
+  const { data: alerts, status: alertsStatus, execute: reloadAlerts } = useAsync(() => getLowStockListings(threshold), true);
+  const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 5 }));
+
+  const fmtCLP = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+
+  const filteredListings = (listings ?? []).filter((l: any) => {
     const tcgName = l.tcgName || l.card?.tcg?.name;
     if (tcgName !== selectedTcg) return false;
-    
     const q = listingSearch.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      (l.cardName || l.card?.cardName || '').toLowerCase().includes(q)
-      || (l.cardCode || l.card?.cardCode || '').toLowerCase().includes(q)
-    );
+    return !q || (l.cardName || l.card?.cardName || '').toLowerCase().includes(q) || (l.cardCode || l.card?.cardCode || '').toLowerCase().includes(q);
   });
 
-  const sortedListings = [...filteredListings].sort((a: any, b: any) => {
-    const mult = sortDirection === 'asc' ? 1 : -1;
-    switch (sortColumn) {
-      case 'name':
-        return mult * (a.cardName || a.card?.cardName || '').localeCompare(b.cardName || b.card?.cardName || '');
-      case 'code':
-        return mult * (a.cardCode || a.card?.cardCode || '').localeCompare(b.cardCode || b.card?.cardCode || '');
-      case 'stock':
-        return mult * (a.quantity - b.quantity);
-      case 'price':
-        return mult * ((a.finalPrice ?? 0) - (b.finalPrice ?? 0));
-      default:
-        return 0;
-    }
-  });
-
-  const previewListing: any = sortedListings.find((listing) => listing.id === previewListingId) ?? sortedListings[0] ?? null;
-  const isPreviewPinned = pinnedPreviewListingId !== null;
-
-  const fmtCLP = (n: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-
-  const toggleSort = (column: typeof sortColumn) => {
-
-    if (sortColumn === column) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortColumn(column);
-    setSortDirection('asc');
-  };
+  const previewListing: any = filteredListings.find(l => l.id === previewListingId) || filteredListings[0];
 
   return (
-    <div className="catalog-page" style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            className="input input-sm"
-            style={{ minWidth: 350 }}
-            value={listingSearch}
-            onChange={(e) => setListingSearch(e.target.value)}
-            placeholder="Buscar por nombre o código de carta..."
-          />
-          <div className="btn-group">
-            {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map((tcg) => (
-              <button
-                key={tcg}
-                className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setSelectedTcg(tcg)}
-              >
-                {tcg}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="stock-hub">
+      <div className="tabs" style={{ marginBottom: 25, display: 'flex', gap: 10 }}>
+        <button className={`btn ${activeTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('inventory')}>💎 Catálogo Maestro</button>
+        <button className={`btn ${activeTab === 'alerts' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('alerts')}>🚨 Alertas de Stock Bajo</button>
+        <button className={`btn ${activeTab === 'import' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('import')}>📥 Importar y Cargas</button>
       </div>
 
-      {listingsStatus === 'pending' ? (
-        <div className="loading-spinner">Cargando catálogo...</div>
-      ) : listingsStatus === 'error' ? (
-        <div className="error-message">Error: {listingsError?.message}</div>
-      ) : (
-        <div className="listings-preview-pane" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 24, alignItems: 'start' }}>
-          <div className="table-wrapper card" style={{ padding: 0 }}>
+      {activeTab === 'inventory' && (
+        <div className="tab-content fade-in">
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <input className="input input-sm" style={{ flex: 1 }} value={listingSearch} onChange={e => setListingSearch(e.target.value)} placeholder="Buscar carta..." />
+              <div className="btn-group">
+                {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map(tcg => (
+                  <button key={tcg} className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setSelectedTcg(tcg)}>{tcg}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="listings-preview-pane" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 24, alignItems: 'start' }}>
+            <div className="table-wrapper card" style={{ padding: 0 }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ paddingLeft: 16 }}>Carta</th>
+                    <th>Metadatos</th>
+                    <th>Stock</th>
+                    <th>Precio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredListings.map((l: any) => (
+                    <tr key={l.id} onMouseEnter={() => setPreviewListingId(l.id)} className={previewListing?.id === l.id ? 'row-preview-active' : ''}>
+                      <td style={{ paddingLeft: 16 }}>
+                        <div style={{ fontWeight: 600 }}>{l.cardName || l.card?.cardName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{l.cardCode || l.card?.cardCode}</div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          <span className="badge badge-blue" style={{ fontSize: '0.6rem' }}>{l.cardType}</span>
+                          <span className="badge badge-purple" style={{ fontSize: '0.6rem' }}>{l.attribute}</span>
+                        </div>
+                      </td>
+                      <td><span className={`badge ${l.quantity > 5 ? 'badge-green' : 'badge-yellow'}`}>{l.quantity} uds</span></td>
+                      <td style={{ fontWeight: 700 }}>{fmtCLP(l.finalPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <aside className="inventory-preview-panel card" style={{ position: 'sticky', top: 20, padding: 20 }}>
+              {previewListing ? (
+                <>
+                  <div className="inventory-preview-frame">
+                    <img src={previewListing.imageUrl || previewListing.card?.imageUrl} alt="" style={{ width: '100%', borderRadius: 8 }} />
+                  </div>
+                  <h3 style={{ marginTop: 15 }}>{previewListing.cardName || previewListing.card?.cardName}</h3>
+                  <div className="badge badge-gray">{previewListing.editionName || 'Sin edición'}</div>
+                  <div style={{ marginTop: 20, paddingTop: 15, borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Precio Final:</span>
+                      <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem' }}>{fmtCLP(previewListing.finalPrice)}</span>
+                    </div>
+                  </div>
+                </>
+              ) : <div className="empty-state">Selecciona una carta</div>}
+            </aside>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'alerts' && (
+        <div className="tab-content fade-in">
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="section-title">Umbral de Alerta</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
+              <input type="number" className="input" style={{ width: 100 }} value={threshold} onChange={e => setThreshold(Number(e.target.value))} />
+              <button className="btn btn-primary" onClick={() => reloadAlerts()}>Actualizar Alertas</button>
+            </div>
+          </div>
+          <div className="table-wrapper card">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ cursor: 'pointer', paddingLeft: 16 }} onClick={() => toggleSort('name')}>Carta</th>
-                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('code')}>Código</th>
-                  <th>Edición</th>
-                  <th>Metadatos TCG</th>
-                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('stock')}>Stock</th>
-                  <th style={{ cursor: 'pointer' }} onClick={() => toggleSort('price')}>Precio</th>
+                  <th>Imagen</th>
+                  <th>Carta</th>
+                  <th>Stock Actual</th>
+                  <th>Precio</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedListings.map((listing: any) => (
-                  <tr 
-                    key={listing.id} 
-                    onMouseEnter={() => !isPreviewPinned && setPreviewListingId(listing.id)}
-                    onClick={() => setPinnedPreviewListingId(pinnedPreviewListingId === listing.id ? null : listing.id)}
-                    className={previewListing?.id === listing.id ? 'row-preview-active' : ''}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td style={{ paddingLeft: 16, fontWeight: 500 }}>{listing.cardName || listing.card?.cardName}</td>
-                    <td><code style={{ fontWeight: 600, color: 'var(--primary)' }}>{listing.cardCode || listing.card?.cardCode}</code></td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {listing.editionName || listing.card?.edition?.editionName || '—'}
-                    </td>
+                {(alerts ?? []).map((l: any) => (
+                  <tr key={l.id}>
+                    <td><img src={l.card?.imageUrl} alt="" style={{ height: 40, borderRadius: 4 }} /></td>
                     <td>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>{listing.cardType || '—'}</span>
-                        <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>{listing.attribute || '—'}</span>
-                        {Object.entries(listing.metadata || {}).map(([key, val]) => (
-                          <span key={key} className="badge badge-gray" style={{ fontSize: '0.65rem' }} title={key}>
-                            {String(val)}
-                          </span>
-                        ))}
-                      </div>
+                      <div style={{ fontWeight: 600 }}>{l.card?.cardName}</div>
+                      <div style={{ fontSize: '0.75rem' }}>{l.card?.cardCode}</div>
                     </td>
-                    <td>
-                      <span className={`badge ${listing.quantity > 5 ? 'badge-green' : 'badge-yellow'}`}>
-                        {listing.quantity} uds
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 700, fontSize: '1rem' }}>{fmtCLP(listing.finalPrice)}</td>
+                    <td><span className="badge badge-red">{l.quantity} uds</span></td>
+                    <td>{fmtCLP(l.finalPrice)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div>
+      )}
 
-          <aside className="inventory-preview-panel card" style={{ position: 'sticky', top: 20, padding: 20 }}>
-            {previewListing ? (
-              <>
-                <div className="inventory-preview-frame" style={{ background: '#000', borderRadius: 12, overflow: 'hidden', aspectRation: '2.5/3.5' }}>
-                  <img 
-                    src={previewListing.imageUrl || previewListing.card?.imageUrl} 
-                    alt="" 
-                    className="inventory-preview-image" 
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  />
-                </div>
-                <div style={{ marginTop: 20 }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.25rem' }}>{previewListing.cardName || previewListing.card?.cardName}</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>{previewListing.cardCode || previewListing.card?.cardCode}</p>
-                  
-                  <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <span className="badge badge-gray">{previewListing.rarity || previewListing.card?.rarity}</span>
-                    <span className="badge badge-blue">{previewListing.tcgName || 'TCG'}</span>
-                    <span className="badge badge-green">{previewListing.condition}</span>
-                  </div>
+      {activeTab === 'import' && (
+        <div className="tab-content fade-in">
+          <div className="grid-cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <div className="card">
+              <div className="section-title">Importar Catálogo Externo</div>
+              <select className="input" style={{ marginTop: 10 }} value={catalogTcg} onChange={e => setCatalogTcg(e.target.value)}>
+                <option value="">Selecciona TCG</option>
+                {(tcgs as any[])?.map(t => <option key={t.id} value={t.name}>{t.displayName}</option>)}
+              </select>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 10 }}>Usa esta opción para traer cartas nuevas desde TCGPlayer o Scryfall.</p>
+            </div>
+            <div className="card">
+              <div className="section-title">Carga de Stock (CSV)</div>
+              <div className="upload-area" style={{ marginTop: 10, padding: 20, border: '2px dashed var(--border)', textAlign: 'center', borderRadius: 8 }}>
+                <p>Sube tu archivo .csv con las columnas: <br/><code>listingId, quantity</code></p>
+                <input type="file" accept=".csv" style={{ marginTop: 10 }} />
+              </div>
+            </div>
+          </div>
 
-                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Precio Final:</span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{fmtCLP(previewListing.finalPrice)}</span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="empty-state" style={{ padding: '40px 0' }}>Selecciona una carta para ver detalles</div>
-            )}
-          </aside>
+          <div className="card" style={{ marginTop: 20 }}>
+            <div className="section-title">Historial Reciente</div>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Archivo</th>
+                    <th>Estado</th>
+                    <th>OK</th>
+                    <th>Fallos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(imports as any)?.items?.map((imp: any) => (
+                    <tr key={imp.id}>
+                      <td>{imp.fileName}</td>
+                      <td><span className={`badge ${imp.status === 'completed' ? 'badge-green' : 'badge-red'}`}>{imp.status}</span></td>
+                      <td>{imp.successCount}</td>
+                      <td>{imp.failureCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>

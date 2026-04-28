@@ -3,22 +3,41 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { logout } from '../services/adminAuth';
 
-const NAV_ITEMS = [
-  { to: '/', icon: '🏠', label: 'Dashboard' },
-  { to: '/admin/analytics', icon: '📈', label: 'Insights' },
-  { to: '/admin/expenses', icon: '💸', label: 'Egresos' },
-  { to: '/admin/tcgs', icon: '⚙️', label: 'Ajustes TCG' },
-  { to: '/catalog', icon: '💎', label: 'Catálogo' },
-  { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
-  { to: '/admin/multi-tenant', icon: '🏢', label: 'Multi-tienda', globalOnly: true },
-  { to: '/pos', icon: '💳', label: 'POS' },
-  { to: '/inventario', icon: '📦', label: 'Inventario' },
-  { to: '/precios', icon: '💰', label: 'Precios' },
-  { to: '/stock-bajo', icon: '🚨', label: 'Stock Bajo' },
-  { to: '/importar', icon: '📥', label: 'Importar' },
-  { to: '/buscar', icon: '🔍', label: 'Buscar Carta' },
-  { to: '/admin', icon: '⚙️', label: 'Admin' },
-  { to: '/storefront', icon: '🛍️', label: 'Demo Tienda' },
+const NAV_GROUPS = [
+  {
+    title: 'Centro de Control',
+    items: [
+      { to: '/', icon: '🏠', label: 'Dashboard' },
+      { to: '/admin/analytics', icon: '📈', label: 'Insights' },
+      { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
+      { to: '/pos', icon: '💳', label: 'Punto de Venta' },
+    ]
+  },
+  {
+    title: 'Gestión de Stock',
+    items: [
+      { to: '/catalog', icon: '💎', label: 'Catálogo Maestro' },
+      { to: '/stock-bajo', icon: '🚨', label: 'Stock Bajo' },
+      { to: '/importar', icon: '📥', label: 'Importar CSV/Excel' },
+      { to: '/buscar', icon: '🔍', label: 'Buscador Global' },
+    ]
+  },
+  {
+    title: 'Finanzas y Estrategia',
+    items: [
+      { to: '/admin/expenses', icon: '💸', label: 'Egresos y Facturas' },
+      { to: '/precios', icon: '💰', label: 'Margen y Precios' },
+    ]
+  },
+  {
+    title: 'Configuración',
+    items: [
+      { to: '/admin/tcgs', icon: '⚙️', label: 'Ajustes TCG' },
+      { to: '/admin/multi-tenant', icon: '🏢', label: 'Multi-tienda', globalOnly: true },
+      { to: '/admin', icon: '🛠️', label: 'Sistema' },
+      { to: '/storefront', icon: '🛍️', label: 'Demo Tienda' },
+    ]
+  }
 ];
 
 type AdminStore = {
@@ -238,21 +257,26 @@ export function Layout({ children }: LayoutProps) {
           <div className="sidebar-logo-sub">TCG Store Platform</div>
         </div>
         <nav className="sidebar-nav">
-          {NAV_ITEMS.filter(item => {
-            if (item.globalOnly && (identity?.storeId || identity?.role !== 'ADMIN')) return false;
-            return true;
-          }).map(({ to, icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `sidebar-nav-item${isActive ? ' active' : ''}`
-              }
-            >
-              <span className="sidebar-nav-icon">{icon}</span>
-              {label}
-            </NavLink>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="sidebar-nav-group">
+              <div className="sidebar-nav-header">{group.title}</div>
+              {group.items.filter(item => {
+                if ((item as any).globalOnly && (identity?.storeId || identity?.role !== 'ADMIN')) return false;
+                return true;
+              }).map(({ to, icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/'}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item${isActive ? ' active' : ''}`
+                  }
+                >
+                  <span className="sidebar-nav-icon">{icon}</span>
+                  {label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="sidebar-footer">v0.1.0 · Internal Tool</div>
