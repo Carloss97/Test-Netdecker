@@ -7,6 +7,7 @@ import multer from 'multer';
 import { z } from 'zod';
 import requireApiKey from '../middleware/requireApiKey.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import tenantResolver from '../middleware/tenantResolver.js';
 import requirePermission from '../middleware/requirePermission.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../utils/errors.js';
 import ExcelJS from 'exceljs';
@@ -621,7 +622,7 @@ router.post('/decrease', async (req: Request, res: Response) => {
  * 2) Upsert full catalog + listing:
  *    headers: tcg,editionCode,editionName,cardCode,cardName,cardNumber,rarity,tags,imageUrl,condition,quantity,referencePrice,marginMultiplier
  */
-router.post('/import-csv', requireApiKey, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-csv', requireAdmin, tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
@@ -635,7 +636,7 @@ router.post('/import-csv', requireApiKey, upload.single('file'), async (req: Req
   const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
     dryRun,
     fileName: req.file.originalname,
-    importedBy: req.body?.importedBy || 'admin',
+    importedBy: (req as any).adminUser?.id || 'admin',
     storeId,
   });
 
@@ -650,7 +651,7 @@ router.post('/import-csv', requireApiKey, upload.single('file'), async (req: Req
  * Accepts multipart form-data: file + mapping (JSON string) in field `mapping`.
  * mapping should be an object: { tcg: 'MiColumnaTCG', editionCode: 'ColEd', cardCode: 'ColCard', cardName: 'ColName', quantity: 'ColQty', referencePrice: 'ColPrice', ... }
  */
-router.post('/import-with-mapping', requireApiKey, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-with-mapping', requireAdmin, tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
@@ -686,15 +687,18 @@ router.post('/import-with-mapping', requireApiKey, upload.single('file'), async 
  * POST /api/inventory/import-csv/validate
  * Validates CSV without writing to database.
  */
-router.post('/import-csv/validate', requireApiKey, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-csv/validate', requireAdmin, tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
 
+  const storeId = getImportStoreId(req);
+
   const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
     dryRun: true,
     fileName: req.file.originalname,
-    importedBy: req.body?.importedBy || 'admin'
+    importedBy: (req as any).adminUser?.id || 'admin',
+    storeId
   });
 
   res.json({
