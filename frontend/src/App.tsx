@@ -127,7 +127,6 @@ function App() {
             <Route path="/pedidos" element={<OrdersPage />} />
             <Route path="/pedidos/:id" element={<OrderDetailPage />} />
             <Route path="/admin/expenses" element={<ExpensesPage />} />
-            <Route path="/admin/tcgs" element={<TcgSettingsPage />} />
             <Route path="/admin/multi-tenant" element={<MultiTenantConsole />} />
             <Route path="/pos" element={<PosPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />

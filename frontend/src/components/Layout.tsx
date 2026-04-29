@@ -2,13 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { logout } from '../services/adminAuth';
-
 const NAV_GROUPS = [
   {
     title: 'Centro de Control',
     items: [
       { to: '/', icon: '🏠', label: 'Dashboard' },
-      { to: '/?tab=analytics', icon: '📈', label: 'Insights Financieros' },
       { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
     ]
   },
@@ -17,7 +15,6 @@ const NAV_GROUPS = [
     items: [
       { to: '/catalog', icon: '💎', label: 'Catálogo Maestro' },
       { to: '/pos', icon: '💳', label: 'Punto de Venta' },
-      { to: '/buscar', icon: '🔍', label: 'Buscador Global' },
     ]
   },
   {
@@ -35,6 +32,7 @@ const NAV_GROUPS = [
     ]
   }
 ];
+
 
 type AdminStore = {
   id: string;

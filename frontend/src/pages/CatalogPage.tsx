@@ -6,27 +6,44 @@ import {
   getTCGs,
   listExternalSets,
   importExternalSet,
-  validateInventoryCsv,
   importInventoryCsv,
   getInventoryImports,
-  getEditions
+  getEditions,
+  searchCards,
+  searchCardsByCode,
+  getListingsByCard,
+  updateListingPricingMode,
+  updateListingStock
 } from '../services/catalog';
-import type { Listing, EditionWithCounts } from '../types';
+import type { Listing, EditionWithCounts, Card } from '../types';
 import apiClient from '../services/api';
+import ModeToggle from '../components/ModeToggle';
+
+function fmtCLP(n: number) {
+  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+}
 
 export function CatalogPage() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'alerts' | 'import' | 'export'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'search' | 'alerts' | 'import' | 'export'>('inventory');
   
-  // Inventory Tab State
+  // ─── Inventario Tab State ──────────────────────────────────────────────────
   type TcgFilter = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('MAGIC');
   const [listingSearch, setListingSearch] = useState('');
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
   
-  // Alerts Tab State
+  // ─── Buscador Maestro Tab State ─────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchMode, setSearchMode] = useState<'name' | 'code'>('name');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [cardListings, setCardListings] = useState<Record<string, Listing[]>>({});
+
+  // ─── Alertas Tab State ─────────────────────────────────────────────────────
   const [threshold, setThreshold] = useState(5);
   
-  // Import Tab State
+  // ─── Import Tab State ──────────────────────────────────────────────────────
   const [catalogTcg, setCatalogTcg] = useState('MAGIC');
   const [externalSets, setExternalSets] = useState<any[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
@@ -34,7 +51,7 @@ export function CatalogPage() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  // Export Tab State
+  // ─── Export Tab State ──────────────────────────────────────────────────────
   const [exportTcg, setExportTcg] = useState('MAGIC');
   const [exportEditionId, setExportEditionId] = useState('');
   const [availableEditions, setAvailableEditions] = useState<EditionWithCounts[]>([]);
@@ -48,7 +65,8 @@ export function CatalogPage() {
     if (activeTab === 'import' && catalogTcg) {
       setLoadingSets(true);
       listExternalSets(catalogTcg as any)
-        .then(setExternalSets)
+        .then(res => setExternalSets(Array.isArray(res) ? res : []))
+        .catch(() => setExternalSets([]))
         .finally(() => setLoadingSets(false));
     }
   }, [activeTab, catalogTcg]);
@@ -59,8 +77,6 @@ export function CatalogPage() {
     }
   }, [activeTab, exportTcg]);
 
-  const fmtCLP = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-
   const filteredListings = (listings ?? []).filter((l: any) => {
     const tcgName = l.tcgName || l.card?.tcg?.name;
     if (tcgName !== selectedTcg) return false;
@@ -69,6 +85,27 @@ export function CatalogPage() {
   });
 
   const previewListing: any = filteredListings.find(l => l.id === previewListingId) || filteredListings[0];
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+  
+  const handleGlobalSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const data = searchMode === 'code' ? await searchCardsByCode(searchQuery) : await searchCards(searchQuery);
+      setSearchResults(Array.isArray(data) ? data : []);
+    } finally { setIsSearching(false); }
+  };
+
+  const toggleCardListings = async (cardId: string) => {
+    if (expandedCard === cardId) { setExpandedCard(null); return; }
+    setExpandedCard(cardId);
+    if (!cardListings[cardId]) {
+      const res = await getListingsByCard(cardId);
+      setCardListings(prev => ({ ...prev, [cardId]: res }));
+    }
+  };
 
   const handleImportSet = async (setCode: string) => {
     setImportingSet(setCode);
@@ -81,11 +118,6 @@ export function CatalogPage() {
     } finally {
       setImportingSet(null);
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setCsvFile(file);
   };
 
   const handleImportCsv = async () => {
@@ -116,8 +148,9 @@ export function CatalogPage() {
     <div className="stock-hub">
       <div className="tabs" style={{ marginBottom: 25, display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 5 }}>
         <button className={`btn ${activeTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('inventory')}>💎 Inventario</button>
+        <button className={`btn ${activeTab === 'search' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('search')}>🔍 Buscador Maestro</button>
         <button className={`btn ${activeTab === 'alerts' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('alerts')}>🚨 Stock Bajo</button>
-        <button className={`btn ${activeTab === 'import' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('import')}>📥 Importar Sets/CSV</button>
+        <button className={`btn ${activeTab === 'import' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('import')}>📥 Importar</button>
         <button className={`btn ${activeTab === 'export' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('export')}>📤 Exportar</button>
       </div>
 
@@ -125,7 +158,7 @@ export function CatalogPage() {
         <div className="tab-content fade-in">
           <div className="card" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <input className="input input-sm" style={{ flex: 1 }} value={listingSearch} onChange={e => setListingSearch(e.target.value)} placeholder="Buscar carta..." />
+              <input className="input input-sm" style={{ flex: 1 }} value={listingSearch} onChange={e => setListingSearch(e.target.value)} placeholder="Buscar carta en stock..." />
               <div className="btn-group">
                 {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map(tcg => (
                   <button key={tcg} className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setSelectedTcg(tcg)}>{tcg}</button>
@@ -167,6 +200,53 @@ export function CatalogPage() {
         </div>
       )}
 
+      {activeTab === 'search' && (
+        <div className="tab-content fade-in">
+          <div className="card">
+            <form onSubmit={handleGlobalSearch} style={{ display: 'flex', gap: 10 }}>
+              <select className="input" style={{ width: 150 }} value={searchMode} onChange={e => setSearchMode(e.target.value as any)}>
+                <option value="name">Por Nombre</option>
+                <option value="code">Por Código</option>
+              </select>
+              <input className="input" style={{ flex: 1 }} placeholder="Charizard, OP01-001..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <button className="btn btn-primary" disabled={isSearching}>Buscar</button>
+            </form>
+          </div>
+          <div style={{ marginTop: 20 }}>
+            {searchResults.map(card => (
+              <div key={card.id} className="card" style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
+                  <img src={card.imageUrl} alt="" style={{ height: 60, borderRadius: 4 }} />
+                  <div style={{ flex: 1 }}>
+                    <b>{card.cardName}</b><br/>
+                    <small>{card.cardCode} · {card.edition?.editionName}</small>
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={() => toggleCardListings(card.id)}>
+                    {expandedCard === card.id ? 'Ocultar' : 'Ver Listings'}
+                  </button>
+                </div>
+                {expandedCard === card.id && (
+                  <div style={{ marginTop: 15, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                    <table className="data-table">
+                      <thead><tr><th>Condición</th><th>Stock</th><th>Precio</th></tr></thead>
+                      <tbody>
+                        {(cardListings[card.id] || []).map(l => (
+                          <tr key={l.id}>
+                            <td>{l.condition}</td>
+                            <td>{l.quantity}</td>
+                            <td>{fmtCLP(l.finalPrice)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {activeTab === 'alerts' && (
         <div className="tab-content fade-in card">
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20 }}>
@@ -202,7 +282,7 @@ export function CatalogPage() {
                 {loadingSets ? <p>Cargando sets...</p> : (
                   <table className="data-table">
                     <tbody>
-                      {externalSets.map(s => (
+                      {Array.isArray(externalSets) && externalSets.map(s => (
                         <tr key={s.code}>
                           <td><b>{s.code}</b> - {s.name}</td>
                           <td style={{ textAlign: 'right' }}>
@@ -230,7 +310,7 @@ export function CatalogPage() {
               <h3 style={{ marginTop: 25 }}>Historial Reciente</h3>
               <table className="data-table" style={{ marginTop: 10 }}>
                 <tbody>
-                  {(imports as any)?.items?.map((imp: any) => (
+                  {Array.isArray((imports as any)?.items) && (imports as any).items.map((imp: any) => (
                     <tr key={imp.id}>
                       <td><small>{imp.fileName}</small></td>
                       <td><span className={`badge ${imp.status === 'completed' ? 'badge-green' : 'badge-red'}`}>{imp.status}</span></td>
