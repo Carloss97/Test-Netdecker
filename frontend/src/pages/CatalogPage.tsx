@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { 
   getAvailableListings, 
@@ -31,9 +31,12 @@ export function CatalogPage() {
   // ─── Inventario Tab State ──────────────────────────────────────────────────
   type TcgFilter = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   const [selectedTcg, setSelectedTcg] = useState<TcgFilter>('MAGIC');
+  const [selectedEditionId, setSelectedEditionId] = useState('');
   const [listingSearch, setListingSearch] = useState('');
   const [previewListingId, setPreviewListingId] = useState<string | null>(null);
-  
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
+  const [tempStockValue, setTempStockValue] = useState('');
+
   // ─── Buscador Maestro Tab State ─────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMode, setSearchMode] = useState<'name' | 'code'>('name');
@@ -58,6 +61,7 @@ export function CatalogPage() {
 
   const [externalSets, setExternalSets] = useState<any[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
+  const [setsSortDir, setSetsSortDir] = useState<'asc' | 'desc'>('desc');
 
   // ─── Export Tab State ──────────────────────────────────────────────────────
   const [exportTcg, setExportTcg] = useState('MAGIC');
@@ -68,6 +72,13 @@ export function CatalogPage() {
   const { data: tcgs } = useAsync(() => getTCGs());
   const { data: alerts, execute: reloadAlerts } = useAsync(() => getLowStockListings(threshold), true);
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 5 }));
+
+  // Load editions for inventory filtering
+  const inventoryEditionsQuery = useAsync(() => getEditions({ tcgId: selectedTcg, activeOnly: true }), false);
+  
+  useEffect(() => {
+    void inventoryEditionsQuery.execute();
+  }, [selectedTcg]);
 
   useEffect(() => {
     if (activeTab === 'import' && bootstrapTcg) {
@@ -88,14 +99,34 @@ export function CatalogPage() {
   const filteredListings = (listings ?? []).filter((l: any) => {
     const tcgName = l.tcgName || l.card?.tcg?.name;
     if (tcgName !== selectedTcg) return false;
+    if (selectedEditionId && l.editionId !== selectedEditionId && l.card?.editionId !== selectedEditionId) return false;
+    
     const q = listingSearch.trim().toLowerCase();
     return !q || (l.cardName || l.card?.cardName || '').toLowerCase().includes(q) || (l.cardCode || l.card?.cardCode || '').toLowerCase().includes(q);
   });
 
   const previewListing: any = filteredListings.find(l => l.id === previewListingId) || filteredListings[0];
 
+  const sortedExternalSets = useMemo(() => {
+    return [...externalSets].sort((a, b) => {
+      const dateA = new Date(a.releaseDate || 0).getTime();
+      const dateB = new Date(b.releaseDate || 0).getTime();
+      return setsSortDir === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  }, [externalSets, setsSortDir]);
+
   // ─── Handlers ───────────────────────────────────────────────────────────────
   
+  const handleUpdateStock = async (listingId: string, value: number) => {
+    try {
+      await updateListingStock(listingId, 'set', value);
+      setEditingStockId(null);
+      void reloadListings();
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+  };
+
   const handleGlobalSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -117,11 +148,12 @@ export function CatalogPage() {
 
   const handleBootstrap = async () => {
     if (!bootstrapTcg) return alert('Selecciona un TCG');
+    if (!bootstrapSetCode) return alert('Ingresa un código de edición');
     setIsBootstrapping(true);
     try {
       await bootstrapCatalog({
         tcg: bootstrapTcg as any,
-        setCode: bootstrapSetCode || undefined,
+        setCode: bootstrapSetCode,
         initialQuantity: parseInt(initialQuantity, 10),
         marginMultiplier: parseFloat(marginMultiplier)
       });
@@ -188,12 +220,27 @@ export function CatalogPage() {
       {activeTab === 'inventory' && (
         <div className="tab-content fade-in">
           <div className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <input className="input input-sm" style={{ flex: 1 }} value={listingSearch} onChange={e => setListingSearch(e.target.value)} placeholder="Buscar carta en stock..." />
-              <div className="btn-group">
-                {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map(tcg => (
-                  <button key={tcg} className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setSelectedTcg(tcg)}>{tcg}</button>
-                ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 15, alignItems: 'end' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Juego:</label>
+                <div className="btn-group" style={{ marginTop: 5 }}>
+                  {(['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const).map(tcg => (
+                    <button key={tcg} className={`btn btn-sm ${selectedTcg === tcg ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setSelectedTcg(tcg); setSelectedEditionId(''); }}>{tcg}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Edición:</label>
+                <select className="input input-sm" style={{ marginTop: 5 }} value={selectedEditionId} onChange={e => setSelectedEditionId(e.target.value)}>
+                  <option value="">Todas las ediciones</option>
+                  {(inventoryEditionsQuery.data ?? []).map((ed: any) => (
+                    <option key={ed.id} value={ed.id}>{ed.editionName} ({ed.editionCode})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Buscador rápido:</label>
+                <input className="input input-sm" style={{ marginTop: 5 }} value={listingSearch} onChange={e => setListingSearch(e.target.value)} placeholder="Nombre o código..." />
               </div>
             </div>
           </div>
@@ -201,7 +248,7 @@ export function CatalogPage() {
           <div className="listings-preview-pane" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 24, alignItems: 'start' }}>
             <div className="table-wrapper card" style={{ padding: 0 }}>
               <table className="data-table">
-                <thead><tr><th style={{ paddingLeft: 16 }}>Carta</th><th>Tags</th><th>Stock</th><th>Precio</th></tr></thead>
+                <thead><tr><th style={{ paddingLeft: 16 }}>Carta</th><th>Stock</th><th>Precio</th><th>Acción</th></tr></thead>
                 <tbody>
                   {filteredListings.map((l: any) => (
                     <tr key={l.id} onMouseEnter={() => setPreviewListingId(l.id)} className={previewListing?.id === l.id ? 'row-preview-active' : ''}>
@@ -209,11 +256,27 @@ export function CatalogPage() {
                         <div style={{ fontWeight: 600 }}>{l.cardName || l.card?.cardName}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{l.cardCode || l.card?.cardCode}</div>
                       </td>
-                      <td>{l.cardType && <span className="badge badge-blue" style={{ fontSize: '0.6rem' }}>{l.cardType}</span>}</td>
-                      <td><span className={`badge ${l.quantity > 5 ? 'badge-green' : 'badge-yellow'}`}>{l.quantity} uds</span></td>
+                      <td>
+                        {editingStockId === l.id ? (
+                          <div style={{ display: 'flex', gap: 5 }}>
+                            <input type="number" className="input input-sm" style={{ width: 60 }} autoFocus value={tempStockValue} onChange={e => setTempStockValue(e.target.value)} />
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdateStock(l.id, parseInt(tempStockValue, 10))}>OK</button>
+                          </div>
+                        ) : (
+                          <span className={`badge ${l.quantity > 5 ? 'badge-green' : 'badge-yellow'}`} style={{ cursor: 'pointer' }} onClick={() => { setEditingStockId(l.id); setTempStockValue(String(l.quantity)); }}>
+                            {l.quantity} uds ✏️
+                          </span>
+                        )}
+                      </td>
                       <td style={{ fontWeight: 700 }}>{fmtCLP(l.finalPrice)}</td>
+                      <td>
+                        <button className="btn btn-sm btn-secondary" onClick={() => { setEditingStockId(l.id); setTempStockValue(String(l.quantity)); }}>Editar</button>
+                      </td>
                     </tr>
                   ))}
+                  {filteredListings.length === 0 && (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No se encontraron cartas en stock con los filtros actuales.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -222,7 +285,7 @@ export function CatalogPage() {
                 <>
                   <img src={previewListing.imageUrl || previewListing.card?.imageUrl} alt="" style={{ width: '100%', borderRadius: 8 }} />
                   <h3 style={{ marginTop: 15 }}>{previewListing.cardName || previewListing.card?.cardName}</h3>
-                  <div className="badge badge-gray">{previewListing.editionName}</div>
+                  <div className="badge badge-gray">{previewListing.editionName || previewListing.card?.edition?.editionName}</div>
                   <div style={{ marginTop: 20, fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem' }}>{fmtCLP(previewListing.finalPrice)}</div>
                 </>
               ) : <div className="empty-state">Selecciona una carta</div>}
@@ -315,7 +378,7 @@ export function CatalogPage() {
                 <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
                   <div>
                     <label>TCG:</label>
-                    <select className="input" value={bootstrapTcg} onChange={e => setBootstrapTcg(e.target.value as any)}>
+                    <select className="input" value={bootstrapTcg} onChange={e => { setBootstrapTcg(e.target.value as any); setBootstrapSetCode(''); }}>
                       <option value="">Seleccionar...</option>
                       <option value="MAGIC">Magic</option>
                       <option value="POKEMON">Pokémon</option>
@@ -328,7 +391,7 @@ export function CatalogPage() {
                   <div>
                     <label>Código de Edición:</label>
                     <input className="input" placeholder="Ej: MH3, OP01, RA05..." value={bootstrapSetCode} onChange={e => setBootstrapSetCode(e.target.value)} />
-                    <small style={{ color: 'var(--text-muted)' }}>Opcional: Si está vacío, puede importar múltiples sets (lento).</small>
+                    <small style={{ color: 'var(--text-muted)' }}>Definir código exacto de TCGplayer para importar.</small>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
                     <div><label>Stock Inicial:</label><input type="number" className="input" value={initialQuantity} onChange={e => setInitialQuantity(e.target.value)} /></div>
@@ -341,18 +404,24 @@ export function CatalogPage() {
               </div>
 
               <div className="card">
-                <h3>Explorar Ediciones Disponibles</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <h3>Explorar Ediciones</h3>
+                   <button className="btn btn-sm btn-secondary" onClick={() => setSetsSortDir(prev => prev === 'asc' ? 'desc' : 'asc')}>
+                     {setsSortDir === 'asc' ? '📅 Asc' : '📅 Desc'}
+                   </button>
+                </div>
                 <div className="table-wrapper" style={{ marginTop: 15, maxHeight: 400, overflowY: 'auto' }}>
                   {!bootstrapTcg ? <p className="empty-state">Selecciona un TCG para ver sets.</p> : (
                     loadingSets ? <p>Cargando sets de la API...</p> : (
                       <table className="data-table">
-                        <thead><tr><th>Código</th><th>Nombre</th><th>Acción</th></tr></thead>
+                        <thead><tr><th>Fecha</th><th>Código</th><th>Nombre</th><th></th></tr></thead>
                         <tbody>
-                          {externalSets.map(s => (
+                          {sortedExternalSets.map(s => (
                             <tr key={s.code}>
+                              <td style={{ fontSize: '0.7rem' }}>{s.releaseDate ? new Date(s.releaseDate).toLocaleDateString() : '—'}</td>
                               <td><code>{s.code}</code></td>
-                              <td>{s.name}</td>
-                              <td><button className="btn btn-sm btn-secondary" onClick={() => setBootstrapSetCode(s.code)}>Seleccionar</button></td>
+                              <td style={{ fontSize: '0.8rem' }}>{s.name}</td>
+                              <td><button className="btn btn-sm btn-primary" onClick={() => setBootstrapSetCode(s.code)}>✓</button></td>
                             </tr>
                           ))}
                         </tbody>
