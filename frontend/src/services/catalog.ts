@@ -292,10 +292,10 @@ export async function getCardById(id: string) {
   return data;
 }
 
-export async function getAvailableListings(tcgId?: string, editionId?: string): Promise<Listing[]> {
+export async function getAvailableListings(tcgId?: string, editionId?: string, search?: string): Promise<Listing[]> {
   try {
     const { data } = await apiClient.get('/listings/available', {
-      params: { tcgId, editionId }
+      params: { tcgId, editionId, search }
     });
     return normalizeCatalogListings(data);
   } catch (err) {
