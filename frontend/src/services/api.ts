@@ -165,19 +165,23 @@ hydrateAuthHeader();
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // 1. Handle Admin/Internal Auth
+    const isStorefrontRequest = config.url?.startsWith('/storefront/');
+
+    // 1. Handle Admin Auth
     try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        if (!config.headers['x-admin-token']) {
-          config.headers['x-admin-token'] = token;
+      const adminToken = localStorage.getItem('auth_token');
+      if (adminToken) {
+        // If it's NOT a storefront request, admin token goes to Authorization
+        if (!isStorefrontRequest) {
+          config.headers.Authorization = `Bearer ${adminToken}`;
         }
+        // Always send admin token in the custom header for context resolution
+        config.headers['x-admin-token'] = adminToken;
       }
     } catch (err) {}
 
-    // 2. Handle Storefront/Customer Auth (if not admin)
-    if (!config.headers.Authorization) {
+    // 2. Handle Storefront/Customer Auth
+    if (isStorefrontRequest) {
       try {
         const customerToken = localStorage.getItem('customer_token');
         if (customerToken) {

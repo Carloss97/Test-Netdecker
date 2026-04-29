@@ -10,15 +10,13 @@ const NAV_GROUPS = [
       { to: '/', icon: '🏠', label: 'Dashboard' },
       { to: '/?tab=analytics', icon: '📈', label: 'Insights Financieros' },
       { to: '/pedidos', icon: '🚚', label: 'Pedidos' },
-      { to: '/pos', icon: '💳', label: 'Punto de Venta' },
     ]
   },
   {
     title: 'Gestión de Stock',
     items: [
       { to: '/catalog', icon: '💎', label: 'Catálogo Maestro' },
-      { to: '/stock-bajo', icon: '🚨', label: 'Stock Bajo' },
-      { to: '/importar', icon: '📥', label: 'Importar CSV/Excel' },
+      { to: '/pos', icon: '💳', label: 'Punto de Venta' },
       { to: '/buscar', icon: '🔍', label: 'Buscador Global' },
     ]
   },
@@ -26,15 +24,13 @@ const NAV_GROUPS = [
     title: 'Finanzas y Estrategia',
     items: [
       { to: '/admin/expenses', icon: '💸', label: 'Egresos y Facturas' },
-      { to: '/precios', icon: '💰', label: 'Margen y Precios' },
     ]
   },
   {
     title: 'Configuración',
     items: [
-      { to: '/admin/tcgs', icon: '⚙️', label: 'Ajustes TCG' },
+      { to: '/admin', icon: '🛠️', label: 'Sistema y Ajustes' },
       { to: '/admin/multi-tenant', icon: '🏢', label: 'Multi-tienda', globalOnly: true },
-      { to: '/admin', icon: '🛠️', label: 'Sistema' },
       { to: '/storefront', icon: '🛍️', label: 'Demo Tienda' },
     ]
   }
