@@ -75,12 +75,16 @@ export class ListingService {
   static async getAvailableListings(tcgId?: string, editionId?: string, storeId?: string, search?: string) {
     const where: Prisma.ListingWhereInput = {
       AND: [
-        { quantity: { gt: 0 } },
         { status: { in: ['active', 'manual'] } },
         { card: { tcg: { isActive: true } } },
         { card: { edition: { isActive: true } } }
       ]
     };
+
+    // If NO search and NO specific edition, only show in-stock items to prevent performance issues and clutter
+    if (!search && !editionId) {
+      (where.AND as any).push({ quantity: { gt: 0 } });
+    }
 
     if (search && search.trim().length > 0) {
       const s = search.trim();
