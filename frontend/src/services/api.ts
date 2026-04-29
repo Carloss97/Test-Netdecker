@@ -165,18 +165,17 @@ hydrateAuthHeader();
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    const isStorefrontRequest = config.url?.startsWith('/storefront/');
+    const isStorefrontRequest = config.url?.includes('/storefront/');
 
-    // 1. Handle Admin Auth
+    // 1. Handle Admin token for custom header (always)
     try {
       const adminToken = localStorage.getItem('auth_token');
       if (adminToken) {
-        // If it's NOT a storefront request, admin token goes to Authorization
+        config.headers['x-admin-token'] = adminToken;
+        // Only use as primary Auth if NOT a storefront request
         if (!isStorefrontRequest) {
           config.headers.Authorization = `Bearer ${adminToken}`;
         }
-        // Always send admin token in the custom header for context resolution
-        config.headers['x-admin-token'] = adminToken;
       }
     } catch (err) {}
 
@@ -186,6 +185,11 @@ apiClient.interceptors.request.use(
         const customerToken = localStorage.getItem('customer_token');
         if (customerToken) {
           config.headers.Authorization = `Bearer ${customerToken}`;
+        } else {
+          // If storefront request but no customer token, ensure we don't leak admin token as primary Auth
+          if (config.headers.Authorization?.toString().includes(localStorage.getItem('auth_token') || 'INVALID')) {
+             delete config.headers.Authorization;
+          }
         }
       } catch (err) {}
     }

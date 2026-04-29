@@ -13,7 +13,8 @@ import {
   searchCardsByCode,
   getListingsByCard,
   updateListingPricingMode,
-  updateListingStock
+  updateListingStock,
+  exportInventoryCsv
 } from '../services/catalog';
 import type { Listing, EditionWithCounts, Card } from '../types';
 import apiClient from '../services/api';
@@ -120,6 +121,11 @@ export function CatalogPage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setCsvFile(file);
+  };
+
   const handleImportCsv = async () => {
     if (!csvFile) return alert('Selecciona un archivo');
     setIsImporting(true);
@@ -136,12 +142,23 @@ export function CatalogPage() {
     }
   };
 
-  const handleExport = () => {
-    const baseUrl = apiClient.defaults.baseURL;
-    let url = `${baseUrl}/inventory/export-csv?scope=all`;
-    if (exportEditionId) url = `${baseUrl}/inventory/export-csv?scope=edition&editionId=${exportEditionId}`;
-    else if (exportTcg) url = `${baseUrl}/inventory/export-csv?scope=tcg&tcgId=${exportTcg}`;
-    window.open(url, '_blank');
+  const handleExport = async () => {
+    try {
+      const blob = await exportInventoryCsv({
+        scope: exportEditionId ? 'edition' : 'tcg',
+        tcgId: exportTcg,
+        editionId: exportEditionId || undefined
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventario-${exportTcg}-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Error al exportar: ' + err.message);
+    }
   };
 
   return (
@@ -341,7 +358,7 @@ export function CatalogPage() {
                 {availableEditions.map(ed => <option key={ed.id} value={ed.id}>{ed.editionName}</option>)}
               </select>
             </div>
-            <button className="btn btn-primary" onClick={handleExport} style={{ marginTop: 10 }}>📥 Descargar CSV</button>
+            <button className="btn btn-primary" onClick={handleExport} style={{ marginTop: 10 }}>📥 Generar y Descargar</button>
           </div>
         </div>
       )}

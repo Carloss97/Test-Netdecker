@@ -616,20 +616,13 @@ router.post('/decrease', async (req: Request, res: Response) => {
 /**
  * POST /api/inventory/import-csv
  * Import or update inventory from CSV file.
- *
- * Supported modes:
- * 1) Update existing listing quantities:
- *    headers: listingId,quantity
- *
- * 2) Upsert full catalog + listing:
- *    headers: tcg,editionCode,editionName,cardCode,cardName,cardNumber,rarity,tags,imageUrl,condition,quantity,referencePrice,marginMultiplier
  */
-router.post('/import-csv', requireAdmin, tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-csv', tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
 
-  const storeId = getImportStoreId(req);
+  const storeId = getAuthenticatedStoreId(req);
   if (!storeId) {
     throw new ValidationError('storeId is required to import inventory');
   }
@@ -651,14 +644,13 @@ router.post('/import-csv', requireAdmin, tenantResolver, upload.single('file'), 
 /**
  * POST /api/inventory/import-with-mapping
  * Accepts multipart form-data: file + mapping (JSON string) in field `mapping`.
- * mapping should be an object: { tcg: 'MiColumnaTCG', editionCode: 'ColEd', cardCode: 'ColCard', cardName: 'ColName', quantity: 'ColQty', referencePrice: 'ColPrice', ... }
  */
-router.post('/import-with-mapping', requireAdmin, tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-with-mapping', tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
 
-  const storeId = getImportStoreId(req);
+  const storeId = getAuthenticatedStoreId(req);
   if (!storeId) {
     throw new ValidationError('storeId is required to import inventory');
   }
@@ -689,12 +681,15 @@ router.post('/import-with-mapping', requireAdmin, tenantResolver, upload.single(
  * POST /api/inventory/import-csv/validate
  * Validates CSV without writing to database.
  */
-router.post('/import-csv/validate', requireAdmin, tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/import-csv/validate', tenantResolver, upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     throw new ValidationError('File is required in form-data key "file"');
   }
 
-  const storeId = getImportStoreId(req);
+  const storeId = getAuthenticatedStoreId(req);
+  if (!storeId) {
+    throw new ValidationError('storeId is required to validate inventory');
+  }
 
   const result = await InventoryService.importFromBuffer(req.file.buffer, req.file.mimetype, {
     dryRun: true,
