@@ -14,7 +14,8 @@ import {
   getListingsByCard,
   updateListingPricingMode,
   updateListingStock,
-  exportInventoryCsv
+  exportInventoryCsv,
+  bootstrapCatalog
 } from '../services/catalog';
 import type { Listing, EditionWithCounts, Card } from '../types';
 import apiClient from '../services/api';
@@ -45,12 +46,18 @@ export function CatalogPage() {
   const [threshold, setThreshold] = useState(5);
   
   // ─── Import Tab State ──────────────────────────────────────────────────────
-  const [catalogTcg, setCatalogTcg] = useState('MAGIC');
+  const [importMode, setImportMode] = useState<'bootstrap' | 'csv'>('bootstrap');
+  const [bootstrapTcg, setBootstrapTcg] = useState<TcgFilter | ''>('');
+  const [bootstrapSetCode, setBootstrapSetCode] = useState('');
+  const [initialQuantity, setInitialQuantity] = useState('0');
+  const [marginMultiplier, setMarginMultiplier] = useState('1.0');
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
+
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+
   const [externalSets, setExternalSets] = useState<any[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
-  const [importingSet, setImportingSet] = useState<string | null>(null);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
   // ─── Export Tab State ──────────────────────────────────────────────────────
   const [exportTcg, setExportTcg] = useState('MAGIC');
@@ -63,14 +70,14 @@ export function CatalogPage() {
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 5 }));
 
   useEffect(() => {
-    if (activeTab === 'import' && catalogTcg) {
+    if (activeTab === 'import' && bootstrapTcg) {
       setLoadingSets(true);
-      listExternalSets(catalogTcg as any)
-        .then(res => setExternalSets(Array.isArray(res) ? res : []))
+      listExternalSets(bootstrapTcg as any)
+        .then(res => setExternalSets(Array.isArray(res.sets) ? res.sets : []))
         .catch(() => setExternalSets([]))
         .finally(() => setLoadingSets(false));
     }
-  }, [activeTab, catalogTcg]);
+  }, [activeTab, bootstrapTcg]);
 
   useEffect(() => {
     if (activeTab === 'export' && exportTcg) {
@@ -108,16 +115,23 @@ export function CatalogPage() {
     }
   };
 
-  const handleImportSet = async (setCode: string) => {
-    setImportingSet(setCode);
+  const handleBootstrap = async () => {
+    if (!bootstrapTcg) return alert('Selecciona un TCG');
+    setIsBootstrapping(true);
     try {
-      await importExternalSet(catalogTcg as any, setCode);
-      alert('Set importado con éxito');
+      await bootstrapCatalog({
+        tcg: bootstrapTcg as any,
+        setCode: bootstrapSetCode || undefined,
+        initialQuantity: parseInt(initialQuantity, 10),
+        marginMultiplier: parseFloat(marginMultiplier)
+      });
+      alert('Importación completada');
       void reloadListings();
+      setActiveTab('inventory');
     } catch (err: any) {
-      alert('Error: ' + err.message);
+      alert('Error: ' + (err.response?.data?.message || err.message));
     } finally {
-      setImportingSet(null);
+      setIsBootstrapping(false);
     }
   };
 
@@ -128,7 +142,7 @@ export function CatalogPage() {
 
   const handleImportCsv = async () => {
     if (!csvFile) return alert('Selecciona un archivo');
-    setIsImporting(true);
+    setIsImportingCsv(true);
     try {
       await importInventoryCsv(csvFile);
       alert('CSV procesado correctamente');
@@ -138,7 +152,7 @@ export function CatalogPage() {
     } catch (err: any) {
       alert('Error: ' + err.message);
     } finally {
-      setIsImporting(false);
+      setIsImportingCsv(false);
     }
   };
 
@@ -289,55 +303,97 @@ export function CatalogPage() {
 
       {activeTab === 'import' && (
         <div className="tab-content fade-in">
-          <div className="grid-cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <div className="card">
-              <h3>1. Importar Set desde API</h3>
-              <select className="input" style={{ marginTop: 10 }} value={catalogTcg} onChange={e => setCatalogTcg(e.target.value)}>
-                <option value="MAGIC">Magic</option><option value="POKEMON">Pokémon</option><option value="YUGIOH">Yu-Gi-Oh</option><option value="ONE_PIECE">One Piece</option>
-              </select>
-              <div className="table-wrapper" style={{ marginTop: 15, maxHeight: 300, overflowY: 'auto' }}>
-                {loadingSets ? <p>Cargando sets...</p> : (
+          <div className="tabs" style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
+            <button className={`btn btn-sm ${importMode === 'bootstrap' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setImportMode('bootstrap')}>🔌 Bootstrap (API)</button>
+            <button className={`btn btn-sm ${importMode === 'csv' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setImportMode('csv')}>📄 Carga CSV</button>
+          </div>
+
+          {importMode === 'bootstrap' ? (
+            <div className="grid-cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 25 }}>
+              <div className="card">
+                <h3>Importar Set desde API (TCGplayer)</h3>
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
+                  <div>
+                    <label>TCG:</label>
+                    <select className="input" value={bootstrapTcg} onChange={e => setBootstrapTcg(e.target.value as any)}>
+                      <option value="">Seleccionar...</option>
+                      <option value="MAGIC">Magic</option>
+                      <option value="POKEMON">Pokémon</option>
+                      <option value="YUGIOH">Yu-Gi-Oh</option>
+                      <option value="ONE_PIECE">One Piece</option>
+                      <option value="DIGIMON">Digimon</option>
+                      <option value="WEISS_SCHWARZ">Weiss Schwarz</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Código de Edición:</label>
+                    <input className="input" placeholder="Ej: MH3, OP01, RA05..." value={bootstrapSetCode} onChange={e => setBootstrapSetCode(e.target.value)} />
+                    <small style={{ color: 'var(--text-muted)' }}>Opcional: Si está vacío, puede importar múltiples sets (lento).</small>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+                    <div><label>Stock Inicial:</label><input type="number" className="input" value={initialQuantity} onChange={e => setInitialQuantity(e.target.value)} /></div>
+                    <div><label>Margen (1.2 = 20%):</label><input type="number" step="0.1" className="input" value={marginMultiplier} onChange={e => setMarginMultiplier(e.target.value)} /></div>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleBootstrap} disabled={isBootstrapping}>
+                    {isBootstrapping ? '⌛ Procesando API...' : '🚀 Iniciar Bootstrap'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="card">
+                <h3>Explorar Ediciones Disponibles</h3>
+                <div className="table-wrapper" style={{ marginTop: 15, maxHeight: 400, overflowY: 'auto' }}>
+                  {!bootstrapTcg ? <p className="empty-state">Selecciona un TCG para ver sets.</p> : (
+                    loadingSets ? <p>Cargando sets de la API...</p> : (
+                      <table className="data-table">
+                        <thead><tr><th>Código</th><th>Nombre</th><th>Acción</th></tr></thead>
+                        <tbody>
+                          {externalSets.map(s => (
+                            <tr key={s.code}>
+                              <td><code>{s.code}</code></td>
+                              <td>{s.name}</td>
+                              <td><button className="btn btn-sm btn-secondary" onClick={() => setBootstrapSetCode(s.code)}>Seleccionar</button></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid-cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 25 }}>
+              <div className="card">
+                <h3>Carga de Stock (CSV)</h3>
+                <div style={{ marginTop: 20, padding: 30, border: '2px dashed var(--border)', textAlign: 'center', borderRadius: 12 }}>
+                  <p>Sube tu archivo .csv con las columnas: <br/><code>listingId, quantity</code></p>
+                  <input type="file" accept=".csv" style={{ marginTop: 15 }} onChange={handleFileChange} />
+                  {csvFile && (
+                    <button className="btn btn-primary" style={{ marginTop: 20, width: '100%' }} onClick={handleImportCsv} disabled={isImportingCsv}>
+                      {isImportingCsv ? '⌛ Procesando...' : '🚀 Iniciar Carga de CSV'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="card">
+                <h3>Historial de Cargas</h3>
+                <div className="table-wrapper" style={{ marginTop: 15 }}>
                   <table className="data-table">
                     <tbody>
-                      {Array.isArray(externalSets) && externalSets.map(s => (
-                        <tr key={s.code}>
-                          <td><b>{s.code}</b> - {s.name}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button className="btn btn-sm btn-primary" onClick={() => handleImportSet(s.code)} disabled={!!importingSet}>
-                              {importingSet === s.code ? '⌛' : '📥'}
-                            </button>
-                          </td>
+                      {Array.isArray((imports as any)?.items) && (imports as any).items.map((imp: any) => (
+                        <tr key={imp.id}>
+                          <td><small>{imp.fileName}</small></td>
+                          <td><span className={`badge ${imp.status === 'completed' ? 'badge-green' : 'badge-red'}`}>{imp.status}</span></td>
+                          <td>{imp.successCount} OK</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                )}
+                </div>
               </div>
             </div>
-            <div className="card">
-              <h3>2. Carga de Stock (CSV)</h3>
-              <div style={{ marginTop: 15, padding: 20, border: '2px dashed var(--border)', textAlign: 'center' }}>
-                <input type="file" accept=".csv" onChange={handleFileChange} />
-                {csvFile && (
-                  <button className="btn btn-primary" style={{ marginTop: 15, width: '100%' }} onClick={handleImportCsv} disabled={isImporting}>
-                    {isImporting ? '⌛ Procesando...' : '🚀 Iniciar Importación'}
-                  </button>
-                )}
-              </div>
-              <h3 style={{ marginTop: 25 }}>Historial Reciente</h3>
-              <table className="data-table" style={{ marginTop: 10 }}>
-                <tbody>
-                  {Array.isArray((imports as any)?.items) && (imports as any).items.map((imp: any) => (
-                    <tr key={imp.id}>
-                      <td><small>{imp.fileName}</small></td>
-                      <td><span className={`badge ${imp.status === 'completed' ? 'badge-green' : 'badge-red'}`}>{imp.status}</span></td>
-                      <td>{imp.successCount} OK</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -348,7 +404,12 @@ export function CatalogPage() {
             <div>
               <label>Seleccionar TCG:</label>
               <select className="input" value={exportTcg} onChange={e => setExportTcg(e.target.value)}>
-                <option value="MAGIC">Magic</option><option value="POKEMON">Pokémon</option><option value="YUGIOH">Yu-Gi-Oh</option><option value="ONE_PIECE">One Piece</option>
+                <option value="MAGIC">Magic</option>
+                <option value="POKEMON">Pokémon</option>
+                <option value="YUGIOH">Yu-Gi-Oh</option>
+                <option value="ONE_PIECE">One Piece</option>
+                <option value="DIGIMON">Digimon</option>
+                <option value="WEISS_SCHWARZ">Weiss Schwarz</option>
               </select>
             </div>
             <div>
@@ -358,7 +419,7 @@ export function CatalogPage() {
                 {availableEditions.map(ed => <option key={ed.id} value={ed.id}>{ed.editionName}</option>)}
               </select>
             </div>
-            <button className="btn btn-primary" onClick={handleExport} style={{ marginTop: 10 }}>📥 Generar y Descargar</button>
+            <button className="btn btn-primary" onClick={handleExport} style={{ marginTop: 10 }}>📥 Generar y Descargar CSV</button>
           </div>
         </div>
       )}

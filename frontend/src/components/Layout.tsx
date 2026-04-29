@@ -45,7 +45,6 @@ type SessionIdentity = {
   email?: string;
   role?: 'ADMIN' | 'MANAGER' | 'STAFF' | string;
   storeId?: string | null;
-  resolvedStoreId?: string | null;
 };
 
 interface LayoutProps {
@@ -57,7 +56,6 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string>('');
-  const [lockedStoreId, setLockedStoreId] = useState<string>('');
   const [identity, setIdentity] = useState<SessionIdentity | null>(null);
 
   useEffect(() => {
@@ -70,7 +68,6 @@ export function Layout({ children }: LayoutProps) {
       const resp = await apiClient.get('/admin/auth/me');
       const data = resp?.data?.data as SessionIdentity;
       setIdentity(data);
-      if (data?.storeId) setLockedStoreId(data.storeId);
     } catch {
       setIdentity(null);
     }
@@ -90,7 +87,7 @@ export function Layout({ children }: LayoutProps) {
 
   const activeStoreName = useMemo(() => {
     const match = stores.find(s => s.id === activeStoreId);
-    return match ? (match.name || match.slug) : 'Seleccionar Tienda';
+    return match ? (match.name || match.slug) : 'Tienda';
   }, [stores, activeStoreId]);
 
   return (
@@ -120,7 +117,7 @@ export function Layout({ children }: LayoutProps) {
         <header className="page-header">
           <div className="page-header-left">
             <h1>Panel de Gestión</h1>
-            <p>{identity?.email} · {identity?.role}</p>
+            <p>{identity?.email} ({identity?.role})</p>
           </div>
           <div className="page-header-actions">
             <div className="store-chip">{activeStoreName}</div>

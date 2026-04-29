@@ -199,7 +199,14 @@ export class ExternalImportService {
       const condition = options.condition || CardCondition.NM;
 
       const existingListing = await prisma.listing.findUnique({
-        where: { cardId_condition_rarity: { cardId: card.id, condition, rarity } },
+        where: { 
+          cardId_condition_rarity_storeId: { 
+            cardId: card.id, 
+            condition, 
+            rarity,
+            storeId: resolvedStoreId
+          } 
+        },
       });
 
       const marginMultiplier = options.marginMultiplier ?? DEFAULT_MARGIN_MULTIPLIER;
@@ -273,31 +280,24 @@ export class ExternalImportService {
       results: [],
     };
 
-    const concurrency = Math.max(1, Math.min(options.concurrency ?? 4, 12));
-    let cursor = 0;
-
-    const worker = async () => {
-      while (cursor < cards.length) {
-        const index = cursor;
-        cursor += 1;
-        const card = cards[index];
-        if (!card) {
-          continue;
+    // Sequential processing to avoid race conditions on unique constraints in Neon
+    for (const card of cards) {
+      if (!card) continue;
+      try {
+        const r = await this.importCard(card, options);
+        result.results.push(r);
+        if (r.action === 'created') result.created += 1;
+        else result.updated += 1;
+        
+        // Brief pause to let DB breathe if it's a large set
+        if (result.results.length % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-
-        try {
-          const r = await this.importCard(card, options);
-          result.results.push(r);
-          if (r.action === 'created') result.created += 1;
-          else result.updated += 1;
-        } catch (err) {
-          result.errors.push({ externalId: card.externalId, message: (err as Error).message });
-          result.skipped += 1;
-        }
+      } catch (err) {
+        result.errors.push({ externalId: card.externalId, message: (err as Error).message });
+        result.skipped += 1;
       }
-    };
-
-    await Promise.all(Array.from({ length: Math.min(concurrency, cards.length) }, () => worker()));
+    }
 
     return result;
   }
