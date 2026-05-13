@@ -45,8 +45,12 @@ export class PriceService {
       return Math.max(1, Math.round(overrideRounding));
     }
 
-    // Official Netdecker Rule: 100 CLP rounding
-    return 100;
+    const envRounding = Number(process.env.PRICE_ROUNDING_MULTIPLE || '1');
+    if (Number.isFinite(envRounding) && envRounding >= 1) {
+      return Math.max(1, Math.round(envRounding));
+    }
+
+    return 1;
   }
 
   /**

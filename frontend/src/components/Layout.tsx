@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { logout } from '../services/adminAuth';
 
@@ -52,7 +52,6 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const location = useLocation();
   const navigate = useNavigate();
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string>('');

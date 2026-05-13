@@ -3,7 +3,7 @@ import { useAsync } from '../hooks/useAsync';
 import { getAdminDashboard } from '../services/catalog';
 import apiClient from '../services/api';
 import type { AdminDashboard } from '../types';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 function formatClp(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -19,7 +19,7 @@ export function DashboardPage() {
     else setActiveTab('kpis');
   }, [searchParams]);
 
-  const { data, status, error } = useAsync<AdminDashboard>(() => getAdminDashboard());
+  const { data, status } = useAsync<AdminDashboard>(() => getAdminDashboard());
 
   const { data: summary, status: summaryStatus } = useAsync(async () => {
     const { data } = await apiClient.get('/analytics/sales-summary');
@@ -188,7 +188,7 @@ export function DashboardPage() {
             <div className="card" style={{ padding: 25 }}>
               <h3 style={{ marginBottom: 20 }}>Distribución</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                {(tcgData ?? []).map((item: any, idx: number) => {
+                {(tcgData ?? []).map((item: any) => {
                   const percentage = (item.revenue / (summary?.totalRevenue || 1)) * 100;
                   return (
                     <div key={item.name}>

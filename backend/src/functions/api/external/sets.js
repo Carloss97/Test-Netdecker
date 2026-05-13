@@ -1,19 +1,3 @@
-import { CardDatabaseService } from '../../../services/CardDatabaseService.js';
-
-export async function onRequest(context) {
-  try {
-    const { request } = context;
-    const url = new URL(request.url);
-    const tcgParam = (url.searchParams.get('tcg') || '').toUpperCase() || 'YUGIOH';
-    const tcg = tcgParam;
-
-    const sets = await CardDatabaseService.listSets(tcg).catch(() => []);
-
-    return new Response(JSON.stringify({ success: true, total: sets.length, sets }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch (err) {
-    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
-}
 import { getGroups, getGroupProducts } from '../../_shared/tcgcsv.js';
 
 export async function onRequest(context) {

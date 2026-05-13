@@ -11,11 +11,15 @@ export default function MercadoPagoCheckout({ items, onSuccess, storeId }: { ite
     try {
       // Map storefront items to the shape MercadoPago expects
       const reqItems = items.map((it: any) => ({
-        id: it.listingId || it.id,
-        title: it.name || 'Carta TCG',
-        unit_price: Number(it.price || it.finalPrice || 0),
-        quantity: Number(it.quantity || it.qty || 1),
+        listingId: String(it.listingId || it.id || ''),
+        title: it.title || it.name || 'Carta TCG',
+        unit_price: Number(it.unit_price ?? it.price ?? it.finalPrice ?? 0),
+        quantity: Number(it.quantity ?? it.qty ?? 1),
       }));
+
+      if (!reqItems.length || reqItems.some((item) => !item.listingId || item.quantity <= 0)) {
+        throw new Error('Carrito inválido para iniciar el pago');
+      }
 
       const returnUrl = window.location.origin + '/storefront'; 
       

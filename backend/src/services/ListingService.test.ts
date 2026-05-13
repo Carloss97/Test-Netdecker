@@ -52,10 +52,15 @@ test('getAvailableListings builds combined card, stock and store filters', async
     assert.equal(listings.length, 1);
     assert.deepEqual(receivedArgs.where, {
       AND: [
-        { quantity: { gt: 0 } },
         { status: { in: ['active', 'manual'] } },
+        { card: { tcg: { isActive: true } } },
+        { card: { edition: { isActive: true } } },
+        { quantity: { gt: 0 } },
       ],
-      card: { tcgId: 'MAGIC', editionId: 'ED1' },
+      card: {
+        tcg: { OR: [{ id: 'MAGIC' }, { name: 'MAGIC' }] },
+        edition: { OR: [{ id: 'ED1' }, { editionName: 'ED1' }, { editionCode: 'ED1' }] },
+      },
       storeId: 'S1',
     });
   } finally {
@@ -77,10 +82,15 @@ test('getAvailableListings omits store filter when none is provided', async () =
     assert.equal(listings.length, 1);
     assert.deepEqual(receivedArgs.where, {
       AND: [
-        { quantity: { gt: 0 } },
         { status: { in: ['active', 'manual'] } },
+        { card: { tcg: { isActive: true } } },
+        { card: { edition: { isActive: true } } },
+        { quantity: { gt: 0 } },
       ],
-      card: { tcgId: 'MAGIC', editionId: 'ED1' },
+      card: {
+        tcg: { OR: [{ id: 'MAGIC' }, { name: 'MAGIC' }] },
+        edition: { OR: [{ id: 'ED1' }, { editionName: 'ED1' }, { editionCode: 'ED1' }] },
+      },
     });
   } finally {
     prisma.listing.findMany = originalFindMany;

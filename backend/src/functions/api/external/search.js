@@ -1,4 +1,4 @@
-import { getGroups, getGroupProducts } from '../../_shared/tcgcsv.js';
+import { getGroups, getGroupProducts, isCardLikeProduct } from '../../_shared/tcgcsv.js';
 
 export async function onRequest(context) {
   const { request } = context;
@@ -18,6 +18,7 @@ export async function onRequest(context) {
 
     const lowerQ = query.toLowerCase();
     const results = [];
+    const targetCount = page * limit;
 
     for (const tcg of tcgsToSearch) {
       let groups;
@@ -31,6 +32,7 @@ export async function onRequest(context) {
         for (const p of (products || [])) {
           try {
             if (!p || !p.name) continue;
+            if (!isCardLikeProduct(p)) continue;
             if (p.name.toLowerCase().includes(lowerQ)) {
               const ext = Array.isArray(p.extendedData) ? p.extendedData : (p.extendedData ? [p.extendedData] : []);
               const cardNumberEntry = ext.find((e) => ['number','cardnumber','collectornumber'].includes(((e.name||e.displayName)||'').toLowerCase()));
@@ -48,13 +50,13 @@ export async function onRequest(context) {
                 source: 'tcgcsv',
               });
 
-              if (results.length >= limit) break;
+              if (results.length >= targetCount) break;
             }
           } catch (_) {}
         }
-        if (results.length >= limit) break;
+        if (results.length >= targetCount) break;
       }
-      if (results.length >= limit) break;
+      if (results.length >= targetCount) break;
     }
 
     const start = (page - 1) * limit;

@@ -81,10 +81,9 @@ export class ListingService {
       ]
     };
 
-    // If NO search and NO specific edition, only show in-stock items to prevent performance issues and clutter
-    if (!search && !editionId) {
-      (where.AND as any).push({ quantity: { gt: 0 } });
-    }
+    // "Available" is the storefront/POS boundary: never expose out-of-stock
+    // listings here, regardless of search or edition filters.
+    (where.AND as any).push({ quantity: { gt: 0 } });
 
     if (search && search.trim().length > 0) {
       const s = search.trim();
@@ -157,6 +156,44 @@ export class ListingService {
       const tcgName = listing.card?.tcg?.name || 'Unknown';
       const editionName = listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown';
       
+      return {
+        id: listing.id,
+        storeId: listing.storeId,
+        quantity: listing.quantity,
+        finalPrice: PriceService.formatDisplayPrice(listing.finalPrice),
+        status: listing.status,
+        card: {
+          id: listing.card?.id,
+          cardName: listing.card?.cardName || 'Unknown Card',
+          cardCode: listing.card?.cardCode || 'N/A',
+          cardNumber: listing.card?.cardNumber || '',
+          imageUrl: (listing.card?.imageUrl || '').replace('_200w.jpg', '_in_1000x1000.jpg'),
+          rarity: listing.card?.rarity || 'C',
+          cardType: listing.card?.cardType || '',
+          attribute: listing.card?.attribute || '',
+          metadata: listing.card?.metadata || {},
+          tcg: { name: tcgName },
+          edition: { editionName, editionCode: listing.card?.edition?.editionCode }
+        }
+      };
+    });
+  }
+
+  static async getOutOfStock(storeId?: string) {
+    const listings = await prisma.listing.findMany({
+      where: {
+        quantity: 0,
+        ...(storeId ? { storeId } : {}),
+      },
+      include: { card: { include: { tcg: true, edition: true } } },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return listings.map(l => {
+      const listing = l as any;
+      const tcgName = listing.card?.tcg?.name || 'Unknown';
+      const editionName = listing.card?.edition?.editionName || listing.card?.edition?.editionCode || 'Unknown';
+
       return {
         id: listing.id,
         storeId: listing.storeId,
@@ -333,6 +370,10 @@ export class ListingService {
   }
 
   static async setManualPrice(id: string, manualFinalPrice: number, changedBy: string = 'system', notes?: string) {
+    if (!Number.isFinite(manualFinalPrice) || manualFinalPrice <= 0) {
+      throw new ValidationError('manualFinalPrice must be a positive number');
+    }
+
     const listing = await this.getListing(id);
     if (!listing) throw new NotFoundError('Listing not found');
     const oldPrice = listing.finalPrice;
@@ -342,6 +383,43 @@ export class ListingService {
       prisma.priceHistory.create({ data: { listingId: id, oldPrice, newPrice: manualFinalPrice, oldReferencePrice: listing.referencePrice, newReferencePrice: listing.referencePrice, oldExchangeRate: listing.exchangeRate, newExchangeRate: listing.exchangeRate, reason: PriceUpdateReason.MANUAL_UPDATE, percentChange: oldPrice === 0 ? 100 : ((manualFinalPrice - oldPrice) / oldPrice) * 100, changedBy: changedByUserId, notes: notes || 'Manual price override' } })
     ]);
     return this.getListing(id);
+  }
+
+  static async updateMargin(id: string, marginMultiplier: number, changedBy: string = 'system') {
+    const listing = await this.getListing(id);
+    if (!listing) throw new NotFoundError('Listing not found');
+
+    const resolvedMargin = resolveMarginMultiplier(marginMultiplier);
+    const updateData: Prisma.ListingUpdateInput = { marginMultiplier: resolvedMargin };
+    const referencePrice = Number((listing as any).referencePrice);
+
+    if (Number.isFinite(referencePrice) && referencePrice >= 0) {
+      const calculation = await PriceService.calculateFinalPrice({
+        referencePrice,
+        marginMultiplier: resolvedMargin,
+      });
+      updateData.finalPrice = calculation.finalPrice;
+      updateData.exchangeRate = calculation.exchangeRate;
+      updateData.lastSyncedAt = new Date();
+    }
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: updateData,
+      include: { card: true },
+    });
+
+    await AuditService.auditEntityChange({
+      entityType: 'listing',
+      entityId: id,
+      operation: 'UPDATE',
+      oldValue: { marginMultiplier: (listing as any).marginMultiplier },
+      newValue: { marginMultiplier: resolvedMargin },
+      changedBy: await this.resolveChangedByUserId(changedBy),
+      action: 'LISTING.MARGIN.UPDATE',
+    });
+
+    return updated;
   }
 
   static async setApiPricingMode(id: string, changedBy: string = 'system', notes?: string) {

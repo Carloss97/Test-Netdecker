@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAsync } from '../../hooks/useAsync';
 import apiClient from '../../services/api';
 import { syncListingPrices, getPriceVolatility, getEditions } from '../../services/catalog';

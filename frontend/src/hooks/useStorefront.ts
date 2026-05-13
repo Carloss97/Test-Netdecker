@@ -1,6 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import apiClient from '../services/api';
-import { logClientError, logClientInfo } from '../utils/observability';
 
 export type StorefrontProduct = {
   id: string;
@@ -46,13 +45,13 @@ function toNumber(value: unknown, fallback = 0): number {
 
 function normalizeProduct(raw: any, index: number): StorefrontProduct {
   const cardName = String(raw?.cardName || raw?.card?.cardName || `Producto ${index + 1}`);
-  
+
   // Use readable names instead of internal IDs
   const editionName = String(
-    raw?.editionName || 
-    raw?.card?.edition?.editionName || 
-    raw?.editionCode || 
-    'Unknown Edition'
+    raw?.editionName ||
+    raw?.card?.edition?.editionName ||
+    raw?.editionCode ||
+    'Unknown Edition',
   );
 
   const tcgId = String(raw?.tcgName || raw?.card?.tcg?.name || raw?.tcg || 'MAGIC').toUpperCase();
@@ -65,7 +64,7 @@ function normalizeProduct(raw: any, index: number): StorefrontProduct {
     raw?.imageUrl ||
       raw?.card?.imageUrl ||
       raw?.image ||
-      PLACEHOLDER_IMAGE
+      PLACEHOLDER_IMAGE,
   );
 
   return {
@@ -104,10 +103,10 @@ export default function useStorefront() {
   const [allProducts, setAllProducts] = useState<StorefrontProduct[]>([]);
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [visibleLimit, setVisibleLimit] = useState(20);
-  
+
   const [filters, setFilters] = useState<StorefrontFilters>({
     query: '',
-    tcgId: '',
+    tcgId: 'ALL',
     editionName: 'ALL',
     rarity: 'ALL',
     cardType: 'ALL',
@@ -121,13 +120,6 @@ export default function useStorefront() {
     const base = allProducts.length > 0 ? allProducts : products;
     return Array.from(new Set(base.map((entry) => entry.tcgId))).filter(Boolean);
   }, [allProducts, products]);
-
-  // Set default TCG if not set
-  useEffect(() => {
-    if (!filters.tcgId && tcgOptions.length > 0) {
-      setFilters(prev => ({ ...prev, tcgId: tcgOptions[0] }));
-    }
-  }, [tcgOptions, filters.tcgId]);
 
   const loadProducts = useCallback(async (reason: 'initial-load' | 'manual-retry' | 'store-change' | 'search-update' = 'initial-load', search?: string) => {
     if (reason === 'initial-load') setStatus('loading');
@@ -149,7 +141,7 @@ export default function useStorefront() {
       }
 
       setStatus('ready');
-    } catch (err) {
+    } catch {
       setProducts([]);
       setStatus('error');
       setError('No se pudo cargar catálogo.');
@@ -216,17 +208,29 @@ export default function useStorefront() {
     });
   }, [indexedProducts, filters, deferredQuery]);
 
-  const editionOptions = useMemo(() => {
+  const productsForSelectedTcg = useMemo(() => {
     const base = allProducts.length > 0 ? allProducts : products;
-    const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
-    return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.editionName))).filter(Boolean)];
+    if (!filters.tcgId || filters.tcgId === 'ALL') {
+      return base;
+    }
+    return base.filter((product) => product.tcgId === filters.tcgId);
   }, [allProducts, products, filters.tcgId]);
 
+  const editionOptions = useMemo(() => {
+    return ['ALL', ...Array.from(new Set(productsForSelectedTcg.map((entry) => entry.editionName))).filter(Boolean)];
+  }, [productsForSelectedTcg]);
+
   const rarityOptions = useMemo(() => {
-    const base = allProducts.length > 0 ? allProducts : products;
-    const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
-    return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.rarity))).filter(Boolean)];
-  }, [allProducts, products, filters.tcgId]);
+    return ['ALL', ...Array.from(new Set(productsForSelectedTcg.map((entry) => entry.rarity))).filter(Boolean)];
+  }, [productsForSelectedTcg]);
+
+  const colorOptions = useMemo(() => {
+    return ['ALL', ...Array.from(new Set(productsForSelectedTcg.map((entry) => entry.attribute))).filter(Boolean)];
+  }, [productsForSelectedTcg]);
+
+  const typeOptions = useMemo(() => {
+    return ['ALL', ...Array.from(new Set(productsForSelectedTcg.map((entry) => entry.cardType))).filter(Boolean)];
+  }, [productsForSelectedTcg]);
 
   return {
     status,
@@ -239,16 +243,8 @@ export default function useStorefront() {
     tcgOptions,
     editionOptions,
     rarityOptions,
-    colorOptions: useMemo(() => {
-      const base = allProducts.length > 0 ? allProducts : products;
-      const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
-      return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.attribute))).filter(Boolean)];
-    }, [allProducts, products, filters.tcgId]),
-    typeOptions: useMemo(() => {
-      const base = allProducts.length > 0 ? allProducts : products;
-      const filtered = filters.tcgId ? base.filter(p => p.tcgId === filters.tcgId) : base;
-      return ['ALL', ...Array.from(new Set(filtered.map((entry) => entry.cardType))).filter(Boolean)];
-    }, [allProducts, products, filters.tcgId]),
+    colorOptions,
+    typeOptions,
     visibleLimit,
     setVisibleLimit,
     reload: () => loadProducts('manual-retry'),

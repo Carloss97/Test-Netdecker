@@ -33,7 +33,7 @@ function useThemeMode() {
 }
 
 export default function StorefrontPage() {
-  const { status, error, filteredProducts, filters, setFilters, suggestions, tcgOptions, editionOptions, rarityOptions, reload } = useStorefront();
+  const { status, error, filteredProducts, filters, setFilters, suggestions, tcgOptions, editionOptions, rarityOptions, typeOptions, colorOptions, reload } = useStorefront();
   const cart = useCartPersist();
   const [selected, setSelected] = useState<StorefrontProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -97,6 +97,8 @@ export default function StorefrontPage() {
       tcgId: 'ALL',
       editionName: 'ALL',
       rarity: 'ALL',
+      cardType: 'ALL',
+      attribute: 'ALL',
       minPrice: '',
       maxPrice: '',
     });
@@ -162,6 +164,8 @@ export default function StorefrontPage() {
             tcgOptions={tcgOptions}
             editionOptions={editionOptions}
             rarityOptions={rarityOptions}
+            typeOptions={typeOptions}
+            colorOptions={colorOptions}
             suggestions={suggestions}
           />
 

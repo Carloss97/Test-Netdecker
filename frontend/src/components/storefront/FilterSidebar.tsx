@@ -7,6 +7,8 @@ interface FilterSidebarProps {
   tcgOptions: string[];
   editionOptions: string[];
   rarityOptions: string[];
+  typeOptions: string[];
+  colorOptions: string[];
   suggestions: string[];
 }
 
@@ -16,8 +18,12 @@ function FilterSidebar({
   tcgOptions,
   editionOptions,
   rarityOptions,
+  typeOptions,
+  colorOptions,
   suggestions,
 }: FilterSidebarProps) {
+  const tcgSelectOptions = ['ALL', ...tcgOptions.filter((option) => option !== 'ALL')];
+
   return (
     <aside className="sf-filter-card">
       <h3>Filtros</h3>
@@ -36,9 +42,9 @@ function FilterSidebar({
 
       <label>TCG</label>
       <select value={filters.tcgId} onChange={(e) => setFilters({ ...filters, tcgId: e.target.value })}>
-        {tcgOptions.map((option) => (
+        {tcgSelectOptions.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {option === 'ALL' ? 'Todos los TCG' : option}
           </option>
         ))}
       </select>
@@ -61,6 +67,32 @@ function FilterSidebar({
         ))}
       </select>
 
+      {typeOptions.length > 1 && (
+        <>
+          <label>Tipo de carta</label>
+          <select value={filters.cardType} onChange={(e) => setFilters({ ...filters, cardType: e.target.value })}>
+            {typeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === 'ALL' ? 'Todos los tipos' : option}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+
+      {colorOptions.length > 1 && (
+        <>
+          <label>Atributo / color</label>
+          <select value={filters.attribute} onChange={(e) => setFilters({ ...filters, attribute: e.target.value })}>
+            {colorOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === 'ALL' ? 'Todos los atributos' : option}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+
       <label>Precio mínimo (CLP)</label>
       <input
         inputMode="numeric"
@@ -70,7 +102,6 @@ function FilterSidebar({
       />
 
       <label>Precio máximo (CLP)</label>
-            editionName: 'ALL',
       <input
         inputMode="numeric"
         value={filters.maxPrice}
@@ -85,7 +116,10 @@ function FilterSidebar({
           setFilters({
             query: '',
             tcgId: 'ALL',
+            editionName: 'ALL',
             rarity: 'ALL',
+            cardType: 'ALL',
+            attribute: 'ALL',
             minPrice: '',
             maxPrice: '',
           })

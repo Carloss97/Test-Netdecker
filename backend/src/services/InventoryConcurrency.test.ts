@@ -32,7 +32,7 @@ if (process.env.SKIP_DB_INIT) {
 
     // Create or replace a listing with finite stock (use the created card/edition ids)
     const listing = await prisma.listing.upsert({
-      where: { cardId_condition_rarity: { cardId: card.id, condition: 'NM', rarity: 'TEST-R' } },
+      where: { cardId_condition_rarity_storeId: { cardId: card.id, condition: 'NM', rarity: 'TEST-R', storeId: store.id } },
       update: { quantity: 10, referencePrice: 1, finalPrice: 1000 },
       create: { storeId: store.id, cardId: card.id, editionId: edition.id, condition: 'NM', rarity: 'TEST-R', quantity: 10, referencePrice: 1, finalPrice: 1000 }
     });

@@ -8,6 +8,8 @@ import PriceThresholdService from '../services/PriceThresholdService.js';
 test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
   const origPriceSyncRun = (prisma as any).priceSyncRun;
   const origListingFindUnique = prisma.listing.findUnique;
+  const origListingFindMany = prisma.listing.findMany;
+  const origTransaction = prisma.$transaction;
   const origCalculate = PriceService.calculateFinalPrice;
   const origThreshold = PriceThresholdService.getThreshold;
   const origUpdateListing = PriceService.updateListingPrice;
@@ -23,6 +25,18 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
     };
 
     prisma.listing.findUnique = async ({ where }: any) => ({ id: where.id, finalPrice: 100, marginMultiplier: 1, editionId: 'ed1', card: { tcg: { name: 'MAGIC' } } });
+    prisma.listing.findMany = async ({ where }: any) => {
+      if (where?.id?.in?.includes('L1')) {
+        return [{ id: 'L1', finalPrice: 100, marginMultiplier: 1, editionId: 'ed1', card: { tcg: { name: 'MAGIC' } } }];
+      }
+      return [];
+    };
+    prisma.$transaction = async (callbackOrOperations: any) => {
+      if (typeof callbackOrOperations === 'function') {
+        return callbackOrOperations({ listing: { update: async ({ where, data }: any) => ({ id: where.id, ...data }) } });
+      }
+      return Promise.all(callbackOrOperations);
+    };
 
     PriceService.calculateFinalPrice = async ({ referencePrice }: any) => {
       const rawFinalPrice = Number(referencePrice) * 2;
@@ -51,6 +65,8 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
   } finally {
     (prisma as any).priceSyncRun = origPriceSyncRun;
     prisma.listing.findUnique = origListingFindUnique;
+    prisma.listing.findMany = origListingFindMany;
+    prisma.$transaction = origTransaction;
     PriceService.calculateFinalPrice = origCalculate;
     PriceThresholdService.getThreshold = origThreshold;
     PriceService.updateListingPrice = origUpdateListing;

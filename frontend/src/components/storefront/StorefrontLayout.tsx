@@ -11,7 +11,7 @@ interface StorefrontLayoutProps {
 
 export default function StorefrontLayout({ children, onSearch }: StorefrontLayoutProps) {
   const cart = useCartPersist();
-  const { products, suggestions } = useStorefront();
+  const { products } = useStorefront();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [customer, setCustomer] = useState<any>(null);

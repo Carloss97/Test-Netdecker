@@ -4,7 +4,6 @@ import useStorefront from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
 import apiClient from '../services/api';
 import StorefrontLayout from '../components/storefront/StorefrontLayout';
-import PriceDisplay from '../components/storefront/PriceDisplay';
 import RarityBadge from '../components/storefront/RarityBadge';
 import './storefront_v2.css';
 
@@ -145,7 +144,7 @@ export default function ProductDetailPage() {
               <button 
                 className="btn btn-primary" 
                 style={{ padding: '15px 40px', fontSize: '1.1rem', background: 'var(--store-primary)', border: 'none', borderRadius: 12, fontWeight: 700, cursor: 'pointer' }}
-                onClick={() => cart.addItem({ id: product.id, name: product.cardName, price: product.finalPrice, imageUrl: product.imageUrl, stock: product.quantity, quantity: 1 })}
+                onClick={() => cart.addItem({ id: product.id, name: product.cardName, price: product.finalPrice, imageUrl: product.imageUrl, stock: product.quantity }, 1)}
                 disabled={product.quantity <= 0}
               >
                 Añadir al Carrito

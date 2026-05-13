@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { getOrder, updateFulfillmentStatus, cancelOrder } from '../services/erp';
 import apiClient from '../services/api';
@@ -20,10 +20,9 @@ function formatClp(n: number) {
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [updating, setUpdating] = useState(false);
 
-  const { data: order, status, error, execute: reload } = useAsync(() => getOrder(id!), [id]);
+  const { data: order, status, error, execute: reload } = useAsync(() => getOrder(id!), true, [id]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!id) return;

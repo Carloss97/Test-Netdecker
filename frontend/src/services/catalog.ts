@@ -1,5 +1,4 @@
 import apiClient from './api';
-import { buildApiUrl } from './api';
 import type { Card, EditionWithCounts, EditionInventory, Listing } from '../types';
 import * as tcgcsvClient from './tcgcsv';
 const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';

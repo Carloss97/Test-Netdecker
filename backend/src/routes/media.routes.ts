@@ -76,11 +76,14 @@ router.get('/image-proxy', async (req: Request, res: Response) => {
   }
 
   try {
-    // Only allow specific domains for security (optional but recommended)
-    const allowedDomains = ['tcgplayer.com', 'scryfall.com', 'pokemon.com', 'images.tcgplayer.com'];
+    // Only proxy known image hosts. This endpoint fetches server-side URLs, so
+    // failing closed avoids SSRF against internal services.
+    const allowedDomains = ['tcgplayer.com', 'scryfall.com', 'pokemon.com', 'images.tcgplayer.com', 'tcgcsv.com'];
     const urlObj = new URL(imageUrl);
-    if (!allowedDomains.some(d => urlObj.hostname.includes(d))) {
-      // throw new ValidationError('Domain not allowed');
+    const hostname = urlObj.hostname.toLowerCase();
+    const isAllowedHost = allowedDomains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+    if (!['http:', 'https:'].includes(urlObj.protocol) || !isAllowedHost) {
+      throw new ValidationError('Domain not allowed');
     }
 
     const response = await axios.get(imageUrl, {
@@ -90,7 +93,7 @@ router.get('/image-proxy', async (req: Request, res: Response) => {
 
     // Pass through relevant headers
     const contentType = response.headers['content-type'];
-    if (contentType) res.setHeader('Content-Type', contentType);
+    if (typeof contentType === 'string') res.setHeader('Content-Type', contentType);
     
     // Add long caching for images
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');

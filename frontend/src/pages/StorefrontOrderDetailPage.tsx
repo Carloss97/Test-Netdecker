@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { getOrder } from '../services/erp';
@@ -21,7 +20,7 @@ function formatClp(n: number) {
 
 export default function StorefrontOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: order, status, error } = useAsync(() => getOrder(id!), [id]);
+  const { data: order, status } = useAsync(() => getOrder(id!), true, [id]);
 
   if (status === 'pending') return <StorefrontLayout><div className="loading-spinner">Cargando detalles de tu pedido...</div></StorefrontLayout>;
   if (status === 'error' || !order) return <StorefrontLayout><div className="error-message">No pudimos encontrar este pedido.</div></StorefrontLayout>;

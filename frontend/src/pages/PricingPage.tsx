@@ -1,17 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-// Redondea al múltiplo de 100 más cercano, mínimo 100
-function roundToNearestHundred(price: number): number {
-  if (price <= 100) return 100;
-  const remainder = price % 100;
-  if (remainder === 0) return price;
-  if (remainder < 50) return price - remainder;
-  return price + (100 - remainder);
-}
 import { useAsync } from '../hooks/useAsync';
-import { listListings, syncListingPrices, getPriceVolatility, updateListingPricingMode, getEditions } from '../services/catalog';
+import { listListings, syncListingPrices, getPriceVolatility, getEditions } from '../services/catalog';
 import type { Listing, EditionWithCounts } from '../types';
-import { parsePositiveNumberInput } from '../constants/pricing';
-import { formatInventoryIdentifier } from '../utils/cardIdentifier';
 
 interface VolatileEvent {
   priceHistoryId?: string;
@@ -30,69 +20,6 @@ interface VolatileResponse {
   events: VolatileEvent[];
 }
 
-function ModeToggle({
-  checked,
-  disabled,
-  onToggle,
-  onLabel,
-  offLabel,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  onToggle: () => void;
-  onLabel: string;
-  offLabel: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      disabled={disabled}
-      title={checked ? `Cambiar a ${offLabel}` : `Cambiar a ${onLabel}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        border: 'none',
-        background: 'transparent',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        padding: 0,
-        opacity: disabled ? 0.7 : 1,
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          position: 'relative',
-          width: 46,
-          height: 24,
-          borderRadius: 999,
-          background: checked ? 'linear-gradient(135deg, #16a34a, #22c55e)' : '#cbd5e1',
-          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)',
-          transition: 'background 0.15s ease',
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            position: 'absolute',
-            top: 3,
-            left: checked ? 23 : 3,
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            background: '#fff',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
-            transition: 'left 0.15s ease',
-          }}
-        />
-      </span>
-      {/* Remove label text for toggle */}
-      <span style={{ display: 'none' }} />
-    </button>
-  );
-}
-
 export function PricingPage() {
   const roundRobinOrder: Array<'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ'> = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'];
   type PricingTcgFilter = 'ALL' | 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
@@ -107,27 +34,14 @@ export function PricingPage() {
   const [autoSyncStrategy, setAutoSyncStrategy] = useState<'scope' | 'round-robin-tcg'>('scope');
   const [staleDays, setStaleDays] = useState(7);
   const [volatilityWindow, setVolatilityWindow] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
-  const [listingSearch, setListingSearch] = useState('');
-  const [sortColumn, setSortColumn] = useState<'name' | 'code' | 'rarity' | 'stock' | 'mode' | 'reference' | 'final' | 'lastSync'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [manualPriceDrafts, setManualPriceDrafts] = useState<Record<string, string>>({});
-  const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
-  const [previewListingId, setPreviewListingId] = useState<string | null>(null);
-  const [pinnedPreviewListingId, setPinnedPreviewListingId] = useState<string | null>(null);
+  const listingSearch = '';
   const [volatileData, setVolatileData] = useState<VolatileResponse | null>(null);
   const [volatileStatus, setVolatileStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
-  const [activeStore, setActiveStore] = useState(() => {
-    try {
-      return window.localStorage.getItem('auth_store') || 'sin tienda activa';
-    } catch {
-      return 'sin tienda activa';
-    }
-  });
   const [editions, setEditions] = useState<EditionWithCounts[]>([]);
   const syncingRef = useRef(false);
   const roundRobinIndexRef = useRef(0);
 
-  const { data: listings, status: listingsStatus, error: listingsError, execute: reloadListings } = useAsync<Listing[]>(
+  const { data: listings, execute: reloadListings } = useAsync<Listing[]>(
     () => listListings({ take: 200 }) // Load more for management
   );
 
@@ -165,58 +79,8 @@ export function PricingPage() {
     );
   });
   const sortedListings = [...filteredListings].sort((a, b) => {
-    const mult = sortDirection === 'asc' ? 1 : -1;
-    const aLastSync = a.lastSyncedAt ? new Date(a.lastSyncedAt).getTime() : 0;
-    const bLastSync = b.lastSyncedAt ? new Date(b.lastSyncedAt).getTime() : 0;
-    const aMode = a.status === 'manual' ? 'manual' : 'api';
-    const bMode = b.status === 'manual' ? 'manual' : 'api';
-
-    switch (sortColumn) {
-      case 'name':
-        return mult * (a.card?.cardName ?? '').localeCompare(b.card?.cardName ?? '');
-      case 'code':
-        return mult * (a.card?.cardCode ?? '').localeCompare(b.card?.cardCode ?? '');
-      case 'rarity':
-        return mult * (a.card?.rarity ?? '').localeCompare(b.card?.rarity ?? '');
-      case 'stock':
-        return mult * (a.quantity - b.quantity);
-      case 'mode':
-        return mult * aMode.localeCompare(bMode);
-      case 'reference':
-        return mult * ((a.referencePrice ?? 0) - (b.referencePrice ?? 0));
-      case 'final':
-        return mult * ((a.finalPrice ?? 0) - (b.finalPrice ?? 0));
-      case 'lastSync':
-        return mult * (aLastSync - bLastSync);
-      default:
-        return 0;
-    }
+    return (a.card?.cardName ?? '').localeCompare(b.card?.cardName ?? '');
   });
-  const previewListing = sortedListings.find((listing) => listing.id === previewListingId) ?? sortedListings[0] ?? null;
-  const isPreviewPinned = pinnedPreviewListingId !== null;
-
-  const setHoveredPreviewListing = (listingId: string) => {
-    if (isPreviewPinned) return;
-    setPreviewListingId(listingId);
-  };
-
-  const togglePinnedPreviewListing = (listingId: string) => {
-    setPreviewListingId(listingId);
-    setPinnedPreviewListingId((currentId) => (currentId === listingId ? null : listingId));
-  };
-
-  const clearPinnedPreviewListing = () => {
-    setPinnedPreviewListingId(null);
-  };
-  const availableEditions = tcgListings
-    .map((l) => ({
-      id: l.editionId,
-      name: (l.card as Listing['card'] & { edition?: { editionName?: string; editionCode?: string } })?.edition?.editionName || 'Edición',
-      code: (l.card as Listing['card'] & { edition?: { editionName?: string; editionCode?: string } })?.edition?.editionCode || '',
-    }))
-    .filter((e, idx, arr) => arr.findIndex((x) => x.id === e.id) === idx)
-    .sort((a, b) => `${a.code} ${a.name}`.localeCompare(`${b.code} ${b.name}`));
-
   const staleThresholdMs = staleDays * 24 * 60 * 60 * 1000;
   const isListingStale = (listing: Listing) => {
     if (!listing.lastSyncedAt) return true;
@@ -229,84 +93,9 @@ export function PricingPage() {
   });
   const nextRoundRobinTcg = roundRobinOrder[roundRobinIndexRef.current % roundRobinOrder.length];
 
-  const fmtCLP = (n: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-
-  const setPricingMode = async (listing: Listing, mode: 'manual' | 'api') => {
-
-    setUpdatingPricingId(listing.id);
-    setSyncError(null);
-    setSyncMsg(null);
-
-    try {
-      if (mode === 'manual') {
-        const rawDraft = manualPriceDrafts[listing.id] ?? String(Math.round(listing.finalPrice || 0));
-        const manualPrice = parsePositiveNumberInput(rawDraft);
-        if (!manualPrice) {
-          setSyncError('Ingresa un precio final en CLP valido (> 0). El precio de referencia USD se sincroniza por separado.');
-          return false;
-        }
-        const roundedManualPrice = roundToNearestHundred(manualPrice);
-        await updateListingPricingMode(listing.id, 'manual', roundedManualPrice);
-        setSyncMsg('Modo manual activado y precio guardado.');
-      } else {
-        await updateListingPricingMode(listing.id, 'api');
-        setSyncMsg('Modo API restaurado para el listing.');
-      }
-
-      reloadListings();
-      return true;
-    } catch {
-      setSyncError('No se pudo actualizar el modo de precio del listing');
-      return false;
-    } finally {
-      setUpdatingPricingId(null);
-    }
-  };
-
-  const saveManualPrice = async (listing: Listing) => {
-    if (listing.status !== 'manual' || updatingPricingId === listing.id) return;
-    return setPricingMode(listing, 'manual');
-  };
-
-  const updateCostPrice = async (listingId: string, cost: number) => {
-    try {
-      await apiClient.patch(`/listings/${listingId}`, { costPrice: cost });
-      void reloadListings();
-    } catch (err) {
-      console.error('Failed to update cost price', err);
-    }
-  };
-
-  useEffect(() => {
-    const refreshStore = () => {
-      try {
-        setActiveStore(window.localStorage.getItem('auth_store') || 'sin tienda activa');
-      } catch {
-        setActiveStore('sin tienda activa');
-      }
-    };
-
-    window.addEventListener('storage', refreshStore);
-    window.addEventListener('netdecker:store-changed', refreshStore as EventListener);
-    return () => {
-      window.removeEventListener('storage', refreshStore);
-      window.removeEventListener('netdecker:store-changed', refreshStore as EventListener);
-    };
-  }, []);
-
   useEffect(() => {
     setSelectedEditionId('');
   }, [selectedTcg]);
-
-  const toggleSort = (column: 'name' | 'code' | 'rarity' | 'stock' | 'mode' | 'reference' | 'final' | 'lastSync') => {
-    if (sortColumn === column) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortColumn(column);
-    setSortDirection('asc');
-  };
 
   const handleSync = async (silent: boolean = false) => {
     if (syncingRef.current) return;
@@ -394,25 +183,7 @@ export function PricingPage() {
     return () => window.clearInterval(id);
   }, [autoSyncEnabled, autoSyncMinutes, autoSyncStrategy, syncScope, selectedTcg, selectedEditionId]);
 
-  useEffect(() => {
-    if (!sortedListings.length) {
-      setPreviewListingId(null);
-      setPinnedPreviewListingId(null);
-      return;
-    }
 
-    setPreviewListingId((currentId) => {
-      if (currentId && sortedListings.some((listing) => listing.id === currentId)) {
-        return currentId;
-      }
-      return sortedListings[0].id;
-    });
-
-    setPinnedPreviewListingId((currentId) => {
-      if (!currentId) return null;
-      return sortedListings.some((listing) => listing.id === currentId) ? currentId : null;
-    });
-  }, [sortedListings]);
 
   return (
     <div>

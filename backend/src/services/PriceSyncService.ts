@@ -366,7 +366,7 @@ export class PriceSyncService {
                 const calculated = await PriceService.calculateFinalPrice({ referencePrice: update.referencePrice, marginMultiplier: update.marginMultiplier!, roundingMultiple: resolvedRounding });
                 await tx.listing.update({
                   where: { id: update.listingId },
-                  data: { referencePrice: update.referencePrice, marginMultiplier: update.marginMultiplier, finalPrice: calculated.finalPrice, exchangeRate: calculated.exchangeRate, lastSyncedAt: new Date(), priceUpdatedAt: new Date() }
+                  data: { referencePrice: update.referencePrice, marginMultiplier: update.marginMultiplier, finalPrice: calculated.finalPrice, exchangeRate: calculated.exchangeRate, lastSyncedAt: new Date() }
                 });
                 result.updated++;
               } else if (update.cardId) {

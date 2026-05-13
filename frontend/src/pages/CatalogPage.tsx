@@ -3,23 +3,18 @@ import { useAsync } from '../hooks/useAsync';
 import { 
   getAvailableListings, 
   getLowStockListings,
-  getTCGs,
   listExternalSets,
-  importExternalSet,
   importInventoryCsv,
   getInventoryImports,
   getEditions,
   searchCards,
   searchCardsByCode,
   getListingsByCard,
-  updateListingPricingMode,
   updateListingStock,
   exportInventoryCsv,
   bootstrapCatalog
 } from '../services/catalog';
-import type { Listing, EditionWithCounts, Card } from '../types';
-import apiClient from '../services/api';
-import ModeToggle from '../components/ModeToggle';
+import type { Listing, EditionWithCounts } from '../types';
 
 function fmtCLP(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -69,8 +64,7 @@ export function CatalogPage() {
   const [exportEditionId, setExportEditionId] = useState('');
   const [availableEditions, setAvailableEditions] = useState<EditionWithCounts[]>([]);
 
-  const { data: listings, execute: reloadListings } = useAsync<Listing[]>(() => getAvailableListings(selectedTcg, selectedEditionId || undefined, undefined, listingSearch || undefined));
-  const { data: tcgs } = useAsync(() => getTCGs());
+  const { data: listings, execute: reloadListings } = useAsync<Listing[]>(() => getAvailableListings(selectedTcg, selectedEditionId || undefined, listingSearch || undefined));
   const { data: alerts, execute: reloadAlerts } = useAsync(() => getLowStockListings(threshold), true);
   const { data: imports, execute: reloadImports } = useAsync(() => getInventoryImports({ pageSize: 5 }));
 

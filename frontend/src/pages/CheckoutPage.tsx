@@ -113,7 +113,7 @@ export default function CheckoutPage() {
       cart.clearCart();
     } catch (err) {
       setFormError('No se pudo crear el pedido. Intenta nuevamente.');
-      logClientError({ area: 'checkout', action: 'manual-submit', error: err });
+      logClientError({ area: 'checkout', action: 'manual-submit', message: 'No se pudo crear el pedido manual', error: err });
     } finally {
       setSubmitting(false);
     }

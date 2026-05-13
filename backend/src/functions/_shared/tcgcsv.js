@@ -207,4 +207,4 @@ async function getSetCards(tcg, setCode) {
   return cards;
 }
 
-export { getGroups, getSetCards, getGroupProducts, getGroupPrices, TCGCSV_CATEGORY_IDS, resolveGroupBySetCode };
+export { getGroups, getSetCards, getGroupProducts, getGroupPrices, TCGCSV_CATEGORY_IDS, resolveGroupBySetCode, isCardLikeProduct };

@@ -18,14 +18,6 @@ export function LowStockPage() {
     const tcgName = l.tcgName || l.card?.tcg?.name;
     return tcgName === selectedTcg;
   });
-  const [activeStore, setActiveStore] = useState(() => {
-    try {
-      return window.localStorage.getItem('auth_store') || 'sin tienda activa';
-    } catch {
-      return 'sin tienda activa';
-    }
-  });
-
   const fmtCLP = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
@@ -47,23 +39,6 @@ export function LowStockPage() {
   useEffect(() => {
     void loadLowStock(threshold);
   }, [threshold]);
-
-  useEffect(() => {
-    const refreshStore = () => {
-      try {
-        setActiveStore(window.localStorage.getItem('auth_store') || 'sin tienda activa');
-      } catch {
-        setActiveStore('sin tienda activa');
-      }
-    };
-
-    window.addEventListener('storage', refreshStore);
-    window.addEventListener('netdecker:store-changed', refreshStore as EventListener);
-    return () => {
-      window.removeEventListener('storage', refreshStore);
-      window.removeEventListener('netdecker:store-changed', refreshStore as EventListener);
-    };
-  }, []);
 
   useEffect(() => {
     if (!listings.length) {

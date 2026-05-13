@@ -12,9 +12,9 @@
 //   1  → Magic: The Gathering
 //   2  → Yu-Gi-Oh!
 //   3  → Pokémon
-//   6  → Weiss Schwarz
-//   65 → Digimon Card Game
-//   87 → One Piece TCG
+//   20 → Weiss Schwarz
+//   63 → Digimon Card Game
+//   68 → One Piece Card Game
 
 import axios from 'axios';
 import { cacheGet, cacheSet } from '../utils/redis.js';
@@ -577,7 +577,7 @@ export class TCGCsvService {
       }
 
       const matches = products
-        .filter((p) => p.name.toLowerCase().includes(lowerQuery))
+        .filter((p) => isCardLikeProduct(p) && p.name.toLowerCase().includes(lowerQuery))
         .map((p) => tcgCsvToExternal(p as TcgCsvProduct, group, tcg, priceByProductId.get((p as TcgCsvProduct).productId)))
         .filter((card) => {
           if (seen.has(card.externalId)) {
@@ -621,7 +621,7 @@ export class TCGCsvService {
     for (const group of groups) {
       const products = await this.getGroupProducts(tcg, group.groupId);
       const product = products.find((entry) => entry.productId === numericId);
-      if (!product) {
+      if (!product || !isCardLikeProduct(product)) {
         continue;
       }
 

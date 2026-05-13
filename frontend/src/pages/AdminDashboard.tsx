@@ -1,23 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import apiClient from '../services/api';
 import ModeToggle from '../components/ModeToggle';
-import {
-  bootstrapCatalog,
-  getAdminPricingConfig,
-  getTenantVisibilityDiagnostics,
-  normalizeInStockStatuses,
-  syncCatalog,
-  resetCatalog,
-  updateAdminPricingConfig,
-  getTCGs,
-  getEditions,
-  type TenantVisibilityDiagnostics,
-} from '../services/catalog';
-import type { CatalogBootstrapResponse, CatalogSyncResponse } from '../types';
-import { DEFAULT_MARGIN_INPUT, parsePositiveNumberInput } from '../constants/pricing';
-import { logClientError } from '../utils/observability';
+import { getTenantVisibilityDiagnostics, resetCatalog } from '../services/catalog';
+import { DEFAULT_MARGIN_INPUT } from '../constants/pricing';
 
 type AdminMe = {
   id: string;
@@ -27,9 +14,6 @@ type AdminMe = {
   resolvedStoreId?: string | null;
   scopeMode?: 'session-store-scoped' | 'request-store-scoped' | 'global-admin' | 'unscoped' | string;
 };
-
-const SUPPORTED_TCGS = ['MAGIC', 'POKEMON', 'YUGIOH', 'ONE_PIECE', 'DIGIMON', 'WEISS_SCHWARZ'] as const;
-type SupportedTcg = (typeof SUPPORTED_TCGS)[number];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -51,7 +35,6 @@ export function AdminDashboardPage() {
     else setActiveTab('system');
   }, [searchParams]);
 
-  const pricingConfigQuery = useAsync(() => getAdminPricingConfig(), false);
   const tenantVisibilityQuery = useAsync(() => getTenantVisibilityDiagnostics(5));
   const adminMeQuery = useAsync(async () => {
     const { data } = await apiClient.get('/admin/auth/me');
@@ -78,12 +61,6 @@ export function AdminDashboardPage() {
   }, [tcgList]);
 
   // System State
-  const [catalogTcg, setCatalogTcg] = useState<SupportedTcg | ''>('');
-  const [setCode, setSetCode] = useState('');
-  const [initialQuantity, setInitialQuantity] = useState('0');
-  const [marginMultiplier, setMarginMultiplier] = useState(DEFAULT_MARGIN_INPUT);
-  const [catalogActionLoading, setCatalogActionLoading] = useState<'bootstrap' | 'sync' | null>(null);
-  const [catalogActionResult, setCatalogActionResult] = useState<any>(null);
   const [configMargin, setConfigMargin] = useState(DEFAULT_MARGIN_INPUT);
   const [exchangeRateMode, setExchangeRateMode] = useState<'api' | 'manual'>('api');
   const [manualUsdToClp, setManualUsdToClp] = useState('950');

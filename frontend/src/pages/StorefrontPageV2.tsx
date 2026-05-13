@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import useStorefront, { type StorefrontProduct } from '../hooks/useStorefront';
 import useCartPersist from '../hooks/useCartPersist';
@@ -11,7 +11,7 @@ export default function StorefrontPageV2() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
   
-  const { products, filteredProducts, status, filters, setFilters, tcgOptions, editionOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit, reload } = useStorefront();
+  const { filteredProducts, status, filters, setFilters, tcgOptions, editionOptions, rarityOptions, colorOptions, typeOptions, visibleLimit, setVisibleLimit } = useStorefront();
   const cart = useCartPersist();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -84,7 +84,7 @@ export default function StorefrontPageV2() {
           <button 
             key={tcg}
             className={`category-pill ${filters.tcgId === tcg ? 'active' : ''}`}
-            onClick={() => setFilters({ ...filters, tcgId: tcg, editionName: 'ALL' })}
+            onClick={() => setFilters({ ...filters, tcgId: tcg, editionName: 'ALL', rarity: 'ALL', cardType: 'ALL', attribute: 'ALL' })}
           >
             {tcg}
           </button>
@@ -173,8 +173,22 @@ export default function StorefrontPageV2() {
           <div className="store-filter-group">
             <div className="store-filter-title">Rango de Precio</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <input type="number" placeholder="Min" className="input input-sm" style={{ width: '50%' }} />
-              <input type="number" placeholder="Max" className="input input-sm" style={{ width: '50%' }} />
+              <input
+                type="number"
+                placeholder="Min"
+                className="input input-sm"
+                value={filters.minPrice}
+                onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
+                style={{ width: '50%' }}
+              />
+              <input
+                type="number"
+                placeholder="Max"
+                className="input input-sm"
+                value={filters.maxPrice}
+                onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                style={{ width: '50%' }}
+              />
             </div>
           </div>
         </aside>
