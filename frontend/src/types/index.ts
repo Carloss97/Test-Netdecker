@@ -142,6 +142,28 @@ export interface AdminDashboard {
     startedAt: string;
     completedAt?: string;
   }>;
+  operationalHealth?: {
+    storeId?: string;
+    generatedAt: string;
+    healthScore: number;
+    inventory: {
+      totalListings: number;
+      activeListings: number;
+      lowStockListings: number;
+      outOfStockListings: number;
+      totalValueCLP: number;
+      lowStockThreshold: number;
+    };
+    pricing: {
+      stalePriceListings: number;
+      missingReferencePriceListings: number;
+      stalePriceDays: number;
+    };
+    sync: {
+      lastSuccessfulSyncAt: string | null;
+      recentFailedRuns: Array<{ id: string; status: string; failed: number; completedAt: string | null }>;
+    };
+  } | null;
 }
 
 export interface TcgplayerCoverageByTcg {

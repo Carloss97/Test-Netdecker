@@ -98,8 +98,11 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
     throw new ValidationError('updates must be a non-empty array when provided');
   }
 
+  const storeId = requireStore(req);
+
   const result = await PriceSyncService.runPriceSync({
     source: 'manual',
+    storeId,
     updates,
     notes: notes || 'Manual sync via API',
     changedBy: 'system',
@@ -127,7 +130,7 @@ router.post('/sync-prices', async (req: Request, res: Response) => {
  */
 router.get('/sync-prices/runs', async (req: Request, res: Response) => {
   const { limit } = req.query;
-  const runs = await PriceSyncService.getRecentRuns(parseInt(limit as string) || 20);
+  const runs = await PriceSyncService.getRecentRuns(parseInt(limit as string) || 20, requireStore(req));
   res.json({ runs });
 });
 
@@ -136,7 +139,7 @@ router.get('/sync-prices/runs', async (req: Request, res: Response) => {
  * Get details of one price sync run.
  */
 router.get('/sync-prices/runs/:runId', async (req: Request, res: Response) => {
-  const run = await PriceSyncService.getRunById(req.params.runId);
+  const run = await PriceSyncService.getRunById(req.params.runId, requireStore(req));
   if (!run) {
     throw new NotFoundError('Sync run not found');
   }

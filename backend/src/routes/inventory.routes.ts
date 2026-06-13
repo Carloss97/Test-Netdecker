@@ -10,7 +10,6 @@ import tenantResolver from '../middleware/tenantResolver.js';
 import requirePermission from '../middleware/requirePermission.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../utils/errors.js';
 import ExcelJS from 'exceljs';
-import axios from 'axios';
 
 const router = express.Router();
 const upload = multer({ 
@@ -408,58 +407,13 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
   }
 
   const _typeCache = new Map<string, string>();
-  async function fetchTypeFromYGO(cardName?: string) {
-    if (!cardName) return 'Effect Monster';
-    if (_typeCache.has(cardName)) return _typeCache.get(cardName) as string;
-    try {
-      const res = await axios.get('https://db.ygoprodeck.com/api/v7/cardinfo.php', { params: { name: cardName }, timeout: 10000 });
-      if (res && res.data && res.data.data && res.data.data.length) {
-        const typeStr = (res.data.data[0].type || '').toLowerCase();
-        let mapped = 'Effect Monster';
-        if (/spell/i.test(typeStr)) mapped = 'Spell';
-        else if (/trap/i.test(typeStr)) mapped = 'Trap';
-        else if (/xyz/i.test(typeStr)) mapped = 'Xyz';
-        else if (/link/i.test(typeStr)) mapped = 'Link';
-        else if (/normal/i.test(typeStr)) mapped = 'Normal Monster';
-        else if (/fusion/i.test(typeStr)) mapped = 'Fusion';
-        else if (/pendulum/i.test(typeStr)) mapped = 'Pendulum';
-        else if (/synchro|syncrho/i.test(typeStr)) mapped = 'Synchro';
-        else if (/ritual/i.test(typeStr)) mapped = 'Ritual';
-        else if (/token/i.test(typeStr)) mapped = 'Token';
-        else if (/skill/i.test(typeStr)) mapped = 'Skill Card';
-        else if (/field/i.test(typeStr)) mapped = 'Field Center';
-        else if (/effect/i.test(typeStr) || /monster/i.test(typeStr)) mapped = 'Effect Monster';
-        _typeCache.set(cardName, mapped);
-        return mapped;
-      }
-    } catch (err) {
-      try {
-        const res2 = await axios.get('https://db.ygoprodeck.com/api/v7/cardinfo.php', { params: { fname: cardName }, timeout: 10000 });
-        if (res2 && res2.data && res2.data.data && res2.data.data.length) {
-          const typeStr = (res2.data.data[0].type || '').toLowerCase();
-          let mapped = 'Effect Monster';
-          if (/spell/i.test(typeStr)) mapped = 'Spell';
-          else if (/trap/i.test(typeStr)) mapped = 'Trap';
-          else if (/xyz/i.test(typeStr)) mapped = 'Xyz';
-          else if (/link/i.test(typeStr)) mapped = 'Link';
-          else if (/normal/i.test(typeStr)) mapped = 'Normal Monster';
-          else if (/fusion/i.test(typeStr)) mapped = 'Fusion';
-          else if (/pendulum/i.test(typeStr)) mapped = 'Pendulum';
-          else if (/synchro|syncrho/i.test(typeStr)) mapped = 'Synchro';
-          else if (/ritual/i.test(typeStr)) mapped = 'Ritual';
-          else if (/token/i.test(typeStr)) mapped = 'Token';
-          else if (/skill/i.test(typeStr)) mapped = 'Skill Card';
-          else if (/field/i.test(typeStr)) mapped = 'Field Center';
-          else if (/effect/i.test(typeStr) || /monster/i.test(typeStr)) mapped = 'Effect Monster';
-          _typeCache.set(cardName, mapped);
-          return mapped;
-        }
-      } catch (err2) {
-        // ignore
-      }
-    }
-    _typeCache.set(cardName, 'Effect Monster');
-    return 'Effect Monster';
+  async function inferTypeLocally(cardName?: string, tags?: string) {
+    const cacheKey = `${cardName || ''}|${tags || ''}`;
+    if (_typeCache.has(cacheKey)) return _typeCache.get(cacheKey) as string;
+
+    const detected = detectType(tags, cardName) || 'Effect Monster';
+    _typeCache.set(cacheKey, detected);
+    return detected;
   }
 
   const headers = [
@@ -500,9 +454,9 @@ router.get('/export-david-xlsx', async (req: Request, res: Response) => {
 
     let tipo = detectType(tags, cleanedName);
     if (!tipo) {
-      // fetch remote fallback
+      // Local-only fallback: infer from imported TCGCSV fields, never call YGOPRODeck.
       // eslint-disable-next-line no-await-in-loop
-      tipo = await fetchTypeFromYGO(cleanedName);
+      tipo = await inferTypeLocally(cleanedName, tags);
     }
 
     const rareCanon = canonicalRarity(rarity) || '';

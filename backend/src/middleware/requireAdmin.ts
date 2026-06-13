@@ -29,11 +29,22 @@ function extractToken(req: Request): { token: string; source: string } {
 }
 
 export async function requireAdmin(req: Request, _res: Response, next: NextFunction) {
+  // Local development bypass — skip auth entirely when DEV_NO_AUTH=***
+  if (process.env.DEV_NO_AUTH === 'true') {
+    console.log('[requireAdmin] DEV_NO_AUTH bypass active');
+    (req as any).adminUser = {
+      id: 'dev-admin',
+      email: 'dev@localhost',
+      role: 'ADMIN',
+      storeId: null,
+    };
+    return next();
+  }
+
   const { token, source } = extractToken(req);
   const debug = process.env.DEBUG_ADMIN === '1' || process.env.DEBUG_ADMIN === 'true';
   if (!token) {
     if (debug) {
-      // log minimal header/cookie context to help debugging without dumping secrets
       try {
         const ah = String(req.headers['authorization'] || '').slice(0, 200);
         const xat = String(req.headers['x-admin-token'] ? 'present' : 'absent');
@@ -55,11 +66,7 @@ export async function requireAdmin(req: Request, _res: Response, next: NextFunct
     where: { token },
     include: {
       user: true,
-      store: {
-        select: {
-          id: true,
-        },
-      },
+      store: { select: { id: true } },
     } as any,
   });
   if (!sess) throw new UnauthorizedError('Invalid admin token');
@@ -72,7 +79,6 @@ export async function requireAdmin(req: Request, _res: Response, next: NextFunct
     throw new UnauthorizedError('Invalid admin session scope. Please login again.');
   }
 
-  // Attach minimal user to request, including optional tenant scope
   (req as any).adminUser = { id: sess.user.id, email: sess.user.email, role: (sess.user as any).role, storeId: (sess as any).storeId || null };
   return next();
 }

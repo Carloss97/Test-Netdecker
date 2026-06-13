@@ -7,6 +7,30 @@ function safeLog(...args) {
   try { console.log(...args); } catch (_) {}
 }
 
+// Load backend/.env so DATABASE_URL and USE_SQLITE are available
+try {
+  const envPath = path.resolve(__dirname, '../backend/.env');
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf-8');
+    content.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) return;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let value = trimmed.slice(eqIdx + 1).trim();
+      // Strip surrounding quotes
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    });
+    safeLog('Start wrapper: loaded backend/.env');
+  }
+} catch (_) {}
+
 safeLog('Start wrapper: node', process.version);
 safeLog('Working directory:', process.cwd());
 safeLog('Important env: PORT=%s, NODE_ENV=%s, USE_SQLITE=%s', process.env.PORT, process.env.NODE_ENV, process.env.USE_SQLITE);

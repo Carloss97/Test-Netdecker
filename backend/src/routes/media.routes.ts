@@ -67,7 +67,7 @@ router.get('/uploads/:filename', (req: Request, res: Response) => {
 
 /**
  * GET /api/media/image-proxy?url=...
- * Proxies external images to avoid CORS issues and allow local caching.
+ * Proxies TCGCSV/TCGplayer images to avoid CORS issues and allow local caching.
  */
 router.get('/image-proxy', async (req: Request, res: Response) => {
   const imageUrl = req.query.url as string;
@@ -78,7 +78,7 @@ router.get('/image-proxy', async (req: Request, res: Response) => {
   try {
     // Only proxy known image hosts. This endpoint fetches server-side URLs, so
     // failing closed avoids SSRF against internal services.
-    const allowedDomains = ['tcgplayer.com', 'scryfall.com', 'pokemon.com', 'images.tcgplayer.com', 'tcgcsv.com'];
+    const allowedDomains = ['tcgplayer.com', 'images.tcgplayer.com', 'tcgcsv.com'];
     const urlObj = new URL(imageUrl);
     const hostname = urlObj.hostname.toLowerCase();
     const isAllowedHost = allowedDomains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));

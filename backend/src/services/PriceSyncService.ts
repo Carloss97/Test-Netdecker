@@ -26,6 +26,7 @@ export interface RunPriceSyncInput {
   roundingMultiple?: number;
   fetchExternalPrices?: boolean;
   inventoryOnly?: boolean;
+  storeId?: string;
   tcgName?: 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
   editionId?: string;
 }
@@ -70,6 +71,7 @@ type PriceSyncRunDelegate = {
   update: (args: any) => Promise<any>;
   findMany: (args: any) => Promise<any[]>;
   findUnique: (args: any) => Promise<any | null>;
+  findFirst?: (args: any) => Promise<any | null>;
 };
 
 const getPriceSyncRunDelegate = (): PriceSyncRunDelegate | null => {
@@ -208,7 +210,9 @@ export class PriceSyncService {
     }
 
     if (update.cardId) {
-      const defaultStore = await db.store.findFirst({ select: { id: true }, orderBy: { createdAt: 'asc' } });
+      const defaultStore = input.storeId
+        ? { id: input.storeId }
+        : await db.store.findFirst({ select: { id: true }, orderBy: { createdAt: 'asc' } });
       if (!defaultStore) throw new NotFoundError('No store available to create listing during sync');
 
       const resolvedMargin = update.marginMultiplier || DEFAULT_MARGIN_MULTIPLIER;
@@ -251,7 +255,7 @@ export class PriceSyncService {
     const resolvedRounding = PriceService.resolveRoundingMultiple(input.roundingMultiple);
     const runDelegate = getPriceSyncRunDelegate();
     const ephemeralRunId = `ephemeral-${Date.now()}`;
-    const run = runDelegate ? await runDelegate.create({ data: { source: input.source, status: 'running', notes: input.notes, startedAt, roundingMultiple: resolvedRounding } }) : { id: ephemeralRunId };
+    const run = runDelegate ? await runDelegate.create({ data: { storeId: input.storeId, source: input.source, status: 'running', notes: input.notes, startedAt, roundingMultiple: resolvedRounding } }) : { id: ephemeralRunId };
 
     const result = { total: 0, updated: 0, volatile: 0, failed: 0, errors: [] as any[] };
 
@@ -263,6 +267,7 @@ export class PriceSyncService {
 
       if (!updates || updates.length === 0) {
         const where: any = { status: 'active' };
+        if (input.storeId) where.storeId = input.storeId;
         if (inventoryOnly) where.quantity = { gt: 0 };
         if (input.editionId) where.editionId = input.editionId;
         if (input.tcgName) where.card = { tcg: { name: input.tcgName } };
@@ -326,8 +331,10 @@ export class PriceSyncService {
       for (let i = 0; i < effectiveUpdates.length; i += BATCH_SIZE) {
         const chunk = effectiveUpdates.slice(i, i + BATCH_SIZE);
         const listingIds = chunk.map(u => u.listingId).filter(Boolean) as string[];
+        const currentListingWhere: any = { id: { in: listingIds } };
+        if (input.storeId) currentListingWhere.storeId = input.storeId;
         const currentListings = await prisma.listing.findMany({
-          where: { id: { in: listingIds } },
+          where: currentListingWhere,
           select: { id: true, finalPrice: true, marginMultiplier: true, editionId: true, card: { select: { tcg: { select: { name: true } } } } }
         });
         const currentMap = new Map(currentListings.map(l => [l.id, l]));
@@ -402,11 +409,14 @@ export class PriceSyncService {
     return runs.map((run: any) => ({ ...run, parsedErrors: parseRunErrors(run.errors || null) }));
   }
 
-  static async getRunById(runId: string) {
+  static async getRunById(runId: string, storeId?: string) {
     const runDelegate = getPriceSyncRunDelegate();
     if (!runDelegate) return null;
-    const run = await runDelegate.findUnique({ where: { id: runId } });
+    const run = storeId && runDelegate.findFirst
+      ? await runDelegate.findFirst({ where: { id: runId, storeId } })
+      : await runDelegate.findUnique({ where: { id: runId } });
     if (!run) return null;
+    if (storeId && run.storeId !== storeId) return null;
     return { ...run, parsedErrors: parseRunErrors(run.errors || null) };
   }
 }

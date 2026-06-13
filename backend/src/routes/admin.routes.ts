@@ -10,11 +10,12 @@ import { CatalogBootstrapService } from '../services/CatalogBootstrapService.js'
 import { CatalogSyncService } from '../services/CatalogSyncService.js';
 import { PriceService } from '../services/PriceService.js';
 import { ListingService } from '../services/ListingService.js';
+import { StoreHealthService } from '../services/StoreHealthService.js';
 import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
 import CashSessionService from '../services/CashSessionService.js';
 import AuditService from '../services/AuditService.js';
 import { DEFAULT_MARGIN_MULTIPLIER, SUPPORTED_TCGS } from '../config/pricing.js';
-import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
+import { isImportSetSyncPricesDefault, isLocalOnlyMode, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.js';
 import storesRoutes from './admin.stores.routes.js';
 import accountsRoutes from './admin.accounts.routes.js';
@@ -134,7 +135,8 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (req: Req
     totalOrders,
     pendingOrders,
     recentImports,
-      exchangeRateMeta,
+    exchangeRateMeta,
+    operationalHealth,
   ] = await Promise.all([
     prisma.card.count(storeId ? { where: { listings: { some: { storeId } } } } : undefined),
     prisma.listing.count(storeId ? { where: { storeId } } : undefined),
@@ -159,6 +161,7 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (req: Req
     }),
     // Use the fast variant to avoid external API calls on dashboard load.
     ExchangeRateService.getUSDtoCLPRateMetaFast().catch(() => null),
+    StoreHealthService.getOperationalHealth(storeId).catch(() => null),
   ]);
 
   // Inventory value (sum of finalPrice * quantity for active listings)
@@ -200,6 +203,7 @@ router.get('/dashboard', requirePermission('view', 'dashboard'), async (req: Req
     },
     recentImports,
     recentSyncRuns,
+    operationalHealth,
   } as const;
 
   // Cache the assembled response for a short time
@@ -838,7 +842,7 @@ router.post('/pricing-config', rateLimitByIp(50, 60000), async (req: Request, re
     await ExchangeRateService.setManualUSDtoCLPRate(manualUsdToClp);
   }
 
-  if (exchangeRateMode === 'api') {
+  if (exchangeRateMode === 'api' && !isLocalOnlyMode()) {
     await ExchangeRateService.refreshUSDtoCLPRateFromApi();
   }
 
@@ -855,10 +859,11 @@ router.post('/pricing-config', rateLimitByIp(50, 60000), async (req: Request, re
     success: true,
     updatedMargins,
     exchangeRate: {
-      mode: refreshed.provider === 'manual' ? 'manual' : 'api',
+      mode: isLocalOnlyMode() || refreshed.provider === 'manual' || refreshed.provider === 'manual-local' ? 'manual' : 'api',
       activeRate: refreshed.rate,
       provider: refreshed.provider || null,
       source: refreshed.retrievalSource,
+      localOnly: isLocalOnlyMode(),
     },
   });
 });

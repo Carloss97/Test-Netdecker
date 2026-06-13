@@ -1,5 +1,5 @@
 // src/routes/external.routes.ts
-// Routes for searching and importing cards from external TCG databases.
+// Routes for searching and importing cards from TCGCSV-backed catalog data.
 
 import express, { Request, Response } from 'express';
 import { CardDatabaseService } from '../services/CardDatabaseService.js';
@@ -22,6 +22,88 @@ function getImportStoreId(req: Request): string | undefined {
 function parseTCG(raw: unknown): TCGParam | null {
   const upper = String(raw || '').toUpperCase().replace(/[- ]/g, '_') as TCGParam;
   return VALID_TCGS.includes(upper) ? upper : null;
+}
+
+function queryValue(raw: unknown): string | undefined {
+  if (Array.isArray(raw)) raw = raw[0];
+  const value = String(raw || '').trim();
+  return value.length > 0 ? value : undefined;
+}
+
+function inferYgoCompatType(card: Awaited<ReturnType<typeof CardDatabaseService.getSetCards>>[number]): string {
+  const text = [card.cardType, card.tags, card.metadata?.Type, card.metadata?.CardType, card.metadata?.SubType]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (/\bspell\b|\bmagia\b/.test(text)) return 'Spell Card';
+  if (/\btrap\b|\btrampa\b/.test(text)) return 'Trap Card';
+  if (/\bxyz\b/.test(text)) return 'XYZ Monster';
+  if (/\blink\b/.test(text)) return 'Link Monster';
+  if (/\bfusion\b/.test(text)) return 'Fusion Monster';
+  if (/\bsynchro\b/.test(text)) return 'Synchro Monster';
+  if (/\britual\b/.test(text)) return 'Ritual Monster';
+  if (/\bnormal\b/.test(text)) return 'Normal Monster';
+  if (/\bpendulum\b/.test(text)) return 'Pendulum Effect Monster';
+  return 'Effect Monster';
+}
+
+function mapToYgoCompat(card: Awaited<ReturnType<typeof CardDatabaseService.getSetCards>>[number]) {
+  const price = card.priceMarket ?? card.priceMid ?? card.priceLow ?? 0;
+  const numericId = Number(card.externalId);
+  const id = Number.isFinite(numericId) ? numericId : card.externalId;
+
+  return {
+    id,
+    name: card.cardName,
+    type: inferYgoCompatType(card),
+    frameType: inferYgoCompatType(card).toLowerCase().replace(/\s+/g, '_'),
+    desc: card.description || '',
+    race: card.metadata?.Race || card.metadata?.MonsterType || card.cardType || '',
+    attribute: card.attribute || card.colorIdentity || card.metadata?.Attribute || '',
+    card_sets: [{
+      set_name: card.editionName,
+      set_code: card.cardNumber || card.editionCode,
+      set_rarity: card.rarity || 'Unknown',
+      set_price: String(price),
+    }],
+    card_images: [{
+      id,
+      image_url: card.imageUrl || '',
+      image_url_small: card.imageUrl || '',
+    }],
+    card_prices: [{
+      tcgplayer_price: String(price),
+    }],
+    misc_info: [{ source: card.source, tcgcsvProductId: card.externalId }],
+  };
+}
+
+async function getYgoCompatCards(query: Record<string, unknown>) {
+  const cardset = queryValue(query.cardset || query.setCode || query.set);
+  const exactName = queryValue(query.name);
+  const fuzzyName = queryValue(query.fname || query.query);
+  const id = queryValue(query.id);
+  let cards: Awaited<ReturnType<typeof CardDatabaseService.getSetCards>> = [];
+
+  if (id) {
+    const card = await CardDatabaseService.getCardById('YUGIOH', id);
+    cards = card ? [card] : [];
+  } else if (cardset) {
+    cards = await CardDatabaseService.getSetCards('YUGIOH', cardset);
+  } else if (exactName || fuzzyName) {
+    cards = await CardDatabaseService.searchCards('YUGIOH', exactName || fuzzyName || '');
+  }
+
+  const nameFilter = (exactName || fuzzyName || '').toLowerCase();
+  if (nameFilter) {
+    cards = cards.filter((card) => {
+      const cardName = card.cardName.toLowerCase();
+      return exactName ? cardName === nameFilter : cardName.includes(nameFilter);
+    });
+  }
+
+  return cards.map(mapToYgoCompat);
 }
 
 /**
@@ -200,21 +282,19 @@ router.get('/ygoprodeck/card-sets', async (req: Request, res: Response) => {
 });
 
 /**
- * Proxy endpoints for YGOPRODeck compatibility (some callers expect PHP-style endpoints)
+ * Local compatibility endpoints for YGOPRODeck-style consumers.
  * GET /api/external/ygopro/cardsets.php
  */
 router.get('/ygopro/cardsets.php', async (req: Request, res: Response) => {
   try {
-    const target = 'https://db.ygoprodeck.com/api/v7/cardsets.php';
-    if (typeof globalThis.fetch !== 'function') {
-      res.setHeader('Content-Type', 'application/json');
-      res.status(501).json({ success: false, error: 'Server fetch not available in runtime' });
-      return;
-    }
-    const r = await globalThis.fetch(target);
-    const txt = await r.text();
-    res.setHeader('Content-Type', r.headers.get('content-type') || 'application/json');
-    res.status(r.status).send(txt);
+    const sets = await CardDatabaseService.listSets('YUGIOH');
+    res.json(sets.map((set) => ({
+      set_name: set.name,
+      set_code: set.code,
+      num_of_cards: set.totalCards ?? 0,
+      tcg_date: set.releaseDate || null,
+      source: 'tcgcsv',
+    })));
   } catch (err) {
     res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ success: false, error: String(err) });
@@ -226,17 +306,8 @@ router.get('/ygopro/cardsets.php', async (req: Request, res: Response) => {
  */
 router.get('/ygopro/cardinfo.php', async (req: Request, res: Response) => {
   try {
-    const params = new URLSearchParams(req.query as Record<string, string>);
-    const target = `https://db.ygoprodeck.com/api/v7/cardinfo.php?${params.toString()}`;
-    if (typeof globalThis.fetch !== 'function') {
-      res.setHeader('Content-Type', 'application/json');
-      res.status(501).json({ success: false, error: 'Server fetch not available in runtime' });
-      return;
-    }
-    const r = await globalThis.fetch(target);
-    const txt = await r.text();
-    res.setHeader('Content-Type', r.headers.get('content-type') || 'application/json');
-    res.status(r.status).send(txt);
+    const data = await getYgoCompatCards(req.query as Record<string, unknown>);
+    res.json({ data });
   } catch (err) {
     res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ success: false, error: String(err) });

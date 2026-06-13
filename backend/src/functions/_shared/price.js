@@ -49,34 +49,10 @@ async function getUSDtoCLPRateMeta(env, dbParam) {
     }
   }
 
-  // Fetch from external API
-  try {
-    const apiUrl = env.EXCHANGE_RATE_API_URL || 'https://api.exchangerate-api.com/v4/latest';
-    const resp = await fetch(`${apiUrl}/USD`);
-    if (resp && resp.ok) {
-      const json = await resp.json();
-      const rate = json?.rates?.CLP || json?.rates?.CLP || null;
-      if (rate) {
-        // store in DB if present
-        if (db) {
-          try {
-            const id = (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `rate-usd-clp`;
-            const fetchedAt = new Date().toISOString();
-            const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString();
-            await db.prepare(`INSERT INTO exchangeRate (id, fromCurrency, toCurrency, rate, source, fetchedAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT(fromCurrency, toCurrency) DO UPDATE SET rate = excluded.rate, source = excluded.source, fetchedAt = excluded.fetchedAt, expiresAt = excluded.expiresAt;`)
-              .bind(id, 'USD', 'CLP', Number(rate), apiUrl, fetchedAt, expiresAt).run();
-          } catch (_) {}
-        }
-        return { rate: Number(rate), retrievalSource: 'api', provider: apiUrl, fetchedAt: new Date(), expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 6) };
-      }
-    }
-  } catch (err) {
-    // ignore
-  }
-
-  // Fallback hard-coded rate
-  return { rate: Number(env.EXCHANGE_RATE_FALLBACK || 850), retrievalSource: 'fallback', provider: null, fetchedAt: new Date(), expiresAt: null };
+  // Local MVP mode: never call exchange-rate providers. Use manual/static fallback.
+  const fallback = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.EXCHANGE_RATE_FALLBACK || env.FALLBACK_USD_TO_CLP || 1000);
+  const rate = Number.isFinite(fallback) && fallback > 0 ? fallback : 1000;
+  return { rate, retrievalSource: 'fallback', provider: 'manual-local', fetchedAt: new Date(), expiresAt: null };
 }
 
 async function getUSDtoCLPRate(env, db) {

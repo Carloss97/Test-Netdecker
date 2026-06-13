@@ -44,6 +44,12 @@ function ProtectedLayout() {
 
 function RequireAdmin() {
   const location = useLocation();
+
+  // Bypass auth entirely for local development (VITE_DEV_NO_AUTH or vite dev mode)
+  if (import.meta.env.VITE_DEV_NO_AUTH === 'true' || import.meta.env.DEV) {
+    return <Outlet />;
+  }
+
   const [status, setStatus] = useState<'pending' | 'ok' | 'denied'>(() => (readAdminToken() ? 'ok' : 'pending'));
 
   useEffect(() => {

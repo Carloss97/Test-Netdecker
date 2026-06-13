@@ -342,7 +342,7 @@ export class ExternalImportService {
           if (!edition) return;
 
           console.info(`[Import] triggering background price sync for edition ${edition.id}`);
-          await PriceSyncService.runPriceSync({ source: 'manual', editionId: edition.id, fetchExternalPrices: true });
+          await PriceSyncService.runPriceSync({ source: 'manual', storeId: options.storeId, editionId: edition.id, fetchExternalPrices: true });
           console.info(`[Import] background price sync completed for edition ${edition.id}`);
         } catch (err) {
           console.error('[Import] background price sync failed:', err instanceof Error ? err.message : err);

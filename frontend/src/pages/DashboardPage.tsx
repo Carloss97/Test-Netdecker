@@ -38,6 +38,7 @@ export function DashboardPage() {
   }
 
   const kpis = data?.kpis;
+  const health = data?.operationalHealth;
 
   return (
     <div className="dashboard-container">
@@ -86,6 +87,39 @@ export function DashboardPage() {
               <div className="kpi-sub">unidades críticas</div>
             </div>
           </div>
+
+          {health && (
+            <div className="card" style={{ marginBottom: 24, borderLeft: `6px solid ${health.healthScore >= 85 ? 'var(--success)' : health.healthScore >= 65 ? 'var(--warning)' : 'var(--danger)'}` }}>
+              <div className="section-title" style={{ marginBottom: 12 }}>🩺 Salud operativa de la tienda</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+                <div>
+                  <div className="kpi-label">Score</div>
+                  <div className="kpi-value">{health.healthScore}</div>
+                  <div className="kpi-sub">/100</div>
+                </div>
+                <div>
+                  <div className="kpi-label">Valor inventario</div>
+                  <div className="kpi-value" style={{ fontSize: '1.1rem' }}>{formatClp(health.inventory.totalValueCLP)}</div>
+                  <div className="kpi-sub">precio × stock</div>
+                </div>
+                <div>
+                  <div className="kpi-label">Precios stale</div>
+                  <div className="kpi-value" style={{ color: health.pricing.stalePriceListings ? 'var(--warning)' : 'inherit' }}>{health.pricing.stalePriceListings}</div>
+                  <div className="kpi-sub">más de {health.pricing.stalePriceDays} días</div>
+                </div>
+                <div>
+                  <div className="kpi-label">Sin precio</div>
+                  <div className="kpi-value" style={{ color: health.pricing.missingReferencePriceListings ? 'var(--danger)' : 'inherit' }}>{health.pricing.missingReferencePriceListings}</div>
+                  <div className="kpi-sub">requieren revisión</div>
+                </div>
+                <div>
+                  <div className="kpi-label">Sync fallidos</div>
+                  <div className="kpi-value" style={{ color: health.sync.recentFailedRuns.length ? 'var(--danger)' : 'inherit' }}>{health.sync.recentFailedRuns.length}</div>
+                  <div className="kpi-sub">últimos intentos</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
             <div className="card">

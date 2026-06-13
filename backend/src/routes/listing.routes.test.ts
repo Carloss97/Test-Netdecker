@@ -10,6 +10,7 @@ import 'express-async-errors';
 import listingRoutes from './listing.routes.js';
 import prisma from '../utils/db.js';
 import { ListingService } from '../services/ListingService.js';
+import { PriceSyncService } from '../services/PriceSyncService.js';
 
 function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   const statusCode = typeof (err as any)?.statusCode === 'number' ? (err as any).statusCode : 500;
@@ -135,6 +136,109 @@ test('GET /api/listings/low-stock resolves store context and forwards threshold'
     assert.equal(receivedStoreId, 'store-1');
   } finally {
     ListingService.getLowStockAlerts = originalGetLowStockAlerts;
+    prisma.store.findUnique = originalStoreFindUnique;
+  }
+});
+
+test('POST /api/listings/sync-prices scopes run to resolved store', async () => {
+  const originalRunPriceSync = PriceSyncService.runPriceSync;
+  const originalStoreFindUnique = prisma.store.findUnique;
+
+  try {
+    let receivedInput: any = null;
+    PriceSyncService.runPriceSync = (async (input: any) => {
+      receivedInput = input;
+      return {
+        runId: 'run-store-1',
+        source: 'manual',
+        total: 1,
+        updated: 1,
+        volatile: 0,
+        failed: 0,
+        roundingMultiple: 1,
+        errors: [],
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      };
+    }) as typeof PriceSyncService.runPriceSync;
+
+    prisma.store.findUnique = (async () => ({ id: 'store-1', slug: 'store-one', name: 'Store One' })) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/listings', listingRoutes);
+    app.use(errorHandler);
+
+    const res = await makeRequest(
+      app,
+      'POST',
+      '/api/listings/sync-prices',
+      { updates: [{ listingId: 'listing-1', referencePrice: 5 }] },
+      { 'x-store-id': 'store-1' },
+    );
+
+    assert.equal(res.status, 200);
+    assert.equal(receivedInput?.storeId, 'store-1');
+  } finally {
+    PriceSyncService.runPriceSync = originalRunPriceSync;
+    prisma.store.findUnique = originalStoreFindUnique;
+  }
+});
+
+test('GET /api/listings/sync-prices/runs scopes history to resolved store', async () => {
+  const originalGetRecentRuns = PriceSyncService.getRecentRuns;
+  const originalStoreFindUnique = prisma.store.findUnique;
+
+  try {
+    let receivedStoreId: string | undefined;
+    PriceSyncService.getRecentRuns = (async (_limit?: number, storeId?: string) => {
+      receivedStoreId = storeId;
+      return [{ id: 'run-store-1', storeId }];
+    }) as typeof PriceSyncService.getRecentRuns;
+
+    prisma.store.findUnique = (async () => ({ id: 'store-1', slug: 'store-one', name: 'Store One' })) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/listings', listingRoutes);
+    app.use(errorHandler);
+
+    const res = await makeRequest(app, 'GET', '/api/listings/sync-prices/runs?limit=3', undefined, { 'x-store-id': 'store-1' });
+
+    assert.equal(res.status, 200);
+    assert.equal(receivedStoreId, 'store-1');
+    assert.deepEqual((res.body as any).runs, [{ id: 'run-store-1', storeId: 'store-1' }]);
+  } finally {
+    PriceSyncService.getRecentRuns = originalGetRecentRuns;
+    prisma.store.findUnique = originalStoreFindUnique;
+  }
+});
+
+test('GET /api/listings/sync-prices/runs/:runId scopes run lookup to resolved store', async () => {
+  const originalGetRunById = PriceSyncService.getRunById;
+  const originalStoreFindUnique = prisma.store.findUnique;
+
+  try {
+    let receivedStoreId: string | undefined;
+    PriceSyncService.getRunById = (async (_runId: string, storeId?: string) => {
+      receivedStoreId = storeId;
+      return storeId === 'store-1' ? { id: 'run-store-1', storeId } : null;
+    }) as typeof PriceSyncService.getRunById;
+
+    prisma.store.findUnique = (async () => ({ id: 'store-1', slug: 'store-one', name: 'Store One' })) as any;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/listings', listingRoutes);
+    app.use(errorHandler);
+
+    const res = await makeRequest(app, 'GET', '/api/listings/sync-prices/runs/run-store-1', undefined, { 'x-store-id': 'store-1' });
+
+    assert.equal(res.status, 200);
+    assert.equal(receivedStoreId, 'store-1');
+    assert.deepEqual(res.body, { id: 'run-store-1', storeId: 'store-1' });
+  } finally {
+    PriceSyncService.getRunById = originalGetRunById;
     prisma.store.findUnique = originalStoreFindUnique;
   }
 });

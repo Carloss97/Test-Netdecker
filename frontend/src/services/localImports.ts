@@ -29,12 +29,6 @@ function writeListings(list: LocalListing[]) {
   localStorage.setItem(STORAGE_KEY_LISTINGS, JSON.stringify(list));
 }
 
-function saveListing(listing: LocalListing) {
-  const all = readListings();
-  all.push(listing);
-  writeListings(all);
-}
-
 function genId(prefix = 'local'): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -73,26 +67,60 @@ export interface BulkImportResult {
   results: ImportResult[];
 }
 
-export async function importCardLocal(tcg: string, cardId: string, options: ImportOptions = {}): Promise<{ result: ImportResult }> {
-  const card = await resolveCard(tcg, cardId);
-  if (!card) throw new Error('Card not found in external sources');
+function normalizeCondition(condition?: string): string {
+  return String(condition || 'NM').trim().toUpperCase() || 'NM';
+}
 
-  const action: ImportResult['action'] = 'created';
+function resolveReferencePrice(card: ExternalCard, options: ImportOptions): number | undefined {
+  return options.referencePrice ?? card.priceMarket ?? card.priceMid ?? card.priceLow;
+}
+
+async function importResolvedCardLocal(tcg: string, card: ExternalCard, options: ImportOptions = {}): Promise<{ result: ImportResult }> {
+  let action: ImportResult['action'] = 'skipped';
   let listingId: string | undefined;
 
   if (options.createListing) {
-    listingId = genId('listing');
-    const listing = {
-      id: listingId,
-      createdAt: new Date().toISOString(),
+    const all = readListings();
+    const condition = normalizeCondition(options.condition);
+    const existingIdx = all.findIndex((listing) => (
+      String(listing.tcg) === String(tcg) &&
+      String(listing.card.externalId) === String(card.externalId) &&
+      normalizeCondition(listing.condition) === condition
+    ));
+
+    const listingPatch = {
       tcg,
       card,
       quantity: options.quantity ?? 0,
-      condition: options.condition,
-      referencePrice: options.referencePrice,
+      condition,
+      referencePrice: resolveReferencePrice(card, options),
       marginMultiplier: options.marginMultiplier,
     };
-    saveListing(listing);
+
+    if (existingIdx >= 0) {
+      const current = all[existingIdx];
+      all[existingIdx] = {
+        ...current,
+        ...listingPatch,
+        id: current.id,
+        createdAt: current.createdAt,
+        quantity: options.quantity ?? current.quantity,
+        referencePrice: listingPatch.referencePrice ?? current.referencePrice,
+        marginMultiplier: listingPatch.marginMultiplier ?? current.marginMultiplier,
+      };
+      listingId = current.id;
+      action = 'updated';
+    } else {
+      listingId = genId('listing');
+      all.push({
+        id: listingId,
+        createdAt: new Date().toISOString(),
+        ...listingPatch,
+      });
+      action = 'created';
+    }
+
+    writeListings(all);
   }
 
   const result: ImportResult = {
@@ -102,7 +130,6 @@ export async function importCardLocal(tcg: string, cardId: string, options: Impo
     card: { cardName: card.cardName, editionCode: card.editionCode, externalId: card.externalId },
   };
 
-  // persist import job metadata
   try {
     const jobsRaw = localStorage.getItem(STORAGE_KEY_IMPORTS);
     const jobs = jobsRaw ? JSON.parse(jobsRaw) : [];
@@ -111,6 +138,12 @@ export async function importCardLocal(tcg: string, cardId: string, options: Impo
   } catch (_) {}
 
   return { result };
+}
+
+export async function importCardLocal(tcg: string, cardId: string, options: ImportOptions = {}): Promise<{ result: ImportResult }> {
+  const card = await resolveCard(tcg, cardId);
+  if (!card) throw new Error('Card not found in external sources');
+  return importResolvedCardLocal(tcg, card, options);
 }
 
 export async function importSearchLocal(tcg: string, query: string, options: ImportOptions & { setCode?: string; page?: number } = {}): Promise<BulkImportResult> {
@@ -125,7 +158,7 @@ export async function importSearchLocal(tcg: string, query: string, options: Imp
 
   for (const card of cards) {
     try {
-      const r = await importCardLocal(tcg, card.externalId, options);
+      const r = await importResolvedCardLocal(tcg, card, options);
       result.results.push(r.result);
       if (r.result.action === 'created') result.created += 1;
       else if (r.result.action === 'updated') result.updated += 1;
@@ -150,7 +183,7 @@ export async function importSetLocal(tcg: string, setCode: string, options: Impo
 
   for (const card of cards) {
     try {
-      const r = await importCardLocal(tcg, card.externalId, options);
+      const r = await importResolvedCardLocal(tcg, card, options);
       result.results.push(r.result);
       if (r.result.action === 'created') result.created += 1;
       else if (r.result.action === 'updated') result.updated += 1;

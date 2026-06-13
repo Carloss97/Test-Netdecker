@@ -1,8 +1,8 @@
 // src/services/ExchangeRateService.ts
-import axios from 'axios';
 import prisma from '../utils/db.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
 import { ValidationError } from '../utils/errors.js';
+import { getManualUsdToClpRate } from '../config/appConfig.js';
 
 const CACHE_KEY = 'exchange_rate:usd_clp';
 const CACHE_TTL = 3600 * 6; // 6 hours
@@ -17,7 +17,7 @@ export interface ExchangeRateMeta {
 
 export class ExchangeRateService {
   /**
-   * Get USD to CLP exchange rate from cache or external API
+   * Get USD to CLP exchange rate from cache, database, or local manual fallback.
    */
   static async getUSDtoCLPRate(): Promise<number> {
     const meta = await this.getUSDtoCLPRateMeta();
@@ -61,10 +61,9 @@ export class ExchangeRateService {
       };
     }
 
-    // Fetch from API
-    const { rate, usedFallback } = await this.fetchRate('USD', 'CLP');
-    
-    // Save to database
+    const rate = getManualUsdToClpRate();
+
+    // Save the local fallback to database so all pricing paths remain deterministic.
     await prisma.exchangeRate.upsert({
       where: {
         fromCurrency_toCurrency: {
@@ -74,16 +73,17 @@ export class ExchangeRateService {
       },
       update: {
         rate,
+        source: 'manual-local',
         fetchedAt: new Date(),
-        expiresAt: new Date(Date.now() + CACHE_TTL * 1000),
+        expiresAt: null,
       },
       create: {
         fromCurrency: 'USD',
         toCurrency: 'CLP',
         rate,
-        source: 'exchangerate-api.com',
+        source: 'manual-local',
         fetchedAt: new Date(),
-        expiresAt: new Date(Date.now() + CACHE_TTL * 1000),
+        expiresAt: null,
       }
     });
 
@@ -101,7 +101,7 @@ export class ExchangeRateService {
 
     return {
       rate,
-      retrievalSource: usedFallback ? 'fallback' : 'api',
+      retrievalSource: 'fallback',
       provider: refreshedRate?.source,
       fetchedAt: refreshedRate?.fetchedAt,
       expiresAt: refreshedRate?.expiresAt,
@@ -188,7 +188,9 @@ export class ExchangeRateService {
   }
 
   static async refreshUSDtoCLPRateFromApi(): Promise<number> {
-    const { rate } = await this.fetchRate('USD', 'CLP');
+    // Local MVP mode intentionally never calls exchange-rate providers.
+    // Keep this method for route compatibility, but refresh from the configured manual rate.
+    const rate = getManualUsdToClpRate();
 
     await prisma.exchangeRate.upsert({
       where: {
@@ -199,17 +201,17 @@ export class ExchangeRateService {
       },
       update: {
         rate,
-        source: 'exchangerate-api.com',
+        source: 'manual-local',
         fetchedAt: new Date(),
-        expiresAt: new Date(Date.now() + CACHE_TTL * 1000),
+        expiresAt: null,
       },
       create: {
         fromCurrency: 'USD',
         toCurrency: 'CLP',
         rate,
-        source: 'exchangerate-api.com',
+        source: 'manual-local',
         fetchedAt: new Date(),
-        expiresAt: new Date(Date.now() + CACHE_TTL * 1000),
+        expiresAt: null,
       }
     });
 
@@ -217,25 +219,4 @@ export class ExchangeRateService {
     return rate;
   }
 
-  /**
-   * Fetch rate from external API
-   */
-  private static async fetchRate(from: string, to: string): Promise<{ rate: number; usedFallback: boolean }> {
-    try {
-      const apiUrl = process.env.EXCHANGE_RATE_API_URL || 'https://api.exchangerate-api.com/v4/latest';
-      const response = await axios.get(`${apiUrl}/${from}`);
-      const rate = response.data.rates[to];
-      
-      if (!rate) {
-        throw new Error(`Exchange rate not found for ${from} to ${to}`);
-      }
-
-      return { rate, usedFallback: false };
-    } catch (error) {
-      console.error('Failed to fetch exchange rate:', error);
-      // Fallback: use a reasonable default (placeholder)
-      console.warn('Using fallback exchange rate');
-      return { rate: 850, usedFallback: true }; // Approximate CLP/USD rate
-    }
-  }
 }

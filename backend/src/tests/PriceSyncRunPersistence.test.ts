@@ -16,9 +16,11 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
 
   try {
     const updateCalls: Array<any> = [];
+    let createData: any = null;
+    let listingFindManyWhere: any = null;
 
     (prisma as any).priceSyncRun = {
-      create: async ({ data }: any) => { return { id: 'run-test-1', ...data }; },
+      create: async ({ data }: any) => { createData = data; return { id: 'run-test-1', ...data }; },
       update: async ({ where, data }: any) => { updateCalls.push({ where, data }); return { id: where.id, ...data }; },
       findMany: async () => [],
       findUnique: async () => null,
@@ -26,6 +28,7 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
 
     prisma.listing.findUnique = async ({ where }: any) => ({ id: where.id, finalPrice: 100, marginMultiplier: 1, editionId: 'ed1', card: { tcg: { name: 'MAGIC' } } });
     prisma.listing.findMany = async ({ where }: any) => {
+      listingFindManyWhere = where;
       if (where?.id?.in?.includes('L1')) {
         return [{ id: 'L1', finalPrice: 100, marginMultiplier: 1, editionId: 'ed1', card: { tcg: { name: 'MAGIC' } } }];
       }
@@ -50,6 +53,7 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
 
     const result = await PriceSyncService.runPriceSync({
       source: 'manual',
+      storeId: 'store-1',
       updates: [{ listingId: 'L1', referencePrice: 10 }],
       fetchExternalPrices: false,
     });
@@ -62,6 +66,8 @@ test('runPriceSync persists run via prisma.priceSyncRun delegate', async () => {
     const last = updateCalls[updateCalls.length - 1];
     assert.equal(last.where.id, 'run-test-1');
     assert.equal(last.data.status, 'completed');
+    assert.equal(createData.storeId, 'store-1');
+    assert.equal(listingFindManyWhere.storeId, 'store-1');
   } finally {
     (prisma as any).priceSyncRun = origPriceSyncRun;
     prisma.listing.findUnique = origListingFindUnique;

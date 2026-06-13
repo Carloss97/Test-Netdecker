@@ -1,4 +1,11 @@
 import { ZodError } from 'zod';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load .env before anything else so loadConfig sees the variables
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 process.on('uncaughtException', (err) => {
 	console.error('Uncaught Exception during startup:', err);

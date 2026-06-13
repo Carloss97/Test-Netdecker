@@ -62,7 +62,7 @@ export async function onRequest(context) {
       }
     }
 
-    // From here: pricingMode !== 'manual' (either 'api' or unspecified) -> try cache/API
+    // From here: local MVP mode. Use cache when fresh, otherwise manual/static fallback.
     if (db) {
       try {
         const cacheRes = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
@@ -82,74 +82,21 @@ export async function onRequest(context) {
       }
     }
 
-    // Fetch from external APIs (try multiple providers sequentially) and store in cache
-    try {
-      const providers = [
-        { name: 'exchangerate.host', url: 'https://api.exchangerate.host/convert?from=USD&to=CLP', extract: (b) => b?.result ?? (b?.rates && b.rates.CLP) },
-        { name: 'exchangerate-api.com', url: 'https://api.exchangerate-api.com/v4/latest/USD', extract: (b) => b?.rates?.CLP },
-        { name: 'open.er-api.com', url: 'https://open.er-api.com/v6/latest/USD', extract: (b) => b?.rates?.CLP },
-      ];
-
-      let lastErr = null;
-      for (const p of providers) {
-        try {
-          const res = await fetch(p.url);
-          if (!res.ok) {
-            const t = await res.text().catch(() => '');
-            throw new Error(`provider ${p.name} failed: ${res.status} ${t}`);
-          }
-          const body = await res.json().catch(() => ({}));
-          const rate = p.extract(body);
-          if (rate === null || rate === undefined || typeof rate !== 'number') {
-            throw new Error(`invalid rate from ${p.name}`);
-          }
-
-          const fetchedAt = new Date().toISOString();
-          if (db) {
-            try {
-              await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
-                .bind('exchangeRateCache', JSON.stringify({ usdToCLP: Number(rate), source: p.name, fetchedAt }), fetchedAt)
-                .run();
-            } catch (_) {
-              // ignore cache write errors
-            }
-          }
-          incr('exchange_rate_requests_total', { source: p.name, result: 'success' });
-          stop();
-          return jsonResponse({ success: true, usdToCLP: Number(rate), source: p.name, fetchedAt });
-        } catch (innerErr) {
-          lastErr = innerErr;
-          // try next provider
-        }
+    const fallback = Number(env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || env.FALLBACK_USD_TO_CLP || 1000);
+    const rate = Number.isFinite(fallback) && fallback > 0 ? fallback : 1000;
+    const fetchedAt = new Date().toISOString();
+    if (db) {
+      try {
+        await db.prepare('INSERT OR REPLACE INTO appConfig (key, value, updatedAt) VALUES (?, ?, ?)')
+          .bind('exchangeRateCache', JSON.stringify({ usdToCLP: rate, source: 'manual-local', fetchedAt }), fetchedAt)
+          .run();
+      } catch (_) {
+        // ignore cache write errors
       }
-
-      // If we reach here all providers failed
-      throw lastErr || new Error('all providers failed');
-    } catch (err) {
-      // On external failure, try returning stale cache if available, otherwise fallback to env
-      if (db) {
-        try {
-          const cacheRes2 = await db.prepare('SELECT value FROM appConfig WHERE key = ?').bind('exchangeRateCache').all();
-          const cacheRow2 = firstRow(cacheRes2);
-          if (cacheRow2 && cacheRow2.value) {
-            const cached2 = JSON.parse(cacheRow2.value);
-            const cachedRate2 = Number(cached2?.usdToCLP);
-            if (!isNaN(cachedRate2)) {
-              incr('exchange_rate_requests_total', { source: 'cache', result: 'external_failed' });
-              stop();
-              return jsonResponse({ success: true, usdToCLP: Number(cachedRate2), source: 'cache', note: 'external_failed', error: String(err), fetchedAt: cached2.fetchedAt || new Date().toISOString() });
-            }
-          }
-        } catch (_) {
-          // ignore
-        }
-      }
-
-      const fallback = Number(env.FALLBACK_USD_TO_CLP || env.MANUAL_USD_TO_CLP || env.VITE_MANUAL_USD_TO_CLP || 1000);
-      incr('exchange_rate_requests_total', { source: 'fallback', result: 'success' });
-      stop();
-      return jsonResponse({ success: true, usdToCLP: fallback, source: 'fallback', note: String(err), fetchedAt: new Date().toISOString() });
     }
+    incr('exchange_rate_requests_total', { source: 'manual-local', result: 'success' });
+    stop();
+    return jsonResponse({ success: true, usdToCLP: rate, source: 'manual-local', fetchedAt });
   } catch (err) {
     // Try to persist last error for debugging when DB is available
     try {

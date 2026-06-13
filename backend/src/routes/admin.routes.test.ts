@@ -17,6 +17,7 @@ import { ListingService } from '../services/ListingService.js';
 import AuditService from '../services/AuditService.js';
 import { isImportSetSyncPricesDefault, setImportSetSyncPricesDefault } from '../config/appConfig.js';
 import { RateLimitService } from '../services/RateLimitService.js';
+import { StoreHealthService } from '../services/StoreHealthService.js';
 
 function makeRequest(app: Express, method: string, path: string, body?: unknown, extraHeaders?: Record<string,string>) {
   return new Promise<{ status: number; body: unknown; headers: Record<string, string | string[] | undefined> }>((resolve, reject) => {
@@ -884,6 +885,74 @@ test('adminAudit includes role and tenant context in audit payload', async () =>
     (prisma.adminSession as any).findUnique = originalAdminSessionFind;
     prisma.store.findUnique = originalStoreFindUnique;
     prisma.listing.count = originalListingCount;
+    AuditService.logAction = originalAuditLogAction;
+  }
+});
+
+test('GET /api/admin/dashboard includes tenant-scoped operational health', async () => {
+  const originalAdminSessionFind = (prisma.adminSession as any).findUnique;
+  const originalCardCount = prisma.card.count;
+  const originalListingCount = prisma.listing.count;
+  const originalListingAggregate = prisma.listing.aggregate;
+  const originalOrderCount = prisma.order.count;
+  const originalInventoryImportFindMany = prisma.inventoryImport.findMany;
+  const originalStoreFindUnique = prisma.store.findUnique;
+  const originalExchangeFast = ExchangeRateService.getUSDtoCLPRateMetaFast;
+  const originalHealth = StoreHealthService.getOperationalHealth;
+  const originalAuditLogAction = AuditService.logAction;
+
+  try {
+    let healthStoreId: string | undefined;
+
+    (prisma.adminSession as any).findUnique = async () => ({
+      token: 'faketoken',
+      expiresAt: null,
+      storeId: 'store-1',
+      user: { id: 'u-store-admin', email: 'admin@store.com', role: 'ADMIN', isActive: true },
+    });
+
+    prisma.card.count = (async () => 4) as any;
+    prisma.listing.count = (async () => 4) as any;
+    prisma.listing.aggregate = (async () => ({ _sum: { finalPrice: 10000 } })) as any;
+    prisma.order.count = (async () => 2) as any;
+    prisma.inventoryImport.findMany = (async () => []) as any;
+    prisma.store.findUnique = (async () => ({ id: 'store-1', slug: 'store-one', name: 'Store One' })) as any;
+    ExchangeRateService.getUSDtoCLPRateMetaFast = (async () => ({ rate: 1000, retrievalSource: 'fallback' })) as any;
+    StoreHealthService.getOperationalHealth = (async (storeId?: string) => {
+      healthStoreId = storeId;
+      return {
+        storeId,
+        healthScore: 91,
+        generatedAt: '2026-06-13T00:00:00.000Z',
+        inventory: { totalListings: 4, activeListings: 3, lowStockListings: 1, outOfStockListings: 0, totalValueCLP: 12000, lowStockThreshold: 5 },
+        pricing: { stalePriceListings: 1, missingReferencePriceListings: 0, stalePriceDays: 7 },
+        sync: { lastSuccessfulSyncAt: '2026-06-12T00:00:00.000Z', recentFailedRuns: [] },
+      } as any;
+    }) as typeof StoreHealthService.getOperationalHealth;
+    AuditService.logAction = (async () => undefined) as typeof AuditService.logAction;
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/admin', adminRoutes);
+    app.use(buildErrorHandler());
+
+    const res = await makeRequest(app, 'GET', '/api/admin/dashboard', undefined, { Authorization: 'Bearer faketoken', 'x-store-id': 'store-1' });
+
+    assert.equal(res.status, 200);
+    assert.equal(healthStoreId, 'store-1');
+    assert.equal((res.body as any).operationalHealth.healthScore, 91);
+    assert.equal((res.body as any).operationalHealth.inventory.totalValueCLP, 12000);
+    assert.equal((res.body as any).operationalHealth.pricing.stalePriceListings, 1);
+  } finally {
+    (prisma.adminSession as any).findUnique = originalAdminSessionFind;
+    prisma.card.count = originalCardCount;
+    prisma.listing.count = originalListingCount;
+    prisma.listing.aggregate = originalListingAggregate;
+    prisma.order.count = originalOrderCount;
+    prisma.inventoryImport.findMany = originalInventoryImportFindMany;
+    prisma.store.findUnique = originalStoreFindUnique;
+    ExchangeRateService.getUSDtoCLPRateMetaFast = originalExchangeFast;
+    StoreHealthService.getOperationalHealth = originalHealth;
     AuditService.logAction = originalAuditLogAction;
   }
 });
