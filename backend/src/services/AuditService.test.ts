@@ -23,6 +23,28 @@ test('logAction writes audit trail entry', async () => {
   }
 });
 
+test('logAction suppresses local schema incompatibility errors', async () => {
+  const originalCreate = prisma.auditTrail.create;
+  const originalConsoleError = console.error;
+
+  try {
+    const errors: unknown[][] = [];
+    prisma.auditTrail.create = (async () => {
+      throw new Error('Unknown argument `userId`. Did you mean `user`?');
+    }) as any;
+    console.error = (...args: unknown[]) => {
+      errors.push(args);
+    };
+
+    await AuditService.logAction({ userId: 'dev-admin', action: 'GET /dashboard', entity: null, entityId: null });
+
+    assert.equal(errors.length, 0);
+  } finally {
+    prisma.auditTrail.create = originalCreate;
+    console.error = originalConsoleError;
+  }
+});
+
 test('computeDiff returns changed keys', () => {
   const diff = AuditService.computeDiff(
     { price: 100, quantity: 2, unchanged: 'x' },

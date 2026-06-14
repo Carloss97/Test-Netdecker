@@ -13,30 +13,15 @@ import {
 } from '../services/catalog';
 import type { EditionWithCounts } from '../types';
 import { logClientError } from '../utils/observability';
+import {
+  getExternalSetImportCode,
+  getExternalSetRowKey,
+  normalizeExternalSets,
+  type ExternalSetLike,
+  type NormalizedExternalSet,
+} from '../utils/externalSets';
 
 type TcgCode = 'MAGIC' | 'POKEMON' | 'YUGIOH' | 'ONE_PIECE' | 'DIGIMON' | 'WEISS_SCHWARZ';
-
-interface ExternalSetItem {
-  code: string;
-  name: string;
-  totalCards?: number;
-  releaseDate?: string;
-}
-
-interface RawExternalSetItem {
-  code?: string;
-  abbreviation?: string;
-  groupId?: number;
-  name?: string;
-  editionName?: string;
-  totalCards?: number;
-  cardCount?: number;
-  totalItems?: number;
-  productCount?: number;
-  numOfCards?: number;
-  releaseDate?: string;
-  publishedOn?: string;
-}
 
 interface ImportRecord {
   id: string;
@@ -62,7 +47,7 @@ export function ImportPage() {
   // ── Catalog tab state ──
   const [catalogTcg, setCatalogTcg] = useState('');
   const [loadingSets, setLoadingSets] = useState(false);
-  const [externalSets, setExternalSets] = useState<ExternalSetItem[]>([]);
+  const [externalSets, setExternalSets] = useState<NormalizedExternalSet[]>([]);
   const [importingSet, setImportingSet] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -139,17 +124,8 @@ export function ImportPage() {
     setImportError(null);
     listExternalSets(catalogTcg as TcgCode)
       .then((result) => {
-        const sets = (result as { sets?: RawExternalSetItem[] }).sets ?? [];
-        setExternalSets(
-          sets
-            .map((set) => ({
-              code: (set.code || set.abbreviation || (typeof set.groupId === 'number' ? String(set.groupId) : '')).trim(),
-              name: (set.name || set.editionName || '').trim(),
-              totalCards: typeof set.totalCards === 'number' && set.totalCards > 0 ? set.totalCards : undefined,
-              releaseDate: set.releaseDate || set.publishedOn || undefined,
-            }))
-            .filter((set) => set.code && set.name),
-        );
+        const sets = (result as { sets?: ExternalSetLike[] }).sets ?? [];
+        setExternalSets(normalizeExternalSets(sets));
       })
       .catch((err) => {
         setImportError('Error al cargar sets externos');
@@ -171,17 +147,8 @@ export function ImportPage() {
     setImportError(null);
     try {
       const result = await listExternalSets(catalogTcg as TcgCode);
-      const sets = (result as { sets?: RawExternalSetItem[] }).sets ?? [];
-      setExternalSets(
-        sets
-          .map((set) => ({
-            code: (set.code || set.abbreviation || (typeof set.groupId === 'number' ? String(set.groupId) : '')).trim(),
-            name: (set.name || set.editionName || '').trim(),
-            totalCards: typeof set.totalCards === 'number' && set.totalCards > 0 ? set.totalCards : undefined,
-            releaseDate: set.releaseDate || set.publishedOn || undefined,
-          }))
-          .filter((set) => set.code && set.name),
-      );
+      const sets = (result as { sets?: ExternalSetLike[] }).sets ?? [];
+      setExternalSets(normalizeExternalSets(sets));
     } catch (err) {
       setImportError('Error al cargar sets externos');
       logClientError({
@@ -196,20 +163,21 @@ export function ImportPage() {
     }
   };
 
-  const handleImportSet = async (code: string) => {
-    setImportingSet(code);
+  const handleImportSet = async (set: NormalizedExternalSet) => {
+    const importCode = getExternalSetImportCode(set);
+    setImportingSet(importCode);
     setImportMsg(null);
     setImportError(null);
     try {
-      await importExternalSet({ tcg: catalogTcg as TcgCode, setCode: code });
-      setImportMsg(`Set "${code}" importado correctamente`);
+      await importExternalSet({ tcg: catalogTcg as TcgCode, setCode: importCode });
+      setImportMsg(`Set "${set.code}" importado correctamente`);
     } catch (err) {
-      setImportError(`Error al importar set "${code}"`);
+      setImportError(`Error al importar set "${set.code}"`);
       logClientError({
         area: 'import-page',
         action: 'import-external-set',
         message: 'Failed importing external set',
-        context: { catalogTcg, setCode: code },
+        context: { catalogTcg, setCode: set.code, importCode },
         error: err,
       });
     } finally {
@@ -537,24 +505,27 @@ export function ImportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSortedSets.map((s, idx) => (
-                      <tr key={`${s.code}-${s.name}-${idx}`}>
-                        <td><span className="badge badge-gray">{s.code}</span></td>
-                        <td style={{ fontWeight: 500 }}>{s.name}</td>
-                        <td>{s.totalCards ?? '—'}</td>
-                        <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.releaseDate ?? '—'}</td>
-                        <td>
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => handleImportSet(s.code)}
-                            disabled={importingSet === s.code}
-                            title={`Importar catálogo completo del set ${s.code}`}
-                          >
-                            {importingSet === s.code ? '⏳ Importando…' : '⬇ Importar Set'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredSortedSets.map((s, idx) => {
+                      const importCode = getExternalSetImportCode(s);
+                      return (
+                        <tr key={getExternalSetRowKey(catalogTcg || 'UNKNOWN', s, idx)}>
+                          <td><span className="badge badge-gray" title={s.groupId ? `TCGCSV groupId: ${s.groupId}` : undefined}>{s.code}</span></td>
+                          <td style={{ fontWeight: 500 }}>{s.name}</td>
+                          <td>{s.totalCards ?? '—'}</td>
+                          <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.releaseDate ?? '—'}</td>
+                          <td>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleImportSet(s)}
+                              disabled={importingSet === importCode}
+                              title={`Importar catálogo completo del set ${s.code}${s.groupId ? ` (grupo ${s.groupId})` : ''}`}
+                            >
+                              {importingSet === importCode ? '⏳ Importando…' : '⬇ Importar Set'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

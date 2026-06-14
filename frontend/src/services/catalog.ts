@@ -1,6 +1,7 @@
 import apiClient from './api';
 import type { Card, EditionWithCounts, EditionInventory, Listing } from '../types';
 import * as tcgcsvClient from './tcgcsv';
+import { getExternalSetImportCode, normalizeExternalSet } from '../utils/externalSets';
 const ALLOW_DIRECT_TCGCSV = String(import.meta.env.VITE_ALLOW_TCGCSV_DIRECT || '').toLowerCase() === 'true';
 import * as localImports from './localImports';
 
@@ -970,16 +971,21 @@ export async function getEditions(params?: { tcgId?: string; activeOnly?: boolea
       try {
         const res: any = await listExternalSets(params.tcgId as any);
         const sets = (res && res.sets) || [];
-        return sets.map((s: any) => ({
-          id: `${params.tcgId}:${s.code}`,
-          tcg: { id: params.tcgId, name: params.tcgId, displayName: params.tcgId },
-          editionCode: s.code,
-          editionName: s.name,
-          releaseDate: s.releaseDate,
-          isActive: false,
-          cardCount: s.totalCards ?? 0,
-          listingCount: 0,
-        } as EditionWithCounts));
+        return sets.map((rawSet: any, index: number) => {
+          const s = normalizeExternalSet(rawSet);
+          const importCode = s ? getExternalSetImportCode(s) : String(rawSet?.code || index);
+
+          return ({
+            id: `${params.tcgId}:${importCode}`,
+            tcg: { id: params.tcgId, name: params.tcgId, displayName: params.tcgId },
+            editionCode: s?.code || String(rawSet?.code || importCode),
+            editionName: s?.name || String(rawSet?.name || rawSet?.editionName || importCode),
+            releaseDate: s?.releaseDate || rawSet?.releaseDate,
+            isActive: false,
+            cardCount: s?.totalCards ?? 0,
+            listingCount: 0,
+          } as EditionWithCounts);
+        });
       } catch (_) {
         return [] as EditionWithCounts[];
       }

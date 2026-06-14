@@ -53,10 +53,12 @@ window.addEventListener('unhandledrejection', (ev) => {
   showGlobalError('Se produjo un error (rejection). Revisa la consola para más detalles.');
 });
 
+const app = (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>,
+  import.meta.env.DEV ? app : <React.StrictMode>{app}</React.StrictMode>,
 )

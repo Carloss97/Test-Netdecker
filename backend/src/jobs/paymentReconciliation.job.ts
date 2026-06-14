@@ -1,12 +1,13 @@
 import cron from 'node-cron';
 import PaymentReconciliationService from '../services/PaymentReconciliationService.js';
+import { isLocalOnlyMode, parseBooleanEnv } from '../config/appConfig.js';
 
 let isRunning = false;
 
 export function startPaymentReconciliationCron() {
-  const enabled = process.env.PAYMENT_RECONCILIATION_ENABLED !== 'false';
+  const enabled = parseBooleanEnv(process.env.PAYMENT_RECONCILIATION_ENABLED, !isLocalOnlyMode());
   if (!enabled) {
-    console.log('[PaymentReconciliationJob] Disabled by PAYMENT_RECONCILIATION_ENABLED=false');
+    console.log('[PaymentReconciliationJob] Disabled. Set PAYMENT_RECONCILIATION_ENABLED=true to enable external payment reconciliation.');
     return;
   }
 

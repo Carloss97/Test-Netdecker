@@ -10,6 +10,16 @@ function toObject(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function isSchemaIncompatibility(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('Unknown argument `userId`')
+    || message.includes('Unknown argument `operation`')
+    || message.includes('Unknown argument `entityType`')
+    || message.includes('Unknown argument `oldValue`')
+    || message.includes('Unknown argument `newValue`')
+    || message.includes('Unknown argument `diff`');
+}
+
 export class AuditService {
   static async logAction(params: {
     userId?: string | null;
@@ -39,6 +49,11 @@ export class AuditService {
         },
       });
     } catch (err: any) {
+      // If this is a local SQLite/client schema mismatch, skip silently: audit is non-critical.
+      if (isSchemaIncompatibility(err)) {
+        return;
+      }
+
       // If this is a foreign-key violation on userId, attempt a safe retry
       // that omits the `userId` and stores the original id inside `data`.
       const isFK = err && (err.code === 'P2003' || (err.meta && String(err.meta.field_name || '').toLowerCase().includes('userid')));
@@ -135,6 +150,9 @@ export class AuditService {
       });
     } catch (err: any) {
       const isFK = err && (err.code === 'P2003' || (err.meta && String(err.meta.field_name || '').toLowerCase().includes('userid')));
+      if (isSchemaIncompatibility(err)) {
+        return;
+      }
       if (!isFK) {
         return;
       }

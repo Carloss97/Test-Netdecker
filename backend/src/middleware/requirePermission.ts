@@ -1,11 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 import { ForbiddenError, UnauthorizedError } from '../utils/errors.js';
 import PermissionService from '../services/PermissionService.js';
+import { isLocalOnlyMode } from '../config/appConfig.js';
+
+function shouldBypassPermissionsForLocalDev(): boolean {
+  if (process.env.DEV_NO_AUTH === 'true') return true;
+  return process.env.NODE_ENV !== 'production' && isLocalOnlyMode();
+}
 
 export function requirePermission(action: string, resource: string) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     // Local development bypass
-    if (process.env.DEV_NO_AUTH === 'true') return next();
+    if (shouldBypassPermissionsForLocalDev()) return next();
 
     const admin = (req as any).adminUser as { id: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; storeId?: string | null } | undefined;
 

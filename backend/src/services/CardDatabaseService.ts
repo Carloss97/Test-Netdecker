@@ -34,6 +34,7 @@ export interface ExternalCard {
 export interface ExternalEdition {
   code: string;
   name: string;
+  groupId?: number;
   releaseDate?: string;
   totalCards?: number;
   source: ExternalSource;

@@ -38,4 +38,27 @@ describe('useAsync', () => {
     expect(result.current.error?.message).toBe('network failed');
     expect(result.current.data).toBeNull();
   });
+
+  it('does not refetch just because an inline async function gets a new identity on render', async () => {
+    const asyncFn = vi.fn().mockResolvedValue({ id: 'ok-1' });
+
+    const { rerender, result } = renderHook(
+      ({ marker }) => useAsync(() => asyncFn(marker)),
+      { initialProps: { marker: 'first' } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('success');
+    });
+
+    expect(asyncFn).toHaveBeenCalledTimes(1);
+    expect(asyncFn).toHaveBeenCalledWith('first');
+
+    rerender({ marker: 'second' });
+
+    await new Promise((resolve) => window.setTimeout(resolve, 25));
+
+    expect(result.current.status).toBe('success');
+    expect(asyncFn).toHaveBeenCalledTimes(1);
+  });
 });

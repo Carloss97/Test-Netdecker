@@ -1,12 +1,18 @@
 import cron from 'node-cron';
 import WebhookQueueService from '../services/WebhookQueueService.js';
+import { isLocalOnlyMode, parseBooleanEnv } from '../config/appConfig.js';
 
 let isRunning = false;
 
 export function startWebhookQueueCron() {
-  const enabled = process.env.WEBHOOK_QUEUE_ENABLED !== 'false';
+  const enabled = parseBooleanEnv(process.env.WEBHOOK_QUEUE_ENABLED, !isLocalOnlyMode());
   if (!enabled) {
-    console.log('[WebhookQueueJob] Disabled by WEBHOOK_QUEUE_ENABLED=false');
+    console.log('[WebhookQueueJob] Disabled. Set WEBHOOK_QUEUE_ENABLED=true to enable queued payment webhooks.');
+    return;
+  }
+
+  if (!WebhookQueueService.isQueueAvailable()) {
+    console.warn('[WebhookQueueJob] Disabled because webhook queue tables are unavailable in the current Prisma client.');
     return;
   }
 

@@ -412,6 +412,7 @@ export class TCGCsvService {
       return {
         code: (group.abbreviation || String(group.groupId)).toUpperCase(),
         name: group.name,
+        groupId: group.groupId,
         releaseDate: group.publishedOn,
         totalCards: getGroupCardCount(group),
         source: 'tcgcsv' as const,

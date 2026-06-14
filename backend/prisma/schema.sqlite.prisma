@@ -49,6 +49,7 @@ model TCG {
   name           String   @unique
   displayName    String
   description    String?
+  isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -83,6 +84,9 @@ model Card {
   cardNumber     String?
   rarity         String
   colorIdentity  String?
+  cardType       String?
+  attribute      String?
+  metadata       String?
   tags           String    @default("")
   imageUrl       String?
   description    String?

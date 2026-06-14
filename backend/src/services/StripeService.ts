@@ -1,9 +1,27 @@
 import prisma from '../utils/db.js';
+import { isLocalOnlyMode } from '../config/appConfig.js';
+import { ApplicationError } from '../utils/errors.js';
 
 type Item = { listingId: string; quantity: number };
 
+function externalProviderDisabled(provider: string): ApplicationError {
+  return new ApplicationError(
+    503,
+    `${provider} is disabled in local TCGCSV-only mode. Use POS/CASH flows locally or set LOCAL_ONLY_MODE=false with provider credentials.`,
+    'EXTERNAL_PROVIDER_DISABLED',
+  );
+}
+
 export class StripeService {
   static async createPaymentIntent(params: { items: Item[]; storeId?: string | null; currency?: string }) {
+    if (isLocalOnlyMode()) {
+      throw externalProviderDisabled('Stripe');
+    }
+
+    if (!process.env.STRIPE_SECRET) {
+      throw externalProviderDisabled('Stripe');
+    }
+
     // Lazy import to avoid hard dependency during tests
     // @ts-ignore - allow dynamic runtime import when `stripe` package/types are not installed in dev
     const StripeMod: any = await import('stripe').catch(() => null);
@@ -44,6 +62,10 @@ export class StripeService {
   }
 
   static verifyWebhookSignature(rawBody: Buffer, sigHeader: string | undefined, endpointSecret?: string) {
+    if (isLocalOnlyMode()) {
+      throw externalProviderDisabled('Stripe webhooks');
+    }
+
     // @ts-ignore - runtime import of stripe; allow when types/package not present
     return import('stripe').then((StripeMod: any) => {
       const Stripe = StripeMod.default || StripeMod;
@@ -54,6 +76,10 @@ export class StripeService {
   }
 
   static async listCharges(range: { gte: Date; lt: Date }) {
+    if (isLocalOnlyMode() || !process.env.STRIPE_SECRET) {
+      return [];
+    }
+
     // @ts-ignore - allow runtime import when stripe package/types are missing in some test setups
     const StripeMod: any = await import('stripe').catch(() => null);
     if (!StripeMod) throw new Error('Stripe SDK not available. Install stripe package to use this connector.');

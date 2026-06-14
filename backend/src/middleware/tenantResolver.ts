@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/db.js';
 import StoreService from '../services/StoreServiceImpl.js';
+import { isLocalOnlyMode } from '../config/appConfig.js';
+import { LocalBootstrapService } from '../services/LocalBootstrapService.js';
 
 function extractAdminToken(req: Request): string {
   const auth = String(req.headers.authorization || '').trim();
@@ -127,6 +129,10 @@ export default async function tenantResolver(req: Request, _res: Response, next:
 
     if (!store && adminSessionStore) {
       store = adminSessionStore;
+    }
+
+    if (!store && isLocalOnlyMode()) {
+      store = await LocalBootstrapService.ensureLocalStore();
     }
 
     if (store) {

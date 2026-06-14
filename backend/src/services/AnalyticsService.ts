@@ -1,5 +1,10 @@
 import prisma from '../utils/db.js';
 
+function getOptionalDelegate(name: string): any | null {
+  const delegate = (prisma as any)[name];
+  return delegate && typeof delegate.findMany === 'function' ? delegate : null;
+}
+
 export class AnalyticsService {
   /**
    * Get high-level sales and profit stats.
@@ -26,12 +31,16 @@ export class AnalyticsService {
       totalRevenue += order.total;
     }
 
-    // Get total expenses for the period/store
-    const expenses = await prisma.expense.findMany({
-      where: {
-        ...(storeId ? { storeId } : {}),
-      }
-    });
+    // Get total expenses for the period/store. Expenses are optional in the
+    // lightweight SQLite local schema; an empty local dashboard should still load.
+    const expenseDelegate = getOptionalDelegate('expense');
+    const expenses = expenseDelegate
+      ? await expenseDelegate.findMany({
+          where: {
+            ...(storeId ? { storeId } : {}),
+          }
+        })
+      : [];
 
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const grossProfit = totalRevenue - totalExpenses;

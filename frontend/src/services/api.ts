@@ -143,6 +143,13 @@ function shouldRetry(error: AxiosError): boolean {
     return false;
   }
 
+  const code = String(error.code || '').toUpperCase();
+  const name = String(error.name || '').toLowerCase();
+  const message = String(error.message || '').toLowerCase();
+  if (code === 'ERR_CANCELED' || name === 'cancelederror' || message.includes('canceled') || message.includes('cancelled')) {
+    return false;
+  }
+
   // Retry transient startup/network/proxy errors.
   if (!error.response) {
     return true;
@@ -169,7 +176,7 @@ apiClient.interceptors.request.use(
 
     // 1. Handle Admin token for custom header (always)
     try {
-      const adminToken = localStorage.getItem('auth_token');
+      const adminToken = localStorage.getItem('auth_token') || readCookie('auth_token_js');
       if (adminToken) {
         config.headers['x-admin-token'] = adminToken;
         // Only use as primary Auth if NOT a storefront request

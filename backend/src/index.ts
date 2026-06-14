@@ -158,7 +158,11 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   }
 
   if (statusCode >= 500) {
-    console.error('Error:', err);
+    if (isAppError && code === 'EXTERNAL_PROVIDER_DISABLED') {
+      console.warn(`[${code}] ${message}`);
+    } else {
+      console.error('Error:', err);
+    }
   }
 
   res.status(statusCode).json({

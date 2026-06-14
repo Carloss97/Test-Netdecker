@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
 import prisma from '../utils/db.js';
+import { isLocalOnlyMode } from '../config/appConfig.js';
+
+function shouldBypassAdminAuthForLocalDev(): boolean {
+  if (process.env.DEV_NO_AUTH === 'true') return true;
+  return process.env.NODE_ENV !== 'production' && isLocalOnlyMode();
+}
 
 function extractToken(req: Request): { token: string; source: string } {
   const auth = String(req.headers['authorization'] || '');
@@ -29,8 +35,9 @@ function extractToken(req: Request): { token: string; source: string } {
 }
 
 export async function requireAdmin(req: Request, _res: Response, next: NextFunction) {
-  // Local development bypass — skip auth entirely when DEV_NO_AUTH=***
-  if (process.env.DEV_NO_AUTH === 'true') {
+  // Local development bypass — skip auth entirely when explicitly enabled,
+  // or when running the local-first MVP outside production.
+  if (shouldBypassAdminAuthForLocalDev()) {
     console.log('[requireAdmin] DEV_NO_AUTH bypass active');
     (req as any).adminUser = {
       id: 'dev-admin',

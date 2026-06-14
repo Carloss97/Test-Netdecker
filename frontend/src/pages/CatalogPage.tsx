@@ -15,6 +15,12 @@ import {
   bootstrapCatalog
 } from '../services/catalog';
 import type { Listing, EditionWithCounts } from '../types';
+import {
+  getExternalSetImportCode,
+  getExternalSetRowKey,
+  normalizeExternalSets,
+  type NormalizedExternalSet,
+} from '../utils/externalSets';
 
 function fmtCLP(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -55,7 +61,7 @@ export function CatalogPage() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isImportingCsv, setIsImportingCsv] = useState(false);
 
-  const [externalSets, setExternalSets] = useState<any[]>([]);
+  const [externalSets, setExternalSets] = useState<NormalizedExternalSet[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
   const [setsSortDir, setSetsSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -84,7 +90,7 @@ export function CatalogPage() {
     if (activeTab === 'import' && bootstrapTcg) {
       setLoadingSets(true);
       listExternalSets(bootstrapTcg as any)
-        .then(res => setExternalSets(Array.isArray(res.sets) ? res.sets : []))
+        .then(res => setExternalSets(normalizeExternalSets(Array.isArray(res.sets) ? res.sets : [])))
         .catch(() => setExternalSets([]))
         .finally(() => setLoadingSets(false));
     }
@@ -159,8 +165,8 @@ export function CatalogPage() {
     }
   };
 
-  const selectSetForBootstrap = (code: string) => {
-    setBootstrapSetCode(code);
+  const selectSetForBootstrap = (set: NormalizedExternalSet) => {
+    setBootstrapSetCode(getExternalSetImportCode(set));
     importFormRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -420,12 +426,12 @@ export function CatalogPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {sortedExternalSets.map(s => (
-                            <tr key={s.code}>
+                          {sortedExternalSets.map((s, idx) => (
+                            <tr key={getExternalSetRowKey(bootstrapTcg || 'UNKNOWN', s, idx)}>
                               <td style={{ fontSize: '0.7rem' }}>{s.releaseDate ? new Date(s.releaseDate).toLocaleDateString() : '—'}</td>
-                              <td><code>{s.code}</code></td>
+                              <td><code title={s.groupId ? `TCGCSV groupId: ${s.groupId}` : undefined}>{s.code}</code></td>
                               <td style={{ fontSize: '0.8rem' }}>{s.name}</td>
-                              <td><button className="btn btn-sm btn-primary" onClick={() => selectSetForBootstrap(s.code)}>✓</button></td>
+                              <td><button className="btn btn-sm btn-primary" onClick={() => selectSetForBootstrap(s)}>✓</button></td>
                             </tr>
                           ))}
                         </tbody>

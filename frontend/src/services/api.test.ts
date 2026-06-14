@@ -102,6 +102,23 @@ describe('api client auth propagation', () => {
     vi.useRealTimers();
   });
 
+  it('does not retry canceled requests', async () => {
+    const rejected = getResponseErrorInterceptor();
+    const requestSpy = vi.spyOn(apiClient, 'request').mockResolvedValue({ data: { ok: true } } as any);
+    const error = {
+      name: 'CanceledError',
+      code: 'ERR_CANCELED',
+      message: 'canceled',
+      config: { method: 'get', headers: {} },
+      response: undefined,
+    };
+
+    await expect(rejected(error)).rejects.toBe(error);
+    expect(requestSpy).not.toHaveBeenCalled();
+
+    requestSpy.mockRestore();
+  });
+
   it('handles auth-probe 401 responses by clearing auth token and redirecting to login', async () => {
     const rejected = getResponseErrorInterceptor();
     localStorage.setItem('auth_token', 'tok-local');

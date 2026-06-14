@@ -16,6 +16,11 @@ type WebhookJobRecord = {
   error?: string | null;
 };
 
+type WebhookQueueUnavailableResult = {
+  skipped: true;
+  reason: 'WEBHOOK_QUEUE_UNAVAILABLE';
+};
+
 function getPayloadObject(payload: unknown): Record<string, any> {
   return payload && typeof payload === 'object' ? (payload as Record<string, any>) : {};
 }
@@ -31,8 +36,42 @@ function extractErrorMessage(error: unknown): string {
 }
 
 export class WebhookQueueService {
+  private static unavailableLogged = false;
+
+  private static getWebhookJobDelegate() {
+    return (prisma as any).webhookJob;
+  }
+
+  private static getDeadLetterQueueDelegate() {
+    return (prisma as any).deadLetterQueue;
+  }
+
+  static isQueueAvailable(): boolean {
+    const webhookJob = this.getWebhookJobDelegate();
+    return !!(
+      webhookJob &&
+      typeof webhookJob.findMany === 'function' &&
+      typeof webhookJob.create === 'function' &&
+      typeof webhookJob.update === 'function' &&
+      typeof webhookJob.updateMany === 'function'
+    );
+  }
+
+  private static queueUnavailableResult(): WebhookQueueUnavailableResult {
+    if (!this.unavailableLogged) {
+      console.warn('[WebhookQueueService] Queue tables are unavailable; skipping webhook queue processing.');
+      this.unavailableLogged = true;
+    }
+    return { skipped: true, reason: 'WEBHOOK_QUEUE_UNAVAILABLE' };
+  }
+
   static async enqueueWebhook(provider: WebhookProvider, eventType: string, payload: unknown) {
-    return prisma.webhookJob.create({
+    const webhookJob = this.getWebhookJobDelegate();
+    if (!this.isQueueAvailable()) {
+      return this.queueUnavailableResult();
+    }
+
+    return webhookJob.create({
       data: {
         provider,
         eventType,
@@ -46,8 +85,13 @@ export class WebhookQueueService {
   }
 
   static async processQueue(limit = 10) {
+    const webhookJob = this.getWebhookJobDelegate();
+    if (!this.isQueueAvailable()) {
+      return this.queueUnavailableResult();
+    }
+
     const now = new Date();
-    const jobs = await prisma.webhookJob.findMany({ orderBy: [{ createdAt: 'asc' }], take: limit });
+    const jobs = await webhookJob.findMany({ orderBy: [{ createdAt: 'asc' }], take: limit });
 
     const pendingJobs = (jobs as WebhookJobRecord[]).filter((job) => {
       if (job.status !== 'PENDING') return false;
@@ -58,6 +102,8 @@ export class WebhookQueueService {
     for (const job of pendingJobs) {
       await this.processJob(job);
     }
+
+    return { processed: pendingJobs.length };
   }
 
   static async processJob(job: WebhookJobRecord) {
@@ -188,7 +234,12 @@ export class WebhookQueueService {
   }
 
   static async getDeadLetterItems(limit = 50) {
-    const items = await prisma.deadLetterQueue.findMany({ include: { webhookJob: true } });
+    const deadLetterQueue = this.getDeadLetterQueueDelegate();
+    if (!deadLetterQueue || typeof deadLetterQueue.findMany !== 'function') {
+      return [];
+    }
+
+    const items = await deadLetterQueue.findMany({ include: { webhookJob: true } });
     return [...items]
       .filter((item: { resolvedAt?: Date | null }) => item.resolvedAt == null)
       .sort((left: { createdAt: Date }, right: { createdAt: Date }) => right.createdAt.getTime() - left.createdAt.getTime())
@@ -196,7 +247,13 @@ export class WebhookQueueService {
   }
 
   static async retryDeadLetterItem(deadLetterId: string, retriedBy?: string | null) {
-    const deadLetter = await prisma.deadLetterQueue.findUnique({
+    const webhookJob = this.getWebhookJobDelegate();
+    const deadLetterQueue = this.getDeadLetterQueueDelegate();
+    if (!this.isQueueAvailable() || !deadLetterQueue || typeof deadLetterQueue.findUnique !== 'function' || typeof deadLetterQueue.update !== 'function') {
+      throw new ValidationError('Webhook queue is unavailable in this environment');
+    }
+
+    const deadLetter = await deadLetterQueue.findUnique({
       where: { id: deadLetterId },
       include: { webhookJob: true },
     });
@@ -205,7 +262,7 @@ export class WebhookQueueService {
       throw new ValidationError('Dead letter entry not found');
     }
 
-    await prisma.webhookJob.update({
+    await webhookJob.update({
       where: { id: deadLetter.webhookJobId },
       data: {
         status: 'PENDING',
@@ -215,7 +272,7 @@ export class WebhookQueueService {
       },
     });
 
-    await prisma.deadLetterQueue.update({
+    await deadLetterQueue.update({
       where: { id: deadLetter.id },
       data: {
         resolvedAt: new Date(),

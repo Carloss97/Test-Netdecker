@@ -1,8 +1,22 @@
 import crypto from 'crypto';
 import prisma from '../utils/db.js';
+import { isLocalOnlyMode } from '../config/appConfig.js';
+import { ApplicationError } from '../utils/errors.js';
+
+function externalProviderDisabled(): ApplicationError {
+  return new ApplicationError(
+    503,
+    'MercadoPago is disabled in local TCGCSV-only mode. Use POS/CASH flows locally or set LOCAL_ONLY_MODE=false with provider credentials.',
+    'EXTERNAL_PROVIDER_DISABLED',
+  );
+}
 
 export class MercadoPagoService {
   static computeWebhookSignature(payload: string): string {
+    if (isLocalOnlyMode()) {
+      throw externalProviderDisabled();
+    }
+
     const token = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
     if (!token) {
       throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured');
@@ -31,6 +45,10 @@ export class MercadoPagoService {
   }
 
   static async createPreference(params: { items: Array<{ id: string; title: string; quantity: number; unit_price: number }>; back_urls?: Record<string,string>; external_reference?: string }) {
+    if (isLocalOnlyMode()) {
+      throw externalProviderDisabled();
+    }
+
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
     if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured');
 

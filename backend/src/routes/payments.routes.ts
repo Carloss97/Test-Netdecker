@@ -60,7 +60,8 @@ router.post('/mercadopago/create-preference', async (req, res) => {
     const pref = await MercadoPagoService.createPreference({ items, back_urls: body.back_urls || {}, external_reference: body.storeId || undefined });
     res.json({ success: true, preference: pref });
   } catch (err: any) {
-    res.status(500).json({ success: false, message: err?.message || 'MercadoPago error' });
+    const statusCode = typeof err?.statusCode === 'number' ? err.statusCode : 500;
+    res.status(statusCode).json({ success: false, message: err?.message || 'MercadoPago error' });
   }
 });
 
